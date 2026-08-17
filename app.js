@@ -1,6 +1,6 @@
 /**
- * Main Application Orchestrator
- * Connects AvatarStage, VoiceEngine, ChatAgent, Spatial Cards, Modals and Live n8n Execution.
+ * Main Application Orchestrator for Sleek Keynote AI Stage
+ * Connects AvatarStage, VoiceEngine, ChatAgent, Spatial Nodes, Modals and Live n8n Execution.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedRate = parseFloat(localStorage.getItem('appu_rate') || '1.0');
   const savedAutoSpeak = localStorage.getItem('appu_auto_speak') !== 'false';
   const savedSound = localStorage.getItem('appu_sound_sfx') !== 'false';
+  let currentLang = localStorage.getItem('appu_lang') || 'en';
 
   // 2. Initialize Avatar Stage
   const avatarStage = new AvatarStage();
@@ -58,8 +59,35 @@ document.addEventListener('DOMContentLoaded', () => {
     openSettingsModal,
     closeSettingsModal,
     toggleChatDrawer,
-    handleUserInteraction
+    handleUserInteraction,
+    setLanguage
   };
+
+  // ==========================================
+  // LANGUAGE TOGGLE HANDLER (ENG / KANNADA)
+  // ==========================================
+  const langEnBtn = document.getElementById('lang-en');
+  const langKnBtn = document.getElementById('lang-kn');
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('appu_lang', lang);
+
+    if (langEnBtn && langKnBtn) {
+      if (lang === 'kn') {
+        langKnBtn.classList.add('is-active');
+        langEnBtn.classList.remove('is-active');
+        voiceEngine.speak('ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು, ಐಜಿಆರ್ ಅಕಾಡೆಮಿಯ ಎಐ ಮೆಂಟರ್. ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?');
+      } else {
+        langEnBtn.classList.add('is-active');
+        langKnBtn.classList.remove('is-active');
+        voiceEngine.speak('Namaskara! I am Appu, your AI Mentor at IGR Academy. How can I guide you today?');
+      }
+    }
+  }
+
+  if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
+  if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
 
   // ==========================================
   // CORE INTERACTION HANDLER
@@ -99,14 +127,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnMic) {
     btnMic.addEventListener('click', () => {
-      voiceEngine.playTone(480, 'sine', 0.08);
+      voiceEngine.playTone(520, 'sine', 0.1);
       voiceEngine.toggleListening();
     });
   }
 
   if (avatarFigure) {
     avatarFigure.addEventListener('click', () => {
-      voiceEngine.playTone(520, 'sine', 0.08);
+      voiceEngine.playTone(580, 'sine', 0.1);
       voiceEngine.toggleListening();
     });
   }
@@ -168,12 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Floating 3D Spatial Cards & Quick Intent Chips
-  document.querySelectorAll('.spatial-card, .intent-chip').forEach(elem => {
+  // Spatial Nodes & Recommendation Chips
+  document.querySelectorAll('.spatial-node, .chip-action-btn').forEach(elem => {
     elem.addEventListener('click', () => {
       const prompt = elem.getAttribute('data-prompt');
       if (prompt) {
-        voiceEngine.playTone(540, 'sine', 0.08);
+        voiceEngine.playTone(600, 'sine', 0.1);
         handleUserInteraction(prompt);
       }
     });
@@ -187,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
       voiceEngine.soundEnabled = !voiceEngine.soundEnabled;
       if (voiceEngine.soundEnabled) {
         soundIcon.className = 'fa-solid fa-volume-high';
-        voiceEngine.playTone(600, 'sine', 0.1);
+        voiceEngine.playTone(650, 'sine', 0.12);
       } else {
         soundIcon.className = 'fa-solid fa-volume-xmark';
       }
@@ -214,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(11, 0, 0, 0);
+      tomorrow.setHours(17, 0, 0, 0); // 5 PM
       const leadDateInput = document.getElementById('lead-date');
       if (leadDateInput) {
         leadDateInput.value = tomorrow.toISOString().slice(0, 16);
@@ -238,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const submitBtn = document.getElementById('btn-submit-discovery');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Syncing Google Meet & WhatsApp via n8n...</span>';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Creating Google Meet & WhatsApp Alert...</span>';
       }
 
       const leadData = {
@@ -263,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const successSummary = document.getElementById('success-summary');
       if (successSummary) {
-        successSummary.textContent = `Google Meet link generated for ${leadData.name}. Calendar invite sent to ${leadData.email} and WhatsApp alert sent to ${leadData.phone}!`;
+        successSummary.textContent = `Google Meet link created for ${leadData.name}. Invitation sent to ${leadData.email} and WhatsApp alert sent to ${leadData.phone}!`;
       }
 
       const meetLink = document.getElementById('success-meet-link');
@@ -274,10 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const waLink = document.getElementById('success-wa-link');
       if (waLink) {
         const cleanPhone = leadData.phone.replace(/[^0-9]/g, '');
-        waLink.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${leadData.name}, your IGR Academy Discovery Call is confirmed! Meet link: ${result.meetLink}`)}`;
+        waLink.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${leadData.name}, your 0-Click Discovery Call with Appu at IGR Academy is confirmed! Meet link: ${result.meetLink}`)}`;
       }
 
-      voiceEngine.speak(`Congratulations ${leadData.name}! Your 0-Click Discovery Call has been scheduled. I have sent the Google Meet invite to your email and WhatsApp.`);
+      voiceEngine.speak(`Thank you ${leadData.name}! Your Discovery Call has been scheduled! We sent your Google Meet link and WhatsApp alert.`);
     });
   }
 
@@ -363,9 +391,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
   });
-
-  // Welcome burst
-  setTimeout(() => {
-    avatarStage.triggerStateBurst('idle');
-  }, 800);
 });

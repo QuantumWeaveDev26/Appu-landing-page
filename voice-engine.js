@@ -26,7 +26,7 @@ class VoiceEngine {
     // UI elements
     this.subtitlesText = document.getElementById('subtitles-text');
     this.equalizer = document.getElementById('audio-equalizer');
-    this.micWrapper = document.querySelector('.hero-mic-wrapper');
+    this.micWrapper = document.querySelector('.voice-portal-wrapper');
     this.micTooltip = document.getElementById('mic-tooltip');
 
     this.initWebAudio();
