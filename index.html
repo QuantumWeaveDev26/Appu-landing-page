@@ -17,7 +17,16 @@
   <!-- Main Design Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="theme-keynote-luxury">
+<body>
+
+  <!-- Entrance Loader -->
+  <div class="entrance-loader" id="loader">
+    <div class="loader-brand">IGR <span class="text-cyan">Academy</span></div>
+    <div class="loader-bar-track">
+      <div class="loader-bar-fill" id="loader-bar"></div>
+    </div>
+    <div class="loader-count" id="loader-count">000</div>
+  </div>
 
   <!-- Custom Ambient Cursor Follower -->
   <div class="custom-cursor-dot" id="cursor-dot"></div>
@@ -81,17 +90,30 @@
       </nav>
     </header>
 
-    <!-- Main Hero Digital Human Stage (Appu Centered & Completely Unobstructed) -->
+    <!-- Main Hero Digital Human Stage -->
     <main class="hero-stage-container" id="hero-stage">
+
+      <!-- Stage Floor Grid -->
+      <div class="stage-floor-grid"></div>
+      
+      <!-- Volumetric Light Beam -->
+      <div class="volumetric-beam"></div>
+
+      <!-- Holographic Podium Rings -->
+      <div class="holographic-podium">
+        <div class="podium-ring podium-ring-1"></div>
+        <div class="podium-ring podium-ring-2"></div>
+        <div class="podium-ring podium-ring-3"></div>
+      </div>
       
       <!-- 3D Interactive Avatar Stage Wrapper -->
       <div class="avatar-stage-wrapper" id="avatar-3d-wrapper">
         <div class="avatar-energy-aura" id="avatar-aura"></div>
         <div class="avatar-floor-shadow"></div>
         
-        <!-- Appu Figure Image (Breathing & Dynamic Parallax) -->
+        <!-- Appu Figure Image (Grounded on Spotlight Platform) -->
         <div class="avatar-interactive-figure" id="avatar-figure-container" title="Click Appu to speak!">
-          <img src="assets/appu-cutout.png" onerror="this.src='Generated image 1 (1).png'" alt="Appu - AI Mentor" id="avatar-img" class="avatar-img" />
+          <img src="assets/appu-cutout-new.png" onerror="this.src='assets/appu-cutout.png'" alt="Appu - AI Mentor" id="avatar-img" class="avatar-img" />
           <div class="avatar-rim-glow"></div>
         </div>
       </div>
@@ -161,7 +183,7 @@
         </button>
 
         <!-- Central Radiant Voice Portal Microphone Button -->
-        <div class="voice-portal-assembly">
+        <div class="voice-portal-assembly" id="voice-portal">
           <div class="voice-portal-waves">
             <div class="portal-wave wave-1"></div>
             <div class="portal-wave wave-2"></div>
@@ -189,7 +211,7 @@
       <div class="chat-drawer-topbar">
         <div class="chat-mentor-profile">
           <div class="mentor-avatar-disc">
-            <img src="assets/appu-cutout.png" onerror="this.src='Generated image 1 (1).png'" alt="Appu">
+            <img src="assets/appu-cutout-new.png" onerror="this.src='assets/appu-cutout.png'" alt="Appu">
             <span class="disc-online-ping"></span>
           </div>
           <div class="mentor-profile-info">
@@ -231,7 +253,7 @@
     </aside>
 
     <!-- Modal: 0-Click Discovery Call Scheduler (Google Meet + WhatsApp) -->
-    <div class="modal-scrim-backdrop" id="discovery-modal" style="display: none;">
+    <div class="modal-scrim-backdrop" id="discovery-modal">
       <div class="modal-sheet-dialog">
         <div class="modal-dialog-header">
           <div class="dialog-title-lockup">
@@ -324,7 +346,7 @@
     </div>
 
     <!-- Modal: Settings & Integrations -->
-    <div class="modal-scrim-backdrop" id="settings-modal" style="display: none;">
+    <div class="modal-scrim-backdrop" id="settings-modal">
       <div class="modal-sheet-dialog">
         <div class="modal-dialog-header">
           <div class="dialog-title-lockup">

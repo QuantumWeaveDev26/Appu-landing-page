@@ -1,23 +1,57 @@
 /**
- * Main Application Orchestrator for Sleek Keynote AI Stage
- * Connects AvatarStage, VoiceEngine, ChatAgent, Spatial Nodes, Modals and Live n8n Execution.
+ * Main Application Orchestrator v2.0 for Cinematic AI Digital Mentor Stage
+ * Connects AvatarStage, VoiceEngine, ChatAgent, Entrance Choreography, Modals and Live n8n Execution.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Preferences & Configuration
+
+  // ==========================================
+  // ENTRANCE LOADER CHOREOGRAPHY
+  // ==========================================
+  const loader = document.getElementById('loader');
+  const loaderBar = document.getElementById('loader-bar');
+  const loaderCount = document.getElementById('loader-count');
+
+  if (loader && loaderBar && loaderCount) {
+    let progress = 0;
+    const duration = 1600;
+    const startTime = performance.now();
+
+    function tick() {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      progress = Math.floor(t * 100);
+      loaderBar.style.width = progress + '%';
+      loaderCount.textContent = String(progress).padStart(3, '0');
+
+      if (progress < 100) {
+        requestAnimationFrame(tick);
+      } else {
+        setTimeout(() => {
+          loader.classList.add('is-done');
+        }, 200);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ==========================================
+  // PREFERENCES & CONFIGURATION
+  // ==========================================
   const defaultN8nUrl = 'https://n8n.srv1871828.hstgr.cloud/webhook/4a108e85-050f-427e-aa03-784492ddfe89/chat';
   const savedWebhook = localStorage.getItem('appu_n8n_url') || defaultN8nUrl;
-  const savedMock = localStorage.getItem('appu_mock_mode') === 'true'; // Default to LIVE (false)
+  const savedMock = localStorage.getItem('appu_mock_mode') === 'true';
   const savedPitch = parseFloat(localStorage.getItem('appu_pitch') || '1.0');
   const savedRate = parseFloat(localStorage.getItem('appu_rate') || '1.0');
   const savedAutoSpeak = localStorage.getItem('appu_auto_speak') !== 'false';
   const savedSound = localStorage.getItem('appu_sound_sfx') !== 'false';
   let currentLang = localStorage.getItem('appu_lang') || 'en';
 
-  // 2. Initialize Avatar Stage
+  // ==========================================
+  // INITIALIZE CORE MODULES
+  // ==========================================
   const avatarStage = new AvatarStage();
 
-  // 3. Initialize Voice Engine
   const voiceEngine = new VoiceEngine({
     onSpeechStart: () => {
       avatarStage.setState('listening');
@@ -43,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
   voiceEngine.autoSpeak = savedAutoSpeak;
   voiceEngine.soundEnabled = savedSound;
 
-  // 4. Initialize Chat Agent (Live n8n Backend)
   const chatAgent = new ChatAgent({
     n8nWebhookUrl: savedWebhook,
     mockMode: savedMock
@@ -236,13 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openDiscoveryModal() {
     if (discoveryModal) {
-      discoveryModal.style.display = 'flex';
-      discoveryForm.style.display = 'flex';
-      discoverySuccessView.style.display = 'none';
+      discoveryModal.classList.add('is-visible');
+      if (discoveryForm) discoveryForm.style.display = 'flex';
+      if (discoverySuccessView) discoverySuccessView.style.display = 'none';
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(17, 0, 0, 0); // 5 PM
+      tomorrow.setHours(17, 0, 0, 0);
       const leadDateInput = document.getElementById('lead-date');
       if (leadDateInput) {
         leadDateInput.value = tomorrow.toISOString().slice(0, 16);
@@ -251,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeDiscoveryModal() {
-    if (discoveryModal) discoveryModal.style.display = 'none';
+    if (discoveryModal) discoveryModal.classList.remove('is-visible');
   }
 
   if (btnQuickSchedule) btnQuickSchedule.addEventListener('click', openDiscoveryModal);
@@ -284,8 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>Confirm 0-Click Discovery Call</span>';
       }
 
-      discoveryForm.style.display = 'none';
-      discoverySuccessView.style.display = 'flex';
+      if (discoveryForm) discoveryForm.style.display = 'none';
+      if (discoverySuccessView) discoverySuccessView.style.display = 'flex';
       avatarStage.setState('success');
       voiceEngine.playSuccess();
 
@@ -337,12 +370,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (settingAutoSpeak) settingAutoSpeak.checked = voiceEngine.autoSpeak;
       if (settingUiSound) settingUiSound.checked = voiceEngine.soundEnabled;
 
-      settingsModal.style.display = 'flex';
+      settingsModal.classList.add('is-visible');
     }
   }
 
   function closeSettingsModal() {
-    if (settingsModal) settingsModal.style.display = 'none';
+    if (settingsModal) settingsModal.classList.remove('is-visible');
   }
 
   if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
@@ -386,9 +419,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Close modals on outside click
+  // Close modals on outside click (scrim)
   window.addEventListener('click', (e) => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
+  });
+
+  // Close modals on Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDiscoveryModal();
+      closeSettingsModal();
+      toggleChatDrawer(false);
+    }
   });
 });

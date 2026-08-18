@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Starred repos reference (local only)
+starred-repos/
+
+# Environment
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
