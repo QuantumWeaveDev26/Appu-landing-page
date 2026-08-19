@@ -22,10 +22,47 @@ document.addEventListener('DOMContentLoaded', () => {
     try { backdropVideo.pause(); } catch(e) {}
   }
 
-  // Ensure autoplay works across all browsers
+  // Ensure loading video plays at 2.5x speed across all browsers
   if (loaderVideoPlayer) {
     loaderVideoPlayer.muted = true;
-    loaderVideoPlayer.play().catch(() => {});
+    loaderVideoPlayer.defaultPlaybackRate = 2.5;
+    loaderVideoPlayer.playbackRate = 2.5;
+    loaderVideoPlayer.setAttribute('playsinline', '');
+    loaderVideoPlayer.setAttribute('webkit-playsinline', '');
+    
+    // Continuously enforce 2.5x speed across browser media events
+    const enforceSpeed = () => {
+      if (loaderVideoPlayer.playbackRate !== 2.5) {
+        loaderVideoPlayer.playbackRate = 2.5;
+      }
+    };
+
+    ['play', 'playing', 'canplay', 'loadeddata', 'timeupdate', 'ratechange'].forEach(evt => {
+      loaderVideoPlayer.addEventListener(evt, enforceSpeed);
+    });
+
+    // Explicit play attempt with 2.5x playback speed
+    const attemptPlay = () => {
+      enforceSpeed();
+      const playPromise = loaderVideoPlayer.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          window.addEventListener('pointerdown', () => {
+            if (!isLoaderDismissed) {
+              enforceSpeed();
+              loaderVideoPlayer.play().catch(() => {});
+            }
+          }, { once: true });
+        });
+      }
+    };
+
+    if (loaderVideoPlayer.readyState >= 2) {
+      attemptPlay();
+    } else {
+      loaderVideoPlayer.addEventListener('loadeddata', attemptPlay, { once: true });
+      loaderVideoPlayer.addEventListener('canplay', attemptPlay, { once: true });
+    }
   }
 
   let isLoaderDismissed = false;
@@ -42,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       if (loaderVideoPlayer) loaderVideoPlayer.pause();
-    }, 800);
+    }, 500);
   }
 
   // Sound toggle for tribute video
@@ -54,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderSoundIcon.className = 'fa-solid fa-volume-xmark';
       } else {
         loaderSoundIcon.className = 'fa-solid fa-volume-high text-cyan';
+        loaderVideoPlayer.playbackRate = 2.5;
         loaderVideoPlayer.play().catch(() => {});
       }
     });
@@ -67,21 +105,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Progress counter and auto-transition synchronized with video
+  // Progress counter and auto-transition synchronized with 2.5x fast video
   if (loader && loaderBar && loaderCount) {
     let progress = 0;
-    const fallbackDuration = 9300; // 9.3s fallback
+    const fastDuration = 2400; // Snappy 2.4s fast loader
     const startTime = performance.now();
 
     function tick() {
       if (isLoaderDismissed) return;
+
+      if (loaderVideoPlayer && loaderVideoPlayer.playbackRate !== 2.5) {
+        loaderVideoPlayer.playbackRate = 2.5;
+      }
 
       let t = 0;
       if (loaderVideoPlayer && loaderVideoPlayer.duration && !isNaN(loaderVideoPlayer.duration) && loaderVideoPlayer.duration > 0) {
         t = Math.min(Math.max(loaderVideoPlayer.currentTime / loaderVideoPlayer.duration, 0), 1);
       } else {
         const elapsed = performance.now() - startTime;
-        t = Math.min(Math.max(elapsed / fallbackDuration, 0), 1);
+        t = Math.min(Math.max(elapsed / fastDuration, 0), 1);
       }
 
       progress = Math.min(100, Math.max(0, Math.floor(t * 100)));
@@ -93,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         setTimeout(() => {
           dismissLoader();
-        }, 500);
+        }, 200);
       }
     }
     requestAnimationFrame(tick);
@@ -171,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('appu_lang', lang);
+    voiceEngine.setLanguage(lang);
 
     if (langEnBtn && langKnBtn) {
       if (lang === 'kn') {
@@ -459,7 +502,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (settingVoiceRate && rateVal) {
     settingVoiceRate.addEventListener('input', (e) => {
-      rateVal.textContent = parseFloat(e.target.value).toFixed(1);
+      const val = parseFloat(e.target.value);
+      rateVal.textContent = val.toFixed(2);
+      voiceEngine.setPlaybackRate(val);
     });
   }
 
@@ -468,14 +513,14 @@ document.addEventListener('DOMContentLoaded', () => {
       chatAgent.n8nWebhookUrl = settingN8nUrl.value.trim();
       chatAgent.mockMode = settingMockMode.checked;
       voiceEngine.pitch = parseFloat(settingVoicePitch.value);
-      voiceEngine.rate = parseFloat(settingVoiceRate.value);
+      voiceEngine.setPlaybackRate(parseFloat(settingVoiceRate.value));
       voiceEngine.autoSpeak = settingAutoSpeak.checked;
       voiceEngine.soundEnabled = settingUiSound.checked;
 
       localStorage.setItem('appu_n8n_url', chatAgent.n8nWebhookUrl);
       localStorage.setItem('appu_mock_mode', chatAgent.mockMode);
       localStorage.setItem('appu_pitch', voiceEngine.pitch);
-      localStorage.setItem('appu_rate', voiceEngine.rate);
+      localStorage.setItem('appu_voice_rate', voiceEngine.rate);
       localStorage.setItem('appu_auto_speak', voiceEngine.autoSpeak);
       localStorage.setItem('appu_sound_sfx', voiceEngine.soundEnabled);
 

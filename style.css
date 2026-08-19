@@ -281,8 +281,10 @@ body.cursor-hover .custom-cursor-aura {
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--cyan);
-  min-width: 44px;
+  min-width: 52px;
   text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   text-shadow: 0 0 12px rgba(0, 232, 248, 0.8);
 }
 
@@ -1605,11 +1607,37 @@ body.cursor-hover .custom-cursor-aura {
   }
 }
 
-/* ── RESPONSIVE ────────────────────────────────────────────────────────── */
+/* ── ENHANCED MULTI-SCREEN RESPONSIVE ARCHITECTURE ────────────────────── */
+
+/* Laptops & Tablets (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .avatar-img {
+    height: clamp(340px, 50vh, 560px);
+  }
+  .holographic-podium {
+    width: 440px; height: 440px;
+    bottom: 24vh;
+  }
+  .avatar-stage-wrapper {
+    bottom: 24vh;
+  }
+  .subtitles-luxury-card {
+    max-width: 580px;
+  }
+  .chat-drawer-panel {
+    width: min(400px, 100vw);
+  }
+}
+
+/* Tablets & Large Phones (max-width: 768px) */
 @media (max-width: 768px) {
   :root {
-    --nav-height: 56px;
-    --hub-height: 240px;
+    --nav-height: 54px;
+    --hub-height: auto;
+  }
+
+  .top-nav-wrap {
+    padding: 10px 12px 0;
   }
 
   .nav-floating-pill {
@@ -1617,43 +1645,260 @@ body.cursor-hover .custom-cursor-aura {
     border-radius: 14px;
     gap: 8px;
   }
-  .brand-details { display: none; }
-  .status-radar-pill .radar-text { display: none; }
-  .nav-cta-pill span { display: none; }
-  .nav-cta-pill { padding: 7px 10px; }
+  
+  .brand-details {
+    display: none;
+  }
 
-  .avatar-img {
-    height: clamp(220px, 42vh, 400px);
+  .status-radar-pill {
+    padding: 4px 10px;
+    font-size: 0.68rem;
+  }
+  .status-radar-pill .radar-text {
+    display: inline;
+  }
+
+  .nav-cta-pill {
+    padding: 6px 12px;
+    font-size: 0.76rem;
+  }
+  .nav-cta-pill span {
+    display: inline;
+  }
+
+  .nav-circle-btn {
+    width: 32px; height: 32px;
+    font-size: 12px;
+  }
+
+  /* Grounded avatar stage locked to bottom hub */
+  .hero-stage-container {
+    height: 100dvh;
+  }
+
+  .avatar-stage-wrapper {
+    bottom: max(22vh, 180px);
   }
 
   .holographic-podium {
-    width: 250px; height: 250px;
-    bottom: 10%;
+    width: 320px; height: 320px;
+    bottom: max(21.5vh, 175px);
   }
 
-  .subtitles-luxury-card { padding: 10px 14px; }
-  .subtitles-transcription { font-size: 0.82rem; }
+  .volumetric-beam {
+    width: 220px;
+    bottom: max(21.5vh, 175px);
+  }
 
-  .intent-chips-carousel { max-width: 100%; }
-  .chip-action-btn { padding: 6px 12px; font-size: 0.72rem; }
+  .avatar-img {
+    height: clamp(280px, 46vh, 440px);
+  }
 
-  .master-dock-bar { gap: 10px; }
-  .dock-action-btn {
-    padding: 10px 16px;
+  .avatar-floor-shadow {
+    width: 220px; height: 24px;
+  }
+
+  .avatar-energy-aura {
+    width: 260px; height: 260px;
+  }
+
+  /* Bottom Controls Hub */
+  .bottom-control-hub {
+    padding: 0 12px max(12px, env(safe-area-inset-bottom, 12px));
+    gap: 6px;
+  }
+
+  .subtitles-luxury-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 8px 12px;
+    border-radius: 14px;
+  }
+  .subtitles-card-header {
+    margin-bottom: 4px;
+  }
+  .subtitles-transcription {
     font-size: 0.8rem;
+    line-height: 1.4;
   }
-  .dock-action-btn span { display: none; }
-  .dock-action-btn i { font-size: 16px; }
-  .dock-btn-glass span, .dock-btn-gold span { display: inline; }
 
-  .voice-portal-trigger { width: 50px; height: 50px; font-size: 18px; }
+  /* Carousel with native touch swipe */
+  .intent-chips-carousel {
+    max-width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 4px 6px;
+    scrollbar-width: none;
+  }
+  .intent-chips-carousel::-webkit-scrollbar {
+    display: none;
+  }
+  .chip-action-btn {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    padding: 5px 12px;
+    font-size: 0.72rem;
+  }
 
-  .chat-drawer-panel { width: 100%; }
-  .form-columns-2 { grid-template-columns: 1fr; }
+  /* Action Dock */
+  .master-dock-bar {
+    gap: 8px;
+    padding: 4px 6px;
+  }
+
+  .dock-action-btn {
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    border-radius: 12px;
+  }
+
+  .voice-portal-trigger {
+    width: 48px; height: 48px;
+    font-size: 17px;
+  }
+
+  /* Fullscreen mobile drawer */
+  .chat-drawer-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border-glass-bright);
+    border-radius: 20px 20px 0 0;
+  }
+
+  .dialog-frosted-card {
+    width: 94vw;
+    max-width: 94vw;
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+  .form-columns-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
-@media (max-width: 420px) {
-  .top-nav-wrap { padding: 10px 12px 0; }
-  .bottom-control-hub { padding: 0 12px 14px; gap: 8px; }
-  .dock-btn-glass span, .dock-btn-gold span { display: none; }
+/* Small Phones (max-width: 480px) */
+@media (max-width: 480px) {
+  .top-nav-wrap {
+    padding: 8px 10px 0;
+  }
+
+  .nav-floating-pill {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .brand-monogram {
+    width: 30px; height: 30px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .status-radar-pill {
+    padding: 3px 8px;
+  }
+  .status-radar-pill .radar-text {
+    display: none;
+  }
+
+  .nav-cta-pill {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+  }
+  .nav-cta-pill span {
+    display: none;
+  }
+  .nav-cta-pill i {
+    margin: 0;
+  }
+
+  .nav-lang-toggle {
+    padding: 3px 6px;
+  }
+  .lang-btn {
+    padding: 2px 5px;
+    font-size: 0.68rem;
+  }
+
+  .nav-circle-btn {
+    width: 28px; height: 28px;
+    font-size: 11px;
+  }
+
+  /* Avatar scaling on compact screens */
+  .avatar-stage-wrapper {
+    bottom: max(20vh, 160px);
+  }
+
+  .holographic-podium {
+    width: 260px; height: 260px;
+    bottom: max(19.5vh, 155px);
+  }
+
+  .volumetric-beam {
+    width: 180px;
+    bottom: max(19.5vh, 155px);
+  }
+
+  .avatar-img {
+    height: clamp(240px, 44vh, 360px);
+  }
+
+  .avatar-floor-shadow {
+    width: 180px; height: 20px;
+  }
+
+  /* Subtitles & Dock on compact screens */
+  .subtitles-luxury-card {
+    padding: 8px 10px;
+  }
+  .subtitles-transcription {
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  .dock-action-btn span {
+    display: inline-block;
+    font-size: 0.74rem;
+  }
+  .dock-btn-glass span {
+    display: inline-block;
+  }
+  .dock-btn-gold span {
+    display: inline-block;
+  }
+
+  .loader-center-content {
+    width: 90%;
+    gap: 12px;
+  }
+  .loader-brand-title {
+    font-size: 1.9rem;
+  }
+  .loader-progress-assembly {
+    max-width: 260px;
+  }
+}
+
+/* Ultra-wide Displays (min-width: 1800px) */
+@media (min-width: 1800px) {
+  .nav-floating-pill {
+    max-width: 1440px;
+    padding: 14px 22px;
+  }
+  .avatar-img {
+    height: clamp(540px, 62vh, 850px);
+  }
+  .holographic-podium {
+    width: 650px; height: 650px;
+  }
+  .subtitles-luxury-card {
+    max-width: 760px;
+    padding: 16px 24px;
+  }
+  .subtitles-transcription {
+    font-size: 1.05rem;
+  }
 }

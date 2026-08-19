@@ -19,7 +19,10 @@ class VoiceEngine {
     this.soundEnabled = true;
     this.autoSpeak = true;
     this.pitch = 1.0;
-    this.rate = 1.0;
+    
+    // Natural, calm speaking speed (0.88x default for crystal clear Indian language articulation)
+    const savedRate = parseFloat(localStorage.getItem('appu_voice_rate')) || 0.88;
+    this.rate = savedRate;
     this.selectedVoice = null;
     this.voices = [];
 
@@ -31,7 +34,10 @@ class VoiceEngine {
 
     // Dedicated HTML5 Audio Player for Cloned Voice API Stream
     this.audioPlayer = new Audio();
-    this.ttsApiUrl = 'https://pdt-pat-chat-charitable.trycloudflare.com/clone-tts';
+    this.audioPlayer.playbackRate = this.rate;
+    this.audioPlayer.defaultPlaybackRate = this.rate;
+    this.voiceId = '2vNb4zVImeugpHCemE1R';
+    this.apiKey = 'sk_37a6d4d096ed07642eb50faeeb0d9206a121473210e5eb3e';
     this.initAudioPlayerEvents();
 
     this.initWebAudio();
@@ -41,8 +47,17 @@ class VoiceEngine {
   initAudioPlayerEvents() {
     this.audioPlayer.addEventListener('play', () => {
       this.isSpeaking = true;
+      if (this.audioPlayer) {
+        this.audioPlayer.playbackRate = this.rate || 0.88;
+      }
       if (this.equalizer) this.equalizer.classList.add('active');
       this.callbacks.onUtteranceStart();
+    });
+
+    this.audioPlayer.addEventListener('canplay', () => {
+      if (this.audioPlayer) {
+        this.audioPlayer.playbackRate = this.rate || 0.88;
+      }
     });
 
     this.audioPlayer.addEventListener('ended', () => {
@@ -64,6 +79,17 @@ class VoiceEngine {
         if (this.equalizer) this.equalizer.classList.remove('active');
       }
     });
+  }
+
+  setPlaybackRate(newRate) {
+    const parsed = Math.max(0.6, Math.min(1.4, parseFloat(newRate) || 0.88));
+    this.rate = parsed;
+    localStorage.setItem('appu_voice_rate', String(parsed));
+    if (this.audioPlayer) {
+      this.audioPlayer.playbackRate = parsed;
+      this.audioPlayer.defaultPlaybackRate = parsed;
+    }
+    console.log(`[VoiceEngine] Speaking rate set to ${parsed}x`);
   }
 
   // ==========================================
@@ -136,7 +162,7 @@ class VoiceEngine {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = false;
     this.recognition.interimResults = true;
-    this.recognition.lang = 'en-IN'; // Indian English / Kannada context
+    this.recognition.lang = 'en-IN'; // Default: Indian English / Kannada context
 
     this.recognition.onstart = () => {
       this.isListening = true;
@@ -179,6 +205,20 @@ class VoiceEngine {
       this.playListenStop();
       this.callbacks.onSpeechEnd();
     };
+  }
+
+  setLanguage(langCode) {
+    const langMap = {
+      'en': 'en-IN',
+      'kn': 'kn-IN',
+      'hi': 'hi-IN',
+      'te': 'te-IN',
+      'ta': 'ta-IN'
+    };
+    this.currentLanguage = langCode || 'en';
+    if (this.recognition) {
+      this.recognition.lang = langMap[langCode] || 'en-IN';
+    }
   }
 
   toggleListening() {
@@ -232,7 +272,7 @@ class VoiceEngine {
   // ==========================================
 
   /**
-   * Generates and streams speech from the live F5-TTS voice cloning API
+   * Generates and streams speech from ElevenLabs Turbo v2.5
    */
   async generateClonedSpeech(textToSpeak) {
     if (!textToSpeak || !this.autoSpeak) return;
@@ -243,40 +283,39 @@ class VoiceEngine {
     if (this.equalizer) this.equalizer.classList.add('active');
 
     try {
-      console.log(`[VoiceEngine] Dispatching to F5-TTS endpoint: ${this.ttsApiUrl}`);
-      const response = await fetch(this.ttsApiUrl, {
+      console.log(`[VoiceEngine] Calling ElevenLabs Turbo v2.5 for text:`, textToSpeak.slice(0, 50));
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'xi-api-key': this.apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
         },
         body: JSON.stringify({
-          text: textToSpeak,
-          ref_text: "Dear Vijay, I may not be physically there, but I want you to feel my presence, my friend."
+          text: textToSpeak.slice(0, 800),
+          model_id: 'eleven_turbo_v2_5',
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.8,
+            speed: 0.82
+          }
         })
       });
 
       if (!response.ok) {
-        throw new Error(`TTS API HTTP ${response.status}`);
+        throw new Error(`ElevenLabs API HTTP ${response.status}`);
       }
 
-      const data = await response.json();
-      const rawAudio = data.audio_base64 || data.audio || data.audioUrl || data.url;
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
 
-      if (!rawAudio) {
-        throw new Error('No audio returned in response payload');
-      }
-
-      // Format as Data URI if base64 string
-      let audioSrc = rawAudio;
-      if (typeof rawAudio === 'string' && !rawAudio.startsWith('data:') && !rawAudio.startsWith('http') && !rawAudio.startsWith('/')) {
-        audioSrc = `data:audio/wav;base64,${rawAudio}`;
-      }
-
-      this.audioPlayer.src = audioSrc;
+      this.audioPlayer.src = audioUrl;
+      this.audioPlayer.playbackRate = this.rate || 0.88;
       await this.audioPlayer.play();
     } catch (err) {
-      console.warn('[VoiceEngine] Cloned voice generation failed, falling back:', err);
-      this.speakFallback(textToSpeak);
+      console.warn('[VoiceEngine] ElevenLabs voice generation error:', err);
+      this.callbacks.onUtteranceEnd();
+      if (this.equalizer) this.equalizer.classList.remove('active');
     }
   }
 
@@ -294,28 +333,25 @@ class VoiceEngine {
 
     try {
       this.audioPlayer.src = audioSource;
+      this.audioPlayer.playbackRate = this.rate || 0.88;
       await this.audioPlayer.play();
     } catch (err) {
       console.warn('[VoiceEngine] Audio stream play error:', err);
-      if (text) {
-        this.speakFallback(text);
-      } else {
-        this.callbacks.onUtteranceEnd();
-      }
+      this.callbacks.onUtteranceEnd();
+      if (this.equalizer) this.equalizer.classList.remove('active');
     }
   }
 
   speak(text, audioData = null) {
     if (!audioData) {
-      // No server-side audio bundled — use F5-TTS cloning endpoint as fallback
+      // No server-side audio bundled — generate via ElevenLabs
       return this.generateClonedSpeech(text);
     }
 
     // Determine if audioData is a base64 string, data URI, or URL
     let audioSrc = audioData;
     if (typeof audioData === 'string') {
-      if (audioData.startsWith('data:') || audioData.startsWith('http')) {
-        // Already a data URI or URL — use directly
+      if (audioData.startsWith('data:') || audioData.startsWith('http') || audioData.startsWith('blob:')) {
         audioSrc = audioData;
       } else {
         // Raw base64 string — wrap as MP3 data URI (ElevenLabs returns MP3)
@@ -327,44 +363,8 @@ class VoiceEngine {
   }
 
   speakFallback(text) {
-    if (!('speechSynthesis' in window) || !this.autoSpeak) return;
-
-    this.stopSpeaking();
-    window.speechSynthesis.cancel();
-
-    const cleanText = text
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/[#*_`]/g, '')
-      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-      .trim();
-
-    if (!cleanText) return;
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.pitch = this.pitch;
-    utterance.rate = this.rate;
-
-    utterance.onstart = () => {
-      this.isSpeaking = true;
-      if (this.equalizer) this.equalizer.classList.add('active');
-      this.callbacks.onUtteranceStart();
-    };
-
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      if (this.equalizer) this.equalizer.classList.remove('active');
-      this.callbacks.onUtteranceEnd();
-    };
-
-    utterance.onerror = (e) => {
-      console.warn('Speech synthesis error:', e);
-      this.isSpeaking = false;
-      if (this.equalizer) this.equalizer.classList.remove('active');
-      this.callbacks.onUtteranceEnd();
-    };
-
-    this.streamSubtitles(text);
-    window.speechSynthesis.speak(utterance);
+    // Disabled robotic fallback voices permanently
+    console.log('[VoiceEngine] Text displayed without robotic OS fallback:', text.slice(0, 50));
   }
 
   stopSpeaking() {

@@ -14,15 +14,15 @@
   <!-- FontAwesome 6 Pro Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <!-- Main Design Stylesheet -->
-  <link rel="stylesheet" href="style.css">
+  <!-- Main Design Stylesheet with Cache Buster -->
+  <link rel="stylesheet" href="style.css?v=3.0">
 </head>
 <body>
 
   <!-- Cinematic Fullscreen Tribute Video Loading Screen -->
   <div class="entrance-loader" id="loader">
     <!-- Fullscreen Background Tribute Video -->
-    <video autoplay muted playsinline loop class="loader-bg-fullscreen-video" id="loader-video-player">
+    <video autoplay muted playsinline webkit-playsinline loop preload="auto" src="assets/tribute-intro.mp4" class="loader-bg-fullscreen-video" id="loader-video-player">
       <source src="assets/tribute-intro.mp4" type="video/mp4">
     </video>
     <div class="loader-fullscreen-scrim"></div>
@@ -434,8 +434,8 @@
                 <input type="range" id="setting-voice-pitch" min="0.6" max="1.4" step="0.1" value="1.0" />
               </div>
               <div class="form-control-item">
-                <label for="setting-voice-rate">Speed (<span id="rate-val">1.0</span>)</label>
-                <input type="range" id="setting-voice-rate" min="0.7" max="1.3" step="0.1" value="1.0" />
+                <label for="setting-voice-rate">Speed (<span id="rate-val">0.88</span>x)</label>
+                <input type="range" id="setting-voice-rate" min="0.65" max="1.20" step="0.02" value="0.88" />
               </div>
             </div>
 
@@ -472,10 +472,10 @@
 
   </div>
 
-  <!-- Core JavaScript Modules -->
-  <script src="avatar-stage.js"></script>
-  <script src="voice-engine.js"></script>
-  <script src="chat-agent.js"></script>
-  <script src="app.js"></script>
+  <!-- Core JavaScript Modules with Cache Busting -->
+  <script src="avatar-stage.js?v=3.0"></script>
+  <script src="voice-engine.js?v=3.0"></script>
+  <script src="chat-agent.js?v=3.0"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
