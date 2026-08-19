@@ -87,7 +87,7 @@ class ChatAgent {
     try {
       let responseText = '';
       let actionCard = null;
-      let audioUrl = null;
+      let audioBase64 = null;
 
       console.log(`[n8n] Dispatching to ${this.n8nWebhookUrl}...`);
 
@@ -117,9 +117,15 @@ class ChatAgent {
         const data = Array.isArray(parsed) ? parsed[0] : parsed;
         responseText = data?.output || data?.text || data?.response || data?.message || (typeof data === 'string' ? data : JSON.stringify(data));
         
-        audioUrl = data?.audioUrl || data?.audio_url || data?.audio || data?.voiceUrl || null;
-        if (data?.data && Array.isArray(data.data) && data.data[0] && (data.data[0].url || typeof data.data[0] === 'string')) {
-          audioUrl = data.data[0].url || data.data[0];
+        // Extract server-side ElevenLabs audio if present (base64-encoded MP3/WAV)
+        audioBase64 = data?.audio_base64 || data?.audioBase64 || null;
+        
+        // Also support legacy audioUrl field
+        if (!audioBase64) {
+          const legacyUrl = data?.audioUrl || data?.audio_url || data?.audio || data?.voiceUrl || null;
+          if (legacyUrl && (legacyUrl.startsWith('http') || legacyUrl.startsWith('data:'))) {
+            audioBase64 = legacyUrl; // Pass URL directly — voice-engine handles both
+          }
         }
       } catch {
         responseText = rawText;
@@ -148,7 +154,7 @@ class ChatAgent {
       }
 
       if (this.typingIndicator) this.typingIndicator.style.display = 'none';
-      if (onFinishThinking) onFinishThinking(responseText, audioUrl);
+      if (onFinishThinking) onFinishThinking(responseText, audioBase64);
 
       const appuMsg = this.addMessage('appu', responseText, actionCard);
       return appuMsg;

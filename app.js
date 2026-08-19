@@ -199,13 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const result = await chatAgent.sendMessage(
       text,
       () => avatarStage.setState('thinking'),
-      async (reply, audioUrl) => {
+      async (reply, audioData) => {
         avatarStage.setState('speaking');
-        if (audioUrl) {
-          await voiceEngine.playClonedSpeech(audioUrl, reply);
-        } else {
-          await voiceEngine.generateClonedSpeech(reply);
-        }
+        // voiceEngine.speak() handles:
+        // - audioData = base64 string from ElevenLabs (server-side n8n) -> plays directly
+        // - audioData = URL string -> streams from URL
+        // - audioData = null -> falls back to F5-TTS cloning endpoint
+        await voiceEngine.speak(reply, audioData);
         voiceEngine.playMessage();
       }
     );

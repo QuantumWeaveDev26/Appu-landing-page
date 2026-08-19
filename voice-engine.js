@@ -305,11 +305,25 @@ class VoiceEngine {
     }
   }
 
-  speak(text, audioUrl = null) {
-    if (audioUrl) {
-      return this.playClonedSpeech(audioUrl, text);
+  speak(text, audioData = null) {
+    if (!audioData) {
+      // No server-side audio bundled — use F5-TTS cloning endpoint as fallback
+      return this.generateClonedSpeech(text);
     }
-    return this.generateClonedSpeech(text);
+
+    // Determine if audioData is a base64 string, data URI, or URL
+    let audioSrc = audioData;
+    if (typeof audioData === 'string') {
+      if (audioData.startsWith('data:') || audioData.startsWith('http')) {
+        // Already a data URI or URL — use directly
+        audioSrc = audioData;
+      } else {
+        // Raw base64 string — wrap as MP3 data URI (ElevenLabs returns MP3)
+        audioSrc = `data:audio/mpeg;base64,${audioData}`;
+      }
+    }
+
+    return this.playClonedSpeech(audioSrc, text);
   }
 
   speakFallback(text) {
