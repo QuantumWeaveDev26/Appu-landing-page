@@ -2,11 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Appu — AI Digital Human & Mentor | IGR Academy</title>
-  <meta name="description" content="Experience Appu, the interactive AI Mentor at IGR Academy. Real-time voice, live chat, bilingual guidance, and instant 0-Click Discovery Calls with Google Meet & WhatsApp.">
+  <meta name="description" content="Meet Appu, the interactive AI Mentor at IGR Academy. Real-time neural voice, live chat, multilingual career guidance, and instant 0-Click Discovery Calls.">
 
-  <!-- Premium Typography: Outfit (Modern Display), Plus Jakarta Sans (Swiss Body) & JetBrains Mono -->
+  <!-- Favicon & Brand Icons -->
+  <link rel="icon" type="image/png" href="assets/appu-cutout-new.png">
+  <link rel="shortcut icon" href="assets/appu-cutout-new.png">
+  <link rel="apple-touch-icon" href="assets/appu-cutout-new.png">
+
+  <!-- Typography: Outfit (Display), Plus Jakarta Sans (Body), JetBrains Mono (Code/Status) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,27 +20,33 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Main Design Stylesheet with Cache Buster -->
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=6.0">
 </head>
-<body>
+<body class="single-viewport-body">
 
-  <!-- Cinematic Fullscreen Tribute Video Loading Screen -->
+  <!-- ========================================================================= -->
+  <!-- 0. FULLSCREEN TRIBUTE VIDEO LOADING ENTRANCE (2X SPEED)                    -->
+  <!-- ========================================================================= -->
   <div class="entrance-loader" id="loader">
-    <!-- Fullscreen Background Tribute Video -->
-    <video autoplay muted playsinline webkit-playsinline loop preload="auto" src="assets/tribute-intro.mp4" class="loader-bg-fullscreen-video" id="loader-video-player">
+    <!-- Fullscreen Tribute Video -->
+    <video autoplay muted playsinline loop class="loader-bg-fullscreen-video" id="loader-video-player">
       <source src="assets/tribute-intro.mp4" type="video/mp4">
     </video>
     <div class="loader-fullscreen-scrim"></div>
 
-    <!-- Top Sound Control -->
+    <!-- Top Controls: Sound & Skip -->
     <div class="loader-top-controls">
       <button class="loader-sound-toggle" id="loader-sound-btn" title="Toggle Sound" aria-label="Toggle Tribute Sound">
         <i class="fa-solid fa-volume-xmark" id="loader-sound-icon"></i>
         <span>Sound</span>
       </button>
+      <button class="loader-skip-btn" id="loader-skip-btn" title="Skip Intro">
+        <span>Skip</span>
+        <i class="fa-solid fa-forward-step"></i>
+      </button>
     </div>
 
-    <!-- Center Floating Loading Assembly (No Card / No Section) -->
+    <!-- Center Floating Tribute Assembly -->
     <div class="loader-center-content">
       <div class="loader-tribute-badge">
         <i class="fa-solid fa-heart text-gold"></i>
@@ -62,33 +73,65 @@
     </div>
   </div>
 
-  <!-- Custom Ambient Cursor Follower -->
+  <!-- Ambient Cursor Follower (Desktop Only) -->
   <div class="custom-cursor-dot" id="cursor-dot"></div>
   <div class="custom-cursor-aura" id="cursor-aura"></div>
 
-  <!-- Cinematic AI Keynote Auditorium Video Backdrop -->
-  <div class="keynote-backdrop-wrap" id="backdrop-wrap">
-    <video autoplay loop muted playsinline class="keynote-backdrop-video" id="backdrop-video" poster="assets/keynote-stage.jpg">
-      <source src="assets/stage-bg-video.mp4" type="video/mp4">
-      <img src="assets/keynote-stage.jpg" alt="AI Keynote Stage" class="keynote-backdrop-img" id="backdrop-img" />
-    </video>
-    <div class="backdrop-vignette-scrim"></div>
-    <div class="backdrop-stage-spotlight"></div>
+  <!-- ========================================================================= -->
+  <!-- 1. FULL-SCREEN IMMERSIVE BACKDROP (STATIC KEYNOTE STAGE + CSS OVERLAYS)   -->
+  <!-- ========================================================================= -->
+  <div class="stage-backdrop-container" aria-hidden="true">
+    <!-- Static High-Res AI Keynote Auditorium Image -->
+    <img src="assets/keynote-stage.jpg" alt="AI Keynote Stage" class="stage-backdrop-img" id="backdrop-img" />
+    
+    <!-- Dark Navy Vignette & Edge Shadows for Contrast -->
+    <div class="backdrop-navy-vignette"></div>
+    <div class="backdrop-top-gradient"></div>
+    <div class="backdrop-bottom-gradient"></div>
+
+    <!-- Soft Cyan Radial Glow Behind Appu -->
+    <div class="stage-appu-halo" id="stage-halo"></div>
+
+    <!-- Thin Orbital Rings with Traveling Pulse Node -->
+    <div class="stage-orbital-wrap">
+      <svg class="stage-orbital-svg" viewBox="0 0 700 700" fill="none">
+        <ellipse cx="350" cy="350" rx="320" ry="120" class="ring-ellipse ring-outer" transform="rotate(-15 350 350)" />
+        <ellipse cx="350" cy="350" rx="240" ry="85" class="ring-ellipse ring-inner" transform="rotate(10 350 350)" />
+        <circle cx="350" cy="350" r="3.5" class="ring-pulse-node">
+          <animateMotion 
+            path="M 350,350 m -320,0 a 320,120 0 1,0 640,0 a 320,120 0 1,0 -640,0" 
+            dur="22s" 
+            repeatCount="indefinite" 
+            transform="rotate(-15 350 350)" />
+        </circle>
+      </svg>
+    </div>
+
+    <!-- Micro Floating Particles -->
+    <div class="stage-particles-wrap">
+      <span class="p-dot" style="--pt: 15%; --pl: 12%; --ps: 3px; --pd: 18s; --pdel: 0s;"></span>
+      <span class="p-dot" style="--pt: 32%; --pl: 22%; --ps: 4px; --pd: 24s; --pdel: -4s;"></span>
+      <span class="p-dot" style="--pt: 68%; --pl: 10%; --ps: 2px; --pd: 16s; --pdel: -8s;"></span>
+      <span class="p-dot" style="--pt: 20%; --pl: 82%; --ps: 3px; --pd: 20s; --pdel: -2s;"></span>
+      <span class="p-dot" style="--pt: 45%; --pl: 90%; --ps: 3px; --pd: 22s; --pdel: -6s;"></span>
+      <span class="p-dot" style="--pt: 75%; --pl: 78%; --ps: 4px; --pd: 19s; --pdel: -10s;"></span>
+      <span class="p-dot" style="--pt: 18%; --pl: 50%; --ps: 2px; --pd: 25s; --pdel: -5s;"></span>
+      <span class="p-dot" style="--pt: 82%; --pl: 30%; --ps: 3px; --pd: 17s; --pdel: -12s;"></span>
+    </div>
   </div>
 
-  <!-- 3D Spatial Canvas for Floating Neural Particles -->
-  <canvas id="stage-canvas"></canvas>
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN SINGLE-VIEWPORT KEYNOTE STAGE                                     -->
+  <!-- ========================================================================= -->
+  <div class="keynote-viewport-layout">
 
-  <!-- Single-Viewport Immersive Stage (Zero Scroll) -->
-  <div class="app-viewport">
-
-    <!-- Top Floating Navigation Pill -->
-    <header class="top-nav-wrap">
+    <!-- Floating Top Header Navigation -->
+    <header class="keynote-top-header">
       <nav class="nav-floating-pill">
         
-        <!-- Brand Monogram & Title -->
+        <!-- Left: Brand Monogram & Title -->
         <div class="nav-brand-lockup">
-          <div class="brand-monogram">
+          <div class="brand-monogram" title="IGR Academy">
             <i class="fa-solid fa-brain-circuit"></i>
           </div>
           <div class="brand-details">
@@ -97,14 +140,14 @@
           </div>
         </div>
 
-        <!-- Live Connection & State Pill -->
+        <!-- Center: Live Connection State Pill -->
         <div class="status-radar-pill" id="avatar-status-pill">
           <span class="radar-ping"></span>
           <span class="radar-dot"></span>
           <span class="radar-text" id="status-label">Appu is Online</span>
         </div>
 
-        <!-- Language & Audio Controls -->
+        <!-- Right: Language, Quick Discovery, Sound & Settings -->
         <div class="nav-controls">
           <div class="lang-switch-capsule">
             <button class="lang-btn is-active" id="lang-en" data-lang="en">ENG</button>
@@ -127,40 +170,59 @@
       </nav>
     </header>
 
-    <!-- Main Hero Digital Human Stage -->
-    <main class="hero-stage-container" id="hero-stage">
-
-      <!-- Stage Floor Grid -->
-      <div class="stage-floor-grid"></div>
+    <!-- Center Stage: Appu Model & Holographic Surrounding Action Nodes -->
+    <main class="keynote-stage-center" id="hero-stage">
       
-      <!-- Volumetric Light Beam -->
-      <div class="volumetric-beam"></div>
-
-      <!-- Holographic Podium Rings -->
-      <div class="holographic-podium">
-        <div class="podium-ring podium-ring-1"></div>
-        <div class="podium-ring podium-ring-2"></div>
-        <div class="podium-ring podium-ring-3"></div>
-      </div>
-      
-      <!-- 3D Interactive Avatar Stage Wrapper -->
+      <!-- Interactive Grounded Appu Avatar Figure with Surrounding Action Nodes -->
       <div class="avatar-stage-wrapper" id="avatar-3d-wrapper">
-        <div class="avatar-energy-aura" id="avatar-aura"></div>
-        <div class="avatar-floor-shadow"></div>
-        
-        <!-- Appu Figure Image (Grounded on Spotlight Platform) -->
-        <div class="avatar-interactive-figure" id="avatar-figure-container" title="Click Appu to speak!">
-          <img src="assets/appu-cutout-new.png" onerror="this.onerror=null; this.src='assets/appu_cutout.png';" alt="Appu - AI Mentor" id="avatar-img" class="avatar-img" />
+        <div class="avatar-floor-contact-shadow"></div>
+
+        <!-- Left Surrounding Prompt Nodes -->
+        <div class="stage-floating-nodes stage-nodes-left">
+          <button class="stage-prompt-node node-left-1 chip-action-btn" data-prompt="Namaskara Appu! Tell me an inspiring and fun short story with a great life moral!">
+            <span class="node-icon-disc icon-cyan"><i class="fa-solid fa-sparkles"></i></span>
+            <span class="node-text">Tell me a Story</span>
+          </button>
+          <button class="stage-prompt-node node-left-2 chip-action-btn" data-prompt="Appu, explain how Artificial Intelligence and robots work in simple fun words for kids!">
+            <span class="node-icon-disc icon-cyan"><i class="fa-solid fa-robot"></i></span>
+            <span class="node-text">What is AI?</span>
+          </button>
+          <button class="stage-prompt-node node-left-3 chip-action-btn" data-prompt="Appu, teach me how kids can start coding and building their own fun computer games!">
+            <span class="node-icon-disc icon-emerald"><i class="fa-solid fa-gamepad"></i></span>
+            <span class="node-text">Build a Game</span>
+          </button>
+        </div>
+
+        <!-- Center Appu Figure -->
+        <div class="avatar-interactive-figure" id="avatar-figure-container" title="Click Appu to talk!">
+          <img src="assets/appu-cutout-new.png" onerror="this.onerror=null; this.src='assets/appu_cutout.png';" alt="Dr. Puneeth Rajkumar Appu - AI Mentor" id="avatar-img" class="avatar-img" />
           <div class="avatar-rim-glow"></div>
         </div>
+
+        <!-- Right Surrounding Prompt Nodes -->
+        <div class="stage-floating-nodes stage-nodes-right">
+          <button class="stage-prompt-node node-right-1 chip-action-btn" data-prompt="Appu, explain a cool science secret: why is the sky blue and how do stars shine?">
+            <span class="node-icon-disc icon-purple"><i class="fa-solid fa-flask-round-potion"></i></span>
+            <span class="node-text">Science Secrets</span>
+          </button>
+          <button class="stage-prompt-node node-right-2 chip-action-btn" data-prompt="Appu, share Dr. Puneeth Rajkumar's golden advice on kindness, hard work, and learning!">
+            <span class="node-icon-disc icon-gold"><i class="fa-solid fa-heart"></i></span>
+            <span class="node-text">Puneeth's Advice</span>
+          </button>
+          <button class="stage-prompt-node node-right-3 chip-action-btn" data-prompt="Schedule a 0-Click Discovery Call on Google Meet and WhatsApp">
+            <span class="node-icon-disc icon-gold"><i class="fa-solid fa-calendar-check"></i></span>
+            <span class="node-text">Book 1-on-1 Call</span>
+          </button>
+        </div>
+
       </div>
 
     </main>
 
-    <!-- Bottom Unified Speech & Interaction Hub -->
-    <footer class="bottom-control-hub">
-      
-      <!-- Subtitles Frosted Glass Card with 12-Bar Audio Spectrum Equalizer -->
+    <!-- Bottom Stage Interaction Dock: Dialogue HUD & Master Controls -->
+    <footer class="keynote-bottom-hub">
+
+      <!-- 1. Dialogue Panel with Live Audio Equalizer -->
       <div class="subtitles-luxury-card" id="subtitles-hud">
         <div class="subtitles-card-header">
           <div class="speaker-identifier">
@@ -168,7 +230,8 @@
             <span class="speaker-name-tag" id="speaker-name">APPU AI</span>
             <span class="speaker-role-badge">LIVE DIGITAL MENTOR</span>
           </div>
-          <!-- 12-Bar Dynamic Audio Spectrum -->
+          
+          <!-- 12-Bar Dynamic Audio Spectrum Waveform -->
           <div class="audio-spectrum-meter" id="audio-equalizer">
             <span class="eq-bar bar-1"></span>
             <span class="eq-bar bar-2"></span>
@@ -184,32 +247,13 @@
             <span class="eq-bar bar-12"></span>
           </div>
         </div>
+
         <p class="subtitles-transcription" id="subtitles-text">
-          "Namaskara! 🙏 I am Appu, your AI Mentor at IGR Academy. Tap the radiant microphone to talk, click 'Open Chat' to type, or book your 0-Click Discovery Call!"
+          "Namaskara! 🙏 I am Appu, your AI Mentor at IGR Academy. Tap the radiant microphone to talk, click 'Open Chat' to type, or click any topic around me!"
         </p>
       </div>
 
-      <!-- Quick Suggestion Prompt Chips -->
-      <div class="intent-chips-carousel">
-        <button class="chip-action-btn is-active" data-prompt="Namaskara Appu! Introduce yourself">
-          <i class="fa-solid fa-sparkles text-cyan"></i>
-          <span>Meet Appu</span>
-        </button>
-        <button class="chip-action-btn" data-prompt="Schedule a 0-Click Discovery Call on Google Meet and WhatsApp">
-          <i class="fa-solid fa-calendar-check text-gold"></i>
-          <span>0-Click Discovery Call</span>
-        </button>
-        <button class="chip-action-btn" data-prompt="What AI and Full Stack Career tracks does IGR Academy offer?">
-          <i class="fa-solid fa-graduation-cap text-cyan"></i>
-          <span>AI Career Tracks</span>
-        </button>
-        <button class="chip-action-btn" data-prompt="Tell me about student placement outcomes and packages">
-          <i class="fa-solid fa-chart-line-up text-emerald"></i>
-          <span>₹12–28 LPA Outcomes</span>
-        </button>
-      </div>
-
-      <!-- Master Keynote Control Dock -->
+      <!-- 2. Master Interaction Dock (Open Chat | Radiant Mic | Book Call) -->
       <div class="master-dock-bar">
         
         <!-- Open Chat Button -->
@@ -230,252 +274,237 @@
             <i class="fa-solid fa-microphone" id="mic-icon"></i>
             <span class="portal-glow-rim"></span>
           </button>
-          <span class="portal-action-hint" id="mic-tooltip">Tap to Speak</span>
+          <span class="portal-action-hint" id="mic-tooltip">TAP TO SPEAK</span>
         </div>
 
-        <!-- Book Discovery Call Button -->
+        <!-- Book Discovery Call Button (Amber) -->
         <button class="dock-action-btn dock-btn-gold" id="btn-hero-schedule" aria-label="Book Discovery Call">
           <i class="fa-solid fa-calendar-star"></i>
           <span>Book Call</span>
         </button>
 
       </div>
-
     </footer>
+  </div>
 
-    <!-- Slide-Out Glassmorphic Chat Drawer -->
-    <aside class="chat-drawer-panel" id="chat-drawer">
-      <div class="chat-drawer-topbar">
-        <div class="chat-mentor-profile">
-          <div class="mentor-avatar-disc">
-            <img src="assets/appu-cutout-new.png" onerror="this.onerror=null; this.src='assets/appu_cutout.png';" alt="Appu">
-            <span class="disc-online-ping"></span>
-          </div>
-          <div class="mentor-profile-info">
-            <h3 class="mentor-title">Appu AI Mentor</h3>
-            <p class="mentor-status-line"><i class="fa-solid fa-bolt text-cyan"></i> Live Connected via n8n</p>
-          </div>
+  <!-- ========================================================================= -->
+  <!-- 3. SLIDE-OUT GLASSMORPHIC CHAT DRAWER                                     -->
+  <!-- ========================================================================= -->
+  <aside class="chat-drawer-panel" id="chat-drawer">
+    <div class="chat-drawer-topbar">
+      <div class="chat-mentor-profile">
+        <div class="mentor-avatar-disc">
+          <img src="assets/appu-cutout-new.png" onerror="this.onerror=null; this.src='assets/appu_cutout.png';" alt="Appu">
+          <span class="disc-online-ping"></span>
         </div>
-        <div class="chat-header-actions">
-          <button class="action-icon-square" id="btn-clear-chat" title="Clear Conversation">
-            <i class="fa-solid fa-rotate-left"></i>
-          </button>
-          <button class="action-icon-square" id="btn-close-chat" title="Close Chat">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+        <div class="mentor-profile-info">
+          <h3 class="mentor-title">Appu AI Mentor</h3>
+          <p class="mentor-status-line"><i class="fa-solid fa-bolt text-cyan"></i> Live Connected via n8n</p>
         </div>
       </div>
+      <div class="chat-header-actions">
+        <button class="action-icon-square" id="btn-clear-chat" title="Clear Conversation">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button class="action-icon-square" id="btn-close-chat" title="Close Chat">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
 
-      <!-- Message Stream -->
-      <div class="chat-messages-viewport" id="chat-messages"></div>
+    <!-- Message Stream -->
+    <div class="chat-messages-viewport" id="chat-messages"></div>
 
-      <!-- Thinking Indicator -->
-      <div class="chat-thinking-indicator" id="chat-typing" style="display: none;">
-        <div class="thinking-dots"><span></span><span></span><span></span></div>
-        <span class="thinking-label">Appu is thinking & reasoning...</span>
+    <!-- Thinking Indicator -->
+    <div class="chat-thinking-indicator" id="chat-typing" style="display: none;">
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+      <span class="thinking-label">Appu is thinking & reasoning...</span>
+    </div>
+
+    <!-- Message Input Capsule -->
+    <form class="chat-input-wrapper" id="chat-form">
+      <div class="chat-input-capsule">
+        <input type="text" id="chat-input" placeholder="Ask Appu anything or schedule a call..." autocomplete="off" />
+        <button type="button" class="capsule-mic-btn" id="btn-chat-mic" title="Voice Input">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+        <button type="submit" class="capsule-send-btn" id="btn-chat-send" title="Send Message">
+          <i class="fa-solid fa-paper-plane-top"></i>
+        </button>
+      </div>
+    </form>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- 4. MODAL: 0-CLICK DISCOVERY CALL SCHEDULER                                -->
+  <!-- ========================================================================= -->
+  <div class="modal-scrim-backdrop" id="discovery-modal">
+    <div class="modal-sheet-dialog">
+      <div class="modal-dialog-header">
+        <div class="dialog-title-lockup">
+          <div class="dialog-icon-disc">
+            <i class="fa-solid fa-calendar-star"></i>
+          </div>
+          <div>
+            <h3>0-Click Discovery Call</h3>
+            <p>Instant Google Meet Invite + WhatsApp Confirmation via n8n</p>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-discovery-modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
 
-      <!-- Message Input Capsule -->
-      <form class="chat-input-wrapper" id="chat-form">
-        <div class="chat-input-capsule">
-          <input type="text" id="chat-input" placeholder="Ask Appu anything or schedule a call..." autocomplete="off" />
-          <button type="button" class="capsule-mic-btn" id="btn-chat-mic" title="Voice Input">
-            <i class="fa-solid fa-microphone"></i>
-          </button>
-          <button type="submit" class="capsule-send-btn" id="btn-chat-send" title="Send Message">
-            <i class="fa-solid fa-paper-plane-top"></i>
-          </button>
-        </div>
-      </form>
-    </aside>
-
-    <!-- Modal: 0-Click Discovery Call Scheduler (Google Meet + WhatsApp) -->
-    <div class="modal-scrim-backdrop" id="discovery-modal">
-      <div class="modal-sheet-dialog">
-        <div class="modal-dialog-header">
-          <div class="dialog-title-lockup">
-            <div class="dialog-icon-disc">
-              <i class="fa-solid fa-calendar-star"></i>
-            </div>
-            <div>
-              <h3>0-Click Discovery Call</h3>
-              <p>Instant Google Meet Invite + WhatsApp Confirmation via n8n</p>
-            </div>
-          </div>
-          <button class="dialog-close-btn" id="btn-close-discovery-modal">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <form class="discovery-input-form" id="discovery-form">
-          <div class="form-columns-2">
-            <div class="form-control-item">
-              <label for="lead-name"><i class="fa-solid fa-user"></i> Full Name</label>
-              <input type="text" id="lead-name" placeholder="e.g. Naveen Reddy" required />
-            </div>
-            <div class="form-control-item">
-              <label for="lead-phone"><i class="fa-brands fa-whatsapp"></i> WhatsApp Number</label>
-              <input type="tel" id="lead-phone" placeholder="e.g. +91 98765 43210" required />
-            </div>
-          </div>
-
-          <div class="form-columns-2">
-            <div class="form-control-item">
-              <label for="lead-email"><i class="fa-solid fa-envelope"></i> Email (for Google Meet)</label>
-              <input type="email" id="lead-email" placeholder="e.g. naveen@example.com" required />
-            </div>
-            <div class="form-control-item">
-              <label for="lead-date"><i class="fa-solid fa-clock"></i> Preferred Date & Time</label>
-              <input type="datetime-local" id="lead-date" required />
-            </div>
-          </div>
-
+      <form class="discovery-input-form" id="discovery-form">
+        <div class="form-columns-2">
           <div class="form-control-item">
-            <label for="lead-interest"><i class="fa-solid fa-bullseye"></i> Mentorship Focus Track</label>
-            <select id="lead-interest">
-              <option value="AI & Full Stack Career Track">AI & Full Stack Career Track</option>
-              <option value="1-on-1 Mentorship with Industry Experts">1-on-1 Mentorship with Industry Experts</option>
-              <option value="n8n & AI Automation Mastery">n8n & AI Automation Mastery</option>
-              <option value="CBSE Academic & Curriculum Roadmap">CBSE Academic & Curriculum Roadmap</option>
+            <label for="lead-name"><i class="fa-solid fa-user"></i> Full Name</label>
+            <input type="text" id="lead-name" placeholder="e.g. Naveen Reddy" required />
+          </div>
+          <div class="form-control-item">
+            <label for="lead-phone"><i class="fa-brands fa-whatsapp"></i> WhatsApp Number</label>
+            <input type="tel" id="lead-phone" placeholder="e.g. +91 98765 43210" required />
+          </div>
+        </div>
+
+        <div class="form-columns-2">
+          <div class="form-control-item">
+            <label for="lead-email"><i class="fa-solid fa-envelope"></i> Email (for Google Meet)</label>
+            <input type="email" id="lead-email" placeholder="e.g. naveen@example.com" required />
+          </div>
+          <div class="form-control-item">
+            <label for="lead-date"><i class="fa-solid fa-clock"></i> Preferred Date & Time</label>
+            <input type="datetime-local" id="lead-date" required />
+          </div>
+        </div>
+
+        <div class="form-control-item">
+          <label for="lead-interest"><i class="fa-solid fa-bullseye"></i> Mentorship Focus Track</label>
+          <select id="lead-interest">
+            <option value="AI & Full Stack Career Track">AI & Full Stack Career Track</option>
+            <option value="1-on-1 Mentorship with Industry Experts">1-on-1 Mentorship with Industry Experts</option>
+            <option value="n8n & AI Automation Mastery">n8n & AI Automation Mastery</option>
+            <option value="CBSE Academic & Curriculum Roadmap">CBSE Academic & Curriculum Roadmap</option>
+          </select>
+        </div>
+
+        <div class="dialog-perks-box">
+          <div class="perk-bullet">
+            <i class="fa-solid fa-circle-check text-emerald"></i>
+            <span>Instant Google Meet invite dispatched to your email</span>
+          </div>
+          <div class="perk-bullet">
+            <i class="fa-brands fa-whatsapp text-emerald"></i>
+            <span>Instant WhatsApp calendar alert & prep materials</span>
+          </div>
+        </div>
+
+        <button type="submit" class="dialog-submit-cta" id="btn-submit-discovery">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Confirm 0-Click Discovery Call</span>
+        </button>
+      </form>
+
+      <!-- Discovery Success State -->
+      <div class="discovery-success-state" id="discovery-success-view" style="display: none;">
+        <div class="success-burst-circle">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3>Discovery Call Scheduled!</h3>
+        <p class="success-summary-text" id="success-summary">
+          Google Meet link generated and WhatsApp alert dispatched!
+        </p>
+        <div class="success-links-stack">
+          <a href="https://meet.google.com/new" target="_blank" class="meet-link-btn" id="success-meet-link">
+            <i class="fa-solid fa-video"></i>
+            <span>Open Google Meet Link</span>
+          </a>
+          <a href="https://wa.me" target="_blank" class="whatsapp-link-btn" id="success-wa-link">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>Open WhatsApp Confirmation</span>
+          </a>
+        </div>
+        <button class="dialog-done-btn" id="btn-done-discovery">Return to Appu</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 5. MODAL: SETTINGS & PREFERENCES                                          -->
+  <!-- ========================================================================= -->
+  <div class="modal-scrim-backdrop" id="settings-modal">
+    <div class="modal-sheet-dialog">
+      <div class="modal-dialog-header">
+        <div class="dialog-title-lockup">
+          <div class="dialog-icon-disc">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <h3>Voice & Audio Preferences</h3>
+            <p>Customize Appu's speaking speed, pitch, and audio feedback</p>
+          </div>
+        </div>
+        <button class="dialog-close-btn" id="btn-close-settings-modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="settings-dialog-body">
+        <div class="settings-card-section">
+          <div class="form-control-item">
+            <label for="setting-voice-select">TTS Neural Voice</label>
+            <select id="setting-voice-select" class="form-select" disabled>
+              <option value="appu_elevenlabs" selected>✨ ElevenLabs Turbo v2.5 (Appu Cloned Voice)</option>
             </select>
           </div>
 
-          <div class="dialog-perks-box">
-            <div class="perk-bullet">
-              <i class="fa-solid fa-circle-check text-emerald"></i>
-              <span>Instant Google Meet invite dispatched to your email</span>
+          <div class="form-columns-2">
+            <div class="form-control-item">
+              <label for="setting-voice-pitch">Pitch (<span id="pitch-val">1.0</span>)</label>
+              <input type="range" id="setting-voice-pitch" min="0.6" max="1.4" step="0.1" value="1.0" />
             </div>
-            <div class="perk-bullet">
-              <i class="fa-brands fa-whatsapp text-emerald"></i>
-              <span>Instant WhatsApp calendar alert & prep materials</span>
+            <div class="form-control-item">
+              <label for="setting-voice-rate">Speed (<span id="rate-val">0.88</span>x)</label>
+              <input type="range" id="setting-voice-rate" min="0.65" max="1.20" step="0.02" value="0.88" />
             </div>
           </div>
 
-          <button type="submit" class="dialog-submit-cta" id="btn-submit-discovery">
-            <i class="fa-solid fa-bolt"></i>
-            <span>Confirm 0-Click Discovery Call</span>
-          </button>
-        </form>
+          <div class="toggle-switch-row">
+            <label class="switch-toggle-track">
+              <input type="checkbox" id="setting-auto-speak" checked>
+              <span class="switch-slider"></span>
+            </label>
+            <div class="switch-text-meta">
+              <span class="switch-title">Auto-Speak Answers</span>
+              <span class="switch-sub">Appu speaks responses aloud automatically.</span>
+            </div>
+          </div>
 
-        <!-- Discovery Success State -->
-        <div class="discovery-success-state" id="discovery-success-view" style="display: none;">
-          <div class="success-burst-circle">
-            <i class="fa-solid fa-circle-check"></i>
+          <div class="toggle-switch-row">
+            <label class="switch-toggle-track">
+              <input type="checkbox" id="setting-ui-sound" checked>
+              <span class="switch-slider"></span>
+            </label>
+            <div class="switch-text-meta">
+              <span class="switch-title">Procedural Web Audio SFX</span>
+              <span class="switch-sub">Tactile sound feedback on clicks and events.</span>
+            </div>
           </div>
-          <h3>Discovery Call Scheduled!</h3>
-          <p class="success-summary-text" id="success-summary">
-            Google Meet link generated and WhatsApp alert dispatched!
-          </p>
-          <div class="success-links-stack">
-            <a href="https://meet.google.com/new" target="_blank" class="meet-link-btn" id="success-meet-link">
-              <i class="fa-solid fa-video"></i>
-              <span>Open Google Meet Link</span>
-            </a>
-            <a href="https://wa.me" target="_blank" class="whatsapp-link-btn" id="success-wa-link">
-              <i class="fa-brands fa-whatsapp"></i>
-              <span>Open WhatsApp Confirmation</span>
-            </a>
-          </div>
-          <button class="dialog-done-btn" id="btn-done-discovery">Return to Appu</button>
         </div>
 
+        <button class="dialog-submit-cta" id="btn-save-settings">
+          <i class="fa-solid fa-check"></i>
+          <span>Save Preferences</span>
+        </button>
       </div>
     </div>
-
-    <!-- Modal: Settings & Integrations -->
-    <div class="modal-scrim-backdrop" id="settings-modal">
-      <div class="modal-sheet-dialog">
-        <div class="modal-dialog-header">
-          <div class="dialog-title-lockup">
-            <div class="dialog-icon-disc">
-              <i class="fa-solid fa-sliders"></i>
-            </div>
-            <div>
-              <h3>Settings & Integrations</h3>
-              <p>Live n8n Webhook & Neural Voice Engine Settings</p>
-            </div>
-          </div>
-          <button class="dialog-close-btn" id="btn-close-settings-modal">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="settings-dialog-body">
-          <div class="settings-card-section">
-            <h4 class="section-heading"><i class="fa-solid fa-diagram-project text-cyan"></i> Live n8n Chat Webhook URL</h4>
-            <div class="form-control-item">
-              <input type="url" id="setting-n8n-url" value="https://n8n.srv1871828.hstgr.cloud/webhook/4a108e85-050f-427e-aa03-784492ddfe89/chat" />
-            </div>
-            <div class="toggle-switch-row">
-              <label class="switch-toggle-track">
-                <input type="checkbox" id="setting-mock-mode">
-                <span class="switch-slider"></span>
-              </label>
-              <div class="switch-text-meta">
-                <span class="switch-title">Smart Simulation Mode</span>
-                <span class="switch-sub">Enable offline simulated mentor when n8n is offline.</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-card-section">
-            <h4 class="section-heading"><i class="fa-solid fa-microphone-lines text-cyan"></i> Voice & Speech Synthesis</h4>
-            
-            <div class="form-control-item">
-              <label for="setting-voice-select">TTS Voice Model</label>
-              <select id="setting-voice-select" class="form-select" disabled>
-                <option value="appu_f5_clone" selected>✨ Appu Cloned Neural Voice (Live GPU Engine)</option>
-              </select>
-            </div>
-
-            <div class="form-columns-2">
-              <div class="form-control-item">
-                <label for="setting-voice-pitch">Pitch (<span id="pitch-val">1.0</span>)</label>
-                <input type="range" id="setting-voice-pitch" min="0.6" max="1.4" step="0.1" value="1.0" />
-              </div>
-              <div class="form-control-item">
-                <label for="setting-voice-rate">Speed (<span id="rate-val">0.88</span>x)</label>
-                <input type="range" id="setting-voice-rate" min="0.65" max="1.20" step="0.02" value="0.88" />
-              </div>
-            </div>
-
-            <div class="toggle-switch-row">
-              <label class="switch-toggle-track">
-                <input type="checkbox" id="setting-auto-speak" checked>
-                <span class="switch-slider"></span>
-              </label>
-              <div class="switch-text-meta">
-                <span class="switch-title">Auto-Speak Answers</span>
-                <span class="switch-sub">Appu speaks responses aloud automatically.</span>
-              </div>
-            </div>
-
-            <div class="toggle-switch-row">
-              <label class="switch-toggle-track">
-                <input type="checkbox" id="setting-ui-sound" checked>
-                <span class="switch-slider"></span>
-              </label>
-              <div class="switch-text-meta">
-                <span class="switch-title">Procedural Web Audio SFX</span>
-                <span class="switch-sub">Tactile sound feedback on clicks and events.</span>
-              </div>
-            </div>
-          </div>
-
-          <button class="dialog-submit-cta" id="btn-save-settings">
-            <i class="fa-solid fa-check"></i>
-            <span>Save Preferences</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <!-- Core JavaScript Modules with Cache Busting -->
-  <script src="avatar-stage.js?v=3.0"></script>
-  <script src="voice-engine.js?v=3.0"></script>
-  <script src="chat-agent.js?v=3.0"></script>
-  <script src="app.js?v=3.0"></script>
+  <script src="avatar-stage.js?v=6.0"></script>
+  <script src="voice-engine.js?v=6.0"></script>
+  <script src="chat-agent.js?v=6.0"></script>
+  <script src="app.js?v=6.0"></script>
 </body>
 </html>

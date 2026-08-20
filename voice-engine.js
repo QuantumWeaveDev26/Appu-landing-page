@@ -1,5 +1,6 @@
 /**
  * VoiceEngine: Speech Recognition (STT), Speech Synthesis (TTS), Subtitle Synchronization & Procedural Web Audio SFX
+ * Features Continuous Live Conversational Mode (Gemini Live / ChatGPT Voice style back-and-forth)
  */
 
 class VoiceEngine {
@@ -11,25 +12,25 @@ class VoiceEngine {
       onSpeechError: callbacks.onSpeechError || (() => {}),
       onUtteranceStart: callbacks.onUtteranceStart || (() => {}),
       onUtteranceEnd: callbacks.onUtteranceEnd || (() => {}),
+      onLiveModeChange: callbacks.onLiveModeChange || (() => {}),
       ...callbacks
     };
 
     this.isListening = false;
     this.isSpeaking = false;
+    this.isLiveMode = false;
     this.soundEnabled = true;
     this.autoSpeak = true;
     this.pitch = 1.0;
     
-    // Natural, calm speaking speed (0.88x default for crystal clear Indian language articulation)
+    // Natural, calm speaking speed (0.88x default for crystal clear articulation)
     const savedRate = parseFloat(localStorage.getItem('appu_voice_rate')) || 0.88;
     this.rate = savedRate;
-    this.selectedVoice = null;
-    this.voices = [];
+    this.currentLanguage = 'en';
 
     // UI elements
     this.subtitlesText = document.getElementById('subtitles-text');
     this.equalizer = document.getElementById('audio-equalizer');
-    this.micWrapper = document.querySelector('.voice-portal-wrapper');
     this.micTooltip = document.getElementById('mic-tooltip');
 
     // Dedicated HTML5 Audio Player for Cloned Voice API Stream
@@ -61,24 +62,38 @@ class VoiceEngine {
     });
 
     this.audioPlayer.addEventListener('ended', () => {
-      this.isSpeaking = false;
-      if (this.equalizer) this.equalizer.classList.remove('active');
-      this.callbacks.onUtteranceEnd();
+      this.handleSpeechFinish();
     });
 
     this.audioPlayer.addEventListener('error', (err) => {
       console.warn('[VoiceEngine] Audio playback error:', err);
-      this.isSpeaking = false;
-      if (this.equalizer) this.equalizer.classList.remove('active');
-      this.callbacks.onUtteranceEnd();
+      this.handleSpeechFinish();
     });
 
     this.audioPlayer.addEventListener('pause', () => {
       if (this.audioPlayer.currentTime === 0 || this.audioPlayer.ended) {
-        this.isSpeaking = false;
-        if (this.equalizer) this.equalizer.classList.remove('active');
+        this.handleSpeechFinish();
       }
     });
+  }
+
+  handleSpeechFinish() {
+    this.isSpeaking = false;
+    if (this.equalizer) this.equalizer.classList.remove('active');
+    this.callbacks.onUtteranceEnd();
+
+    // In Live Mode: automatically resume listening immediately after Appu finishes speaking!
+    if (this.isLiveMode) {
+      console.log('[VoiceEngine] Appu finished speaking. Live mode active -> Resuming listening...');
+      setTimeout(() => {
+        if (this.isLiveMode && !this.isSpeaking) {
+          this.startListening();
+          if (this.subtitlesText) {
+            this.subtitlesText.textContent = '"Listening... (Speak anytime or tap to stop)"';
+          }
+        }
+      }, 350);
+    }
   }
 
   setPlaybackRate(newRate) {
@@ -136,6 +151,10 @@ class VoiceEngine {
     setTimeout(() => this.playTone(440, 'sine', 0.18, 0.12), 70);
   }
 
+  playClick() {
+    this.playTone(800, 'sine', 0.05, 0.08);
+  }
+
   playMessage() {
     this.playTone(587.33, 'triangle', 0.15, 0.1);
     setTimeout(() => this.playTone(880, 'sine', 0.25, 0.12), 60);
@@ -148,8 +167,15 @@ class VoiceEngine {
     });
   }
 
+  toggleSound() {
+    this.soundEnabled = !this.soundEnabled;
+    localStorage.setItem('appu_sound_sfx', this.soundEnabled);
+    if (this.soundEnabled) this.playSuccess();
+    return this.soundEnabled;
+  }
+
   // ==========================================
-  // SPEECH RECOGNITION (STT)
+  // SPEECH RECOGNITION (STT) & LIVE CONVERSATIONS
   // ==========================================
   initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -160,14 +186,13 @@ class VoiceEngine {
     }
 
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = false;
+    this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-IN'; // Default: Indian English / Kannada context
 
     this.recognition.onstart = () => {
       this.isListening = true;
       this.updateMicUI(true);
-      this.playListenStart();
       this.callbacks.onSpeechStart();
     };
 
@@ -188,22 +213,38 @@ class VoiceEngine {
         this.subtitlesText.textContent = `"${activeText}"`;
       }
 
-      if (finalTranscript) {
+      if (finalTranscript && finalTranscript.trim().length > 1) {
+        console.log('[VoiceEngine] Final speech recognized:', finalTranscript);
+        // Pause recognition while Appu processes and answers
+        this.stopListening();
         this.callbacks.onSpeechResult(finalTranscript.trim());
       }
     };
 
     this.recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      this.stopListening();
+      console.warn('[VoiceEngine] Speech recognition event:', event.error);
+      if (event.error === 'not-allowed') {
+        alert('Microphone access is blocked. Please allow microphone permissions in your browser to speak with Appu!');
+        this.stopLiveSession();
+      }
       this.callbacks.onSpeechError(event.error);
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
       this.updateMicUI(false);
-      this.playListenStop();
       this.callbacks.onSpeechEnd();
+
+      // If Live Mode is active and Appu is NOT currently speaking, keep listening alive!
+      if (this.isLiveMode && !this.isSpeaking) {
+        setTimeout(() => {
+          if (this.isLiveMode && !this.isSpeaking && !this.isListening) {
+            try {
+              this.recognition.start();
+            } catch(e) {}
+          }
+        }, 200);
+      }
     };
   }
 
@@ -221,12 +262,36 @@ class VoiceEngine {
     }
   }
 
-  toggleListening() {
-    if (this.isListening) {
-      this.stopListening();
+  // ==========================================
+  // LIVE CONVERSATIONAL VOICE SESSION CONTROLLER
+  // ==========================================
+  toggleLiveSession() {
+    if (this.isLiveMode) {
+      this.stopLiveSession();
     } else {
-      this.startListening();
+      this.startLiveSession();
     }
+  }
+
+  startLiveSession() {
+    this.isLiveMode = true;
+    this.updateLiveSessionUI(true);
+    this.playListenStart();
+    this.startListening();
+    this.callbacks.onLiveModeChange(true);
+
+    if (this.subtitlesText) {
+      this.subtitlesText.textContent = '"Listening... (Speak anytime or tap to stop)"';
+    }
+  }
+
+  stopLiveSession() {
+    this.isLiveMode = false;
+    this.stopSpeaking();
+    this.stopListening();
+    this.updateLiveSessionUI(false);
+    this.playListenStop();
+    this.callbacks.onLiveModeChange(false);
   }
 
   startListening() {
@@ -237,7 +302,7 @@ class VoiceEngine {
       try {
         this.recognition.start();
       } catch (err) {
-        console.warn('Recognition start exception:', err);
+        // Recognition might already be running
       }
     } else {
       alert('Speech Recognition is not supported on this browser. Please use Chrome, Edge, or type in the chat!');
@@ -245,30 +310,49 @@ class VoiceEngine {
   }
 
   stopListening() {
-    if (this.recognition && this.isListening) {
+    if (this.recognition) {
       try {
         this.recognition.stop();
-      } catch (err) {
-        console.warn('Recognition stop exception:', err);
-      }
+      } catch (err) {}
     }
     this.isListening = false;
     this.updateMicUI(false);
   }
 
-  updateMicUI(listening) {
-    if (!this.micWrapper) return;
-    if (listening) {
-      this.micWrapper.classList.add('is-listening');
-      if (this.micTooltip) this.micTooltip.textContent = 'Listening...';
+  updateLiveSessionUI(isActive) {
+    const portal = document.getElementById('voice-portal');
+    const micIcon = document.getElementById('mic-icon');
+    const micTooltip = document.getElementById('mic-tooltip');
+    const statusPill = document.getElementById('avatar-status-pill');
+    const statusLabel = document.getElementById('status-label');
+
+    if (isActive) {
+      if (portal) portal.classList.add('is-live-active', 'is-listening');
+      if (micIcon) micIcon.className = 'fa-solid fa-waveform-lines text-emerald';
+      if (micTooltip) micTooltip.textContent = 'LIVE SESSION • TAP TO STOP';
+      if (statusLabel) statusLabel.textContent = 'Live Voice Session';
+      if (statusPill) statusPill.classList.add('live-session-active');
     } else {
-      this.micWrapper.classList.remove('is-listening');
-      if (this.micTooltip) this.micTooltip.textContent = 'Tap to Talk';
+      if (portal) portal.classList.remove('is-live-active', 'is-listening');
+      if (micIcon) micIcon.className = 'fa-solid fa-microphone';
+      if (micTooltip) micTooltip.textContent = 'TAP TO SPEAK';
+      if (statusLabel) statusLabel.textContent = 'Appu is Online';
+      if (statusPill) statusPill.classList.remove('live-session-active');
+    }
+  }
+
+  updateMicUI(listening) {
+    const portal = document.getElementById('voice-portal');
+    if (!portal) return;
+    if (listening || this.isLiveMode) {
+      portal.classList.add('is-listening');
+    } else {
+      portal.classList.remove('is-listening');
     }
   }
 
   // ==========================================
-  // CLONED NEURAL VOICE SYNTHESIS (Live F5-TTS)
+  // CLONED NEURAL VOICE SYNTHESIS (ElevenLabs Turbo v2.5)
   // ==========================================
 
   /**
@@ -314,13 +398,12 @@ class VoiceEngine {
       await this.audioPlayer.play();
     } catch (err) {
       console.warn('[VoiceEngine] ElevenLabs voice generation error:', err);
-      this.callbacks.onUtteranceEnd();
-      if (this.equalizer) this.equalizer.classList.remove('active');
+      this.handleSpeechFinish();
     }
   }
 
   /**
-   * Plays dynamic audio stream directly
+   * Plays dynamic audio stream directly from n8n response
    */
   async playClonedSpeech(audioSource, text = '') {
     if (!audioSource || !this.autoSpeak) return;
@@ -337,8 +420,7 @@ class VoiceEngine {
       await this.audioPlayer.play();
     } catch (err) {
       console.warn('[VoiceEngine] Audio stream play error:', err);
-      this.callbacks.onUtteranceEnd();
-      if (this.equalizer) this.equalizer.classList.remove('active');
+      this.handleSpeechFinish();
     }
   }
 
@@ -354,17 +436,12 @@ class VoiceEngine {
       if (audioData.startsWith('data:') || audioData.startsWith('http') || audioData.startsWith('blob:')) {
         audioSrc = audioData;
       } else {
-        // Raw base64 string — wrap as MP3 data URI (ElevenLabs returns MP3)
+        // Raw base64 string — wrap as MP3 data URI
         audioSrc = `data:audio/mpeg;base64,${audioData}`;
       }
     }
 
     return this.playClonedSpeech(audioSrc, text);
-  }
-
-  speakFallback(text) {
-    // Disabled robotic fallback voices permanently
-    console.log('[VoiceEngine] Text displayed without robotic OS fallback:', text.slice(0, 50));
   }
 
   stopSpeaking() {
@@ -373,9 +450,6 @@ class VoiceEngine {
         this.audioPlayer.pause();
         this.audioPlayer.currentTime = 0;
       } catch (e) {}
-    }
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
     }
     this.isSpeaking = false;
     if (this.equalizer) this.equalizer.classList.remove('active');
