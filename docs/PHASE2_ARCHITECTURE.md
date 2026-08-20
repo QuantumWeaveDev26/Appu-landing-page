@@ -138,7 +138,10 @@ There is no existing authentication to preserve. Introduce parent authentication
 
 Preferred model:
 
-- Managed parent identity through Supabase Auth or equivalent.
+- Managed parent identity through Supabase Auth is the preferred provider.
+- The `household_members.user_id` UUID column is designed to reference the verified Supabase Auth user UUID (`auth.users.id`) when Supabase is confirmed.
+- A hard foreign key across schemas (`REFERENCES auth.users(id)`) is deferred until deployment architecture guarantees both schemas exist within the same PostgreSQL instance.
+- **Provider Subject Fallback**: If a non-UUID auth provider (e.g. Auth0, Clerk, or custom OAuth2) is selected instead, an internal `user_identities` mapping table (`id UUID PRIMARY KEY, provider_subject TEXT UNIQUE, ...`) will map arbitrary provider subject strings to internal UUIDs, ensuring `household_members.user_id` remains an invariant UUID.
 - Same-origin, secure, `HttpOnly`, `Secure`, `SameSite` session cookies when the final hosting layout permits it.
 - If frontend and backend must use separate origins, use short-lived access tokens, strict CORS, careful refresh-token handling, and explicit CSRF analysis.
 - Parent sign-up, sign-in, sign-out, email verification, password reset, and session revocation are server-aware flows.
@@ -146,6 +149,7 @@ Preferred model:
 - Child mode starts through a short-lived, narrowly scoped `child_access_session` authorised by the parent and bound to one child.
 
 Authentication establishes who is making the request. It does not by itself establish child ownership, subscription access, entitlement, or quota.
+
 
 ## 6. Authorization model
 

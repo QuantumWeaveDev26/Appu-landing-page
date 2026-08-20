@@ -1,9 +1,21 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config/index.js';
+import { createDatabase, type PostgresDatabase } from './db/client.js';
 
 async function startServer() {
   const config = loadConfig();
-  const app = buildApp(config);
+
+  let database: PostgresDatabase | undefined;
+  if (config.DATABASE_URL) {
+    try {
+      database = createDatabase({ connectionString: config.DATABASE_URL });
+    } catch (err: any) {
+      console.error('[AppuBackend] Failed to initialize database pool:', err.message);
+      process.exit(1);
+    }
+  }
+
+  const app = buildApp(config, { database });
 
   try {
     const address = await app.listen({
@@ -13,6 +25,9 @@ async function startServer() {
     app.log.info(`[AppuBackend] Server listening at ${address} in ${config.NODE_ENV} mode`);
   } catch (err) {
     console.error('[AppuBackend] Failed to start server:', err);
+    if (database) {
+      await database.close().catch(() => {});
+    }
     process.exit(1);
   }
 
@@ -34,7 +49,11 @@ async function startServer() {
 }
 
 // Only start when invoked directly
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('server.ts') || process.argv[1]?.endsWith('server.js')) {
+if (
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('server.ts') ||
+  process.argv[1]?.endsWith('server.js')
+) {
   startServer();
 }
 

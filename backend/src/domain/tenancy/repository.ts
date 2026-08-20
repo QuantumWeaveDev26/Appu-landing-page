@@ -1,0 +1,306 @@
+import type { Queryable } from '../../db/types.js';
+import type {
+  Household,
+  HouseholdMember,
+  ChildProfile,
+  CreateHouseholdInput,
+  CreateHouseholdMemberInput,
+  CreateChildProfileInput,
+  UpdateChildProfileInput
+} from './types.js';
+
+// ==========================================
+// DATABASE ROW INTERFACES (snake_case)
+// ==========================================
+
+interface HouseholdRow {
+  id: string;
+  name: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+interface HouseholdMemberRow {
+  id: string;
+  household_id: string;
+  user_id: string;
+  role: 'OWNER' | 'PARENT';
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+interface ChildProfileRow {
+  id: string;
+  household_id: string;
+  preferred_name: string;
+  grade_band: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  created_at: Date | string;
+  updated_at: Date | string;
+}
+
+// ==========================================
+// ROW MAPPERS
+// ==========================================
+
+function mapHouseholdRow(row: HouseholdRow): Household {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at)
+  };
+}
+
+function mapHouseholdMemberRow(row: HouseholdMemberRow): HouseholdMember {
+  return {
+    id: row.id,
+    householdId: row.household_id,
+    userId: row.user_id,
+    role: row.role,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at)
+  };
+}
+
+function mapChildProfileRow(row: ChildProfileRow): ChildProfile {
+  return {
+    id: row.id,
+    householdId: row.household_id,
+    preferredName: row.preferred_name,
+    gradeBand: row.grade_band,
+    status: row.status,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at)
+  };
+}
+
+// ==========================================
+// TENANCY REPOSITORY IMPLEMENTATION
+// ==========================================
+
+export class TenancyRepository {
+  /**
+   * Creates a new household (the root tenant boundary).
+   */
+  public static async createHousehold(
+    db: Queryable,
+    input: CreateHouseholdInput = {}
+  ): Promise<Household> {
+    const result = await db.query<HouseholdRow>(
+      `INSERT INTO households (name, created_at, updated_at)
+       VALUES ($1, NOW(), NOW())
+       RETURNING id, name, created_at, updated_at;`,
+      [input.name ?? null]
+    );
+
+    return mapHouseholdRow(result.rows[0]);
+  }
+
+  /**
+   * Retrieves a household by its primary key ID.
+   */
+  public static async getHouseholdById(
+    db: Queryable,
+    householdId: string
+  ): Promise<Household | null> {
+    const result = await db.query<HouseholdRow>(
+      `SELECT id, name, created_at, updated_at
+       FROM households
+       WHERE id = $1;`,
+      [householdId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return mapHouseholdRow(result.rows[0]);
+  }
+
+  /**
+   * Adds a user to a household with a specific role (e.g. OWNER or PARENT).
+   */
+  public static async createHouseholdMember(
+    db: Queryable,
+    input: CreateHouseholdMemberInput
+  ): Promise<HouseholdMember> {
+    const result = await db.query<HouseholdMemberRow>(
+      `INSERT INTO household_members (household_id, user_id, role, created_at, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW())
+       RETURNING id, household_id, user_id, role, created_at, updated_at;`,
+      [input.householdId, input.userId, input.role]
+    );
+
+    return mapHouseholdMemberRow(result.rows[0]);
+  }
+
+  /**
+   * Lists all members belonging to a household.
+   */
+  public static async getHouseholdMembers(
+    db: Queryable,
+    householdId: string
+  ): Promise<HouseholdMember[]> {
+    const result = await db.query<HouseholdMemberRow>(
+      `SELECT id, household_id, user_id, role, created_at, updated_at
+       FROM household_members
+       WHERE household_id = $1
+       ORDER BY created_at ASC;`,
+      [householdId]
+    );
+
+    return result.rows.map(mapHouseholdMemberRow);
+  }
+
+  /**
+   * Checks if a user is a member of a specific household.
+   */
+  public static async findMembership(
+    db: Queryable,
+    householdId: string,
+    userId: string
+  ): Promise<HouseholdMember | null> {
+    const result = await db.query<HouseholdMemberRow>(
+      `SELECT id, household_id, user_id, role, created_at, updated_at
+       FROM household_members
+       WHERE household_id = $1 AND user_id = $2;`,
+      [householdId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return mapHouseholdMemberRow(result.rows[0]);
+  }
+
+  /**
+   * Creates a child profile strictly under a household.
+   */
+  public static async createChildProfile(
+    db: Queryable,
+    input: CreateChildProfileInput
+  ): Promise<ChildProfile> {
+    const status = input.status ?? 'ACTIVE';
+
+    const result = await db.query<ChildProfileRow>(
+      `INSERT INTO child_profiles (household_id, preferred_name, grade_band, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING id, household_id, preferred_name, grade_band, status, created_at, updated_at;`,
+      [input.householdId, input.preferredName, input.gradeBand, status]
+    );
+
+    return mapChildProfileRow(result.rows[0]);
+  }
+
+  /**
+   * Retrieves a child profile.
+   * STRICT REQUIREMENT: Must provide BOTH householdId and childId.
+   * Will return null if the child does not belong to the given household.
+   */
+  public static async getChildProfile(
+    db: Queryable,
+    householdId: string,
+    childId: string
+  ): Promise<ChildProfile | null> {
+    const result = await db.query<ChildProfileRow>(
+      `SELECT id, household_id, preferred_name, grade_band, status, created_at, updated_at
+       FROM child_profiles
+       WHERE household_id = $1 AND id = $2;`,
+      [householdId, childId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return mapChildProfileRow(result.rows[0]);
+  }
+
+  /**
+   * Lists all child profiles belonging to a specific household.
+   */
+  public static async listChildProfilesByHousehold(
+    db: Queryable,
+    householdId: string
+  ): Promise<ChildProfile[]> {
+    const result = await db.query<ChildProfileRow>(
+      `SELECT id, household_id, preferred_name, grade_band, status, created_at, updated_at
+       FROM child_profiles
+       WHERE household_id = $1
+       ORDER BY created_at ASC;`,
+      [householdId]
+    );
+
+    return result.rows.map(mapChildProfileRow);
+  }
+
+  /**
+   * Updates a child profile.
+   * STRICT REQUIREMENT: Scoped by both householdId and childId.
+   */
+  public static async updateChildProfile(
+    db: Queryable,
+    householdId: string,
+    childId: string,
+    input: UpdateChildProfileInput
+  ): Promise<ChildProfile | null> {
+    const fields: string[] = [];
+    const values: any[] = [householdId, childId];
+    let idx = 3;
+
+    if (input.preferredName !== undefined) {
+      fields.push(`preferred_name = $${idx++}`);
+      values.push(input.preferredName);
+    }
+
+    if (input.gradeBand !== undefined) {
+      fields.push(`grade_band = $${idx++}`);
+      values.push(input.gradeBand);
+    }
+
+    if (input.status !== undefined) {
+      fields.push(`status = $${idx++}`);
+      values.push(input.status);
+    }
+
+    if (fields.length === 0) {
+      return TenancyRepository.getChildProfile(db, householdId, childId);
+    }
+
+    fields.push('updated_at = NOW()');
+
+    const result = await db.query<ChildProfileRow>(
+      `UPDATE child_profiles
+       SET ${fields.join(', ')}
+       WHERE household_id = $1 AND id = $2
+       RETURNING id, household_id, preferred_name, grade_band, status, created_at, updated_at;`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return mapChildProfileRow(result.rows[0]);
+  }
+
+  /**
+   * Deletes a child profile.
+   * STRICT REQUIREMENT: Scoped by both householdId and childId.
+   */
+  public static async deleteChildProfile(
+    db: Queryable,
+    householdId: string,
+    childId: string
+  ): Promise<boolean> {
+    const result = await db.query(
+      `DELETE FROM child_profiles
+       WHERE household_id = $1 AND id = $2;`,
+      [householdId, childId]
+    );
+
+    return (result.rowCount ?? 0) > 0;
+  }
+}
