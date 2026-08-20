@@ -8,6 +8,10 @@ starred-repos/
 .env
 .env.local
 
+# Build output
+dist/
+backend/dist/
+
 # OS files
 .DS_Store
 Thumbs.db
