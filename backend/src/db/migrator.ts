@@ -18,7 +18,7 @@ export interface MigrationFile {
 
 export interface AppliedMigrationRecord {
   version: string;
-  checksum: string;
+  checksum: string | null;
   applied_at: Date;
 }
 
@@ -126,26 +126,50 @@ export async function runMigrations(
       [MIGRATION_ADVISORY_LOCK_KEY]
     );
 
-    // Ensure schema_migrations table exists
-    try {
+    // 1. Check if schema_migrations table exists using safe metadata inspection (never speculative failing SQL)
+    const tableExistsResult = await transactionDb.query<{ exists: boolean }>(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_name = 'schema_migrations'
+      ) AS exists;
+    `);
+
+    const tableExists = Boolean(tableExistsResult.rows[0]?.exists);
+
+    if (!tableExists) {
       await transactionDb.query(`
         CREATE TABLE schema_migrations (
           version VARCHAR(255) PRIMARY KEY,
           checksum VARCHAR(64),
-          applied_at TIMESTAMPTZ
+          applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `);
-    } catch (err: any) {
-      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
-        throw err;
+    } else {
+      // 2. If table exists, check if 'checksum' column is present
+      const columnExistsResult = await transactionDb.query<{ exists: boolean }>(`
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'schema_migrations' AND column_name = 'checksum'
+        ) AS exists;
+      `);
+
+      const checksumColumnExists = Boolean(columnExistsResult.rows[0]?.exists);
+
+      if (!checksumColumnExists) {
+        // Upgrade table schema cleanly without recreating or dropping existing migration history
+        await transactionDb.query(`
+          ALTER TABLE schema_migrations ADD COLUMN checksum VARCHAR(64);
+        `);
       }
     }
 
-    // Retrieve all previously applied migrations
+    // 3. Retrieve all previously applied migrations
     const appliedResult = await transactionDb.query<AppliedMigrationRecord>(
       'SELECT version, checksum, applied_at FROM schema_migrations ORDER BY version ASC;'
     );
-    const appliedMap = new Map<string, string>(
+    const appliedMap = new Map<string, string | null>(
       appliedResult.rows.map((row) => [row.version, row.checksum])
     );
 
@@ -153,25 +177,32 @@ export async function runMigrations(
     const newlyApplied: string[] = [];
 
     for (const migration of migrationFiles) {
-      const existingChecksum = appliedMap.get(migration.version);
+      if (appliedMap.has(migration.version)) {
+        const existingChecksum = appliedMap.get(migration.version);
 
-      if (existingChecksum !== undefined) {
-        // Migration was already applied: verify checksum has not been tampered with
-        if (existingChecksum && existingChecksum !== migration.checksum) {
+        if (existingChecksum === null || existingChecksum === undefined || existingChecksum === '') {
+          // Migration was applied before checksums were enabled: backfill the checksum safely
+          await transactionDb.query(
+            'UPDATE schema_migrations SET checksum = $1 WHERE version = $2;',
+            [migration.checksum, migration.version]
+          );
+        } else if (existingChecksum !== migration.checksum) {
+          // Migration was already applied with a different checksum: abort safely
           throw new MigrationChecksumMismatchError(
             migration.version,
             existingChecksum,
             migration.checksum
           );
         }
-        // Checksum matches, skip already-applied migration
+
+        // Migration already applied with valid/backfilled checksum, proceed to next
         continue;
       }
 
-      // Execute migration SQL
+      // 4. Execute unapplied migration SQL
       await transactionDb.query(migration.sql);
 
-      // Record applied version and checksum
+      // 5. Record applied version and checksum
       await transactionDb.query(
         'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES ($1, $2, NOW());',
         [migration.version, migration.checksum]

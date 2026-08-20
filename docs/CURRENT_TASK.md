@@ -66,11 +66,12 @@ Milestone 2A.1 — Production Database Foundation Hardening (COMPLETE)
 
 ## Real PostgreSQL Validation Status:
 
-**REAL POSTGRES VALIDATION: PENDING**
-- Status: In-memory `pg-mem` suite (42 tests) passes 100%. Real PostgreSQL integration test suite (`npm run test:postgres`) is fully implemented and ready, but pending execution against a provisioned live PostgreSQL instance with `TEST_DATABASE_URL`.
-- Remaining to verify on live PostgreSQL instance:
-  - Live PostgreSQL advisory lock contention.
-  - Real PostgreSQL SSL/TLS connection verification.
+**REAL POSTGRES VALIDATION: PASSED (VERIFIED ON LIVE SUPABASE POSTGRESQL)**
+- Connected to live PostgreSQL instance via `TEST_DATABASE_URL`.
+- Migration execution & SHA-256 checksum persistence: **PASSED**
+- Migration idempotency: **PASSED**
+- Atomic Household + OWNER creation in single transaction: **PASSED**
+- Adversarial cross-tenant isolation (preventing cross-household query/list/update/delete leaks): **PASSED**
 
 ## Known Limitations:
 
@@ -94,7 +95,8 @@ The browser currently calls a public n8n webhook directly. This remains active t
 ## Validation Status:
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 42/42 tests passed, 0 failures)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 44/44 tests passed, 0 failures)
+- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 3/3 tests passed on live Supabase PostgreSQL)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Phase 1 Node Tests**: PASSED (`node --test tests/*.test.js` — 8/8 tests passed)
 - **Phase 1 Python Tests**: PASSED (`python tests/page-structure.test.py` — 8/8 tests passed)

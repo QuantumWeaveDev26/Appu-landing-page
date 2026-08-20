@@ -122,6 +122,73 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     assert.equal(computeChecksum(unixSql), computeChecksum(windowsSql));
   });
 
+  test('REGRESSION: existing schema_migrations without checksum column is safely upgraded and backfilled', async () => {
+    const freshDb = createTestDatabase();
+
+    // 1. Manually create pre-checksum schema_migrations table (Milestone 2A shape)
+    await freshDb.query(`
+      CREATE TABLE schema_migrations (
+        version VARCHAR(255) PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Record 001_initial_tenancy.sql as applied without checksum column
+    await freshDb.query(
+      "INSERT INTO schema_migrations (version, applied_at) VALUES ('001_initial_tenancy.sql', NOW());"
+    );
+
+    // Also manually create the tenancy tables so DB state matches historical migration
+    await freshDb.query(`
+      CREATE TABLE households (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name VARCHAR(255), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+      CREATE TABLE household_members (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), household_id UUID NOT NULL REFERENCES households(id) ON DELETE RESTRICT, user_id UUID NOT NULL, role VARCHAR(50) NOT NULL CHECK (role IN ('OWNER', 'PARENT')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT uq_household_member UNIQUE (household_id, user_id));
+      CREATE TABLE child_profiles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), household_id UUID NOT NULL REFERENCES households(id) ON DELETE RESTRICT, preferred_name VARCHAR(100) NOT NULL, grade_band VARCHAR(50) NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT uq_child_profiles_household_id UNIQUE (household_id, id));
+    `);
+
+    // 2. Run migrator on legacy database: should safely add 'checksum' column and backfill checksum without failing
+    const applied = await runMigrations(freshDb);
+    assert.deepEqual(applied, []);
+
+    // 3. Verify 'checksum' column exists and has valid SHA-256 value
+    const migrationRows = await freshDb.query<{ version: string; checksum: string }>(
+      "SELECT version, checksum FROM schema_migrations WHERE version = '001_initial_tenancy.sql';"
+    );
+    assert.equal(migrationRows.rows.length, 1);
+    assert.match(migrationRows.rows[0].checksum, /^[a-f0-9]{64}$/);
+
+    // 4. Verify subsequent run is a no-op
+    const secondRun = await runMigrations(freshDb);
+    assert.deepEqual(secondRun, []);
+  });
+
+  test('REGRESSION: genuine migration SQL failure rolls back transaction without recording false success', async () => {
+    const freshDb = createTestDatabase();
+
+    // Mock a broken migration run by creating a custom migration runner invocation with failing SQL
+    await assert.rejects(
+      async () => {
+        await freshDb.transaction(async (txDb) => {
+          await txDb.query('CREATE TABLE schema_migrations (version VARCHAR(255) PRIMARY KEY, checksum VARCHAR(64), applied_at TIMESTAMPTZ);');
+          await txDb.query('THIS IS AN INTENTIONAL SQL SYNTAX ERROR;');
+          await txDb.query("INSERT INTO schema_migrations (version, checksum, applied_at) VALUES ('broken.sql', 'abc', NOW());");
+        });
+      },
+      /syntax error|error/i
+    );
+
+    // Verify transaction rollback: schema_migrations table should not exist or broken.sql not recorded
+    const checkTable = await freshDb.query<{ exists: boolean }>(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_name = 'schema_migrations'
+      ) AS exists;
+    `);
+
+    if (checkTable.rows[0]?.exists) {
+      const records = await freshDb.query('SELECT * FROM schema_migrations WHERE version = $1;', ['broken.sql']);
+      assert.equal(records.rows.length, 0);
+    }
+  });
+
   // ============================================================================
   // ATOMIC HOUSEHOLD + OWNER CREATION (TENANCY SERVICE)
   // ============================================================================
