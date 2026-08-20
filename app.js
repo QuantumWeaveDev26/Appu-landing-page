@@ -107,9 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // CONFIGURATION & PERSISTED PREFERENCES
   // ==========================================
   const defaultN8nUrl = 'https://n8n.srv1871828.hstgr.cloud/webhook/4a108e85-050f-427e-aa03-784492ddfe89/chat';
-  const savedWebhook = localStorage.getItem('appu_n8n_url') || defaultN8nUrl;
+  const savedWebhook = defaultN8nUrl;
+  localStorage.removeItem('appu_n8n_url');
   localStorage.removeItem('appu_mock_mode');
-  const savedPitch = parseFloat(localStorage.getItem('appu_pitch') || '1.0');
   const savedRate = parseFloat(localStorage.getItem('appu_voice_rate') || '0.88');
   const savedAutoSpeak = localStorage.getItem('appu_auto_speak') !== 'false';
   const savedSound = localStorage.getItem('appu_sound_sfx') !== 'false';
@@ -118,23 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize Core Subsystems
   const avatarStage = new AvatarStage();
   const voiceEngine = new VoiceEngine({
-    onSpeechStart: () => avatarStage.setState('listening'),
-    onSpeechEnd: () => {
-      if (avatarStage.currentState === 'listening') {
-        avatarStage.setState('idle');
-      }
-    },
-    onSpeechResult: (transcript) => {
-      handleUserInteraction(transcript);
-    },
-    onSpeechError: () => {
-      avatarStage.setState('idle');
-    },
-    onUtteranceStart: () => avatarStage.setState('speaking'),
-    onUtteranceEnd: () => avatarStage.setState('idle')
+    onSpeechStart: () => avatarStage.setState('speaking'),
+    onSpeechEnd: () => avatarStage.setState('idle'),
+    onTranscript: (transcript) => handleUserInteraction(transcript),
+    onInterimTranscript: (transcript) => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) subtitlesText.textContent = transcript;
+    }
   });
 
-  voiceEngine.pitch = savedPitch;
   voiceEngine.setPlaybackRate(savedRate);
   voiceEngine.autoSpeak = savedAutoSpeak;
   voiceEngine.soundEnabled = savedSound;
@@ -159,11 +151,48 @@ document.addEventListener('DOMContentLoaded', () => {
     setLanguage
   };
 
+  const appShell = document.getElementById('app-shell');
+  let activeDialog = null;
+  let lastFocusedElement = null;
+
+  function focusableElements(container) {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(element => !element.hidden && element.offsetParent !== null);
+  }
+
+  function activateDialog(dialog, preferredFocus) {
+    if (!dialog) return;
+    lastFocusedElement = document.activeElement;
+    activeDialog = dialog;
+    dialog.setAttribute('aria-hidden', 'false');
+    const target = preferredFocus || focusableElements(dialog)[0];
+    if (target) target.focus();
+    if (appShell) appShell.inert = true;
+    if (target) window.requestAnimationFrame(() => target.focus());
+    if (target) window.setTimeout(() => {
+      if (activeDialog === dialog) target.focus();
+    }, 160);
+  }
+
+  function deactivateDialog(dialog) {
+    if (!dialog) return;
+    dialog.setAttribute('aria-hidden', 'true');
+    if (activeDialog === dialog) activeDialog = null;
+    if (appShell) appShell.inert = false;
+    if (lastFocusedElement?.isConnected) lastFocusedElement.focus();
+  }
+
   // ==========================================
   // LANGUAGE TOGGLE HANDLER (ENG / KANNADA)
   // ==========================================
   const langEnBtn = document.getElementById('lang-en');
   const langKnBtn = document.getElementById('lang-kn');
+  voiceEngine.setLanguage(currentLang);
+  if (langEnBtn && langKnBtn) {
+    langEnBtn.classList.toggle('is-active', currentLang === 'en');
+    langKnBtn.classList.toggle('is-active', currentLang === 'kn');
+  }
 
   function setLanguage(lang) {
     currentLang = lang;
@@ -174,11 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (lang === 'kn') {
         langKnBtn.classList.add('is-active');
         langEnBtn.classList.remove('is-active');
-        voiceEngine.generateClonedSpeech('ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು, ಐಜಿಆರ್ ಅಕಾಡೆಮಿಯ ಎಐ ಮೆಂಟರ್. ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?');
+        voiceEngine.streamSubtitles('ಕನ್ನಡ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ. ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳಿ!');
       } else {
         langEnBtn.classList.add('is-active');
         langKnBtn.classList.remove('is-active');
-        voiceEngine.generateClonedSpeech('Namaskara! I am Appu, your AI Mentor at IGR Academy. How can I guide you today?');
+        voiceEngine.streamSubtitles('English selected. Ask Appu anything!');
       }
     }
   }
@@ -252,9 +281,9 @@ document.addEventListener('DOMContentLoaded', () => {
     avatarFigure.addEventListener('click', () => {
       voiceEngine.playClick();
       if (currentLang === 'kn') {
-        voiceEngine.generateClonedSpeech('ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು. ನಿಮ್ಮ ವೃತ್ತಿಜೀವನ ಮತ್ತು ಕಲಿಕೆಗೆ ನಾನು ಹೇಗೆ ಮಾರ್ಗದರ್ಶನ ನೀಡಲಿ?');
+        handleUserInteraction('ನಮಸ್ಕಾರ ಅಪ್ಪು! ನನ್ನ ಕಲಿಕೆಯ ಸಂಗಾತಿಯಾಗಿ ಪರಿಚಯಿಸಿಕೊಂಡು, ನಾನು ಏನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ ಎಂದು ಕೇಳಿ.');
       } else {
-        voiceEngine.generateClonedSpeech('Namaskara! I am Appu. Ask me anything about career tracks, curriculum, or book a discovery call!');
+        handleUserInteraction('Namaskara Appu! Introduce yourself as my learning companion and ask what I want to learn.');
       }
     });
   }
@@ -270,11 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const prompt = btn.getAttribute('data-prompt');
       if (prompt) {
-        if (prompt.includes('Schedule a 0-Click Discovery Call')) {
-          openDiscoveryModal();
-        } else {
-          handleUserInteraction(prompt);
-        }
+        handleUserInteraction(prompt);
       }
     });
   });
@@ -307,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // CHAT DRAWER ORCHESTRATION
   // ==========================================
   const chatDrawer = document.getElementById('chat-drawer');
+  const chatScrim = document.getElementById('chat-scrim');
   const btnToggleChat = document.getElementById('btn-toggle-chat');
   const btnCloseChat = document.getElementById('btn-close-chat');
   const btnClearChat = document.getElementById('btn-clear-chat');
@@ -317,22 +343,26 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleChatDrawer(forceOpen = null) {
     if (!chatDrawer) return;
     const shouldOpen = forceOpen !== null ? forceOpen : !chatDrawer.classList.contains('is-open');
-    
+
     if (shouldOpen) {
       chatDrawer.classList.add('is-open');
+      if (chatScrim) chatScrim.classList.add('is-visible');
+      activateDialog(chatDrawer, btnCloseChat);
       voiceEngine.playClick();
-      if (chatInput) setTimeout(() => chatInput.focus(), 300);
     } else {
       chatDrawer.classList.remove('is-open');
+      if (chatScrim) chatScrim.classList.remove('is-visible');
+      deactivateDialog(chatDrawer);
     }
   }
 
   if (btnToggleChat) btnToggleChat.addEventListener('click', () => toggleChatDrawer());
   if (btnCloseChat) btnCloseChat.addEventListener('click', () => toggleChatDrawer(false));
+  if (chatScrim) chatScrim.addEventListener('click', () => toggleChatDrawer(false));
 
   if (btnClearChat) {
     btnClearChat.addEventListener('click', () => {
-      chatAgent.clearMessages();
+      chatAgent.clearHistory();
       voiceEngine.playClick();
     });
   }
@@ -351,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnChatMic) {
     btnChatMic.addEventListener('click', () => {
       voiceEngine.playClick();
-      voiceEngine.toggleListening();
+      voiceEngine.toggleLiveSession();
     });
   }
 
@@ -380,11 +410,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       discoveryModal.classList.add('is-visible');
+      activateDialog(discoveryModal, discoveryModal);
     }
   }
 
   function closeDiscoveryModal() {
-    if (discoveryModal) discoveryModal.classList.remove('is-visible');
+    if (discoveryModal) {
+      discoveryModal.classList.remove('is-visible');
+      deactivateDialog(discoveryModal);
+    }
   }
 
   if (btnCloseDiscoveryModal) btnCloseDiscoveryModal.addEventListener('click', closeDiscoveryModal);
@@ -404,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Scheduling with n8n...</span>';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Scheduling your call...</span>';
       }
 
       try {
@@ -428,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try { data = await res.json(); } catch(err) {}
 
         const meetLink = data.meetLink || data.googleMeetUrl || 'https://meet.google.com/new';
-        const waLink = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${name}! Your 0-Click Discovery Call for ${interest} has been scheduled. Google Meet: ${meetLink}`)}`;
+        const waLink = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${name}! Your IGR Academy learning support call for ${interest} has been scheduled. Google Meet: ${meetLink}`)}`;
 
         const meetLinkEl = document.getElementById('success-meet-link');
         const waLinkEl = document.getElementById('success-wa-link');
@@ -446,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarStage.setState('success');
 
         // Add confirmation message to chat
-        chatAgent.addMessage('appu', `🎉 **0-Click Discovery Call Scheduled!**\n\n- **Name:** ${name}\n- **Focus Track:** ${interest}\n- **Date & Time:** ${new Date(dateVal).toLocaleString()}\n- **Google Meet Link:** [Join Video Call](${meetLink})`);
+        chatAgent.addMessage('appu', `🎉 Parent learning support call scheduled!\nName: ${name}\nSupport: ${interest}\nDate and time: ${new Date(dateVal).toLocaleString()}\nMeeting link: ${meetLink}`);
 
       } catch (err) {
         console.error('Discovery call submission error:', err);
@@ -471,40 +505,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseSettings = document.getElementById('btn-close-settings-modal');
   const btnSaveSettings = document.getElementById('btn-save-settings');
 
-  const settingN8nUrl = document.getElementById('setting-n8n-url');
-  const settingMockMode = document.getElementById('setting-mock-mode');
-  const settingVoicePitch = document.getElementById('setting-voice-pitch');
   const settingVoiceRate = document.getElementById('setting-voice-rate');
   const settingAutoSpeak = document.getElementById('setting-auto-speak');
   const settingUiSound = document.getElementById('setting-ui-sound');
-  const pitchVal = document.getElementById('pitch-val');
   const rateVal = document.getElementById('rate-val');
 
   function openSettingsModal() {
     if (settingsModal) {
-      if (settingVoicePitch) settingVoicePitch.value = voiceEngine.pitch;
       if (settingVoiceRate) settingVoiceRate.value = voiceEngine.rate;
-      if (pitchVal) pitchVal.textContent = voiceEngine.pitch.toFixed(1);
       if (rateVal) rateVal.textContent = voiceEngine.rate.toFixed(2);
       if (settingAutoSpeak) settingAutoSpeak.checked = voiceEngine.autoSpeak;
       if (settingUiSound) settingUiSound.checked = voiceEngine.soundEnabled;
 
       settingsModal.classList.add('is-visible');
+      activateDialog(settingsModal, settingsModal);
     }
   }
 
   function closeSettingsModal() {
-    if (settingsModal) settingsModal.classList.remove('is-visible');
+    if (settingsModal) {
+      settingsModal.classList.remove('is-visible');
+      deactivateDialog(settingsModal);
+    }
   }
 
   if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
   if (btnCloseSettings) btnCloseSettings.addEventListener('click', closeSettingsModal);
-
-  if (settingVoicePitch && pitchVal) {
-    settingVoicePitch.addEventListener('input', (e) => {
-      pitchVal.textContent = parseFloat(e.target.value).toFixed(1);
-    });
-  }
 
   if (settingVoiceRate && rateVal) {
     settingVoiceRate.addEventListener('input', (e) => {
@@ -516,12 +542,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnSaveSettings) {
     btnSaveSettings.addEventListener('click', () => {
-      if (settingVoicePitch) voiceEngine.pitch = parseFloat(settingVoicePitch.value);
       if (settingVoiceRate) voiceEngine.setPlaybackRate(parseFloat(settingVoiceRate.value));
       if (settingAutoSpeak) voiceEngine.autoSpeak = settingAutoSpeak.checked;
       if (settingUiSound) voiceEngine.soundEnabled = settingUiSound.checked;
 
-      localStorage.setItem('appu_pitch', voiceEngine.pitch);
       localStorage.setItem('appu_voice_rate', voiceEngine.rate);
       localStorage.setItem('appu_auto_speak', voiceEngine.autoSpeak);
       localStorage.setItem('appu_sound_sfx', voiceEngine.soundEnabled);
@@ -539,6 +563,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close modals on Escape key
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && activeDialog) {
+      const items = focusableElements(activeDialog);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
     if (e.key === 'Escape') {
       closeDiscoveryModal();
       closeSettingsModal();

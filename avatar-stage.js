@@ -92,15 +92,15 @@ class AvatarStage {
     }
 
     const labels = {
-      idle: 'Appu is Online',
-      listening: 'Appu is Listening...',
-      thinking: 'Appu is Thinking...',
-      speaking: 'Appu is Speaking...',
-      success: 'Discovery Call Booked!'
+      idle: 'Appu is ready',
+      listening: 'Listening — tell me your topic',
+      thinking: 'Working it out…',
+      speaking: 'Appu is explaining…',
+      success: 'Parent call booked!'
     };
 
     if (this.statusLabel) {
-      this.statusLabel.textContent = labels[state] || 'Appu is Online';
+      this.statusLabel.textContent = labels[state] || 'Appu is ready';
     }
   }
 }
