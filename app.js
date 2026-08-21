@@ -555,10 +555,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Initialize Phase 2 Parent Setup UI
+  if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.init === 'function') {
+    window.ParentSetupUI.init();
+  }
+  if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
+    window.ParentOnboardingShell.updateHeaderSessionBadge();
+  }
+
+  const parentSetupModal = document.getElementById('parent-setup-modal');
+
   // Close modals on outside click (scrim)
   window.addEventListener('click', (e) => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === parentSetupModal && parentSetupModal) {
+      parentSetupModal.classList.remove('is-visible');
+    }
   });
 
   // Close modals on Escape key
@@ -579,6 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') {
       closeDiscoveryModal();
       closeSettingsModal();
+      if (parentSetupModal) parentSetupModal.classList.remove('is-visible');
       toggleChatDrawer(false);
     }
   });

@@ -21,6 +21,9 @@
       window.location &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:3000'
-        : 'http://localhost:3000'
+        : 'http://localhost:3000',
+    // Public Supabase configuration (client-safe publishable key only)
+    supabaseUrl: 'https://cmulkkpinwernuzhtegp.supabase.co',
+    supabasePublishableKey: 'sb_publishable_N-I0xWkc2SXY6kga0iD0_Q_awDjKXNr'
   };
 });

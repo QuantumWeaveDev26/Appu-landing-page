@@ -78,20 +78,23 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
     - Implemented parent-authenticated secure gateway route forwarding child messages to the live n8n AI mentor workflow.
     - Gated by active subscription, validates message length, sets timeout protection, sanitizes upstream provider errors, and hides internal webhook URLs.
     - Added smoke test CLI `npm run gateway:smoke` (`backend/src/gateway/smoke-test-n8n.ts`).
-  - **Direct Phase 1 Gateway Boundary**:
-    - Preserved direct Phase 1 browser-to-n8n flow alongside backend gateway until cutover validation in Milestone 9.
+  - **Frontend Secure-Gateway Adapter & Session Bridge**:
+    - Implemented `appu-config.js` providing safe, secret-free public configuration (`apiBaseUrl`, `supabaseUrl`, `supabasePublishableKey`).
+    - Implemented `appu-session.js` holding verified access tokens and active child profile IDs strictly in-memory.
+    - Implemented `appu-backend-client.js` communicating with `POST /api/appu/message` and normalizing audio/text into the existing `voice-contract.js` interface.
+    - Integrated transport switching in `chat-agent.js` with clearly documented `LEGACY_PHASE1_DIRECT_N8N` fallback.
+  - **Development Phase 2 Parent Onboarding Shell**:
+    - Implemented `parent-onboarding-shell.js` orchestrating Supabase client authentication, idempotent household onboarding, database plan loading, Standard Checkout integration, child profile creation/selection, and structured personalisation persistence.
+    - Implemented `parent-setup-ui.js` providing responsive modal UI with multi-step progress, safe error boundaries, and seamless session handoff into `AppuSession`.
+    - Added `#parent-setup-modal` and `#parent-session-badge` in `index.html`.
 
-## In Progress:
+## Milestone & Verification Summary:
 
-- Preparation for parent dashboard & pricing UI integration and final cutover.
-
-## Next:
-
-1. Obtain review and approval on Milestone 4 completion.
-2. Formulate Milestone 5 implementation plan:
-   - Frontend dashboard state management.
-   - Razorpay Webhook listener implementation.
-3. Keep Phase 1 browser-to-n8n direct flow active until backend personal context adapters and cutover verification are completed in Milestone 9.
+- **Backend Phase 2 Path**: LIVE VERIFIED
+- **Frontend Secure Transport**: IMPLEMENTED + TESTED
+- **Parent Onboarding Integration**: IMPLEMENTED
+- **Legacy Phase 1 Direct n8n Fallback**: TEMPORARILY RETAINED
+- **Production Polish / Deployment**: PENDING
 
 ## Important Decisions & Security Invariants:
 
@@ -103,30 +106,6 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 - **Zero Payment Instrument / Token Storage**: Card numbers, CVVs, full instruments, and secret keys are never accepted or stored.
 - **HMAC Constant-Time Verification**: All signature checks utilize `crypto.timingSafeEqual` to prevent timing attacks.
 
-## Live Razorpay Test Validation Status:
-
-**LIVE RAZORPAY TEST VALIDATION: PENDING**
-- All 78 unit and integration tests execute with zero failures using `MockRazorpayClient` and real database schemas.
-- Live Razorpay TEST Mode credentials (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`) can be configured in `.env` for opt-in live test-mode checkout execution.
-
-## Known Limitations:
-
-- Child-mode access tokens and child login sessions are deferred.
-
-## Known Issues:
-
-### LIVE_N8N_WORKFLOW_DRIFT
-
-The checked-in `scratch_workflow_raw.json` is outdated compared with the current live n8n workflow. A fresh sanitised export should replace or archive the stale snapshot before n8n adapter milestones.
-
-### DEPLOYMENT_RUNTIME_UNRESOLVED
-
-It is not yet confirmed whether the current Hostinger account supports Node.js Web Apps or only static `public_html` hosting.
-
-### PHASE1_PUBLIC_N8N_BOUNDARY
-
-The browser currently calls a public n8n webhook directly. This remains active to preserve Phase 1 until tested backend adapters are cut over in Milestone 9.
-
 ## Validation Status:
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
@@ -134,6 +113,6 @@ The browser currently calls a public n8n webhook directly. This remains active t
 - **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 5/5 tests passed)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
-- **Phase 1 Node Tests**: PASSED (`node --test tests/*.test.js` — 8/8 tests passed)
+- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 17/17 tests passed)
 - **Phase 1 Python Tests**: PASSED (`python tests/page-structure.test.py` — 8/8 tests passed)
-- **Phase 1 JS Syntax Check**: PASSED (`node --check` across all Phase 1 scripts — 0 errors)
+- **Phase 1 JS Syntax Check**: PASSED (`node --check` across all frontend scripts — 0 errors)

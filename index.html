@@ -54,11 +54,13 @@
         <span class="status-dot" aria-hidden="true"></span><span id="status-label">Appu is ready</span>
       </div>
       <div class="topbar-actions">
+        <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
         <div class="language-switch" aria-label="Choose language">
           <button id="lang-en" class="lang-btn is-active" type="button">ENG</button>
           <button id="lang-kn" class="lang-btn" type="button" lang="kn">ಕನ್ನಡ</button>
         </div>
-        <button id="btn-quick-schedule" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Parent Zone</span></button>
+        <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Setup</span></button>
+        <button id="btn-quick-schedule" class="icon-btn" type="button" aria-label="Schedule support call" title="Schedule Support Call"><i class="fa-solid fa-calendar-check text-cyan" aria-hidden="true"></i></button>
         <button id="btn-sound-toggle" class="icon-btn" type="button" aria-label="Toggle sound effects"><i id="sound-icon" class="fa-solid fa-volume-high text-cyan" aria-hidden="true"></i></button>
         <button id="btn-settings" class="icon-btn" type="button" aria-label="Open voice settings"><i class="fa-solid fa-sliders" aria-hidden="true"></i></button>
       </div>
@@ -165,13 +167,158 @@
     </div>
   </section>
 
-  <script src="voice-contract.js?v=7.7"></script>
-  <script src="appu-config.js?v=7.7"></script>
-  <script src="appu-session.js?v=7.7"></script>
-  <script src="appu-backend-client.js?v=7.7"></script>
-  <script src="avatar-stage.js?v=7.7"></script>
-  <script src="voice-engine.js?v=7.7"></script>
-  <script src="chat-agent.js?v=7.7"></script>
-  <script src="app.js?v=7.7"></script>
+  <!-- PHASE 2 PARENT SETUP & ONBOARDING MODAL -->
+  <section id="parent-setup-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pos-modal-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet pos-sheet">
+      <button id="btn-close-parent-setup" class="icon-btn modal-close close-btn" type="button" aria-label="Close parent setup"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Parent Zone • Setup</div>
+      <h2 id="pos-modal-title">Personalized Appu Setup</h2>
+      <p class="modal-lead">Configure your learner's companion, active learning plan, and personalized preferences.</p>
+
+      <div id="pos-step-tracker" class="pos-tracker" aria-label="Setup progress">
+        <span class="pos-step-dot active" title="Account"></span>
+        <span class="pos-step-dot" title="Plan"></span>
+        <span class="pos-step-dot" title="Learner"></span>
+        <span class="pos-step-dot" title="Personalize"></span>
+        <span class="pos-step-dot" title="Ready"></span>
+      </div>
+
+      <div id="pos-alert" class="pos-alert" role="alert"></div>
+
+      <!-- STEP 1: AUTHENTICATION -->
+      <div id="pos-step-auth">
+        <div class="pos-tabs">
+          <button id="pos-tab-login" class="pos-tab active" type="button">Sign In</button>
+          <button id="pos-tab-signup" class="pos-tab" type="button">Create Account</button>
+        </div>
+        <form id="pos-auth-form" class="discovery-form">
+          <label><span>Parent / Guardian Email</span><input id="pos-auth-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
+          <label><span>Password</span><input id="pos-auth-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
+          <div id="pos-household-wrap" style="display:none;">
+            <label><span>Household / Family Name</span><input id="pos-auth-household" type="text" autocomplete="family-name" placeholder="e.g. Verma Family"></label>
+          </div>
+          <button id="pos-btn-auth-submit" class="primary-modal-btn" type="submit">Sign In to Parent Zone</button>
+        </form>
+      </div>
+
+      <!-- STEP 2: PLAN SELECTION & SUBSCRIPTION -->
+      <div id="pos-step-plan" style="display:none;">
+        <p class="pos-subtitle">Choose an AI Learning Companion Plan:</p>
+        <div id="pos-plans-container" class="pos-plans-grid"></div>
+        <div id="pos-plan-status" class="pos-plan-status" aria-live="polite"></div>
+      </div>
+
+      <!-- STEP 3: CHILD SETUP -->
+      <div id="pos-step-child" style="display:none;">
+        <div id="pos-child-list" class="pos-child-list"></div>
+        <div class="setting-row" style="margin-top: 15px;">
+          <h4 class="pos-subtitle" style="margin-bottom: 8px;">Add New Learner Profile:</h4>
+          <form id="pos-child-form" class="discovery-form">
+            <div class="field-grid">
+              <label><span>Learner Preferred Name</span><input id="pos-child-name" type="text" required placeholder="e.g. Aarav"></label>
+              <label><span>Class / Grade Band</span>
+                <select id="pos-child-grade" required>
+                  <option value="Grade 5">Grade 5</option>
+                  <option value="Grade 6" selected>Grade 6</option>
+                  <option value="Grade 7">Grade 7</option>
+                  <option value="Grade 8">Grade 8</option>
+                  <option value="Grade 9">Grade 9</option>
+                  <option value="Grade 10">Grade 10</option>
+                  <option value="Grade 11">Grade 11</option>
+                  <option value="Grade 12">Grade 12</option>
+                </select>
+              </label>
+            </div>
+            <button class="primary-modal-btn" type="submit">Save Learner & Continue</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- STEP 4: PERSONALISATION QUESTIONNAIRE -->
+      <div id="pos-step-pers" style="display:none;">
+        <p class="pos-subtitle">Personalize Appu for <strong id="pos-pers-child-name" class="text-cyan">Learner</strong>:</p>
+        <form id="pos-pers-form" class="discovery-form">
+          <div class="field-grid">
+            <label><span>Primary Language</span>
+              <select id="pos-pers-lang">
+                <option value="en" selected>English</option>
+                <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                <option value="hi">Hindi (हिंदी)</option>
+                <option value="te">Telugu (తెలుగు)</option>
+                <option value="ta">Tamil (தமிழ்)</option>
+              </select>
+            </label>
+            <label><span>Learning Style</span>
+              <select id="pos-pers-style">
+                <option value="interactive" selected>Interactive (conversations & questions)</option>
+                <option value="visual">Visual (examples & diagrams)</option>
+                <option value="auditory">Auditory (spoken explanations)</option>
+                <option value="reading_writing">Reading & Writing (structured notes)</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label><span>Response Style</span>
+              <select id="pos-pers-response">
+                <option value="playful" selected>Playful & Encouraging</option>
+                <option value="balanced">Balanced & Clear</option>
+                <option value="focused">Focused & Direct</option>
+              </select>
+            </label>
+            <label><span>Reading Font Style</span>
+              <select id="pos-pers-font">
+                <option value="rounded" selected>Friendly Rounded</option>
+                <option value="friendly">Friendly Standard</option>
+                <option value="clean">Clean Minimal</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label><span>Theme Mode</span>
+              <select id="pos-pers-theme">
+                <option value="auto" selected>Auto</option>
+                <option value="bright">Bright & Energetic</option>
+                <option value="calm">Calm & Focused</option>
+              </select>
+            </label>
+            <label><span>Favorite Subjects</span>
+              <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
+            </label>
+          </div>
+          <label><span>Favorite Interests & Hobbies (comma-separated)</span>
+            <input id="pos-pers-interests" type="text" placeholder="Space, Robotics, Astronomy, Dinosaurs">
+          </label>
+          <label><span>Learning Goal for Appu</span>
+            <input id="pos-pers-goals" type="text" placeholder="Master school science and build creative curiosity">
+          </label>
+          <button class="primary-modal-btn" type="submit">Save Preferences & Launch</button>
+        </form>
+      </div>
+
+      <!-- STEP 5: SUCCESS & LAUNCH -->
+      <div id="pos-step-success" class="success-view">
+        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        <h3>Personalized Appu is Ready!</h3>
+        <p>Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.</p>
+        <button id="pos-btn-launch" class="primary-modal-btn" type="button" style="margin-top: 15px;"><span>Launch Appu Now</span><i class="fa-solid fa-sparkles"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- External SDKs for Phase 2 Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- Appu Frontend Modules -->
+  <script src="voice-contract.js?v=8.0"></script>
+  <script src="appu-config.js?v=8.0"></script>
+  <script src="appu-session.js?v=8.0"></script>
+  <script src="appu-backend-client.js?v=8.0"></script>
+  <script src="parent-onboarding-shell.js?v=8.0"></script>
+  <script src="parent-setup-ui.js?v=8.0"></script>
+  <script src="avatar-stage.js?v=8.0"></script>
+  <script src="voice-engine.js?v=8.0"></script>
+  <script src="chat-agent.js?v=8.0"></script>
+  <script src="app.js?v=8.0"></script>
 </body>
 </html>
