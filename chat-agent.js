@@ -89,32 +89,60 @@ class ChatAgent {
       let actionCard = null;
       let audioSource = null;
 
-      // 1. Post to n8n chat webhook trigger
-      const res = await fetch(this.n8nWebhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'sendMessage',
-          sessionId: this.sessionId,
-          chatInput: cleanInput,
-          message: cleanInput
-        })
-      });
+      // =========================================================================
+      // TRANSPORT ADAPTER ROUTING:
+      // When an authenticated AppuSession is present, route via the secure backend
+      // gateway (POST /api/appu/message).
+      // Otherwise, fallback to the direct n8n webhook (LEGACY_PHASE1_DIRECT_N8N).
+      // =========================================================================
+      const hasSecureSession =
+        typeof window !== 'undefined' &&
+        window.AppuSession &&
+        typeof window.AppuSession.isAuthenticated === 'function' &&
+        window.AppuSession.isAuthenticated() &&
+        window.AppuBackendClient &&
+        typeof window.AppuBackendClient.sendAppuMessage === 'function';
 
-      if (!res.ok) {
-        throw new Error(`n8n HTTP error: ${res.status} ${res.statusText}`);
-      }
+      if (hasSecureSession) {
+        // SECURE PHASE 2 BACKEND GATEWAY TRANSPORT
+        const result = await window.AppuBackendClient.sendAppuMessage({
+          accessToken: window.AppuSession.accessToken,
+          childId: window.AppuSession.childId,
+          message: cleanInput,
+          language: this.language || 'en'
+        });
 
-      const rawText = await res.text();
-      try {
-        const parsed = JSON.parse(rawText);
-        const normalized = window.AppuVoiceContract.normalizeResponse(parsed);
-        responseText = normalized.text;
-        audioSource = normalized.audioSource;
-      } catch {
-        responseText = rawText;
+        responseText = result.text;
+        audioSource = result.audioSource;
+      } else {
+        // LEGACY_PHASE1_DIRECT_N8N:
+        // Remove after final parent authentication/onboarding UI is connected to AppuSession.
+        const res = await fetch(this.n8nWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'sendMessage',
+            sessionId: this.sessionId,
+            chatInput: cleanInput,
+            message: cleanInput
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`n8n HTTP error: ${res.status} ${res.statusText}`);
+        }
+
+        const rawText = await res.text();
+        try {
+          const parsed = JSON.parse(rawText);
+          const normalized = window.AppuVoiceContract.normalizeResponse(parsed);
+          responseText = normalized.text;
+          audioSource = normalized.audioSource;
+        } catch {
+          responseText = rawText;
+        }
       }
 
       // Clean formatted \n characters so line breaks render properly
