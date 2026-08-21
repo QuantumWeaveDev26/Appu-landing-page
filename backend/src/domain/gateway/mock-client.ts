@@ -5,7 +5,8 @@ export class MockN8nClient implements N8nClient {
   public callCount = 0;
   public nextResponse: N8nMessageResponse = {
     text: 'Hello from mock Appu!',
-    audioSource: 'data:audio/mpeg;base64,mockAudioData'
+    audioSource: 'data:audio/mpeg;base64,mockAudioData',
+    audioDurationMs: 3500
   };
   public nextError: Error | null = null;
 

@@ -131,6 +131,15 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
     - Multiple Learners Safety: Multiple child profiles require explicit learner selection before `AppuSession` is activated.
     - Clean Sign Out: `ParentOnboardingShell.signOut()` signs out via Supabase Auth, clears `AppuSession`, resets state to `UNAUTHENTICATED`, and persists clean signed-out state on reload.
 
+  - **Trustworthy Voice Usage Metering Architecture**:
+    - Pure server-side audio duration measurement from actual generated MP3 (MPEG-1/2/2.5 Layer III) and WAV audio frames without client estimates, word-count approximations, or character heuristics.
+    - Added database migration `008_voice_duration_metering.sql` expanding `metric IN ('ai_sessions', 'voice_seconds', 'voice_duration_ms')`.
+    - Extended internal gateway contract to include `audioDurationMs` (measured in integer milliseconds).
+    - Idempotent voice usage ledger recording: Retries with the same `Idempotency-Key` are cryptographically bound and charged exactly once without double-metering.
+    - Voice quota enforcement: Monthly allowance derived from server entitlements (`monthly_voice_minutes` $\rightarrow$ milliseconds). If voice allowance is exhausted, AI text response succeeds cleanly while audio is omitted (`audioSource = null`) without blocking learning companion conversations.
+    - Real usage metrics exposed via `GET /api/usage/current` with real measured values and `meteringStatus: "active"`.
+    - Parent Zone UI displays real voice minute progress bars (`X / Y min used (Z min remaining)`).
+
 ## Milestone & Verification Summary:
 
 - **Backend Phase 2 Path**: LIVE VERIFIED
@@ -144,13 +153,16 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 - **Concurrency Serialization**: PROVEN ON REAL POSTGRESQL (10 simultaneous attempts $\rightarrow$ exactly 1 succeeds, 9 fail)
 - **Idempotency Fingerprint Lifecycle**: PROVEN ON REAL POSTGRESQL (genuine retry consumes exactly 1 unit; distinct message with reused key returns 409)
 - **Session Restoration / Rehydration**: IMPLEMENTED & TESTED (auto-restores 1 learner, prompts selection for multiple, clean sign out)
+- **Trustworthy Voice Usage Metering**: IMPLEMENTED & TESTED ON REAL POSTGRESQL (exact frame parsing, idempotent ledger, quota downgrade safety)
 - **Frontend Unique Request Keys**: IMPLEMENTED in `appu-backend-client.js` via `crypto.randomUUID()` per logical message
-- **Voice Minutes Metering**: PENDING TRUSTWORTHY AUDIO DURATION CONTRACT (HONESTLY PRESENTED AS PENDING)
 - **Legacy Phase 1 Direct n8n Fallback**: TEMPORARILY RETAINED
 - **Production Upgrade Billing Flow**: PENDING
 
 ## Important Decisions & Security Invariants:
 
+- **Authoritative Server Audio Duration**: Voice duration is calculated 100% server-side directly from generated audio stream frame headers (MPEG-1/2/2.5 Layer 3 or WAV PCM) or verified provider duration metadata. Client-supplied durations and text length estimates are strictly rejected.
+- **Graceful Voice Quota Degradation**: When a household exhausts its monthly voice quota, the AI text response continues to function without throwing HTTP 429. Only the TTS audio is omitted.
+- **Integer Millisecond Ledger**: All internal ledger computations and database storage use integer milliseconds to eliminate floating-point rounding errors until presentation formatting.
 - **Server-Driven Entitlements & Quotas**: The browser never passes prices, amounts, or quota limits. All feature limits and session consumptions are derived and recorded strictly server-side.
 - **In-Memory AppuSession**: Bearer tokens are NEVER written to `localStorage`, `sessionStorage`, cookies, or query parameters by application code. Session restoration uses the official Supabase client session.
 - **Authoritative Backend Re-verification**: Restored sessions re-verify with `GET /api/auth/me`, `GET /api/subscriptions/current`, and `GET /api/children` rather than trusting client state.
@@ -158,7 +170,6 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 - **Tenant-Safe Composite Foreign Keys**: Both `subscriptions` and `child_profiles` enforce `(household_id, id)` composite constraints preventing cross-household data linkage.
 - **Atomic Two-Phase Quota Reservation & Advisory Locking**: Usage is serialized using `pg_advisory_xact_lock` and reserved prior to calling upstream AI workflows, committed upon provider success, and released upon upstream failure so households are not charged for dropped requests.
 - **Deterministic Idempotency Fingerprint**: Idempotency keys are cryptographically bound to request parameters `(household, child, message, language)`; key collisions with conflicting payloads reject with HTTP 409 without calling upstream AI workflows.
-- **Zero Usage Fabrication**: Voice usage is never fabricated or guessed based on text length or untrusted client playback. It is explicitly presented as `Usage metering pending` until an authoritative server audio duration contract is established.
 - **Strict Activation Boundary**: Browser checkout signature verification transitions state to `AUTHENTICATED`, but NEVER directly to `ACTIVE`. Full entitlement access is granted only upon receiving trusted webhook confirmation (`subscription.activated` / `subscription.charged`).
 - **Data vs Instruction Boundary**: Child personalisation values are treated strictly as data payloads within the AI context, never concatenated directly into executable prompt instructions.
 - **Webhook Idempotency**: All webhook events are recorded with `provider_event_id` in `payment_events`. Duplicate deliveries are safe no-ops (`already_processed`) with zero side effects.
@@ -168,8 +179,8 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 ## Validation Status:
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 101 tests: 100 passed, 1 skipped for pg-mem limitation, 0 failures)
-- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 12/12 tests passed, 0 failures)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 112 tests: 111 passed, 1 skipped for pg-mem limitation, 0 failures)
+- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 14/14 tests passed, 0 failures)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
 - **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 28/28 tests passed across 2 suites)

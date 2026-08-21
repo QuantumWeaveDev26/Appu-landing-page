@@ -14,6 +14,7 @@ export interface N8nMessageEnvelope {
 export interface N8nMessageResponse {
   text: string;
   audioSource: string | null;
+  audioDurationMs?: number | null;
   raw?: unknown;
 }
 

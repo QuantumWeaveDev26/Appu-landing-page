@@ -92,6 +92,12 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     );
 
     const aiQuotaLimit = Number(householdContext.entitlements?.monthly_ai_sessions ?? 100);
+    const voiceQuotaLimitMinutes = Number(householdContext.entitlements?.monthly_voice_minutes ?? 30);
+    const voiceQuotaLimitMs = voiceQuotaLimitMinutes * 60 * 1000;
+
+    // Check current voice usage against voice quota
+    const currentVoiceUsageMs = await UsageService.getHouseholdVoiceUsageMs(opts.db, household.id);
+    const isVoiceQuotaExhausted = currentVoiceUsageMs >= voiceQuotaLimitMs;
 
     // Extract and validate optional client idempotency key
     const rawIdempotencyKey = (
@@ -162,10 +168,48 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       await UsageService.commitAiSession(opts.db, household.id, reservation.reservationId);
     }
 
+    // 9. Strict Voice Quota Enforcement & Atomic Voice Duration Recording:
+    // A. If voice quota was exhausted prior to TTS, audio is omitted and text succeeds cleanly.
+    // B. If audio is generated, measured duration is atomically compared against remaining allowance inside a serialized transaction lock.
+    // C. If measured duration <= remaining allowance, audio is delivered and usage committed.
+    // D. If measured duration > remaining allowance, audio is suppressed (audioSource = null), 0 usage charged, and text succeeds cleanly.
+    let finalAudioSource: string | null = null;
+    let finalAudioDurationMs: number | null = null;
+
+    if (!isVoiceQuotaExhausted && response.audioSource) {
+      const candidateDurationMs = response.audioDurationMs ?? null;
+
+      if (candidateDurationMs && candidateDurationMs > 0) {
+        const voiceResult = await UsageService.recordVoiceUsageAtomic(opts.db, {
+          householdId: household.id,
+          subscriptionId: subscription.id,
+          childId: child.id,
+          durationMs: candidateDurationMs,
+          quotaLimitMs: voiceQuotaLimitMs,
+          idempotencyKey: idempotencyKey ? `voice_${idempotencyKey}` : null,
+          requestFingerprint
+        });
+
+        if (voiceResult.delivered) {
+          finalAudioSource = response.audioSource;
+          finalAudioDurationMs = candidateDurationMs;
+        } else {
+          finalAudioSource = null;
+          finalAudioDurationMs = null;
+          request.log.info({
+            householdId: household.id,
+            durationMs: candidateDurationMs,
+            remainingMs: voiceResult.remainingMs
+          }, 'Generated audio exceeds remaining voice allowance; delivering text only.');
+        }
+      }
+    }
+
     return reply.status(200).send({
       childId: child.id,
       text: response.text,
-      audioSource: response.audioSource
+      audioSource: finalAudioSource,
+      audioDurationMs: finalAudioDurationMs
     });
   });
 };

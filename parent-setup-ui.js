@@ -233,6 +233,26 @@
 
           const pctLearnersUsed = Math.min(100, Math.round((vm.childCount / (vm.maxChildren || 1)) * 100));
           const pctAiUsed = Math.min(100, Math.round((vm.aiSessions.used / (vm.aiSessions.limit || 1)) * 100));
+          const pctVoiceUsed = vm.voiceMinutes.used !== null
+            ? Math.min(100, Math.round((vm.voiceMinutes.used / (vm.voiceMinutes.limit || 1)) * 100))
+            : 0;
+
+          const voiceStatusPill = vm.voiceMinutes.meteringStatus === 'active'
+            ? `<span class="pos-pill-sm" style="background:rgba(34,197,94,.15);color:#22c55e;margin-left:4px;">Active</span>`
+            : `<span class="pos-pill-sm" style="background:rgba(148,163,184,.15);color:#94a3b8;margin-left:4px;">Metering pending</span>`;
+
+          const voiceMeterBox = vm.voiceMinutes.meteringStatus === 'active' && vm.voiceMinutes.used !== null
+            ? `
+            <div class="pos-usage-meter-box" style="margin-top: 6px;">
+              <div class="pos-usage-meter-label">
+                <span>Voice Minutes (Monthly)</span>
+                <strong>${vm.voiceMinutes.used} of ${vm.voiceMinutes.limit} min used (${vm.voiceMinutes.remaining} min remaining)</strong>
+              </div>
+              <div class="pos-meter-track">
+                <div class="pos-meter-fill" style="width: ${pctVoiceUsed}%;"></div>
+              </div>
+            </div>`
+            : '';
 
           currentPlanCard.innerHTML = `
             <div class="pos-current-plan-header">
@@ -250,7 +270,7 @@
               <ul class="pos-features-list">
                 <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${vm.maxChildren} learner slot${vm.maxChildren > 1 ? 's' : ''}</strong></li>
                 <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.aiSessions.limit} AI sessions</strong> / month included</li>
-                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.voiceMinutes.limit} voice minutes</strong> / month included <span class="pos-pill-sm" style="background:rgba(148,163,184,.15);color:#94a3b8;margin-left:4px;">Metering pending</span></li>
+                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.voiceMinutes.limit} voice minutes</strong> / month included ${voiceStatusPill}</li>
                 <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
               </ul>
             </div>
@@ -264,6 +284,8 @@
                 <div class="pos-meter-fill" style="width: ${pctAiUsed}%;"></div>
               </div>
             </div>
+
+            ${voiceMeterBox}
 
             <div class="pos-usage-meter-box" style="margin-top: 6px;">
               <div class="pos-usage-meter-label">

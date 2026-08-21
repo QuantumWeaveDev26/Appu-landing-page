@@ -347,10 +347,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     assert.ok(body.period.endsAt);
     assert.equal(body.aiSessions.used, 7);
     assert.equal(body.aiSessions.limit, 300); // Growth plan limit
-    assert.equal(body.aiSessions.remaining, 293);
-    assert.equal(body.voiceMinutes.used, null);
+    assert.equal(body.voiceMinutes.used, 0);
     assert.equal(body.voiceMinutes.limit, 90);
-    assert.equal(body.voiceMinutes.meteringStatus, 'pending');
+    assert.equal(body.voiceMinutes.remaining, 90);
+    assert.equal(body.voiceMinutes.meteringStatus, 'active');
   });
 
   it('ADVERSARIAL: Household A cannot view or consume Household B usage', async () => {
@@ -743,4 +743,343 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     assert.equal(usage.aiSessions.used, 2);
     assert.equal(usage.aiSessions.remaining, 98);
   });
+
+  // ============================================================================
+  // VOICE USAGE METERING & QUOTA TESTS
+  // ============================================================================
+
+  it('records measured voice duration exactly once per message and updates usage summary', async () => {
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token-voice-1', {
+      userId: parentUserId,
+      email: 'parent.voice1@example.com'
+    });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'parent.voice1@example.com',
+      householdName: 'Voice Family 1'
+    });
+
+    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const sub = await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: starterPlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_voice_1',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Diya',
+      gradeBand: 'Grade 4'
+    });
+
+    n8nClient.nextResponse = {
+      text: 'Here is your voice answer',
+      audioSource: 'data:audio/mpeg;base64,mockAudioStream',
+      audioDurationMs: 120000 // 120,000 ms = 2.0 minutes
+    };
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-voice-1',
+        'idempotency-key': 'voice_test_msg_1'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Tell me a story about space'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.payload);
+    assert.equal(body.text, 'Here is your voice answer');
+    assert.equal(body.audioDurationMs, 120000);
+    assert.ok(body.audioSource);
+
+    // GET /api/usage/current
+    const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(summary.voiceMinutes.meteringStatus, 'active');
+    assert.equal(summary.voiceMinutes.used, 2.0); // 120,000 ms / 60,000 = 2.0 min
+    assert.equal(summary.voiceMinutes.limit, 30);
+    assert.equal(summary.voiceMinutes.remaining, 28.0);
+  });
+
+  it('retrying with same idempotency-key does not double-charge voice duration', async () => {
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token-voice-2', {
+      userId: parentUserId,
+      email: 'parent.voice2@example.com'
+    });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'parent.voice2@example.com',
+      householdName: 'Voice Family 2'
+    });
+
+    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: starterPlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_voice_2',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Kabir',
+      gradeBand: 'Grade 5'
+    });
+
+    n8nClient.nextResponse = {
+      text: 'Answer with audio',
+      audioSource: 'data:audio/mpeg;base64,mockAudioData',
+      audioDurationMs: 60000 // 1.0 minute (60,000 ms)
+    };
+
+    // First attempt
+    const res1 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-voice-2',
+        'idempotency-key': 'idemp_voice_retry_key'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Tell me a science fact'
+      }
+    });
+    assert.equal(res1.statusCode, 200);
+
+    // Second retry attempt with same idempotency key and same message
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-voice-2',
+        'idempotency-key': 'idemp_voice_retry_key'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Tell me a science fact'
+      }
+    });
+    assert.equal(res2.statusCode, 200);
+
+    // Voice usage must be charged exactly once (1.0 min, not 2.0 min)
+    const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(summary.voiceMinutes.used, 1.0);
+    assert.equal(summary.voiceMinutes.remaining, 29.0);
+  });
+
+  it('exhausted voice quota omits audio response while allowing AI text response to succeed', async () => {
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token-voice-3', {
+      userId: parentUserId,
+      email: 'parent.voice3@example.com'
+    });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'parent.voice3@example.com',
+      householdName: 'Voice Family 3'
+    });
+
+    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const sub = await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: starterPlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_voice_3',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Mira',
+      gradeBand: 'Grade 2'
+    });
+
+    // Exhaust 30 minutes of voice usage in advance (30 * 60,000 ms = 1,800,000 ms)
+    await UsageService.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId: sub.id,
+      childId: child.id,
+      durationMs: 1800000,
+      quotaLimitMs: 1800000,
+      idempotencyKey: 'exhaust_voice_quota'
+    });
+
+    const preSummary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(preSummary.voiceMinutes.used, 30.0);
+    assert.equal(preSummary.voiceMinutes.remaining, 0.0);
+
+    // Upstream n8n would generate audio if called
+    n8nClient.nextResponse = {
+      text: 'Text explanation about dolphins',
+      audioSource: 'data:audio/mpeg;base64,mockAudioData',
+      audioDurationMs: 15000
+    };
+
+    // User sends message when voice quota is 0
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-voice-3',
+        'idempotency-key': 'msg_after_voice_exhaust'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Tell me about dolphins'
+      }
+    });
+
+    // Invariant: AI text response SUCCEEDS (200 OK), but audio is safely omitted (audioSource = null)
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.payload);
+    assert.equal(body.text, 'Text explanation about dolphins');
+    assert.equal(body.audioSource, null);
+    assert.equal(body.audioDurationMs, null);
+
+    // AI session quota was consumed (1 session)
+    const postSummary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(postSummary.aiSessions.used, 1);
+    assert.equal(postSummary.voiceMinutes.used, 30.0);
+  });
+
+  it('strict voice boundary: generated audio exceeding remaining quota is suppressed without charging', async () => {
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token-voice-boundary', {
+      userId: parentUserId,
+      email: 'parent.boundary@example.com'
+    });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'parent.boundary@example.com',
+      householdName: 'Voice Boundary Family'
+    });
+
+    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const sub = await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: starterPlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_voice_boundary',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Arjun',
+      gradeBand: 'Grade 4'
+    });
+
+    // 1. Pre-charge 1,798,000 ms (29.966 min) -> Remaining = 2,000 ms (2 seconds)
+    await UsageService.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId: sub.id,
+      childId: child.id,
+      durationMs: 1798000,
+      quotaLimitMs: 1800000,
+      idempotencyKey: 'boundary_pre_charge'
+    });
+
+    // 2. n8n returns 15,000 ms (15 seconds) audio, which exceeds 2,000 ms remaining
+    n8nClient.nextResponse = {
+      text: 'Here is a 15-second response about space',
+      audioSource: 'data:audio/mpeg;base64,mock15sAudio',
+      audioDurationMs: 15000
+    };
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-voice-boundary',
+        'idempotency-key': 'boundary_overspend_msg'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Tell me about space'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.payload);
+    // Invariant: Text response delivered, audio suppressed, zero voice overcharge
+    assert.equal(body.text, 'Here is a 15-second response about space');
+    assert.equal(body.audioSource, null);
+    assert.equal(body.audioDurationMs, null);
+
+    const postSummary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(postSummary.voiceMinutes.used, 30.0); // 1,798,000 / 60,000 = 29.966 -> rounded display
+    assert.ok(postSummary.voiceMinutes.remaining >= 0);
+  });
+
+  it('cross-household voice usage isolation: Household A voice usage does not affect Household B', async () => {
+    const userA = crypto.randomUUID();
+    const userB = crypto.randomUUID();
+
+    authVerifier.registerUser('token-voice-iso-a', { userId: userA, email: 'a@example.com' });
+    authVerifier.registerUser('token-voice-iso-b', { userId: userB, email: 'b@example.com' });
+
+    const { household: hhA } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: userA,
+      email: 'a@example.com',
+      householdName: 'Household A'
+    });
+
+    const { household: hhB } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: userB,
+      email: 'b@example.com',
+      householdName: 'Household B'
+    });
+
+    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+
+    const subA = await SubscriptionRepository.createSubscription(db, {
+      householdId: hhA.id,
+      planId: starterPlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_iso_a',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const subB = await SubscriptionRepository.createSubscription(db, {
+      householdId: hhB.id,
+      planId: starterPlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_iso_b',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    // Record 600,000 ms (10.0 min) for Household A
+    await UsageService.recordVoiceUsageAtomic(db, {
+      householdId: hhA.id,
+      subscriptionId: subA.id,
+      durationMs: 600000,
+      quotaLimitMs: 1800000,
+      idempotencyKey: 'iso_voice_a'
+    });
+
+    const summaryA = await UsageService.getHouseholdUsageSummary(db, hhA.id);
+    const summaryB = await UsageService.getHouseholdUsageSummary(db, hhB.id);
+
+    assert.equal(summaryA.voiceMinutes.used, 10.0);
+    assert.equal(summaryA.voiceMinutes.remaining, 20.0);
+
+    // Household B must have 0 used and full 30.0 min remaining
+    assert.equal(summaryB.voiceMinutes.used, 0.0);
+    assert.equal(summaryB.voiceMinutes.remaining, 30.0);
+  });
 });
+

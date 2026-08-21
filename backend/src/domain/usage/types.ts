@@ -1,4 +1,4 @@
-export type UsageMetric = 'ai_sessions' | 'voice_seconds';
+export type UsageMetric = 'ai_sessions' | 'voice_seconds' | 'voice_duration_ms';
 export type UsageStatus = 'reserved' | 'committed' | 'released';
 
 export interface UsageRecord {
@@ -52,6 +52,24 @@ export interface ReserveUsageInput {
   idempotencyKey?: string | null;
   requestFingerprint?: string | null;
   metadata?: Record<string, unknown>;
+}
+
+export interface RecordVoiceUsageInput {
+  householdId: string;
+  subscriptionId: string;
+  childId?: string | null;
+  durationMs: number;
+  quotaLimitMs: number;
+  idempotencyKey?: string | null;
+  requestFingerprint?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface VoiceUsageRecordResult {
+  record: UsageRecord | null;
+  delivered: boolean;
+  remainingMs: number;
+  isExisting: boolean;
 }
 
 export interface UsageReservationResult {

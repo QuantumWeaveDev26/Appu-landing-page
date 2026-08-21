@@ -147,10 +147,10 @@
         remaining: aiRemaining
       },
       voiceMinutes: {
-        used: null, // Trustworthy duration metering pending server contract
-        limit: planVoiceLimit,
-        remaining: null,
-        meteringStatus: 'pending'
+        used: state.usage?.voiceMinutes?.used !== undefined ? state.usage.voiceMinutes.used : 0,
+        limit: state.usage?.voiceMinutes?.limit ?? planVoiceLimit,
+        remaining: state.usage?.voiceMinutes?.remaining !== undefined ? state.usage.voiceMinutes.remaining : planVoiceLimit,
+        meteringStatus: state.usage?.voiceMinutes?.meteringStatus ?? 'active'
       },
       usagePeriod: state.usage?.period ?? null,
       entitlements: {

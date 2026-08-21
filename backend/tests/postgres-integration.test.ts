@@ -540,6 +540,212 @@ describe('Real PostgreSQL Integration Suite', { skip: !testDbUrl }, () => {
     assert.ok(startMs <= nowMs, 'Current period must start in past or now');
     assert.ok(nowMs < endMs, 'Current period must end in future');
   });
+
+  test('VOICE USAGE PERSISTENCE & CUMULATIVE DURATION: records voice duration in milliseconds on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: crypto.randomUUID(),
+      householdName: 'Real Postgres Voice Household'
+    });
+
+    const starterPlanRes = await db.query("SELECT id FROM plans WHERE code = 'starter';");
+    const planId = starterPlanRes.rows[0].id;
+
+    const sub = await db.query(
+      `INSERT INTO subscriptions (household_id, plan_id, status, provider, created_at, updated_at)
+       VALUES ($1, $2, 'ACTIVE', 'razorpay', NOW(), NOW())
+       RETURNING *;`,
+      [household.id, planId]
+    );
+    const subscriptionId = sub.rows[0].id;
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Real Postgres Voice Learner',
+      gradeBand: 'Grade 3',
+      status: ChildStatuses.ACTIVE
+    });
+
+    // Record 180,000 ms (3.0 minutes) of voice usage
+    await UsageRepository.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId,
+      childId: child.id,
+      durationMs: 180000,
+      quotaLimitMs: 1800000,
+      idempotencyKey: `v_real_${crypto.randomUUID()}`
+    });
+
+    // Verify summary
+    const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(summary.voiceMinutes.meteringStatus, 'active');
+    assert.equal(summary.voiceMinutes.used, 3.0);
+    assert.equal(summary.voiceMinutes.limit, 30);
+    assert.equal(summary.voiceMinutes.remaining, 27.0);
+
+    // Verify record in usage_records table directly
+    const row = await db.query(
+      "SELECT * FROM usage_records WHERE household_id = $1 AND metric = 'voice_duration_ms';",
+      [household.id]
+    );
+    assert.equal(row.rows.length, 1);
+    assert.equal(Number(row.rows[0].quantity), 180000);
+    assert.equal(row.rows[0].status, 'committed');
+  });
+
+  test('VOICE IDEMPOTENCY: retrying with same idempotency key consumes exactly 1 unit on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: crypto.randomUUID(),
+      householdName: 'Real Postgres Voice Idempotency Household'
+    });
+
+    const starterPlanRes = await db.query("SELECT id FROM plans WHERE code = 'starter';");
+    const planId = starterPlanRes.rows[0].id;
+
+    const sub = await db.query(
+      `INSERT INTO subscriptions (household_id, plan_id, status, provider, created_at, updated_at)
+       VALUES ($1, $2, 'ACTIVE', 'razorpay', NOW(), NOW())
+       RETURNING *;`,
+      [household.id, planId]
+    );
+    const subscriptionId = sub.rows[0].id;
+    const vKey = `voice_idem_${crypto.randomUUID()}`;
+
+    // First write: 60,000 ms (1.0 min)
+    await UsageRepository.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId,
+      durationMs: 60000,
+      quotaLimitMs: 1800000,
+      idempotencyKey: vKey
+    });
+
+    // Retry with exact same idempotency key
+    await UsageRepository.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId,
+      durationMs: 60000,
+      quotaLimitMs: 1800000,
+      idempotencyKey: vKey
+    });
+
+    const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(summary.voiceMinutes.used, 1.0, 'Idempotent retry must not duplicate voice usage');
+    assert.equal(summary.voiceMinutes.remaining, 29.0);
+  });
+
+  test('VOICE STRICT BOUNDARY: generated audio exceeding remaining allowance is rejected without charging on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: crypto.randomUUID(),
+      householdName: 'Real Postgres Strict Boundary Household'
+    });
+
+    const starterPlanRes = await db.query("SELECT id FROM plans WHERE code = 'starter';");
+    const planId = starterPlanRes.rows[0].id;
+
+    const sub = await db.query(
+      `INSERT INTO subscriptions (household_id, plan_id, status, provider, created_at, updated_at)
+       VALUES ($1, $2, 'ACTIVE', 'razorpay', NOW(), NOW())
+       RETURNING *;`,
+      [household.id, planId]
+    );
+    const subscriptionId = sub.rows[0].id;
+
+    // Quota = 10,000 ms (10 seconds)
+    const quotaLimitMs = 10000;
+
+    // 1. Pre-charge 8,000 ms (8.0 seconds) -> remaining = 2,000 ms (2.0 seconds)
+    const preResult = await UsageRepository.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId,
+      durationMs: 8000,
+      quotaLimitMs,
+      idempotencyKey: `pre_${crypto.randomUUID()}`
+    });
+    assert.equal(preResult.delivered, true);
+    assert.equal(preResult.remainingMs, 2000);
+
+    // 2. Candidate audio = 5,000 ms (exceeds remaining 2,000 ms)
+    const overspendResult = await UsageRepository.recordVoiceUsageAtomic(db, {
+      householdId: household.id,
+      subscriptionId,
+      durationMs: 5000,
+      quotaLimitMs,
+      idempotencyKey: `over_${crypto.randomUUID()}`
+    });
+
+    // Invariant: rejected from audio delivery, 0 milliseconds recorded
+    assert.equal(overspendResult.delivered, false);
+    assert.equal(overspendResult.record, null);
+    assert.equal(overspendResult.remainingMs, 2000);
+
+    // 3. Verify database total usage remains exactly 8,000 ms
+    const rows = await db.query<{ total: string }>(
+      "SELECT COALESCE(SUM(quantity), 0) AS total FROM usage_records WHERE household_id = $1 AND metric = 'voice_duration_ms';",
+      [household.id]
+    );
+    assert.equal(Number(rows.rows[0].total), 8000);
+  });
+
+  test('VOICE CONCURRENCY SERIALIZATION: simultaneous voice requests cannot overspend allowance on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: crypto.randomUUID(),
+      householdName: 'Real Postgres Voice Concurrency Household'
+    });
+
+    const starterPlanRes = await db.query("SELECT id FROM plans WHERE code = 'starter';");
+    const planId = starterPlanRes.rows[0].id;
+
+    const sub = await db.query(
+      `INSERT INTO subscriptions (household_id, plan_id, status, provider, created_at, updated_at)
+       VALUES ($1, $2, 'ACTIVE', 'razorpay', NOW(), NOW())
+       RETURNING *;`,
+      [household.id, planId]
+    );
+    const subscriptionId = sub.rows[0].id;
+
+    // Quota = 10,000 ms. Two parallel requests attempt 7,000 ms each.
+    const quotaLimitMs = 10000;
+    const requestDurationMs = 7000;
+
+    const results = await Promise.all([
+      UsageService.recordVoiceUsageAtomic(db, {
+        householdId: household.id,
+        subscriptionId,
+        durationMs: requestDurationMs,
+        quotaLimitMs,
+        idempotencyKey: `conc_v1_${crypto.randomUUID()}`
+      }),
+      UsageService.recordVoiceUsageAtomic(db, {
+        householdId: household.id,
+        subscriptionId,
+        durationMs: requestDurationMs,
+        quotaLimitMs,
+        idempotencyKey: `conc_v2_${crypto.randomUUID()}`
+      })
+    ]);
+
+    const deliveredCount = results.filter((r) => r.delivered).length;
+    const rejectedCount = results.filter((r) => !r.delivered).length;
+
+    assert.equal(deliveredCount, 1, 'Exactly one concurrent request must be granted voice');
+    assert.equal(rejectedCount, 1, 'The other concurrent request must be safely rejected');
+
+    // Verify total committed voice usage is exactly 7,000 ms <= 10,000 ms
+    const rows = await db.query<{ total: string }>(
+      "SELECT COALESCE(SUM(quantity), 0) AS total FROM usage_records WHERE household_id = $1 AND metric = 'voice_duration_ms';",
+      [household.id]
+    );
+    assert.equal(Number(rows.rows[0].total), 7000);
+  });
 });
+
 
 

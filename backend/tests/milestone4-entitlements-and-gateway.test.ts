@@ -538,7 +538,8 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
 
     n8nClient.nextResponse = {
       text: 'Namaskara Vihaan! How can I help you today?',
-      audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAA...'
+      audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAA...',
+      audioDurationMs: 3500
     };
 
     const res = await app.inject({

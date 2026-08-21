@@ -59,6 +59,66 @@ export class UsageService {
   }
 
   /**
+   * Concurrency-safe atomic voice usage recording and strict quota boundary enforcement.
+   * Ensures the operation executes within a transaction so pg_advisory_xact_lock is held
+   * throughout the entire read-quota -> check-boundary -> insert-record flow.
+   */
+  public static async recordVoiceUsageAtomic(
+    db: TransactionalQueryable,
+    input: {
+      householdId: string;
+      subscriptionId: string;
+      childId?: string | null;
+      durationMs: number;
+      quotaLimitMs: number;
+      idempotencyKey?: string | null;
+      requestFingerprint?: string | null;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<{
+    record: any;
+    delivered: boolean;
+    remainingMs: number;
+    isExisting: boolean;
+  }> {
+    if (typeof db.transaction === 'function') {
+      return db.transaction(async (txClient: any) => {
+        const txDb = {
+          query: (t: string, p?: any[]) => txClient.query(t, p),
+          transaction: async (cb: any) => cb(txClient)
+        };
+        return UsageRepository.recordVoiceUsageAtomic(txDb as any, input);
+      });
+    }
+    return UsageRepository.recordVoiceUsageAtomic(db, input);
+  }
+
+  /**
+   * Retrieves total accumulated voice duration in milliseconds for the current period.
+   */
+  public static async getHouseholdVoiceUsageMs(
+    db: Queryable,
+    householdId: string
+  ): Promise<number> {
+    const subscription = await SubscriptionRepository.getLatestSubscriptionForHousehold(
+      db,
+      householdId
+    );
+    if (!subscription || subscription.status !== 'ACTIVE') {
+      return 0;
+    }
+    const period = UsageRepository.resolveUsagePeriod(subscription);
+    return UsageRepository.getUsedQuantity(
+      db,
+      householdId,
+      subscription.id,
+      'voice_duration_ms',
+      period.startsAt,
+      period.endsAt
+    );
+  }
+
+  /**
    * Produces the authoritative usage summary for an authenticated parent's household.
    */
   public static async getHouseholdUsageSummary(

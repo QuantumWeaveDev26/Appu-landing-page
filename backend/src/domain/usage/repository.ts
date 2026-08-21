@@ -270,6 +270,151 @@ export class UsageRepository {
   }
 
   /**
+   * Concurrency-safe atomic voice usage recording and strict quota boundary enforcement.
+   * Serializes parallel requests per household/subscription using PostgreSQL advisory transaction locks.
+   *
+   * STRICT BOUNDARY INVARIANT:
+   * If measured duration > remaining monthly allowance:
+   *   - delivered = false
+   *   - record = null (0 usage charged)
+   *   - audioSource must be omitted by the caller (text response only)
+   */
+  public static async recordVoiceUsageAtomic(
+    db: TransactionalQueryable,
+    input: {
+      householdId: string;
+      subscriptionId: string;
+      childId?: string | null;
+      durationMs: number;
+      quotaLimitMs: number;
+      idempotencyKey?: string | null;
+      requestFingerprint?: string | null;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<{
+    record: UsageRecord | null;
+    delivered: boolean;
+    remainingMs: number;
+    isExisting: boolean;
+  }> {
+    if (!Number.isFinite(input.durationMs) || input.durationMs <= 0) {
+      return { record: null, delivered: false, remainingMs: 0, isExisting: false };
+    }
+
+    const durationMs = Math.round(input.durationMs);
+
+    // 1. Concurrency Serialization: Advisory transaction lock scoped to household + subscription
+    await db.query(
+      `SELECT pg_advisory_xact_lock(hashtext('appu_usage_lock:' || $1 || ':' || $2))`,
+      [input.householdId, input.subscriptionId]
+    );
+
+    // 2. Idempotency check: if key provided, check if already recorded
+    if (input.idempotencyKey && input.idempotencyKey.trim().length > 0) {
+      const existingRes = await db.query<UsageRecordRow>(
+        `SELECT * FROM usage_records
+         WHERE household_id = $1 AND metric = 'voice_duration_ms' AND idempotency_key = $2`,
+        [input.householdId, input.idempotencyKey.trim()]
+      );
+
+      if (existingRes.rows.length > 0) {
+        const storedFp = existingRes.rows[0].request_fingerprint;
+        if (input.requestFingerprint && storedFp && storedFp !== input.requestFingerprint) {
+          throw new IdempotencyConflictError(
+            'Idempotency key has already been used for a different request. Use a new key for each distinct message.'
+          );
+        }
+        const existing = mapUsageRecordRow(existingRes.rows[0]);
+        return {
+          record: existing,
+          delivered: true,
+          remainingMs: 0,
+          isExisting: true
+        };
+      }
+    }
+
+    // 3. Fetch subscription & period
+    const subRes = await db.query<{
+      id: string;
+      status: string;
+      current_period_start: Date | string | null;
+      current_period_end: Date | string | null;
+      created_at: Date | string;
+    }>(
+      `SELECT id, status, current_period_start, current_period_end, created_at
+       FROM subscriptions
+       WHERE id = $1 AND household_id = $2`,
+      [input.subscriptionId, input.householdId]
+    );
+
+    if (subRes.rows.length === 0) {
+      throw new NotFoundError('Subscription not found for this household');
+    }
+
+    const subRow = subRes.rows[0];
+    if (subRow.status !== 'ACTIVE') {
+      return { record: null, delivered: false, remainingMs: 0, isExisting: false };
+    }
+
+    const period = this.resolveUsagePeriod({
+      currentPeriodStart: subRow.current_period_start ? new Date(subRow.current_period_start) : null,
+      currentPeriodEnd: subRow.current_period_end ? new Date(subRow.current_period_end) : null,
+      createdAt: new Date(subRow.created_at)
+    });
+
+    // 4. Sum currently committed voice duration for this period
+    const usedMs = await this.getUsedQuantity(
+      db,
+      input.householdId,
+      input.subscriptionId,
+      'voice_duration_ms',
+      period.startsAt,
+      period.endsAt
+    );
+
+    const remainingMs = Math.max(0, input.quotaLimitMs - usedMs);
+
+    // 5. Strict Quota Boundary Check:
+    // If measured audio duration exceeds remaining allowance, do NOT record and do NOT deliver audio.
+    if (durationMs > remainingMs) {
+      return {
+        record: null,
+        delivered: false,
+        remainingMs,
+        isExisting: false
+      };
+    }
+
+    // 6. Insert committed voice duration record
+    const insertRes = await db.query<UsageRecordRow>(
+      `INSERT INTO usage_records (
+         household_id, subscription_id, child_id, metric, quantity, status,
+         period_start, period_end, idempotency_key, request_fingerprint, metadata, created_at, updated_at
+       ) VALUES ($1, $2, $3, 'voice_duration_ms', $4, 'committed', $5, $6, $7, $8, $9, NOW(), NOW())
+       RETURNING *`,
+      [
+        input.householdId,
+        input.subscriptionId,
+        input.childId ?? null,
+        durationMs,
+        period.startsAt.toISOString(),
+        period.endsAt.toISOString(),
+        input.idempotencyKey ?? null,
+        input.requestFingerprint ?? null,
+        JSON.stringify(input.metadata || {})
+      ]
+    );
+
+    return {
+      record: mapUsageRecordRow(insertRes.rows[0]),
+      delivered: true,
+      remainingMs: remainingMs - durationMs,
+      isExisting: false
+    };
+  }
+
+  /**
    * Releases a reserved usage record if upstream provider fails.
    */
   public static async releaseReservation(
@@ -309,6 +454,18 @@ export class UsageRepository {
       period.endsAt
     );
 
+    const usedVoiceMs = await this.getUsedQuantity(
+      db,
+      householdId,
+      subscription.id,
+      'voice_duration_ms',
+      period.startsAt,
+      period.endsAt
+    );
+
+    const voiceMinutesUsed = Math.round((usedVoiceMs / 60000) * 10) / 10;
+    const voiceMinutesRemaining = Math.max(0, Math.round((voiceLimit - voiceMinutesUsed) * 10) / 10);
+
     return {
       period: {
         startsAt: period.startsAt.toISOString(),
@@ -321,10 +478,10 @@ export class UsageRepository {
         remaining: Math.max(0, aiLimit - aiUsed)
       },
       voiceMinutes: {
-        used: null, // Trustworthy duration from server n8n envelope is currently pending
+        used: voiceMinutesUsed,
         limit: voiceLimit,
-        remaining: null,
-        meteringStatus: 'pending'
+        remaining: voiceMinutesRemaining,
+        meteringStatus: 'active'
       }
     };
   }

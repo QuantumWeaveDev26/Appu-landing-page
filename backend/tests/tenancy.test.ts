@@ -85,7 +85,7 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     const migrations = await db.query<{ version: string; checksum: string; applied_at: Date }>(
       'SELECT version, checksum, applied_at FROM schema_migrations;'
     );
-    assert.equal(migrations.rows.length, 7);
+    assert.equal(migrations.rows.length, 8);
     assert.equal(migrations.rows[0].version, '001_initial_tenancy.sql');
     assert.match(migrations.rows[0].checksum, /^[a-f0-9]{64}$/);
     assert.equal(migrations.rows[1].version, '002_subscription_plans.sql');
@@ -100,6 +100,8 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     assert.match(migrations.rows[5].checksum, /^[a-f0-9]{64}$/);
     assert.equal(migrations.rows[6].version, '007_child_fk_and_idempotency_fingerprint.sql');
     assert.match(migrations.rows[6].checksum, /^[a-f0-9]{64}$/);
+    assert.equal(migrations.rows[7].version, '008_voice_duration_metering.sql');
+    assert.match(migrations.rows[7].checksum, /^[a-f0-9]{64}$/);
 
     // Idempotency: running migrations a second time applies 0 new files without error
     const secondRun = await runMigrations(db);
@@ -165,7 +167,8 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
       '004_child_personalisation.sql',
       '005_usage_accounting.sql',
       '006_usage_accounting_hardening.sql',
-      '007_child_fk_and_idempotency_fingerprint.sql'
+      '007_child_fk_and_idempotency_fingerprint.sql',
+      '008_voice_duration_metering.sql'
     ]);
 
     // 3. Verify 'checksum' column exists and has valid SHA-256 value for 001

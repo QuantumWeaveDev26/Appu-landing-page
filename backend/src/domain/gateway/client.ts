@@ -1,5 +1,6 @@
 import { BadGatewayError, ServiceUnavailableError } from '../../errors/index.js';
 import type { N8nClient, N8nMessageEnvelope, N8nMessageResponse } from './types.js';
+import { parseAudioDuration } from './audio-duration-parser.js';
 
 export interface DefaultN8nClientOptions {
   webhookUrl: string;
@@ -66,7 +67,8 @@ export class DefaultN8nClient implements N8nClient {
       // Raw plain text response
       return {
         text: rawText.replace(/\\n/g, '\n').trim(),
-        audioSource: null
+        audioSource: null,
+        audioDurationMs: null
       };
     }
 
@@ -84,9 +86,15 @@ export class DefaultN8nClient implements N8nClient {
       data.audio ??
       data.voiceUrl;
 
+    const audioSource = toAudioSource(rawAudio);
+    const audioDurationMs = audioSource
+      ? parseAudioDuration(rawAudio, data.duration_ms ?? data.audio_duration_ms ?? data.durationMs)
+      : null;
+
     return {
       text: text || 'Namaskara! I am listening.',
-      audioSource: toAudioSource(rawAudio),
+      audioSource,
+      audioDurationMs,
       raw: parsed
     };
   }
