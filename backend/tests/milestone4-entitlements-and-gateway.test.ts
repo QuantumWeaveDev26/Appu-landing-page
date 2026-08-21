@@ -32,6 +32,20 @@ function createTestDatabase(): TransactionalQueryable {
     implementation: () => true
   });
 
+  memDb.public.registerFunction({
+    name: 'hashtext',
+    args: [memDb.public.getType('text')],
+    returns: memDb.public.getType('int'),
+    impure: false,
+    implementation: (text: string) => {
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) {
+        hash = (Math.imul(31, hash) + text.charCodeAt(i)) | 0;
+      }
+      return hash;
+    }
+  });
+
   const { Pool } = memDb.adapters.createPg();
   const pool = new Pool();
 

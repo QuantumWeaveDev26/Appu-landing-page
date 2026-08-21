@@ -211,6 +211,7 @@
         await Promise.all([
           window.ParentOnboardingShell.fetchPlans(),
           window.ParentOnboardingShell.fetchCurrentSubscription(),
+          window.ParentOnboardingShell.fetchUsageSummary().catch(() => null),
           window.ParentOnboardingShell.fetchChildren().catch(() => [])
         ]);
 
@@ -223,7 +224,8 @@
           const currentPlanCard = document.createElement('div');
           currentPlanCard.className = 'pos-current-plan-card';
 
-          const pctUsed = Math.min(100, Math.round((vm.childCount / vm.maxChildren) * 100));
+          const pctLearnersUsed = Math.min(100, Math.round((vm.childCount / (vm.maxChildren || 1)) * 100));
+          const pctAiUsed = Math.min(100, Math.round((vm.aiSessions.used / (vm.aiSessions.limit || 1)) * 100));
 
           currentPlanCard.innerHTML = `
             <div class="pos-current-plan-header">
@@ -240,19 +242,29 @@
               <strong>Included with your plan:</strong>
               <ul class="pos-features-list">
                 <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${vm.maxChildren} learner slot${vm.maxChildren > 1 ? 's' : ''}</strong></li>
-                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.entitlements.monthlyAiSessions} AI sessions</strong> / month included</li>
-                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.entitlements.monthlyVoiceMinutes} voice minutes</strong> / month included</li>
+                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.aiSessions.limit} AI sessions</strong> / month included</li>
+                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.voiceMinutes.limit} voice minutes</strong> / month included <span class="pos-pill-sm" style="background:rgba(148,163,184,.15);color:#94a3b8;margin-left:4px;">Metering pending</span></li>
                 <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
               </ul>
             </div>
 
             <div class="pos-usage-meter-box">
               <div class="pos-usage-meter-label">
+                <span>AI Sessions (Monthly)</span>
+                <strong>${vm.aiSessions.used} of ${vm.aiSessions.limit} used (${vm.aiSessions.remaining} remaining)</strong>
+              </div>
+              <div class="pos-meter-track">
+                <div class="pos-meter-fill" style="width: ${pctAiUsed}%;"></div>
+              </div>
+            </div>
+
+            <div class="pos-usage-meter-box" style="margin-top: 6px;">
+              <div class="pos-usage-meter-label">
                 <span>Learner slots</span>
                 <strong>${vm.childCount} of ${vm.maxChildren} used</strong>
               </div>
               <div class="pos-meter-track">
-                <div class="pos-meter-fill" style="width: ${pctUsed}%;"></div>
+                <div class="pos-meter-fill" style="width: ${pctLearnersUsed}%;"></div>
               </div>
             </div>
 

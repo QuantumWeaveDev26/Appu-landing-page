@@ -200,7 +200,18 @@ export async function runMigrations(
       }
 
       // 4. Execute unapplied migration SQL
-      await transactionDb.query(migration.sql);
+      try {
+        await transactionDb.query(migration.sql);
+      } catch (err: any) {
+        // Mock parser compatibility (e.g. pg-mem) for PostgreSQL 15+ partial SET NULL syntax: ON DELETE SET NULL (col)
+        const errMsg = String(err?.message || err?.data?.error || err);
+        if (errMsg.includes('SET NULL') || errMsg.includes('set null')) {
+          const compatSql = migration.sql.replace(/ON DELETE SET NULL\s*\([^)]+\)/gi, 'ON DELETE SET NULL');
+          await transactionDb.query(compatSql);
+        } else {
+          throw err;
+        }
+      }
 
       // 5. Record applied version and checksum
       await transactionDb.query(

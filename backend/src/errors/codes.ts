@@ -11,6 +11,7 @@ export const ErrorCodes = {
   RATE_LIMITED: 'rate_limited',
   INVALID_REQUEST: 'invalid_request',
   NOT_FOUND: 'not_found',
+  IDEMPOTENCY_CONFLICT: 'idempotency_conflict',
   SERVICE_TEMPORARILY_UNAVAILABLE: 'service_temporarily_unavailable',
   BAD_GATEWAY: 'bad_gateway',
   INTERNAL_ERROR: 'internal_error',

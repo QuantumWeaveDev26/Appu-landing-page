@@ -340,6 +340,12 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
       { id: 'c1', preferredName: 'Aarav', gradeBand: 'Grade 5' }
     ];
 
+    ParentOnboardingShell.state.usage = {
+      period: { startsAt: '2026-08-01T00:00:00.000Z', endsAt: '2026-08-31T00:00:00.000Z' },
+      aiSessions: { used: 7, limit: 100, remaining: 93 },
+      voiceMinutes: { used: null, limit: 30, remaining: null, meteringStatus: 'pending' }
+    };
+
     const vm = ParentOnboardingShell.getSubscriptionViewModel();
 
     assert.equal(vm.isPaidAccess, true);
@@ -348,13 +354,44 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     assert.equal(vm.childCount, 1);
     assert.equal(vm.maxChildren, 1);
     assert.equal(vm.canAddLearner, false); // 1/1 used -> cannot add more
-    assert.equal(vm.entitlements.monthlyAiSessions, 100);
-    assert.equal(vm.entitlements.monthlyVoiceMinutes, 30);
+    assert.equal(vm.aiSessions.used, 7);
+    assert.equal(vm.aiSessions.limit, 100);
+    assert.equal(vm.aiSessions.remaining, 93);
+    assert.equal(vm.voiceMinutes.used, null);
+    assert.equal(vm.voiceMinutes.limit, 30);
+    assert.equal(vm.voiceMinutes.meteringStatus, 'pending');
     assert.ok(vm.statusMessage.includes('active'));
+  });
 
-    // Invariant: No fabricated usage counters (e.g. no "37/100 used")
-    assert.equal(vm.usedAiSessions, undefined);
-    assert.equal(vm.usedVoiceMinutes, undefined);
+  test('fetchUsageSummary retrieves real usage from GET /api/usage/current', async () => {
+    const originalFetch = global.fetch;
+    ParentOnboardingShell.state.session = { access_token: 'parent-token' };
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/usage/current')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              period: { startsAt: '2026-08-01T00:00:00.000Z', endsAt: '2026-08-31T00:00:00.000Z' },
+              aiSessions: { used: 12, limit: 100, remaining: 88 },
+              voiceMinutes: { used: null, limit: 30, remaining: null, meteringStatus: 'pending' }
+            };
+          }
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    };
+
+    try {
+      const usage = await ParentOnboardingShell.fetchUsageSummary();
+      assert.equal(usage.aiSessions.used, 12);
+      assert.equal(usage.aiSessions.remaining, 88);
+      assert.equal(ParentOnboardingShell.state.usage.aiSessions.used, 12);
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   test('getSubscriptionViewModel safely maps non-ACTIVE statuses to user-friendly messages', () => {

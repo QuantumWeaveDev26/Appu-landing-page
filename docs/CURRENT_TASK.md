@@ -93,6 +93,35 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
       - Compact plan status headers and non-ACTIVE state mapping without leaking internal state machine terms.
       - Session handoff into in-memory `AppuSession` without mutating child UI.
     - Added `#parent-setup-modal` and `#parent-session-badge` in `index.html`.
+- **Phase 2 Usage Accounting Foundation**:
+  - **Database Migration (`005_usage_accounting.sql`)**:
+    - Created `usage_records` ledger table with composite tenancy foreign key `fk_usage_records_child (household_id, child_id) REFERENCES child_profiles(household_id, id) ON DELETE SET NULL`.
+    - Added unique idempotency constraint `uq_usage_records_idempotency (household_id, metric, idempotency_key)` and indices for household, metric, period, status, and subscription queries.
+  - **Domain Usage Service & Repository (`backend/src/domain/usage/`)**:
+    - Implemented `UsageRepository.resolveUsagePeriod` dynamically resolving cycle from subscription `current_period_start`/`current_period_end` or deterministic 30-day UTC rolling cycle.
+    - Implemented atomic AI session quota check and reservation (`UsageService.reserveAiSession` / `UsageRepository.reserveUsageAtomic`).
+    - Enforced reservation commit on upstream provider success (`commitAiSession`) and rollback release on upstream failure or timeout (`releaseAiSession`).
+    - Implemented `QuotaExceededError` mapping to HTTP 429 when cumulative usage in the billing period exceeds the active plan limit (e.g. 100 on Starter).
+  - **Protected Usage API & Gateway Integration**:
+    - Registered `GET /api/usage/current` returning authoritative period, AI session usage (`used`, `limit`, `remaining`), and honest voice allowance status (`meteringStatus: "pending"`).
+    - Wired atomic reservation in `POST /api/appu/message` prior to calling n8n, preventing unmetered requests and rejecting exhausted households without invoking upstream resources.
+  - **Parent Zone & Onboarding UI Integration**:
+    - Integrated `fetchUsageSummary()` into `parent-onboarding-shell.js` and `getSubscriptionViewModel()`.
+    - Rendered real AI Session monthly usage meter (`used of limit used, remaining remaining`) alongside learner slots meter in `parent-setup-ui.js`.
+    - Rendered explicit, honest voice allowance notice: `30 voice minutes/month included • Metering pending`.
+  - **Comprehensive Test Coverage**:
+    - Created `backend/tests/usage-accounting.test.ts` (single request consumption, rollback on provider failure, 429 rejection on quota exhaustion without calling n8n, tenant isolation, and period resolution).
+    - Updated `backend/tests/postgres-integration.test.ts` with atomic reservation, commit, and quantity query on real PostgreSQL.
+
+  - **Hardening Migration (`006_usage_accounting_hardening.sql`)**:
+    - Added `uq_subscriptions_household_id UNIQUE (household_id, id)` on `subscriptions`.
+    - Added tenant-safe composite foreign key `fk_usage_records_subscription (household_id, subscription_id) REFERENCES subscriptions(household_id, id) ON DELETE RESTRICT`, mathematically preventing cross-household subscription usage attachment at the PostgreSQL engine level.
+    - Serialized concurrent reservation requests per household/subscription using PostgreSQL advisory transaction locks (`pg_advisory_xact_lock(hashtext('appu_usage_lock:' || householdId || ':' || subscriptionId))`).
+
+  - **Child FK Restoration & Idempotency Fingerprint Migration (`007_child_fk_and_idempotency_fingerprint.sql`)**:
+    - Restored composite tenant foreign key `fk_usage_records_child (household_id, child_id) REFERENCES child_profiles(household_id, id) ON DELETE SET NULL (child_id)` utilizing PostgreSQL 15+ partial `SET NULL`, enforcing that child usage strictly binds to the same household at the database constraint level while setting only `child_id = NULL` on child profile deletion.
+    - Added `request_fingerprint VARCHAR(64)` column to `usage_records`.
+    - Hardened idempotency key lifecycle with deterministic SHA-256 fingerprinting `SHA-256(householdId + childId + message + language)`: same key with different fingerprint is rejected with HTTP 409 Conflict without invoking n8n or consuming quota.
 
 ## Milestone & Verification Summary:
 
@@ -101,16 +130,24 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 - **Parent Subscription Visibility**: IMPLEMENTED
 - **Current Plan Summary**: IMPLEMENTED
 - **Learner Entitlement Visibility**: IMPLEMENTED
+- **AI Session Usage Accounting**: IMPLEMENTED + SERVER ENFORCED
+- **Tenant-Safe Subscription Composite FK**: HARDENED & TESTED ON REAL POSTGRESQL
+- **Tenant-Safe Child Composite FK**: HARDENED & TESTED ON REAL POSTGRESQL (rejection of cross-household child attachment + partial SET NULL on deletion)
+- **Concurrency Serialization**: PROVEN ON REAL POSTGRESQL (10 simultaneous attempts $\rightarrow$ exactly 1 succeeds, 9 fail)
+- **Idempotency Fingerprint Lifecycle**: PROVEN ON REAL POSTGRESQL (genuine retry consumes exactly 1 unit; distinct message with reused key returns 409)
+- **Frontend Unique Request Keys**: IMPLEMENTED in `appu-backend-client.js` via `crypto.randomUUID()` per logical message
+- **Voice Minutes Metering**: PENDING TRUSTWORTHY AUDIO DURATION CONTRACT (HONESTLY PRESENTED AS PENDING)
 - **Legacy Phase 1 Direct n8n Fallback**: TEMPORARILY RETAINED
-- **Full AI/Voice Usage Accounting**: PENDING
 - **Production Upgrade Billing Flow**: PENDING
 
 ## Important Decisions & Security Invariants:
 
-- **Server-Driven Entitlements**: The browser never passes prices, amounts, or entitlement keys. All subscription parameters and feature limits are derived server-side from active database records.
+- **Server-Driven Entitlements & Quotas**: The browser never passes prices, amounts, or quota limits. All feature limits and session consumptions are derived and recorded strictly server-side.
+- **Tenant-Safe Composite Foreign Keys**: Both `subscriptions` and `child_profiles` enforce `(household_id, id)` composite constraints preventing cross-household data linkage.
+- **Atomic Two-Phase Quota Reservation & Advisory Locking**: Usage is serialized using `pg_advisory_xact_lock` and reserved prior to calling upstream AI workflows, committed upon provider success, and released upon upstream failure so households are not charged for dropped requests.
+- **Deterministic Idempotency Fingerprint**: Idempotency keys are cryptographically bound to request parameters `(household, child, message, language)`; key collisions with conflicting payloads reject with HTTP 409 without calling upstream AI workflows.
+- **Zero Usage Fabrication**: Voice usage is never fabricated or guessed based on text length or untrusted client playback. It is explicitly presented as `Usage metering pending` until an authoritative server audio duration contract is established.
 - **Strict Activation Boundary**: Browser checkout signature verification transitions state to `AUTHENTICATED`, but NEVER directly to `ACTIVE`. Full entitlement access is granted only upon receiving trusted webhook confirmation (`subscription.activated` / `subscription.charged`).
-- **Zero Usage Fabrication**: Usage counters are never fabricated on the frontend. Only server-backed child counts and plan entitlement capacity limits are presented.
-- **Composite Tenancy Foreign Keys**: Child personalisation records use `(household_id, child_id)` composite foreign key guarantees preventing cross-household data linkage.
 - **Data vs Instruction Boundary**: Child personalisation values are treated strictly as data payloads within the AI context, never concatenated directly into executable prompt instructions.
 - **Webhook Idempotency**: All webhook events are recorded with `provider_event_id` in `payment_events`. Duplicate deliveries are safe no-ops (`already_processed`) with zero side effects.
 - **Zero Payment Instrument / Token Storage**: Card numbers, CVVs, full instruments, and secret keys are never accepted or stored.
@@ -119,10 +156,11 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 ## Validation Status:
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 78/78 tests passed, 0 failures)
-- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 5/5 tests passed)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 99 tests: 98 passed, 1 skipped for pg-mem limitation, 0 failures)
+- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 11/11 tests passed, 0 failures)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
-- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 20/20 tests passed)
+- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 21/21 tests passed)
 - **Phase 1 Python Tests**: PASSED (`python tests/page-structure.test.py` — 8/8 tests passed)
 - **Phase 1 JS Syntax Check**: PASSED (`node --check` across all frontend scripts — 0 errors)
+

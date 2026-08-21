@@ -70,13 +70,23 @@
       language: typeof language === 'string' && language.trim() ? language.trim() : 'en'
     };
 
+    // Generate a unique idempotency key for this logical message.
+    // Each new call to sendAppuMessage() is a new logical message.
+    // If the caller retries the same invocation, they should call sendAppuMessage() again,
+    // which will produce a new key — this is correct, since each user action is a new intent.
+    // For automatic network retries of the same fetch, the key stays the same within this closure.
+    const requestKey = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : 'rk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+
     let res;
     try {
       res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken.trim()}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Idempotency-Key': requestKey
         },
         body: JSON.stringify(payload)
       });
@@ -120,6 +130,14 @@
           audioSource: null,
           childId: payload.childId,
           error: 'quota_exceeded'
+        };
+      }
+      if (res.status === 409) {
+        return {
+          text: "Something went wrong with sending your question. Please try asking again!",
+          audioSource: null,
+          childId: payload.childId,
+          error: 'idempotency_conflict'
         };
       }
       if (res.status === 502 || res.status === 503) {

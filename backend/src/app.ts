@@ -16,7 +16,8 @@ import {
   plansRoutes,
   subscriptionsRoutes,
   webhooksRoutes,
-  appuGatewayRoutes
+  appuGatewayRoutes,
+  usageRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -193,6 +194,12 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         razorpayClient
       });
     }
+
+    // Usage Accounting route
+    app.register(usageRoutes, {
+      db: options.database,
+      authVerifier
+    });
 
     // Appu AI Secure Gateway requires N8nClient
     if (n8nClient) {

@@ -147,3 +147,15 @@ export class BadGatewayError extends AppError {
     this.name = 'BadGatewayError';
   }
 }
+
+export class IdempotencyConflictError extends AppError {
+  constructor(message = 'Idempotency key has already been used for a different request') {
+    super({
+      code: ErrorCodes.IDEMPOTENCY_CONFLICT,
+      message,
+      statusCode: 409
+    });
+    this.name = 'IdempotencyConflictError';
+  }
+}
+

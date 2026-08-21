@@ -56,6 +56,7 @@
     session: null,
     household: null,
     subscription: null,
+    usage: null,
     plans: [],
     children: [],
     selectedChild: null,
@@ -64,7 +65,7 @@
   };
 
   /**
-   * Builds resolved frontend view-model for subscription, plans, and learner quotas.
+   * Builds resolved frontend view-model for subscription, plans, usage accounting, and learner quotas.
    * STRICT INVARIANT: Backend data is the single source of truth.
    */
   function getSubscriptionViewModel() {
@@ -77,6 +78,13 @@
     const maxChildren = sub?.entitlements?.max_children || currentPlan?.entitlements?.max_children || 1;
     const childCount = children.length;
     const canAddLearner = childCount < maxChildren;
+
+    const planAiLimit = currentPlan?.entitlements?.monthly_ai_sessions ?? 100;
+    const planVoiceLimit = currentPlan?.entitlements?.monthly_voice_minutes ?? 30;
+
+    const aiUsed = state.usage?.aiSessions?.used ?? 0;
+    const aiLimit = state.usage?.aiSessions?.limit ?? planAiLimit;
+    const aiRemaining = state.usage?.aiSessions?.remaining ?? Math.max(0, aiLimit - aiUsed);
 
     // Safe, user-friendly state mappings
     const statusMap = {
@@ -112,10 +120,22 @@
       childCount,
       canAddLearner,
       remainingLearners: Math.max(0, maxChildren - childCount),
+      aiSessions: {
+        used: aiUsed,
+        limit: aiLimit,
+        remaining: aiRemaining
+      },
+      voiceMinutes: {
+        used: null, // Trustworthy duration metering pending server contract
+        limit: planVoiceLimit,
+        remaining: null,
+        meteringStatus: 'pending'
+      },
+      usagePeriod: state.usage?.period ?? null,
       entitlements: {
         maxChildren,
-        monthlyAiSessions: currentPlan?.entitlements?.monthly_ai_sessions ?? 100,
-        monthlyVoiceMinutes: currentPlan?.entitlements?.monthly_voice_minutes ?? 30,
+        monthlyAiSessions: planAiLimit,
+        monthlyVoiceMinutes: planVoiceLimit,
         multilingual: currentPlan?.entitlements?.multilingual ?? true,
         advancedPersonalisation: currentPlan?.entitlements?.advanced_personalisation ?? (sub?.planCode !== 'starter'),
         parentReports: currentPlan?.entitlements?.parent_reports ?? (sub?.planCode === 'family')
@@ -232,6 +252,24 @@
     const data = await res.json();
     state.subscription = data.subscription || null;
     return state.subscription;
+  }
+
+  /**
+   * Fetches authoritative usage summary from GET /api/usage/current.
+   */
+  async function fetchUsageSummary() {
+    if (!state.session?.access_token) {
+      return null;
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/usage/current`, {
+      headers: { Authorization: `Bearer ${state.session.access_token}` }
+    });
+    if (!res.ok) {
+      return null;
+    }
+    const data = await res.json();
+    state.usage = data || null;
+    return state.usage;
   }
 
   /**
@@ -513,6 +551,7 @@
     state.session = null;
     state.household = null;
     state.subscription = null;
+    state.usage = null;
     state.children = [];
     state.selectedChild = null;
     state.personalisation = null;
@@ -530,6 +569,7 @@
     signInParent,
     fetchPlans,
     fetchCurrentSubscription,
+    fetchUsageSummary,
     getSubscriptionViewModel,
     subscribeToPlan,
     fetchChildren,
