@@ -83,23 +83,33 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
     - Implemented `appu-session.js` holding verified access tokens and active child profile IDs strictly in-memory.
     - Implemented `appu-backend-client.js` communicating with `POST /api/appu/message` and normalizing audio/text into the existing `voice-contract.js` interface.
     - Integrated transport switching in `chat-agent.js` with clearly documented `LEGACY_PHASE1_DIRECT_N8N` fallback.
-  - **Development Phase 2 Parent Onboarding Shell**:
-    - Implemented `parent-onboarding-shell.js` orchestrating Supabase client authentication, idempotent household onboarding, database plan loading, Standard Checkout integration, child profile creation/selection, and structured personalisation persistence.
-    - Implemented `parent-setup-ui.js` providing responsive modal UI with multi-step progress, safe error boundaries, and seamless session handoff into `AppuSession`.
+  - **Development Phase 2 Parent Onboarding & Subscription Visibility Shell**:
+    - Implemented `parent-onboarding-shell.js` orchestrating Supabase client authentication, idempotent household onboarding, database plan loading, Standard Checkout integration, child profile creation/selection, structured personalisation persistence, and resolved subscription view-model computation (`getSubscriptionViewModel`).
+    - Implemented `parent-setup-ui.js` providing:
+      - Active plan summary card (`Starter Plan • ACTIVE • ₹299/mo`).
+      - Learner quota meter and limit alerts (`1 of 1 used`).
+      - Quota-aware learner form disabling and upgrade prompts when `children.length >= max_children`.
+      - Plan comparison modal view highlighting current active plan vs upgrade options.
+      - Compact plan status headers and non-ACTIVE state mapping without leaking internal state machine terms.
+      - Session handoff into in-memory `AppuSession` without mutating child UI.
     - Added `#parent-setup-modal` and `#parent-session-badge` in `index.html`.
 
 ## Milestone & Verification Summary:
 
 - **Backend Phase 2 Path**: LIVE VERIFIED
 - **Frontend Secure Transport**: IMPLEMENTED + TESTED
-- **Parent Onboarding Integration**: IMPLEMENTED
+- **Parent Subscription Visibility**: IMPLEMENTED
+- **Current Plan Summary**: IMPLEMENTED
+- **Learner Entitlement Visibility**: IMPLEMENTED
 - **Legacy Phase 1 Direct n8n Fallback**: TEMPORARILY RETAINED
-- **Production Polish / Deployment**: PENDING
+- **Full AI/Voice Usage Accounting**: PENDING
+- **Production Upgrade Billing Flow**: PENDING
 
 ## Important Decisions & Security Invariants:
 
 - **Server-Driven Entitlements**: The browser never passes prices, amounts, or entitlement keys. All subscription parameters and feature limits are derived server-side from active database records.
 - **Strict Activation Boundary**: Browser checkout signature verification transitions state to `AUTHENTICATED`, but NEVER directly to `ACTIVE`. Full entitlement access is granted only upon receiving trusted webhook confirmation (`subscription.activated` / `subscription.charged`).
+- **Zero Usage Fabrication**: Usage counters are never fabricated on the frontend. Only server-backed child counts and plan entitlement capacity limits are presented.
 - **Composite Tenancy Foreign Keys**: Child personalisation records use `(household_id, child_id)` composite foreign key guarantees preventing cross-household data linkage.
 - **Data vs Instruction Boundary**: Child personalisation values are treated strictly as data payloads within the AI context, never concatenated directly into executable prompt instructions.
 - **Webhook Idempotency**: All webhook events are recorded with `provider_event_id` in `payment_events`. Duplicate deliveries are safe no-ops (`already_processed`) with zero side effects.
@@ -113,6 +123,6 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 - **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 5/5 tests passed)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
-- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 17/17 tests passed)
+- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 20/20 tests passed)
 - **Phase 1 Python Tests**: PASSED (`python tests/page-structure.test.py` — 8/8 tests passed)
 - **Phase 1 JS Syntax Check**: PASSED (`node --check` across all frontend scripts — 0 errors)

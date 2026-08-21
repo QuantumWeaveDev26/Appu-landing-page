@@ -305,7 +305,112 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
   });
 
   // ============================================================================
-  // 4. SESSION HANDOFF & LOGOUT
+  // 4. SUBSCRIPTION VIEW-MODEL, QUOTA & NON-ACTIVE STATES
+  // ============================================================================
+
+  test('getSubscriptionViewModel computes accurate view-model from server data without fabricating usage', () => {
+    ParentOnboardingShell.state.plans = [
+      {
+        id: 'p1',
+        code: 'starter',
+        name: 'Starter',
+        amountPaise: 29900,
+        entitlements: {
+          max_children: 1,
+          monthly_ai_sessions: 100,
+          monthly_voice_minutes: 30,
+          multilingual: true
+        }
+      }
+    ];
+
+    ParentOnboardingShell.state.subscription = {
+      id: 'sub-1',
+      status: 'ACTIVE',
+      planCode: 'starter',
+      entitlements: {
+        max_children: 1,
+        monthly_ai_sessions: 100,
+        monthly_voice_minutes: 30,
+        multilingual: true
+      }
+    };
+
+    ParentOnboardingShell.state.children = [
+      { id: 'c1', preferredName: 'Aarav', gradeBand: 'Grade 5' }
+    ];
+
+    const vm = ParentOnboardingShell.getSubscriptionViewModel();
+
+    assert.equal(vm.isPaidAccess, true);
+    assert.equal(vm.planName, 'Starter');
+    assert.equal(vm.displayPrice, '₹299');
+    assert.equal(vm.childCount, 1);
+    assert.equal(vm.maxChildren, 1);
+    assert.equal(vm.canAddLearner, false); // 1/1 used -> cannot add more
+    assert.equal(vm.entitlements.monthlyAiSessions, 100);
+    assert.equal(vm.entitlements.monthlyVoiceMinutes, 30);
+    assert.ok(vm.statusMessage.includes('active'));
+
+    // Invariant: No fabricated usage counters (e.g. no "37/100 used")
+    assert.equal(vm.usedAiSessions, undefined);
+    assert.equal(vm.usedVoiceMinutes, undefined);
+  });
+
+  test('getSubscriptionViewModel safely maps non-ACTIVE statuses to user-friendly messages', () => {
+    const statuses = [
+      { status: 'AUTHENTICATED', expectedLabel: 'PENDING ACTIVATION', isPaid: false },
+      { status: 'PENDING_PAYMENT', expectedLabel: 'PAYMENT PENDING', isPaid: false },
+      { status: 'PAST_DUE', expectedLabel: 'PAST DUE', isPaid: false },
+      { status: 'PAUSED', expectedLabel: 'PAUSED', isPaid: false },
+      { status: 'EXPIRED', expectedLabel: 'EXPIRED', isPaid: false }
+    ];
+
+    ParentOnboardingShell.state.plans = [{ code: 'growth', name: 'Growth', amountPaise: 59900 }];
+
+    for (const item of statuses) {
+      ParentOnboardingShell.state.subscription = {
+        id: 'sub-test',
+        status: item.status,
+        planCode: 'growth'
+      };
+
+      const vm = ParentOnboardingShell.getSubscriptionViewModel();
+      assert.equal(vm.statusLabel, item.expectedLabel);
+      assert.equal(vm.isPaidAccess, item.isPaid);
+      assert.ok(vm.statusMessage.length > 5);
+      // Invariant: No raw internal state names leaked in messages
+      assert.ok(!vm.statusMessage.includes('STATE_'));
+    }
+  });
+
+  test('quota limit permits adding children only when childCount < maxChildren', () => {
+    ParentOnboardingShell.state.plans = [
+      { code: 'growth', name: 'Growth', amountPaise: 59900, entitlements: { max_children: 2 } }
+    ];
+    ParentOnboardingShell.state.subscription = {
+      status: 'ACTIVE',
+      planCode: 'growth',
+      entitlements: { max_children: 2 }
+    };
+
+    // 1 child of 2 allowed
+    ParentOnboardingShell.state.children = [{ id: 'c1', preferredName: 'Child 1' }];
+    let vm = ParentOnboardingShell.getSubscriptionViewModel();
+    assert.equal(vm.childCount, 1);
+    assert.equal(vm.maxChildren, 2);
+    assert.equal(vm.canAddLearner, true);
+
+    // 2 children of 2 allowed
+    ParentOnboardingShell.state.children.push({ id: 'c2', preferredName: 'Child 2' });
+    vm = ParentOnboardingShell.getSubscriptionViewModel();
+    assert.equal(vm.childCount, 2);
+    assert.equal(vm.maxChildren, 2);
+    assert.equal(vm.canAddLearner, false);
+  });
+
+  // ============================================================================
+  // 5. SESSION HANDOFF & LOGOUT
   // ============================================================================
 
   test('launchAppuSession sets in-memory AppuSession and signOut clears it', async () => {
@@ -330,6 +435,10 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     assert.equal(AppuSession.accessToken, 'valid-parent-jwt');
     assert.equal(AppuSession.childId, 'child-uuid-999');
     assert.equal(AppuSession.parentContext.childName, 'Aarav');
+
+    // Invariant: Opening parent state does not clear session
+    const vm = ParentOnboardingShell.getSubscriptionViewModel();
+    assert.equal(AppuSession.isAuthenticated(), true);
 
     // Sign out
     await ParentOnboardingShell.signOut();

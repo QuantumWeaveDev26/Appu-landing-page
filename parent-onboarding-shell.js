@@ -64,6 +64,68 @@
   };
 
   /**
+   * Builds resolved frontend view-model for subscription, plans, and learner quotas.
+   * STRICT INVARIANT: Backend data is the single source of truth.
+   */
+  function getSubscriptionViewModel() {
+    const sub = state.subscription;
+    const plans = state.plans || [];
+    const children = state.children || [];
+    const activeChild = state.selectedChild || (children.length > 0 ? children[0] : null);
+
+    const currentPlan = sub ? plans.find((p) => p.code === sub.planCode) : null;
+    const maxChildren = sub?.entitlements?.max_children || currentPlan?.entitlements?.max_children || 1;
+    const childCount = children.length;
+    const canAddLearner = childCount < maxChildren;
+
+    // Safe, user-friendly state mappings
+    const statusMap = {
+      ACTIVE: { label: 'ACTIVE', message: 'Your plan is active and ready for learning.', badgeClass: 'active', isPaidAccess: true },
+      AUTHENTICATED: { label: 'PENDING ACTIVATION', message: 'Payment verified. Waiting for activation confirmation.', badgeClass: 'pending', isPaidAccess: false },
+      PENDING_PAYMENT: { label: 'PAYMENT PENDING', message: 'Complete payment to activate Appu.', badgeClass: 'pending', isPaidAccess: false },
+      PAST_DUE: { label: 'PAST DUE', message: 'Payment needs attention. Please renew your plan.', badgeClass: 'warning', isPaidAccess: false },
+      PAUSED: { label: 'PAUSED', message: 'Your subscription is currently paused.', badgeClass: 'paused', isPaidAccess: false },
+      HALTED: { label: 'HALTED', message: 'Your subscription has been halted.', badgeClass: 'error', isPaidAccess: false },
+      CANCELLED: { label: 'CANCELLED', message: 'Your subscription was cancelled.', badgeClass: 'error', isPaidAccess: false },
+      EXPIRED: { label: 'EXPIRED', message: 'Your subscription has expired.', badgeClass: 'error', isPaidAccess: false }
+    };
+
+    const statusInfo = (sub && statusMap[sub.status]) || {
+      label: 'NO PLAN',
+      message: 'Choose a plan to activate personalized Appu learning.',
+      badgeClass: 'none',
+      isPaidAccess: false
+    };
+
+    return {
+      hasSubscription: Boolean(sub),
+      isPaidAccess: statusInfo.isPaidAccess,
+      status: sub ? sub.status : null,
+      statusLabel: statusInfo.label,
+      statusMessage: statusInfo.message,
+      statusBadgeClass: statusInfo.badgeClass,
+      planCode: sub ? sub.planCode : null,
+      planName: currentPlan ? currentPlan.name : (sub ? sub.planCode.toUpperCase() : 'Free Guest'),
+      displayPrice: currentPlan ? `₹${Math.round(currentPlan.amountPaise / 100)}` : '₹0',
+      billingInterval: 'month',
+      maxChildren,
+      childCount,
+      canAddLearner,
+      remainingLearners: Math.max(0, maxChildren - childCount),
+      entitlements: {
+        maxChildren,
+        monthlyAiSessions: currentPlan?.entitlements?.monthly_ai_sessions ?? 100,
+        monthlyVoiceMinutes: currentPlan?.entitlements?.monthly_voice_minutes ?? 30,
+        multilingual: currentPlan?.entitlements?.multilingual ?? true,
+        advancedPersonalisation: currentPlan?.entitlements?.advanced_personalisation ?? (sub?.planCode !== 'starter'),
+        parentReports: currentPlan?.entitlements?.parent_reports ?? (sub?.planCode === 'family')
+      },
+      activeChild,
+      children
+    };
+  }
+
+  /**
    * Initializes the Supabase client.
    */
   function initSupabase() {
@@ -468,6 +530,7 @@
     signInParent,
     fetchPlans,
     fetchCurrentSubscription,
+    getSubscriptionViewModel,
     subscribeToPlan,
     fetchChildren,
     createChild,

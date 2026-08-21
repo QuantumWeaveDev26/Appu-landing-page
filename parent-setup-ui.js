@@ -1,5 +1,5 @@
 /**
- * ParentSetupUI: DOM Controller for Parent Setup & Onboarding Modal
+ * ParentSetupUI: DOM Controller for Parent Setup, Subscription Visibility & Onboarding
  */
 (function (root, factory) {
   const api = factory();
@@ -43,6 +43,7 @@
     const planStatusText = document.getElementById('pos-plan-status');
 
     const childListContainer = document.getElementById('pos-child-list');
+    const childNewFormWrap = document.getElementById('pos-child-form-wrap');
     const childNewForm = document.getElementById('pos-child-form');
     const childNameInput = document.getElementById('pos-child-name');
     const childGradeSelect = document.getElementById('pos-child-grade');
@@ -198,75 +199,250 @@
     }
 
     // -------------------------------------------------------------
-    // Step 2: Plans & Subscription Step
+    // Step 2: Current Plan Summary & Subscription View
     // -------------------------------------------------------------
     async function renderPlansStep() {
       setStep(2);
       if (plansContainer) {
-        plansContainer.innerHTML = '<div class="pos-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading subscription plans...</div>';
+        plansContainer.innerHTML = '<div class="pos-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading subscription details...</div>';
       }
 
       try {
-        const [plans, currentSub] = await Promise.all([
+        await Promise.all([
           window.ParentOnboardingShell.fetchPlans(),
-          window.ParentOnboardingShell.fetchCurrentSubscription()
+          window.ParentOnboardingShell.fetchCurrentSubscription(),
+          window.ParentOnboardingShell.fetchChildren().catch(() => [])
         ]);
 
-        if (currentSub && currentSub.status === 'ACTIVE') {
-          // Already subscribed! Proceed to Child Setup
-          await renderChildStep();
-          return;
-        }
-
+        const vm = window.ParentOnboardingShell.getSubscriptionViewModel();
         if (!plansContainer) return;
         plansContainer.innerHTML = '';
 
-        plans.forEach((p) => {
-          const card = document.createElement('div');
-          card.className = `pos-plan-card ${p.code === 'growth' ? 'featured' : ''}`;
-          const priceRupees = Math.round(p.amountPaise / 100);
-          const maxChildren = p.entitlements?.max_children ?? 1;
+        if (vm.isPaidAccess) {
+          // ACTIVE PLAN SUMMARY CARD
+          const currentPlanCard = document.createElement('div');
+          currentPlanCard.className = 'pos-current-plan-card';
 
-          card.innerHTML = `
-            ${p.code === 'growth' ? '<span class="pos-badge">Most Popular</span>' : ''}
-            <h3>${p.name}</h3>
-            <div class="pos-price">₹${priceRupees}<span>/month</span></div>
-            <p class="pos-plan-desc">${p.description || ''}</p>
-            <ul class="pos-features">
-              <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${maxChildren} learner${maxChildren > 1 ? 's' : ''}</strong></li>
-              <li><i class="fa-solid fa-check text-cyan"></i> Daily AI learning companion</li>
-              <li><i class="fa-solid fa-check text-cyan"></i> Personalized voice explanations</li>
-            </ul>
-            <button class="pos-plan-btn" data-code="${p.code}" type="button">Select ${p.name}</button>
+          const pctUsed = Math.min(100, Math.round((vm.childCount / vm.maxChildren) * 100));
+
+          currentPlanCard.innerHTML = `
+            <div class="pos-current-plan-header">
+              <div>
+                <span class="pos-kicker">YOUR CURRENT PLAN</span>
+                <h3>${vm.planName} Plan</h3>
+              </div>
+              <div class="pos-status-pill active"><i class="fa-solid fa-circle-check"></i> ACTIVE</div>
+            </div>
+            <div class="pos-price-tag">${vm.displayPrice} <span>/ month</span></div>
+            <p class="pos-status-msg">${vm.statusMessage}</p>
+
+            <div class="pos-plan-features-box">
+              <strong>Included with your plan:</strong>
+              <ul class="pos-features-list">
+                <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${vm.maxChildren} learner slot${vm.maxChildren > 1 ? 's' : ''}</strong></li>
+                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.entitlements.monthlyAiSessions} AI sessions</strong> / month included</li>
+                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.entitlements.monthlyVoiceMinutes} voice minutes</strong> / month included</li>
+                <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
+              </ul>
+            </div>
+
+            <div class="pos-usage-meter-box">
+              <div class="pos-usage-meter-label">
+                <span>Learner slots</span>
+                <strong>${vm.childCount} of ${vm.maxChildren} used</strong>
+              </div>
+              <div class="pos-meter-track">
+                <div class="pos-meter-fill" style="width: ${pctUsed}%;"></div>
+              </div>
+            </div>
+
+            <div class="pos-card-actions">
+              <button id="pos-btn-continue-plan" class="primary-modal-btn" type="button">
+                <span>Continue with ${vm.planName}</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <button id="pos-btn-toggle-plans" class="pos-secondary-btn" type="button">
+                <i class="fa-solid fa-table-columns"></i> View / Compare All Plans
+              </button>
+            </div>
+
+            <div id="pos-compare-grid-wrap" style="display: none; margin-top: 15px;">
+              <p class="pos-subtitle">All Learning Companion Plans:</p>
+              <div class="pos-plans-grid" id="pos-compare-grid"></div>
+            </div>
           `;
 
-          const btnSelect = card.querySelector('.pos-plan-btn');
-          btnSelect.addEventListener('click', async () => {
-            try {
-              btnSelect.disabled = true;
-              btnSelect.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Starting Checkout...`;
-              await window.ParentOnboardingShell.subscribeToPlan(p.code, (status) => {
-                if (planStatusText) planStatusText.textContent = status;
-              });
-              await renderChildStep();
-            } catch (err) {
-              showAlert(err.message || 'Subscription failed');
-            } finally {
-              btnSelect.disabled = false;
-              btnSelect.textContent = `Select ${p.name}`;
-              if (planStatusText) planStatusText.textContent = '';
-            }
-          });
+          plansContainer.appendChild(currentPlanCard);
 
-          plansContainer.appendChild(card);
-        });
+          const btnContinue = currentPlanCard.querySelector('#pos-btn-continue-plan');
+          if (btnContinue) {
+            btnContinue.addEventListener('click', () => renderChildStep());
+          }
+
+          const btnToggle = currentPlanCard.querySelector('#pos-btn-toggle-plans');
+          const compareWrap = currentPlanCard.querySelector('#pos-compare-grid-wrap');
+          const compareGrid = currentPlanCard.querySelector('#pos-compare-grid');
+
+          if (btnToggle && compareWrap && compareGrid) {
+            btnToggle.addEventListener('click', () => {
+              const isHidden = compareWrap.style.display === 'none';
+              compareWrap.style.display = isHidden ? 'block' : 'none';
+              btnToggle.innerHTML = isHidden
+                ? '<i class="fa-solid fa-chevron-up"></i> Hide Plan Comparison'
+                : '<i class="fa-solid fa-table-columns"></i> View / Compare All Plans';
+
+              if (isHidden && compareGrid.children.length === 0) {
+                renderComparisonCards(compareGrid, vm.planCode);
+              }
+            });
+          }
+
+        } else if (vm.hasSubscription && !vm.isPaidAccess) {
+          // NON-ACTIVE SUBSCRIPTION STATUS CARD
+          const subNotice = document.createElement('div');
+          subNotice.className = 'pos-current-plan-card';
+          subNotice.innerHTML = `
+            <div class="pos-current-plan-header">
+              <div>
+                <span class="pos-kicker">SUBSCRIPTION STATUS</span>
+                <h3>${vm.planName}</h3>
+              </div>
+              <div class="pos-status-pill ${vm.statusBadgeClass}">${vm.statusLabel}</div>
+            </div>
+            <p class="pos-status-msg">${vm.statusMessage}</p>
+            <div class="pos-card-actions">
+              <button id="pos-btn-activate-plan" class="primary-modal-btn" type="button">
+                <span>Select Plan to Activate</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+            <div id="pos-plans-select-grid" class="pos-plans-grid" style="display:none; margin-top: 15px;"></div>
+          `;
+
+          plansContainer.appendChild(subNotice);
+
+          const btnAct = subNotice.querySelector('#pos-btn-activate-plan');
+          const grid = subNotice.querySelector('#pos-plans-select-grid');
+          if (btnAct && grid) {
+            btnAct.addEventListener('click', () => {
+              grid.style.display = 'grid';
+              btnAct.style.display = 'none';
+              renderPlansGrid(grid);
+            });
+          }
+
+        } else {
+          // NO SUBSCRIPTION: RENDER SELECTION GRID
+          const gridTitle = document.createElement('p');
+          gridTitle.className = 'pos-subtitle';
+          gridTitle.textContent = 'Choose an AI Learning Companion Plan:';
+          plansContainer.appendChild(gridTitle);
+
+          const grid = document.createElement('div');
+          grid.className = 'pos-plans-grid';
+          plansContainer.appendChild(grid);
+          renderPlansGrid(grid);
+        }
+
       } catch (err) {
         showAlert(err.message || 'Failed to load plans');
       }
     }
 
+    /**
+     * Renders plan purchase cards for unpaid or new subscriptions.
+     */
+    function renderPlansGrid(container) {
+      const plans = window.ParentOnboardingShell.state.plans || [];
+      container.innerHTML = '';
+
+      plans.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = `pos-plan-card ${p.code === 'growth' ? 'featured' : ''}`;
+        const priceRupees = Math.round(p.amountPaise / 100);
+        const maxChildren = p.entitlements?.max_children ?? 1;
+
+        card.innerHTML = `
+          ${p.code === 'growth' ? '<span class="pos-badge">Most Popular</span>' : ''}
+          <h3>${p.name}</h3>
+          <div class="pos-price">₹${priceRupees}<span>/month</span></div>
+          <p class="pos-plan-desc">${p.description || ''}</p>
+          <ul class="pos-features">
+            <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${maxChildren} learner${maxChildren > 1 ? 's' : ''}</strong></li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_ai_sessions || 100} AI sessions</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_voice_minutes || 30} voice mins</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual explanations</li>
+          </ul>
+          <button class="pos-plan-btn" data-code="${p.code}" type="button">Select ${p.name}</button>
+        `;
+
+        const btnSelect = card.querySelector('.pos-plan-btn');
+        btnSelect.addEventListener('click', async () => {
+          try {
+            btnSelect.disabled = true;
+            btnSelect.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Starting Checkout...`;
+            await window.ParentOnboardingShell.subscribeToPlan(p.code, (status) => {
+              if (planStatusText) planStatusText.textContent = status;
+            });
+            await renderChildStep();
+          } catch (err) {
+            showAlert(err.message || 'Subscription failed');
+          } finally {
+            btnSelect.disabled = false;
+            btnSelect.textContent = `Select ${p.name}`;
+            if (planStatusText) planStatusText.textContent = '';
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    /**
+     * Renders plan comparison cards marking the active plan.
+     */
+    function renderComparisonCards(container, activePlanCode) {
+      const plans = window.ParentOnboardingShell.state.plans || [];
+      container.innerHTML = '';
+
+      plans.forEach((p) => {
+        const isCurrent = p.code === activePlanCode;
+        const card = document.createElement('div');
+        card.className = `pos-plan-card ${isCurrent ? 'featured' : ''}`;
+        const priceRupees = Math.round(p.amountPaise / 100);
+        const maxChildren = p.entitlements?.max_children ?? 1;
+
+        card.innerHTML = `
+          ${isCurrent ? '<span class="pos-badge" style="background:#86efac; color:#042f1a;">CURRENT PLAN</span>' : '<span class="pos-badge">UPGRADE OPTION</span>'}
+          <h3>${p.name}</h3>
+          <div class="pos-price">₹${priceRupees}<span>/month</span></div>
+          <p class="pos-plan-desc">${p.description || ''}</p>
+          <ul class="pos-features">
+            <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${maxChildren} learner${maxChildren > 1 ? 's' : ''}</strong></li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_ai_sessions || 100} AI sessions</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_voice_minutes || 30} voice mins</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual explanations</li>
+          </ul>
+          ${
+            isCurrent
+              ? `<button class="pos-plan-btn" disabled style="opacity: 0.7; background: #86efac; color: #042f1a;">Active Plan</button>`
+              : `<button class="pos-secondary-btn pos-btn-upgrade-notice" type="button">Upgrade (Coming Soon)</button>`
+          }
+        `;
+
+        const btnUpgrade = card.querySelector('.pos-btn-upgrade-notice');
+        if (btnUpgrade) {
+          btnUpgrade.addEventListener('click', () => {
+            showAlert('Seamless in-app plan upgrades will be available in the next release. Contact support if you need immediate capacity expansion.', 'success');
+          });
+        }
+
+        container.appendChild(card);
+      });
+    }
+
     // -------------------------------------------------------------
-    // Step 3: Child Setup Step
+    // Step 3: Learner Setup & Quota-Aware Form Step
     // -------------------------------------------------------------
     async function renderChildStep() {
       setStep(3);
@@ -275,17 +451,31 @@
       }
 
       try {
-        const children = await window.ParentOnboardingShell.fetchChildren();
+        await window.ParentOnboardingShell.fetchChildren();
+        const vm = window.ParentOnboardingShell.getSubscriptionViewModel();
+
         if (!childListContainer) return;
         childListContainer.innerHTML = '';
 
-        if (children.length > 0) {
+        // Compact Subscription Header
+        const summaryBar = document.createElement('div');
+        summaryBar.className = 'pos-compact-plan-bar';
+        summaryBar.innerHTML = `
+          <div>
+            <span class="pos-pill-sm ${vm.statusBadgeClass}">${vm.statusLabel}</span>
+            <strong>${vm.planName} (${vm.displayPrice}/mo)</strong>
+          </div>
+          <span>Learners: <strong>${vm.childCount} / ${vm.maxChildren}</strong></span>
+        `;
+        childListContainer.appendChild(summaryBar);
+
+        if (vm.children.length > 0) {
           const listTitle = document.createElement('h4');
           listTitle.className = 'pos-subtitle';
           listTitle.textContent = 'Select Learner Profile:';
           childListContainer.appendChild(listTitle);
 
-          children.forEach((c) => {
+          vm.children.forEach((c) => {
             const item = document.createElement('div');
             item.className = 'pos-child-card';
             item.innerHTML = `
@@ -296,20 +486,62 @@
                   <span>${c.gradeBand}</span>
                 </div>
               </div>
-              <button class="pos-child-select-btn" type="button">Select <i class="fa-solid fa-arrow-right"></i></button>
+              <div style="display:flex; gap: 6px;">
+                <button class="pos-secondary-btn pos-btn-edit-pers" style="min-height: 32px; padding: 0 10px; font-size: 11px;" type="button" title="Edit Personalisation">
+                  <i class="fa-solid fa-sliders"></i>
+                </button>
+                <button class="pos-child-select-btn" type="button">Select <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
             `;
 
-            const btn = item.querySelector('.pos-child-select-btn');
-            btn.addEventListener('click', () => {
+            const btnSelect = item.querySelector('.pos-child-select-btn');
+            btnSelect.addEventListener('click', () => {
               window.ParentOnboardingShell.state.selectedChild = c;
               renderPersonalisationStep(c);
             });
 
+            const btnEdit = item.querySelector('.pos-btn-edit-pers');
+            if (btnEdit) {
+              btnEdit.addEventListener('click', () => {
+                window.ParentOnboardingShell.state.selectedChild = c;
+                renderPersonalisationStep(c);
+              });
+            }
+
             childListContainer.appendChild(item);
           });
         }
+
+        // Learner Quota Limit UX
+        if (!vm.canAddLearner) {
+          // Quota reached: hide child form and show informative upgrade prompt
+          if (childNewFormWrap) childNewFormWrap.style.display = 'none';
+
+          const quotaNotice = document.createElement('div');
+          quotaNotice.className = 'pos-quota-box';
+          quotaNotice.innerHTML = `
+            <i class="fa-solid fa-circle-info text-cyan"></i>
+            <div>
+              <strong>Learner limit reached (${vm.childCount} of ${vm.maxChildren} used)</strong>
+              <p>Your current ${vm.planName} Plan supports up to ${vm.maxChildren} learner${vm.maxChildren > 1 ? 's' : ''}.</p>
+              <button id="pos-btn-view-upgrade-from-quota" class="pos-link-btn" type="button">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> View / Upgrade Plans
+              </button>
+            </div>
+          `;
+          childListContainer.appendChild(quotaNotice);
+
+          const btnUp = quotaNotice.querySelector('#pos-btn-view-upgrade-from-quota');
+          if (btnUp) {
+            btnUp.addEventListener('click', () => renderPlansStep());
+          }
+        } else {
+          // Quota allows adding more learners
+          if (childNewFormWrap) childNewFormWrap.style.display = 'block';
+        }
+
       } catch (err) {
-        showAlert(err.message || 'Failed to load children');
+        showAlert(err.message || 'Failed to load learners');
       }
     }
 
