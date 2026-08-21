@@ -105,14 +105,21 @@
       modal.classList.add('is-visible');
       clearAlert();
 
-      // Check if session already exists
-      const isAuthed =
-        typeof window !== 'undefined' &&
-        window.ParentOnboardingShell &&
-        window.ParentOnboardingShell.state.session;
+      const shell = typeof window !== 'undefined' ? window.ParentOnboardingShell : null;
+      const isAuthed = shell && shell.state.session;
 
       if (isAuthed) {
-        renderPlansStep();
+        const sub = shell.state.subscription;
+        if (sub && sub.status === 'ACTIVE') {
+          // If child selection required or multiple learners, route to step 3
+          if (shell.state.authStatus === 'CHILD_SELECTION_REQUIRED' || !shell.state.selectedChild) {
+            renderChildrenStep();
+          } else {
+            renderPlansStep();
+          }
+        } else {
+          renderPlansStep();
+        }
       } else {
         setStep(1);
       }
@@ -231,7 +238,7 @@
             <div class="pos-current-plan-header">
               <div>
                 <span class="pos-kicker">YOUR CURRENT PLAN</span>
-                <h3>${vm.planName} Plan</h3>
+                <h3>${vm.planName.endsWith('Plan') ? vm.planName : `${vm.planName} Plan`}</h3>
               </div>
               <div class="pos-status-pill active"><i class="fa-solid fa-circle-check"></i> ACTIVE</div>
             </div>
@@ -535,7 +542,7 @@
             <i class="fa-solid fa-circle-info text-cyan"></i>
             <div>
               <strong>Learner limit reached (${vm.childCount} of ${vm.maxChildren} used)</strong>
-              <p>Your current ${vm.planName} Plan supports up to ${vm.maxChildren} learner${vm.maxChildren > 1 ? 's' : ''}.</p>
+              <p>Your current ${vm.planName.endsWith('Plan') ? vm.planName : `${vm.planName} Plan`} supports up to ${vm.maxChildren} learner${vm.maxChildren > 1 ? 's' : ''}.</p>
               <button id="pos-btn-view-upgrade-from-quota" class="pos-link-btn" type="button">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i> View / Upgrade Plans
               </button>

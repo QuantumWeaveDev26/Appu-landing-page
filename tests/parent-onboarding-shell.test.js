@@ -8,12 +8,14 @@ const ParentOnboardingShell = require('../parent-onboarding-shell.js');
 describe('Parent Onboarding Integration Shell & Session Flow', () => {
   beforeEach(() => {
     AppuSession.clear();
+    ParentOnboardingShell.state.supabaseClient = null;
     ParentOnboardingShell.state.session = null;
     ParentOnboardingShell.state.household = null;
     ParentOnboardingShell.state.subscription = null;
     ParentOnboardingShell.state.children = [];
     ParentOnboardingShell.state.selectedChild = null;
     ParentOnboardingShell.state.personalisation = null;
+    ParentOnboardingShell.state.authStatus = 'UNAUTHENTICATED';
   });
 
   afterEach(() => {
@@ -483,5 +485,299 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     assert.equal(AppuSession.isAuthenticated(), false);
     assert.equal(AppuSession.accessToken, null);
     assert.equal(AppuSession.childId, null);
+  });
+
+  // ============================================================================
+  // 6. SESSION RESTORATION & AUTH REHYDRATION
+  // ============================================================================
+
+  test('valid Supabase session with 1 child auto-restores AppuSession to READY state', async () => {
+    const originalFetch = global.fetch;
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { principal: { userId: 'usr-1' }, household: { id: 'hh-1', name: 'Sharma Family' } };
+          }
+        };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [{ code: 'starter', name: 'Starter Plan' }] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return { aiSessions: { used: 5, limit: 100, remaining: 95 } }; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { id: 'sub-1', status: 'ACTIVE', planCode: 'starter' } }; } };
+      }
+      if (url.endsWith('/api/children')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { children: [{ id: 'child-101', preferredName: 'Riya', gradeBand: 'Grade 4' }] };
+          }
+        };
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return {
+              data: { session: { access_token: 'valid-restored-token-123', user: { email: 'parent@sharma.com' } } },
+              error: null
+            };
+          }
+        }
+      })
+    };
+
+    try {
+      const res = await ParentOnboardingShell.restoreSession();
+      assert.equal(res.status, 'READY');
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'READY');
+      assert.equal(AppuSession.isAuthenticated(), true);
+      assert.equal(AppuSession.accessToken, 'valid-restored-token-123');
+      assert.equal(AppuSession.childId, 'child-101');
+      assert.equal(AppuSession.parentContext.childName, 'Riya');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('valid Supabase session with multiple children requires explicit learner selection', async () => {
+    const originalFetch = global.fetch;
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return { ok: true, status: 200, async json() { return { principal: { userId: 'usr-2' }, household: { id: 'hh-2', name: 'Reddy Family' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return null; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { id: 'sub-2', status: 'ACTIVE', planCode: 'growth' } }; } };
+      }
+      if (url.endsWith('/api/children')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              children: [
+                { id: 'child-201', preferredName: 'Aditya', gradeBand: 'Grade 3' },
+                { id: 'child-202', preferredName: 'Ananya', gradeBand: 'Grade 6' }
+              ]
+            };
+          }
+        };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
+
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return {
+              data: { session: { access_token: 'parent-multi-child-token', user: { email: 'reddy@example.com' } } },
+              error: null
+            };
+          }
+        }
+      })
+    };
+
+    try {
+      const res = await ParentOnboardingShell.restoreSession();
+      assert.equal(res.status, 'CHILD_SELECTION_REQUIRED');
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'CHILD_SELECTION_REQUIRED');
+      // Invariant: AppuSession is not automatically assigned to an arbitrary child
+      assert.equal(AppuSession.isAuthenticated(), false);
+
+      // Explicit learner selection
+      ParentOnboardingShell.launchAppuSession(ParentOnboardingShell.state.children[1]);
+      assert.equal(AppuSession.isAuthenticated(), true);
+      assert.equal(AppuSession.childId, 'child-202');
+      assert.equal(AppuSession.parentContext.childName, 'Ananya');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('no Supabase session leaves AppuSession unauthenticated', async () => {
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return { data: { session: null }, error: null };
+          }
+        }
+      })
+    };
+
+    const res = await ParentOnboardingShell.restoreSession();
+    assert.equal(res.status, 'UNAUTHENTICATED');
+    assert.equal(ParentOnboardingShell.getAuthStatus(), 'UNAUTHENTICATED');
+    assert.equal(AppuSession.isAuthenticated(), false);
+  });
+
+  test('expired/rejected backend token clears AppuSession and signs out', async () => {
+    const originalFetch = global.fetch;
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return { ok: false, status: 401, async json() { return { error: 'Unauthorized' }; } };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
+
+    let signOutCalled = false;
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return { data: { session: { access_token: 'expired-token-xyz' } }, error: null };
+          },
+          async signOut() {
+            signOutCalled = true;
+          }
+        }
+      })
+    };
+
+    try {
+      const res = await ParentOnboardingShell.restoreSession();
+      assert.equal(res.status, 'UNAUTHENTICATED');
+      assert.equal(AppuSession.isAuthenticated(), false);
+      assert.equal(signOutCalled, true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('inactive subscription leaves parent authenticated but does NOT restore AppuSession', async () => {
+    const originalFetch = global.fetch;
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return { ok: true, status: 200, async json() { return { principal: { userId: 'usr-3' }, household: { id: 'hh-3' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return null; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { status: 'EXPIRED', planCode: 'starter' } }; } };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
+
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return { data: { session: { access_token: 'expired-sub-token' } }, error: null };
+          }
+        }
+      })
+    };
+
+    try {
+      const res = await ParentOnboardingShell.restoreSession();
+      assert.equal(res.status, 'PARENT_AUTHENTICATED');
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'PARENT_AUTHENTICATED');
+      assert.equal(AppuSession.isAuthenticated(), false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('deleted child profile is not restored and requires learner selection', async () => {
+    const originalFetch = global.fetch;
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return { ok: true, status: 200, async json() { return { principal: { userId: 'usr-4' }, household: { id: 'hh-4' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return null; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { status: 'ACTIVE', planCode: 'starter' } }; } };
+      }
+      if (url.endsWith('/api/children')) {
+        // Child was deleted -> returns empty children list
+        return { ok: true, status: 200, async json() { return { children: [] }; } };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
+
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return { data: { session: { access_token: 'deleted-child-token' } }, error: null };
+          }
+        }
+      })
+    };
+
+    try {
+      const res = await ParentOnboardingShell.restoreSession();
+      assert.equal(res.status, 'CHILD_SELECTION_REQUIRED');
+      assert.equal(AppuSession.isAuthenticated(), false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('application code does not write bearer tokens to localStorage or sessionStorage', async () => {
+    const originalLocalStorageSet = global.localStorage?.setItem;
+    const storageKeys = [];
+
+    global.localStorage = {
+      setItem(key, value) {
+        storageKeys.push({ key, value });
+      },
+      getItem() { return null; }
+    };
+
+    ParentOnboardingShell.state.session = { access_token: 'super-secret-jwt-token-12345' };
+    ParentOnboardingShell.state.selectedChild = { id: 'c-1', preferredName: 'Kid' };
+    ParentOnboardingShell.launchAppuSession();
+
+    // Verify token was NOT written to localStorage by application code
+    const leaked = storageKeys.some(
+      (entry) => String(entry.value).includes('super-secret-jwt') || String(entry.key).includes('jwt')
+    );
+    assert.equal(leaked, false, 'Application code must NEVER write bearer tokens to storage');
   });
 });

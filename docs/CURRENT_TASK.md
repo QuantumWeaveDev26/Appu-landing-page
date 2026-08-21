@@ -123,6 +123,14 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
     - Added `request_fingerprint VARCHAR(64)` column to `usage_records`.
     - Hardened idempotency key lifecycle with deterministic SHA-256 fingerprinting `SHA-256(householdId + childId + message + language)`: same key with different fingerprint is rejected with HTTP 409 Conflict without invoking n8n or consuming quota.
 
+  - **Session Restoration & Auth Rehydration Boot Architecture**:
+    - Leveraged official Supabase JS SDK client persistence (`sb-<project-ref>-auth-token` in `localStorage`) without application JavaScript ever writing bearer tokens to storage.
+    - Implemented 5-state conceptual startup state machine: `AUTH_CHECKING`, `UNAUTHENTICATED`, `PARENT_AUTHENTICATED`, `CHILD_SELECTION_REQUIRED`, `READY`.
+    - Boot coordination: Added `ParentOnboardingShell.whenReady()` promise so `ChatAgent` never prematurely drops into `LEGACY_PHASE1_DIRECT_N8N` while auth rehydration is executing.
+    - Single Learner Auto-Restoration: Exactly 1 child profile auto-restores in-memory `AppuSession` to `READY` state.
+    - Multiple Learners Safety: Multiple child profiles require explicit learner selection before `AppuSession` is activated.
+    - Clean Sign Out: `ParentOnboardingShell.signOut()` signs out via Supabase Auth, clears `AppuSession`, resets state to `UNAUTHENTICATED`, and persists clean signed-out state on reload.
+
 ## Milestone & Verification Summary:
 
 - **Backend Phase 2 Path**: LIVE VERIFIED
@@ -135,6 +143,7 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 - **Tenant-Safe Child Composite FK**: HARDENED & TESTED ON REAL POSTGRESQL (rejection of cross-household child attachment + partial SET NULL on deletion)
 - **Concurrency Serialization**: PROVEN ON REAL POSTGRESQL (10 simultaneous attempts $\rightarrow$ exactly 1 succeeds, 9 fail)
 - **Idempotency Fingerprint Lifecycle**: PROVEN ON REAL POSTGRESQL (genuine retry consumes exactly 1 unit; distinct message with reused key returns 409)
+- **Session Restoration / Rehydration**: IMPLEMENTED & TESTED (auto-restores 1 learner, prompts selection for multiple, clean sign out)
 - **Frontend Unique Request Keys**: IMPLEMENTED in `appu-backend-client.js` via `crypto.randomUUID()` per logical message
 - **Voice Minutes Metering**: PENDING TRUSTWORTHY AUDIO DURATION CONTRACT (HONESTLY PRESENTED AS PENDING)
 - **Legacy Phase 1 Direct n8n Fallback**: TEMPORARILY RETAINED
@@ -143,6 +152,9 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 ## Important Decisions & Security Invariants:
 
 - **Server-Driven Entitlements & Quotas**: The browser never passes prices, amounts, or quota limits. All feature limits and session consumptions are derived and recorded strictly server-side.
+- **In-Memory AppuSession**: Bearer tokens are NEVER written to `localStorage`, `sessionStorage`, cookies, or query parameters by application code. Session restoration uses the official Supabase client session.
+- **Authoritative Backend Re-verification**: Restored sessions re-verify with `GET /api/auth/me`, `GET /api/subscriptions/current`, and `GET /api/children` rather than trusting client state.
+- **Zero Ambiguous Learner Assignment**: Households with multiple children require explicit child selection before `AppuSession` is marked authenticated.
 - **Tenant-Safe Composite Foreign Keys**: Both `subscriptions` and `child_profiles` enforce `(household_id, id)` composite constraints preventing cross-household data linkage.
 - **Atomic Two-Phase Quota Reservation & Advisory Locking**: Usage is serialized using `pg_advisory_xact_lock` and reserved prior to calling upstream AI workflows, committed upon provider success, and released upon upstream failure so households are not charged for dropped requests.
 - **Deterministic Idempotency Fingerprint**: Idempotency keys are cryptographically bound to request parameters `(household, child, message, language)`; key collisions with conflicting payloads reject with HTTP 409 without calling upstream AI workflows.
@@ -156,11 +168,11 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 ## Validation Status:
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 99 tests: 98 passed, 1 skipped for pg-mem limitation, 0 failures)
-- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 11/11 tests passed, 0 failures)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 101 tests: 100 passed, 1 skipped for pg-mem limitation, 0 failures)
+- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 12/12 tests passed, 0 failures)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
-- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 21/21 tests passed)
+- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 28/28 tests passed across 2 suites)
 - **Phase 1 Python Tests**: PASSED (`python tests/page-structure.test.py` — 8/8 tests passed)
 - **Phase 1 JS Syntax Check**: PASSED (`node --check` across all frontend scripts — 0 errors)
 

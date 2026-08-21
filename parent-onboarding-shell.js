@@ -61,8 +61,29 @@
     children: [],
     selectedChild: null,
     personalisation: null,
-    currentStep: 1
+    currentStep: 1,
+    authStatus: 'UNAUTHENTICATED' // 'AUTH_CHECKING' | 'UNAUTHENTICATED' | 'PARENT_AUTHENTICATED' | 'CHILD_SELECTION_REQUIRED' | 'READY'
   };
+
+  let _readyPromise = null;
+  let _resolveReady = null;
+
+  function initReadyPromise() {
+    if (!_readyPromise) {
+      _readyPromise = new Promise((resolve) => {
+        _resolveReady = resolve;
+      });
+    }
+  }
+
+  initReadyPromise();
+
+  function whenReady() {
+    if (!_readyPromise) {
+      return Promise.resolve(state.authStatus);
+    }
+    return _readyPromise;
+  }
 
   /**
    * Builds resolved frontend view-model for subscription, plans, usage accounting, and learner quotas.
@@ -470,6 +491,8 @@
     if (!targetChild?.id) {
       throw new Error('Selected child required for session handoff');
     }
+    state.selectedChild = targetChild;
+    state.authStatus = 'READY';
 
     if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.setSession === 'function') {
       window.AppuSession.setSession({
@@ -490,6 +513,138 @@
   }
 
   /**
+   * Session Restoration / Auth Rehydration Boot Flow:
+   * 
+   * 1. Query official Supabase client for current persisted session.
+   * 2. If unauthenticated -> clear session and remain in UNAUTHENTICATED mode.
+   * 3. If session present:
+   *    a. Confirm identity and household via GET /api/auth/me.
+   *    b. Confirm active subscription via GET /api/subscriptions/current.
+   *    c. Fetch children via GET /api/children.
+   *    d. If exactly 1 child: safely auto-restore AppuSession and transition to READY.
+   *    e. If multiple children: transition to CHILD_SELECTION_REQUIRED (requires explicit learner selection).
+   *    f. If 0 children: transition to CHILD_SELECTION_REQUIRED (prompt child setup).
+   */
+  async function restoreSession() {
+    state.authStatus = 'AUTH_CHECKING';
+    initReadyPromise();
+    updateHeaderSessionBadge();
+
+    const supabase = initSupabase();
+    if (!supabase || !supabase.auth || typeof supabase.auth.getSession !== 'function') {
+      state.authStatus = 'UNAUTHENTICATED';
+      updateHeaderSessionBadge();
+      if (_resolveReady) _resolveReady(state.authStatus);
+      return { status: 'UNAUTHENTICATED', reason: 'supabase_unavailable' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data?.session || !data.session.access_token) {
+        state.session = null;
+        state.authStatus = 'UNAUTHENTICATED';
+        if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
+          window.AppuSession.clear();
+        }
+        updateHeaderSessionBadge();
+        if (_resolveReady) _resolveReady(state.authStatus);
+        return { status: 'UNAUTHENTICATED', reason: 'no_session' };
+      }
+
+      state.session = data.session;
+      const token = state.session.access_token;
+
+      // 1. Verify parent identity and household membership: GET /api/auth/me
+      const meRes = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!meRes.ok) {
+        // Expired, revoked, or invalid token
+        await signOut().catch(() => {});
+        state.authStatus = 'UNAUTHENTICATED';
+        if (_resolveReady) _resolveReady(state.authStatus);
+        return { status: 'UNAUTHENTICATED', reason: 'auth_rejected' };
+      }
+
+      const meData = await meRes.json();
+      if (!meData.household) {
+        state.household = null;
+        state.authStatus = 'PARENT_AUTHENTICATED';
+        updateHeaderSessionBadge();
+        if (_resolveReady) _resolveReady(state.authStatus);
+        return { status: 'PARENT_AUTHENTICATED', reason: 'no_household' };
+      }
+      state.household = meData.household;
+
+      // 2. Fetch plans & usage summary in parallel
+      await Promise.all([
+        fetchPlans().catch(() => []),
+        fetchUsageSummary().catch(() => null)
+      ]);
+
+      // 3. Confirm active subscription: GET /api/subscriptions/current
+      const sub = await fetchCurrentSubscription().catch(() => null);
+      if (!sub || sub.status !== 'ACTIVE') {
+        state.authStatus = 'PARENT_AUTHENTICATED';
+        if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
+          window.AppuSession.clear();
+        }
+        updateHeaderSessionBadge();
+        if (_resolveReady) _resolveReady(state.authStatus);
+        return { status: 'PARENT_AUTHENTICATED', subscription: sub, reason: 'subscription_inactive' };
+      }
+
+      // 4. Fetch child profiles: GET /api/children
+      const children = await fetchChildren().catch(() => []);
+
+      if (children.length === 1) {
+        // Exactly 1 child -> safely auto-restore learner context
+        state.selectedChild = children[0];
+        launchAppuSession(state.selectedChild);
+        state.authStatus = 'READY';
+        updateHeaderSessionBadge();
+        if (_resolveReady) _resolveReady(state.authStatus);
+        return { status: 'READY', child: state.selectedChild };
+      }
+
+      if (children.length > 1) {
+        // Multiple children -> require explicit learner selection before AppuSession becomes active
+        state.selectedChild = null;
+        if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
+          window.AppuSession.clear();
+        }
+        state.authStatus = 'CHILD_SELECTION_REQUIRED';
+        updateHeaderSessionBadge();
+        if (_resolveReady) _resolveReady(state.authStatus);
+        return { status: 'CHILD_SELECTION_REQUIRED', children };
+      }
+
+      // 0 children
+      state.selectedChild = null;
+      if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
+        window.AppuSession.clear();
+      }
+      state.authStatus = 'CHILD_SELECTION_REQUIRED';
+      updateHeaderSessionBadge();
+      if (_resolveReady) _resolveReady(state.authStatus);
+      return { status: 'CHILD_SELECTION_REQUIRED', children: [] };
+    } catch (err) {
+      state.authStatus = 'UNAUTHENTICATED';
+      if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
+        window.AppuSession.clear();
+      }
+      updateHeaderSessionBadge();
+      if (_resolveReady) _resolveReady(state.authStatus);
+      return { status: 'UNAUTHENTICATED', reason: 'exception', error: err?.message };
+    }
+  }
+
+  function getAuthStatus() {
+    return state.authStatus;
+  }
+
+  /**
    * Updates UI header badge reflecting active authenticated session.
    */
   function updateHeaderSessionBadge() {
@@ -499,11 +654,23 @@
     const parentSetupBtn = document.getElementById('btn-parent-setup');
     const statusLabel = document.getElementById('status-label');
 
+    const isChecking = state.authStatus === 'AUTH_CHECKING';
     const isAuthed =
       typeof window !== 'undefined' &&
       window.AppuSession &&
       typeof window.AppuSession.isAuthenticated === 'function' &&
       window.AppuSession.isAuthenticated();
+
+    if (isChecking) {
+      if (badge) {
+        badge.style.display = 'inline-flex';
+        badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-cyan"></i><span>Restoring session…</span>`;
+      }
+      if (statusLabel) {
+        statusLabel.textContent = 'Restoring your Appu session…';
+      }
+      return;
+    }
 
     if (isAuthed) {
       const pContext = window.AppuSession.parentContext || {};
@@ -524,6 +691,35 @@
       }
       if (statusLabel) {
         statusLabel.textContent = `Appu ready for ${childName}`;
+      }
+    } else if (state.session && state.authStatus === 'CHILD_SELECTION_REQUIRED') {
+      if (badge) {
+        badge.style.display = 'inline-flex';
+        badge.innerHTML = `<i class="fa-solid fa-users text-cyan"></i><span>Select Learner</span><button id="btn-session-logout" class="badge-logout-btn" title="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>`;
+        const btnLogout = document.getElementById('btn-session-logout');
+        if (btnLogout) {
+          btnLogout.onclick = (e) => {
+            e.stopPropagation();
+            signOut();
+          };
+        }
+      }
+      if (parentSetupBtn) {
+        parentSetupBtn.innerHTML = `<i class="fa-solid fa-sliders"></i><span>Parent Zone</span>`;
+      }
+      if (statusLabel) {
+        statusLabel.textContent = 'Please select a learner';
+      }
+    } else if (state.session && state.authStatus === 'PARENT_AUTHENTICATED') {
+      if (badge) {
+        badge.style.display = 'none';
+        badge.innerHTML = '';
+      }
+      if (parentSetupBtn) {
+        parentSetupBtn.innerHTML = `<i class="fa-solid fa-sliders"></i><span>Parent Zone</span>`;
+      }
+      if (statusLabel) {
+        statusLabel.textContent = 'Appu is ready';
       }
     } else {
       if (badge) {
@@ -555,6 +751,7 @@
     state.children = [];
     state.selectedChild = null;
     state.personalisation = null;
+    state.authStatus = 'UNAUTHENTICATED';
 
     if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
       window.AppuSession.clear();
@@ -567,6 +764,9 @@
     state,
     initSupabase,
     signInParent,
+    restoreSession,
+    whenReady,
+    getAuthStatus,
     fetchPlans,
     fetchCurrentSubscription,
     fetchUsageSummary,

@@ -559,7 +559,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.init === 'function') {
     window.ParentSetupUI.init();
   }
-  if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
+
+  // Restore authenticated session after page refresh
+  if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.restoreSession === 'function') {
+    window.ParentOnboardingShell.restoreSession().catch((err) => {
+      console.warn('[Appu] Session restoration warning:', err?.message || err);
+    });
+  } else if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
     window.ParentOnboardingShell.updateHeaderSessionBadge();
   }
 

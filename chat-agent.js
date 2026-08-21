@@ -89,6 +89,15 @@ class ChatAgent {
       let actionCard = null;
       let audioSource = null;
 
+      // Ensure startup auth restoration has completed before deciding transport
+      if (
+        typeof window !== 'undefined' &&
+        window.ParentOnboardingShell &&
+        typeof window.ParentOnboardingShell.whenReady === 'function'
+      ) {
+        await window.ParentOnboardingShell.whenReady().catch(() => {});
+      }
+
       // =========================================================================
       // TRANSPORT ADAPTER ROUTING:
       // When an authenticated AppuSession is present, route via the secure backend
