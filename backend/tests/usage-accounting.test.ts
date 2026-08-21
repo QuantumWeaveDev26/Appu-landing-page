@@ -476,28 +476,83 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     assert.equal(usage.aiSessions.remaining, 99);
   });
 
-  it('UsageRepository.resolveUsagePeriod flags provider vs fallback period source', () => {
-    const createdAt = new Date('2026-08-01T12:00:00.000Z');
-
-    // Case 1: Subscription has provider period timestamps
-    const periodProvider = UsageRepository.resolveUsagePeriod({
-      currentPeriodStart: new Date('2026-08-05T00:00:00.000Z'),
-      currentPeriodEnd: new Date('2026-09-05T00:00:00.000Z'),
-      createdAt
+  it('OPTIONS /api/appu/message preflight accepts Idempotency-Key header and returns 204', async () => {
+    const res = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/appu/message',
+      headers: {
+        origin: 'http://localhost:5500',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'authorization, content-type, idempotency-key'
+      }
     });
+
+    assert.equal(res.statusCode, 204);
+    assert.equal(res.headers['access-control-allow-origin'], '*');
+    const allowHeaders = String(res.headers['access-control-allow-headers'] || '');
+    assert.ok(allowHeaders.toLowerCase().includes('idempotency-key'), 'CORS must allow Idempotency-Key');
+    assert.ok(allowHeaders.toLowerCase().includes('authorization'), 'CORS must allow Authorization');
+    assert.ok(allowHeaders.toLowerCase().includes('content-type'), 'CORS must allow Content-Type');
+  });
+
+  it('UsageRepository.resolveUsagePeriod enforces PERIOD INVARIANTS: containing now, future/expired fallback, and timezone-safe ISO output', () => {
+    const createdAt = new Date('2026-08-01T12:00:00.000Z');
+    const refNow = new Date('2026-08-21T10:00:00.000Z');
+
+    // Invariant 1: Valid provider period containing now -> source: 'provider'
+    const periodProvider = UsageRepository.resolveUsagePeriod(
+      {
+        currentPeriodStart: new Date('2026-08-05T00:00:00.000Z'),
+        currentPeriodEnd: new Date('2026-09-05T00:00:00.000Z'),
+        createdAt
+      },
+      refNow
+    );
     assert.equal(periodProvider.source, 'provider');
     assert.equal(periodProvider.startsAt.toISOString(), '2026-08-05T00:00:00.000Z');
     assert.equal(periodProvider.endsAt.toISOString(), '2026-09-05T00:00:00.000Z');
 
-    // Case 2: Subscription has null provider period timestamps -> fallback
-    const periodFallback = UsageRepository.resolveUsagePeriod({
-      currentPeriodStart: null,
-      currentPeriodEnd: null,
-      createdAt
-    });
+    // Invariant 2: Future provider period (starts after now, e.g. Oct 2026 when now is Aug 2026)
+    // Must NOT masquerade as current provider period -> safely uses fallback
+    const futurePeriod = UsageRepository.resolveUsagePeriod(
+      {
+        currentPeriodStart: new Date('2026-10-20T18:30:00.000Z'),
+        currentPeriodEnd: new Date('2026-11-20T18:30:00.000Z'),
+        createdAt
+      },
+      refNow
+    );
+    assert.equal(futurePeriod.source, 'fallback');
+    // Fallback must cover current time (refNow)
+    assert.ok(futurePeriod.startsAt.getTime() <= refNow.getTime());
+    assert.ok(refNow.getTime() < futurePeriod.endsAt.getTime());
+
+    // Invariant 3: Expired provider period (ends before now)
+    // Must NOT masquerade as current provider period -> safely uses fallback
+    const expiredPeriod = UsageRepository.resolveUsagePeriod(
+      {
+        currentPeriodStart: new Date('2026-06-01T00:00:00.000Z'),
+        currentPeriodEnd: new Date('2026-07-01T00:00:00.000Z'),
+        createdAt
+      },
+      refNow
+    );
+    assert.equal(expiredPeriod.source, 'fallback');
+    assert.ok(expiredPeriod.startsAt.getTime() <= refNow.getTime());
+    assert.ok(refNow.getTime() < expiredPeriod.endsAt.getTime());
+
+    // Invariant 4: Subscription has null/missing provider timestamps -> fallback
+    const periodFallback = UsageRepository.resolveUsagePeriod(
+      {
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+        createdAt
+      },
+      refNow
+    );
     assert.equal(periodFallback.source, 'fallback');
-    assert.ok(periodFallback.startsAt);
-    assert.ok(periodFallback.endsAt);
+    assert.ok(periodFallback.startsAt.toISOString());
+    assert.ok(periodFallback.endsAt.toISOString());
   });
 
   it(

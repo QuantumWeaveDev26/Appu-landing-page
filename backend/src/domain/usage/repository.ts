@@ -48,33 +48,49 @@ function mapUsageRecordRow(row: UsageRecordRow): UsageRecord {
 export class UsageRepository {
   /**
    * Resolves the authoritative billing/usage period for a subscription.
-   * Uses provider-confirmed timestamps if available, or a deterministic 30-day UTC cycle.
    *
-   * Note on fallback: The 30-day rolling fallback window is an internal fallback
-   * when Razorpay webhook events have not yet populated current_period_start/current_period_end.
-   * It is labeled with source: 'fallback' and is not an authoritative Razorpay billing cycle.
+   * PERIOD INVARIANTS:
+   * - Provider periods are authoritative ONLY if:
+   *   1. Both currentPeriodStart and currentPeriodEnd are present and valid dates.
+   *   2. currentPeriodStart < currentPeriodEnd.
+   *   3. The period contains "now": currentPeriodStart <= now < currentPeriodEnd.
+   * - If provider timestamps fail this invariant (e.g. future or expired period, or missing),
+   *   source is strictly set to 'fallback' using a deterministic 30-day UTC cycle anchored at createdAt.
+   *
+   * @param subscription Subscription with timestamps
+   * @param referenceTime Optional reference date (defaults to current time Date.now())
    */
-  public static resolveUsagePeriod(subscription: {
-    currentPeriodStart?: Date | null;
-    currentPeriodEnd?: Date | null;
-    createdAt: Date;
-  }): UsagePeriod {
+  public static resolveUsagePeriod(
+    subscription: {
+      currentPeriodStart?: Date | null;
+      currentPeriodEnd?: Date | null;
+      createdAt: Date;
+    },
+    referenceTime: number | Date = Date.now()
+  ): UsagePeriod {
+    const now = typeof referenceTime === 'number' ? referenceTime : referenceTime.getTime();
+
     if (subscription.currentPeriodStart && subscription.currentPeriodEnd) {
-      return {
-        startsAt: new Date(subscription.currentPeriodStart),
-        endsAt: new Date(subscription.currentPeriodEnd),
-        source: 'provider'
-      };
+      const pStart = new Date(subscription.currentPeriodStart).getTime();
+      const pEnd = new Date(subscription.currentPeriodEnd).getTime();
+
+      if (!isNaN(pStart) && !isNaN(pEnd) && pStart < pEnd && pStart <= now && now < pEnd) {
+        return {
+          startsAt: new Date(pStart),
+          endsAt: new Date(pEnd),
+          source: 'provider'
+        };
+      }
     }
 
-    const now = Date.now();
     const cycleMs = 30 * 24 * 60 * 60 * 1000;
-    const startAnchor = subscription.createdAt.getTime();
+    const startAnchor = new Date(subscription.createdAt).getTime();
 
-    if (now < startAnchor) {
+    if (isNaN(startAnchor) || now < startAnchor) {
+      const safeAnchor = isNaN(startAnchor) ? now : startAnchor;
       return {
-        startsAt: new Date(startAnchor),
-        endsAt: new Date(startAnchor + cycleMs),
+        startsAt: new Date(safeAnchor),
+        endsAt: new Date(safeAnchor + cycleMs),
         source: 'fallback'
       };
     }

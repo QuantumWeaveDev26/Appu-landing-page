@@ -48,7 +48,7 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     reply.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
     reply.header(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-Razorpay-Signature, X-Razorpay-Event-Id'
+      'Content-Type, Authorization, Idempotency-Key, X-Idempotency-Key, X-Razorpay-Signature, X-Razorpay-Event-Id'
     );
     if (request.method === 'OPTIONS') {
       return reply.status(204).send();

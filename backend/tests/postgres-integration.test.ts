@@ -8,6 +8,7 @@ import { TenancyRepository } from '../src/domain/tenancy/repository.js';
 import { TenancyService } from '../src/domain/tenancy/service.js';
 import { HouseholdRoles, ChildStatuses } from '../src/domain/tenancy/types.js';
 import { UsageRepository } from '../src/domain/usage/repository.js';
+import { UsageService } from '../src/domain/usage/service.js';
 import { QuotaExceededError } from '../src/errors/index.js';
 
 const testDbUrl = process.env.TEST_DATABASE_URL?.trim();
@@ -505,6 +506,39 @@ describe('Real PostgreSQL Integration Suite', { skip: !testDbUrl }, () => {
         return err?.name === 'IdempotencyConflictError' || err?.statusCode === 409 || String(err).includes('different request');
       }
     );
+  });
+
+  test('PERIOD INVARIANT: future provider period falls back safely to current cycle on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: crypto.randomUUID(),
+      householdName: 'Real Postgres Period Invariant Household'
+    });
+
+    const starterPlanRes = await db.query("SELECT id FROM plans WHERE code = 'starter';");
+    const planId = starterPlanRes.rows[0].id;
+
+    // Create subscription with future provider period (like Razorpay test mode cycle 3)
+    const futureStart = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days in future
+    const futureEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);   // 90 days in future
+
+    await db.query(
+      `INSERT INTO subscriptions (
+         household_id, plan_id, status, provider,
+         current_period_start, current_period_end, created_at, updated_at
+       ) VALUES ($1, $2, 'ACTIVE', 'razorpay', $3, $4, NOW(), NOW())
+       RETURNING *;`,
+      [household.id, planId, futureStart, futureEnd]
+    );
+
+    const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
+    assert.equal(summary.period.source, 'fallback', 'Future period must fall back to current cycle');
+    const startMs = new Date(summary.period.startsAt).getTime();
+    const endMs = new Date(summary.period.endsAt).getTime();
+    const nowMs = Date.now();
+    assert.ok(startMs <= nowMs, 'Current period must start in past or now');
+    assert.ok(nowMs < endMs, 'Current period must end in future');
   });
 });
 
