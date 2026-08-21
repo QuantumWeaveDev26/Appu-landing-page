@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[DEV ONLY] Appu Razorpay TEST Checkout Validation</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --success: #3fb950;
+      --warn: #d29922;
+      --error: #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; display: flex; justify-content: center; }
+    .container { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+    .header { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .header h1 { font-size: 20px; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .badge-dev { background: #382400; color: #ffb638; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; border: 1px solid #7a4e00; }
+    .subtitle { color: var(--text-muted); font-size: 13px; }
+    
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .card-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 16px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+    .form-control { width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 14px; }
+    .form-control:focus { outline: none; border-color: var(--accent); }
+    .row { display: flex; gap: 12px; }
+    .row .form-group { flex: 1; }
+
+    .btn { background: #238636; color: #fff; border: 1px solid rgba(240,246,252,0.1); border-radius: 6px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; width: 100%; }
+    .btn:hover:not(:disabled) { background: #2ea043; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: #21262d; color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+    .btn-secondary:hover:not(:disabled) { background: #30363d; }
+
+    .status-panel { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .status-step { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+    .status-badge { font-weight: 600; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .status-pending { background: #21262d; color: var(--text-muted); }
+    .status-ok { background: #12371d; color: var(--success); border: 1px solid #238636; }
+    .status-auth { background: #1b2e4b; color: var(--accent); border: 1px solid #388bfd; }
+    .status-active { background: #1f3d2b; color: #56d364; border: 1px solid #3fb950; font-weight: bold; }
+    .status-err { background: #3d1418; color: var(--error); border: 1px solid #da3633; }
+
+    .log-box { background: #000; color: #00ff66; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; border: 1px solid #222; }
+    .note { font-size: 12px; color: var(--text-muted); margin-top: 12px; line-height: 1.4; }
+  </style>
+  <!-- Official Razorpay Standard Checkout SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Appu Checkout Validation <span class="badge-dev">DEV TEST MODE</span></h1>
+      <p class="subtitle">Validate server-side Razorpay Standard Checkout &amp; Signature Verification</p>
+    </header>
+
+    <!-- Configuration & Credentials -->
+    <div class="card">
+      <div class="card-title">1. Environment &amp; Authentication</div>
+      <div class="row">
+        <div class="form-group">
+          <label>Backend Base URL</label>
+          <input type="text" id="backendUrl" class="form-control" value="http://localhost:3000">
+        </div>
+        <div class="form-group">
+          <label>Plan Selection</label>
+          <select id="planCode" class="form-control">
+            <option value="starter">Starter Plan (₹299/mo)</option>
+            <option value="growth">Growth Plan (₹599/mo)</option>
+            <option value="family">Family Plan (₹999/mo)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Supabase Project URL</label>
+          <input type="text" id="supabaseUrl" class="form-control" placeholder="https://your-project.supabase.co" value="https://cmulkkpinwernuzhtegp.supabase.co">
+        </div>
+        <div class="form-group">
+          <label>Supabase Publishable / Anon Key</label>
+          <input type="password" id="supabaseKey" class="form-control" placeholder="eyJh..." value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtdWxrY3Bpbndlcm51emh0ZWdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0MTc2MDMsImV4cCI6MjA4Njk5MzYwM30.6iX0m0f_F4yv9w9nBw1M7yG0B0q0c0q0c0q0c0q0c0q">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Test Parent Email</label>
+          <input type="email" id="parentEmail" class="form-control" value="testnh145@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>Test Parent Password</label>
+          <input type="password" id="parentPassword" class="form-control" placeholder="Enter test password">
+        </div>
+      </div>
+
+      <button id="btnStartCheckout" class="btn" onclick="startCheckoutFlow()">Run Complete Checkout Flow</button>
+      <button id="btnCheckStatus" class="btn btn-secondary" onclick="checkCurrentStatus()">Check Current Subscription Status</button>
+    </div>
+
+    <!-- Execution Status Panel -->
+    <div class="card">
+      <div class="card-title">2. Flow Progression</div>
+      <div class="status-panel">
+        <div class="status-step">
+          <span>Supabase Auth Login</span>
+          <span id="badgeAuth" class="status-badge status-pending">PENDING</span>
+        </div>
+        <div class="status-step">
+          <span>Household Membership Context</span>
+          <span id="badgeHousehold" class="status-badge status-pending">PENDING</span>
+        </div>
+        <div class="status-step">
+          <span>Server-Side Subscription Creation</span>
+          <span id="badgeSubCreate" class="status-badge status-pending">PENDING</span>
+        </div>
+        <div class="status-step">
+          <span>Razorpay Standard Checkout Modal</span>
+          <span id="badgeModal" class="status-badge status-pending">PENDING</span>
+        </div>
+        <div class="status-step">
+          <span>Server Checkout Signature Verification</span>
+          <span id="badgeVerify" class="status-badge status-pending">PENDING</span>
+        </div>
+        <div class="status-step">
+          <span>Local Subscription Status</span>
+          <span id="badgeStatus" class="status-badge status-pending">-</span>
+        </div>
+      </div>
+      <p class="note">Security Rule: Checkout signature verification moves local status to <strong>AUTHENTICATED</strong>. Only trusted webhook confirmations promote to <strong>ACTIVE</strong>.</p>
+    </div>
+
+    <!-- Console Activity Log -->
+    <div class="card">
+      <div class="card-title">3. Activity Log</div>
+      <div id="logBox" class="log-box">[System] Ready to start test checkout flow...</div>
+    </div>
+  </div>
+
+  <script>
+    let currentSession = null;
+
+    function log(msg) {
+      const box = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      box.textContent += `\n[${time}] ${msg}`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setBadge(id, text, type) {
+      const badge = document.getElementById(id);
+      badge.textContent = text;
+      badge.className = `status-badge status-${type}`;
+    }
+
+    async function getSupabaseClient() {
+      const url = document.getElementById('supabaseUrl').value.trim();
+      const key = document.getElementById('supabaseKey').value.trim();
+      if (!url || !key) {
+        throw new Error('Supabase URL and Key are required');
+      }
+      return supabase.createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+      });
+    }
+
+    async function loginParent() {
+      log('Signing in with Supabase Auth...');
+      setBadge('badgeAuth', 'IN PROGRESS', 'pending');
+
+      const email = document.getElementById('parentEmail').value.trim();
+      const password = document.getElementById('parentPassword').value;
+      if (!email || !password) {
+        throw new Error('Email and Password are required');
+      }
+
+      const client = await getSupabaseClient();
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+
+      if (error || !data.session) {
+        setBadge('badgeAuth', 'FAILED', 'err');
+        throw new Error(`Login failed: ${error?.message || 'No session returned'}`);
+      }
+
+      currentSession = data.session;
+      setBadge('badgeAuth', 'OK', 'ok');
+      log(`Login: OK (Authenticated User: ${data.user.id.slice(0, 8)}...)`);
+
+      // Ensure household onboarding
+      const backendUrl = document.getElementById('backendUrl').value.trim();
+      const meRes = await fetch(`${backendUrl}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${currentSession.access_token}` }
+      });
+
+      if (meRes.ok) {
+        const me = await meRes.json();
+        if (!me.household) {
+          log('Onboarding household for parent...');
+          const onRes = await fetch(`${backendUrl}/api/household/onboard`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${currentSession.access_token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ householdName: 'Appu Test Family' })
+          });
+          const onData = await onRes.json();
+          setBadge('badgeHousehold', 'ONBOARDED', 'ok');
+          log(`Household: OK (${onData.household.name})`);
+        } else {
+          setBadge('badgeHousehold', 'OK', 'ok');
+          log(`Household: OK (${me.household.name || me.household.id.slice(0, 8)})`);
+        }
+      }
+    }
+
+    async function startCheckoutFlow() {
+      const btn = document.getElementById('btnStartCheckout');
+      btn.disabled = true;
+
+      try {
+        // Step 1: Login & Household
+        await loginParent();
+
+        // Step 2: Create Subscription on Backend
+        const backendUrl = document.getElementById('backendUrl').value.trim();
+        const planCode = document.getElementById('planCode').value;
+
+        log(`Requesting subscription creation for plan '${planCode}'...`);
+        setBadge('badgeSubCreate', 'IN PROGRESS', 'pending');
+
+        const subRes = await fetch(`${backendUrl}/api/subscriptions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${currentSession.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ planCode })
+        });
+
+        if (!subRes.ok) {
+          const errText = await subRes.text();
+          setBadge('badgeSubCreate', 'FAILED', 'err');
+          throw new Error(`Failed to create subscription (${subRes.status}): ${errText}`);
+        }
+
+        const subData = await subRes.json();
+        setBadge('badgeSubCreate', 'OK', 'ok');
+        setBadge('badgeStatus', subData.status, 'pending');
+        log(`Subscription created: OK (Provider ID: ${subData.providerSubscriptionId}, Amount: ₹${subData.amountPaise / 100})`);
+
+        // Step 3: Open Razorpay Standard Checkout Modal
+        log('Opening Razorpay Standard Checkout modal...');
+        setBadge('badgeModal', 'OPEN', 'pending');
+
+        const options = {
+          key: subData.keyId,
+          subscription_id: subData.providerSubscriptionId,
+          name: 'Appu',
+          description: subData.planName || `${subData.planCode} plan subscription`,
+          prefill: {
+            email: document.getElementById('parentEmail').value.trim()
+          },
+          theme: {
+            color: '#1f6feb'
+          },
+          handler: async function (response) {
+            log(`Payment completed on Razorpay!`);
+            log(`Payment ID: ${response.razorpay_payment_id}`);
+            log(`Subscription ID: ${response.razorpay_subscription_id}`);
+            setBadge('badgeModal', 'COMPLETED', 'ok');
+
+            // Step 4: Verify Checkout Signature on Backend
+            await verifyCheckout(response);
+          },
+          modal: {
+            ondismiss: function () {
+              log('Checkout modal closed by user.');
+              setBadge('badgeModal', 'DISMISSED', 'warn');
+              btn.disabled = false;
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          log(`Payment Failed: ${response.error.description} (Code: ${response.error.code})`);
+          setBadge('badgeModal', 'FAILED', 'err');
+          btn.disabled = false;
+        });
+
+        rzp.open();
+      } catch (err) {
+        log(`Error: ${err.message}`);
+        btn.disabled = false;
+      }
+    }
+
+    async function verifyCheckout(rzpResponse) {
+      const backendUrl = document.getElementById('backendUrl').value.trim();
+      log('Sending checkout verification to backend...');
+      setBadge('badgeVerify', 'VERIFYING', 'pending');
+
+      try {
+        const verifyRes = await fetch(`${backendUrl}/api/subscriptions/verify-checkout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${currentSession.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            razorpayPaymentId: rzpResponse.razorpay_payment_id,
+            razorpaySubscriptionId: rzpResponse.razorpay_subscription_id,
+            razorpaySignature: rzpResponse.razorpay_signature
+          })
+        });
+
+        if (!verifyRes.ok) {
+          const errText = await verifyRes.text();
+          setBadge('badgeVerify', 'FAILED', 'err');
+          throw new Error(`Verification failed (${verifyRes.status}): ${errText}`);
+        }
+
+        const verifyData = await verifyRes.json();
+        setBadge('badgeVerify', 'VERIFIED', 'ok');
+        setBadge('badgeStatus', verifyData.status, 'auth');
+        log(`Checkout signature verified: OK!`);
+        log(`Local subscription status is now: ${verifyData.status}`);
+
+        // Query current subscription
+        await checkCurrentStatus();
+      } catch (err) {
+        log(`Verification Error: ${err.message}`);
+      } finally {
+        document.getElementById('btnStartCheckout').disabled = false;
+      }
+    }
+
+    async function checkCurrentStatus() {
+      if (!currentSession) {
+        await loginParent();
+      }
+      const backendUrl = document.getElementById('backendUrl').value.trim();
+      log('Querying current subscription status from backend...');
+
+      const res = await fetch(`${backendUrl}/api/subscriptions/current`, {
+        headers: { 'Authorization': `Bearer ${currentSession.access_token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.hasSubscription && data.subscription) {
+          const status = data.subscription.status;
+          const statusType = status === 'ACTIVE' ? 'active' : status === 'AUTHENTICATED' ? 'auth' : 'pending';
+          setBadge('badgeStatus', status, statusType);
+          log(`Current Household Subscription: Plan=${data.subscription.planCode}, Status=${status}`);
+          if (data.entitlements) {
+            log(`Active Entitlements: max_children=${data.entitlements.max_children}, voice_mins=${data.entitlements.monthly_voice_minutes}`);
+          } else {
+            log(`Entitlements: none active (status is ${status})`);
+          }
+        } else {
+          setBadge('badgeStatus', 'NO_SUBSCRIPTION', 'pending');
+          log('No active subscription found for household.');
+        }
+      } else {
+        log(`Failed to fetch current status (${res.status})`);
+      }
+    }
+  </script>
+</body>
+</html>

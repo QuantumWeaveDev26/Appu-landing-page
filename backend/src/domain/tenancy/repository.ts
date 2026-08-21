@@ -176,6 +176,24 @@ export class TenancyRepository {
   }
 
   /**
+   * Finds all household memberships belonging to a specific user.
+   */
+  public static async findMembershipsByUserId(
+    db: Queryable,
+    userId: string
+  ): Promise<HouseholdMember[]> {
+    const result = await db.query<HouseholdMemberRow>(
+      `SELECT id, household_id, user_id, role, created_at, updated_at
+       FROM household_members
+       WHERE user_id = $1
+       ORDER BY created_at ASC;`,
+      [userId]
+    );
+
+    return result.rows.map(mapHouseholdMemberRow);
+  }
+
+  /**
    * Creates a child profile strictly under a household.
    */
   public static async createChildProfile(

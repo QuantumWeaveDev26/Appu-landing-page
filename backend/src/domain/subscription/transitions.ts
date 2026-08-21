@@ -98,3 +98,14 @@ export function isEntitledState(state: SubscriptionState): boolean {
 export function isTerminalState(state: SubscriptionState): boolean {
   return state === SubscriptionStates.EXPIRED;
 }
+
+/**
+ * SubscriptionStateMachine utility wrapper.
+ */
+export class SubscriptionStateMachine {
+  public static getAllowedTransitions = getAllowedTransitions;
+  public static canTransition = canTransition;
+  public static validateTransition = validateTransition;
+  public static isEntitledState = isEntitledState;
+  public static isTerminalState = isTerminalState;
+}

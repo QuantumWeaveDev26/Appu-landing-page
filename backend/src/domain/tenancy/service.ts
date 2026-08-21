@@ -17,6 +17,12 @@ export interface CreateHouseholdWithOwnerResult {
   owner: HouseholdMember;
 }
 
+export interface OnboardParentResult {
+  household: Household;
+  member: HouseholdMember;
+  isNew: boolean;
+}
+
 /**
  * TenancyService encapsulates multi-entity tenant transactions.
  */
@@ -54,5 +60,50 @@ export class TenancyService {
         owner
       };
     });
+  }
+
+  /**
+   * Idempotently onboards a parent into their household.
+   *
+   * If the authenticated parent already belongs to a household, returns the existing
+   * household and membership without creating an accidental duplicate household.
+   * If the parent has no household, atomically creates one with OWNER role.
+   */
+  public static async onboardParentHousehold(
+    db: TransactionalQueryable,
+    input: CreateHouseholdWithOwnerInput
+  ): Promise<OnboardParentResult> {
+    if (!input.userId || typeof input.userId !== 'string' || input.userId.trim().length === 0) {
+      throw new Error('Valid userId is required for parent onboarding');
+    }
+
+    const trimmedUserId = input.userId.trim();
+
+    // Check for existing membership first (idempotent retry safety)
+    const existingMemberships = await TenancyRepository.findMembershipsByUserId(db, trimmedUserId);
+    if (existingMemberships.length > 0) {
+      const primaryMembership = existingMemberships[0];
+      const household = await TenancyRepository.getHouseholdById(db, primaryMembership.householdId);
+
+      if (household) {
+        return {
+          household,
+          member: primaryMembership,
+          isNew: false
+        };
+      }
+    }
+
+    // No existing household membership found, perform atomic creation
+    const { household, owner } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: trimmedUserId,
+      householdName: input.householdName
+    });
+
+    return {
+      household,
+      member: owner,
+      isNew: true
+    };
   }
 }

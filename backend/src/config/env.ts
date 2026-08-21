@@ -20,6 +20,42 @@ export const envSchema = z.object({
     .default('info'),
   DATABASE_URL: z
     .string()
+    .optional(),
+  SUPABASE_URL: z
+    .string()
+    .url('SUPABASE_URL must be a valid URL')
+    .optional(),
+  SUPABASE_PUBLISHABLE_KEY: z
+    .string()
+    .min(1, 'SUPABASE_PUBLISHABLE_KEY cannot be empty')
+    .optional(),
+  SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, 'SUPABASE_ANON_KEY cannot be empty')
+    .optional(),
+  RAZORPAY_KEY_ID: z
+    .string()
+    .min(1, 'RAZORPAY_KEY_ID cannot be empty')
+    .optional(),
+  RAZORPAY_KEY_SECRET: z
+    .string()
+    .min(1, 'RAZORPAY_KEY_SECRET cannot be empty')
+    .optional(),
+  RAZORPAY_WEBHOOK_SECRET: z
+    .string()
+    .min(1, 'RAZORPAY_WEBHOOK_SECRET cannot be empty')
+    .optional(),
+  RAZORPAY_PLAN_STARTER_ID: z
+    .string()
+    .min(1, 'RAZORPAY_PLAN_STARTER_ID cannot be empty')
+    .optional(),
+  RAZORPAY_PLAN_GROWTH_ID: z
+    .string()
+    .min(1, 'RAZORPAY_PLAN_GROWTH_ID cannot be empty')
+    .optional(),
+  RAZORPAY_PLAN_FAMILY_ID: z
+    .string()
+    .min(1, 'RAZORPAY_PLAN_FAMILY_ID cannot be empty')
     .optional()
 });
 

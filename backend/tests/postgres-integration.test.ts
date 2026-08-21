@@ -96,4 +96,13 @@ describe('Real PostgreSQL Integration Suite', { skip: !testDbUrl }, () => {
     const listA = await TenancyRepository.listChildProfilesByHousehold(db, hA.id);
     assert.equal(listA.some((c) => c.id === childB.id), false);
   });
+
+  test('plans and subscription persistence on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    // Verify plans were seeded by 002 migration
+    const plansResult = await db.query('SELECT code, name, amount_paise FROM plans ORDER BY amount_paise ASC;');
+    assert.ok(plansResult.rows.length >= 3);
+    assert.equal(plansResult.rows.some((p: any) => p.code === 'growth'), true);
+  });
 });

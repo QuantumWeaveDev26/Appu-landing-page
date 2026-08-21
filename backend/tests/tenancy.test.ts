@@ -85,9 +85,13 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     const migrations = await db.query<{ version: string; checksum: string; applied_at: Date }>(
       'SELECT version, checksum, applied_at FROM schema_migrations;'
     );
-    assert.equal(migrations.rows.length, 1);
+    assert.equal(migrations.rows.length, 3);
     assert.equal(migrations.rows[0].version, '001_initial_tenancy.sql');
     assert.match(migrations.rows[0].checksum, /^[a-f0-9]{64}$/);
+    assert.equal(migrations.rows[1].version, '002_subscription_plans.sql');
+    assert.match(migrations.rows[1].checksum, /^[a-f0-9]{64}$/);
+    assert.equal(migrations.rows[2].version, '003_correct_test_plan_prices.sql');
+    assert.match(migrations.rows[2].checksum, /^[a-f0-9]{64}$/);
 
     // Idempotency: running migrations a second time applies 0 new files without error
     const secondRun = await runMigrations(db);
@@ -145,11 +149,11 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
       CREATE TABLE child_profiles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), household_id UUID NOT NULL REFERENCES households(id) ON DELETE RESTRICT, preferred_name VARCHAR(100) NOT NULL, grade_band VARCHAR(50) NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT uq_child_profiles_household_id UNIQUE (household_id, id));
     `);
 
-    // 2. Run migrator on legacy database: should safely add 'checksum' column and backfill checksum without failing
+    // 2. Run migrator on legacy database: should safely add 'checksum' column, backfill checksum, and apply pending 002 and 003
     const applied = await runMigrations(freshDb);
-    assert.deepEqual(applied, []);
+    assert.deepEqual(applied, ['002_subscription_plans.sql', '003_correct_test_plan_prices.sql']);
 
-    // 3. Verify 'checksum' column exists and has valid SHA-256 value
+    // 3. Verify 'checksum' column exists and has valid SHA-256 value for 001
     const migrationRows = await freshDb.query<{ version: string; checksum: string }>(
       "SELECT version, checksum FROM schema_migrations WHERE version = '001_initial_tenancy.sql';"
     );

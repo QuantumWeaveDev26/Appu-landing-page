@@ -4,6 +4,9 @@ export * from './db/index.js';
 export * from './domain/subscription/index.js';
 export * from './domain/entitlements/index.js';
 export * from './domain/tenancy/index.js';
+export * from './domain/auth/index.js';
+export * from './domain/authorization/index.js';
+export * from './domain/razorpay/index.js';
+export * from './middleware/index.js';
 export * from './routes/index.js';
 export * from './app.js';
-
