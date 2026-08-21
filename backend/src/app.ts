@@ -6,6 +6,7 @@ import type { AppConfig } from './config/index.js';
 import type { TransactionalQueryable } from './db/types.js';
 import { SupabaseAuthVerifier, type AuthVerifier } from './domain/auth/index.js';
 import { DefaultRazorpayClient, type RazorpayClient } from './domain/razorpay/index.js';
+import { DefaultN8nClient, type N8nClient } from './domain/gateway/index.js';
 import { fastifyErrorHandler, ErrorCodes } from './errors/index.js';
 import {
   healthRoutes,
@@ -14,7 +15,8 @@ import {
   childrenRoutes,
   plansRoutes,
   subscriptionsRoutes,
-  webhooksRoutes
+  webhooksRoutes,
+  appuGatewayRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -26,6 +28,7 @@ export interface BuildAppOptions {
   database?: ClosableDatabase | TransactionalQueryable;
   authVerifier?: AuthVerifier;
   razorpayClient?: RazorpayClient;
+  n8nClient?: N8nClient;
 }
 
 export function buildApp(config: AppConfig, options: BuildAppOptions = {}): FastifyInstance {
@@ -144,6 +147,14 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     });
   }
 
+  // Resolve N8nClient (explicit option takes precedence, fallback to configured webhook URL)
+  let n8nClient = options.n8nClient;
+  if (!n8nClient && config.N8N_APPU_WEBHOOK_URL) {
+    n8nClient = new DefaultN8nClient({
+      webhookUrl: config.N8N_APPU_WEBHOOK_URL
+    });
+  }
+
   // Register public plans route if database is available
   if (options.database) {
     app.register(plansRoutes, {
@@ -180,6 +191,15 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       app.register(webhooksRoutes, {
         db: options.database,
         razorpayClient
+      });
+    }
+
+    // Appu AI Secure Gateway requires N8nClient
+    if (n8nClient) {
+      app.register(appuGatewayRoutes, {
+        db: options.database,
+        authVerifier,
+        n8nClient
       });
     }
   }

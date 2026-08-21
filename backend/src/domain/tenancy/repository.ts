@@ -255,6 +255,27 @@ export class TenancyRepository {
   }
 
   /**
+   * Counts total child profiles belonging to a specific household.
+   */
+  public static async countChildProfilesByHousehold(
+    db: Queryable,
+    householdId: string
+  ): Promise<number> {
+    const result = await db.query<{ count: string | number }>(
+      `SELECT COUNT(*) AS count
+       FROM child_profiles
+       WHERE household_id = $1;`,
+      [householdId]
+    );
+
+    if (result.rows.length === 0) {
+      return 0;
+    }
+
+    return parseInt(String(result.rows[0].count), 10) || 0;
+  }
+
+  /**
    * Updates a child profile.
    * STRICT REQUIREMENT: Scoped by both householdId and childId.
    */

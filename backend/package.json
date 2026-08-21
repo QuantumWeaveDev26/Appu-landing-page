@@ -12,7 +12,8 @@
     "test": "node --import tsx --test tests/**/*.test.ts",
     "test:postgres": "node --import tsx --test tests/postgres-integration.test.ts",
     "db:migrate": "tsx src/db/migrate-cli.ts",
-    "plans:sync": "tsx src/db/sync-plans-cli.ts"
+    "plans:sync": "tsx src/db/sync-plans-cli.ts",
+    "gateway:smoke": "tsx src/gateway/smoke-test-n8n.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

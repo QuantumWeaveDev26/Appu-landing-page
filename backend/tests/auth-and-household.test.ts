@@ -5,8 +5,8 @@ import { newDb } from 'pg-mem';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config/index.js';
 import { runMigrations } from '../src/db/migrator.js';
-import type { Queryable, TransactionalQueryable } from '../src/db/types.js';
 import { MockAuthVerifier } from '../src/domain/auth/index.js';
+import { SubscriptionRepository } from '../src/domain/subscription/repository.js';
 
 function createTestDatabase(): TransactionalQueryable {
   const memDb = newDb();
@@ -280,12 +280,25 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
     authVerifier.registerToken(token, { userId });
 
     // 1. Onboard parent
-    await app.inject({
+    const onboardRes = await app.inject({
       method: 'POST',
       url: '/api/household/onboard',
       headers: { authorization: `Bearer ${token}` },
       payload: { householdName: 'Verma Family' }
     });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+
+    // Activate Growth subscription (allows up to 2 children)
+    const growthPlan = await SubscriptionRepository.getPlanByCode(db, 'growth');
+    if (growthPlan) {
+      await SubscriptionRepository.createSubscription(db, {
+        householdId,
+        planId: growthPlan.id,
+        provider: 'razorpay',
+        providerSubscriptionId: 'sub_test_auth_crud',
+        status: 'ACTIVE'
+      });
+    }
 
     // 2. Create Child 1
     const postRes1 = await app.inject({
@@ -370,12 +383,23 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
     const tokenA = 'token-parent-A';
     authVerifier.registerToken(tokenA, { userId: parentAId });
 
-    await app.inject({
+    const obARes = await app.inject({
       method: 'POST',
       url: '/api/household/onboard',
       headers: { authorization: `Bearer ${tokenA}` },
       payload: { householdName: 'Household A' }
     });
+    const hhA = JSON.parse(obARes.payload).household.id;
+    const planA = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    if (planA) {
+      await SubscriptionRepository.createSubscription(db, {
+        householdId: hhA,
+        planId: planA.id,
+        provider: 'razorpay',
+        providerSubscriptionId: 'sub_test_hh_a',
+        status: 'ACTIVE'
+      });
+    }
 
     const createChildARes = await app.inject({
       method: 'POST',
@@ -390,12 +414,23 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
     const tokenB = 'token-parent-B';
     authVerifier.registerToken(tokenB, { userId: parentBId });
 
-    await app.inject({
+    const obBRes = await app.inject({
       method: 'POST',
       url: '/api/household/onboard',
       headers: { authorization: `Bearer ${tokenB}` },
       payload: { householdName: 'Household B' }
     });
+    const hhB = JSON.parse(obBRes.payload).household.id;
+    const planB = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    if (planB) {
+      await SubscriptionRepository.createSubscription(db, {
+        householdId: hhB,
+        planId: planB.id,
+        provider: 'razorpay',
+        providerSubscriptionId: 'sub_test_hh_b',
+        status: 'ACTIVE'
+      });
+    }
 
     const createChildBRes = await app.inject({
       method: 'POST',

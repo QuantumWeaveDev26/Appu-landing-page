@@ -12,6 +12,7 @@ export const ErrorCodes = {
   INVALID_REQUEST: 'invalid_request',
   NOT_FOUND: 'not_found',
   SERVICE_TEMPORARILY_UNAVAILABLE: 'service_temporarily_unavailable',
+  BAD_GATEWAY: 'bad_gateway',
   INTERNAL_ERROR: 'internal_error',
   INVALID_STATE_TRANSITION: 'invalid_state_transition',
   INVALID_ENTITLEMENT_VALUE: 'invalid_entitlement_value'

@@ -65,23 +65,40 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
     - Enforced validation rejecting subscription creation if a plan lacks a configured `provider_plan_id` or is inactive.
   - **Cross-Tenant Subscription Protection**:
     - Verified that Parent A cannot verify checkout or view subscription context for Parent B.
+- **Milestone 4 (Entitlement Enforcement + Child Personalisation + Secure N8N Gateway)**:
+  - **Entitlement Enforcement**:
+    - Created `EntitlementEnforcementService.getHouseholdEntitlements` deriving active entitlements strictly from server-resolved active subscription plans.
+    - Implemented and enforced `max_children` limit inside `POST /api/children` (Starter plan blocks child >= 1; Growth blocks >= 2; unsubscribed households are blocked from creating children).
+  - **Child Personalisation Persistence (`004_child_personalisation.sql`)**:
+    - Created dedicated `child_personalisation` table bound by composite foreign key `(household_id, child_id) -> child_profiles(household_id, id)`.
+    - Implemented protected `GET /api/children/:childId/personalisation` and `PUT /api/children/:childId/personalisation` with strict server-side validation against controlled enums (`font_preference`, `learning_style`, `response_style`, `theme_preference`) and strict character/symbol sanitization (preventing HTML, script tags, or prompt injection).
+  - **AI Context Builder**:
+    - Implemented `AIContextBuilder.buildChildAIContext` combining child profile, validated personalisation, and active server entitlements into a structured, safe context object where preferences are treated as data, not executable instructions.
+  - **Secure N8N Gateway (`POST /api/appu/message`)**:
+    - Implemented parent-authenticated secure gateway route forwarding child messages to the live n8n AI mentor workflow.
+    - Gated by active subscription, validates message length, sets timeout protection, sanitizes upstream provider errors, and hides internal webhook URLs.
+    - Added smoke test CLI `npm run gateway:smoke` (`backend/src/gateway/smoke-test-n8n.ts`).
+  - **Direct Phase 1 Gateway Boundary**:
+    - Preserved direct Phase 1 browser-to-n8n flow alongside backend gateway until cutover validation in Milestone 9.
 
 ## In Progress:
 
-- Preparation for Milestone 4 (Entitlement Enforcement Middleware & Child-Mode Sessions).
+- Preparation for parent dashboard & pricing UI integration and final cutover.
 
 ## Next:
 
-1. Obtain review and approval on Milestone 3 completion.
-2. Formulate Milestone 4 implementation plan:
-   - Entitlement enforcement middleware (e.g. enforcing `max_children` on child creation, enforcing voice minute limits).
-   - Scoped, short-lived child session tokens.
+1. Obtain review and approval on Milestone 4 completion.
+2. Formulate Milestone 5 implementation plan:
+   - Frontend dashboard state management.
+   - Razorpay Webhook listener implementation.
 3. Keep Phase 1 browser-to-n8n direct flow active until backend personal context adapters and cutover verification are completed in Milestone 9.
 
 ## Important Decisions & Security Invariants:
 
-- **Server-Driven Plan Pricing**: The browser never passes prices, amounts, or entitlement keys. All subscription parameters are derived server-side from active database records.
+- **Server-Driven Entitlements**: The browser never passes prices, amounts, or entitlement keys. All subscription parameters and feature limits are derived server-side from active database records.
 - **Strict Activation Boundary**: Browser checkout signature verification transitions state to `AUTHENTICATED`, but NEVER directly to `ACTIVE`. Full entitlement access is granted only upon receiving trusted webhook confirmation (`subscription.activated` / `subscription.charged`).
+- **Composite Tenancy Foreign Keys**: Child personalisation records use `(household_id, child_id)` composite foreign key guarantees preventing cross-household data linkage.
+- **Data vs Instruction Boundary**: Child personalisation values are treated strictly as data payloads within the AI context, never concatenated directly into executable prompt instructions.
 - **Webhook Idempotency**: All webhook events are recorded with `provider_event_id` in `payment_events`. Duplicate deliveries are safe no-ops (`already_processed`) with zero side effects.
 - **Zero Payment Instrument / Token Storage**: Card numbers, CVVs, full instruments, and secret keys are never accepted or stored.
 - **HMAC Constant-Time Verification**: All signature checks utilize `crypto.timingSafeEqual` to prevent timing attacks.
@@ -89,13 +106,12 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 ## Live Razorpay Test Validation Status:
 
 **LIVE RAZORPAY TEST VALIDATION: PENDING**
-- All 62 unit and integration tests execute with zero failures using `MockRazorpayClient` and real database schemas.
+- All 78 unit and integration tests execute with zero failures using `MockRazorpayClient` and real database schemas.
 - Live Razorpay TEST Mode credentials (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`) can be configured in `.env` for opt-in live test-mode checkout execution.
 
 ## Known Limitations:
 
-- Child-mode access tokens and child login sessions are deferred to Milestone 4.
-- Entitlement limit enforcement during child profile creation (e.g. blocking child creation when count >= `max_children`) is deferred to Milestone 4.
+- Child-mode access tokens and child login sessions are deferred.
 
 ## Known Issues:
 
@@ -114,8 +130,8 @@ The browser currently calls a public n8n webhook directly. This remains active t
 ## Validation Status:
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 65/65 tests passed, 0 failures)
-- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 4/4 tests passed)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 78/78 tests passed, 0 failures)
+- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 5/5 tests passed)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
 - **Phase 1 Node Tests**: PASSED (`node --test tests/*.test.js` — 8/8 tests passed)

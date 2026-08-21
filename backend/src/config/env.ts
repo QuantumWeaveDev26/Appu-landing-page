@@ -56,6 +56,10 @@ export const envSchema = z.object({
   RAZORPAY_PLAN_FAMILY_ID: z
     .string()
     .min(1, 'RAZORPAY_PLAN_FAMILY_ID cannot be empty')
+    .optional(),
+  N8N_APPU_WEBHOOK_URL: z
+    .string()
+    .url('N8N_APPU_WEBHOOK_URL must be a valid URL')
     .optional()
 });
 

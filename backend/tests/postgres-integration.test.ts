@@ -105,4 +105,41 @@ describe('Real PostgreSQL Integration Suite', { skip: !testDbUrl }, () => {
     assert.ok(plansResult.rows.length >= 3);
     assert.equal(plansResult.rows.some((p: any) => p.code === 'growth'), true);
   });
+
+  test('child personalisation persistence on real PostgreSQL', async () => {
+    if (!testDbUrl) return;
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: crypto.randomUUID(),
+      householdName: 'Real Postgres Personalisation Household'
+    });
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Real Child Pers',
+      gradeBand: 'Grade 4',
+      status: ChildStatuses.ACTIVE
+    });
+
+    const pers = await db.query(
+      `INSERT INTO child_personalisation (
+        household_id, child_id, preferred_language, font_preference, learning_style,
+        interests, response_style, theme_preference
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;`,
+      [
+        household.id,
+        child.id,
+        'kn',
+        'rounded',
+        'visual',
+        JSON.stringify(['astronomy', 'coding']),
+        'playful',
+        'bright'
+      ]
+    );
+
+    assert.equal(pers.rows.length, 1);
+    assert.equal(pers.rows[0].preferred_language, 'kn');
+  });
 });

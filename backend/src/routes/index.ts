@@ -5,3 +5,4 @@ export * from './children.js';
 export * from './plans.js';
 export * from './subscriptions.js';
 export * from './webhooks.js';
+export * from './appu-gateway.js';

@@ -136,3 +136,14 @@ export class ServiceUnavailableError extends AppError {
     this.name = 'ServiceUnavailableError';
   }
 }
+
+export class BadGatewayError extends AppError {
+  constructor(message = 'Upstream gateway error') {
+    super({
+      code: ErrorCodes.BAD_GATEWAY,
+      message,
+      statusCode: 502
+    });
+    this.name = 'BadGatewayError';
+  }
+}

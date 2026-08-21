@@ -2,3 +2,4 @@ export * from './types.js';
 export * from './definitions.js';
 export * from './validator.js';
 export * from './resolver.js';
+export * from './enforcement-service.js';
