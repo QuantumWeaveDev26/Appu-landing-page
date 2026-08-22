@@ -10,6 +10,8 @@ export interface RazorpaySubscriptionResult {
   planId: string;
   status: string;
   shortUrl?: string;
+  currentStart?: number | null;
+  currentEnd?: number | null;
 }
 
 export interface VerifyCheckoutSignatureInput {
@@ -25,6 +27,7 @@ export interface VerifyWebhookSignatureInput {
 
 export interface RazorpayClient {
   createSubscription(input: CreateRazorpaySubscriptionInput): Promise<RazorpaySubscriptionResult>;
+  getSubscription(subscriptionId: string): Promise<RazorpaySubscriptionResult>;
   verifyCheckoutSignature(input: VerifyCheckoutSignatureInput): boolean;
   verifyWebhookSignature(input: VerifyWebhookSignatureInput): boolean;
 }

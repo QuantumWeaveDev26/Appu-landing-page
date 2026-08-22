@@ -13,15 +13,35 @@ export class MockRazorpayClient implements RazorpayClient {
   public nextSubscriptionId = 'sub_mock_12345';
   public createdSubscriptions: CreateRazorpaySubscriptionInput[] = [];
 
+  public subscriptionStore: Map<string, RazorpaySubscriptionResult> = new Map();
+
   public async createSubscription(
     input: CreateRazorpaySubscriptionInput
   ): Promise<RazorpaySubscriptionResult> {
     this.createdSubscriptions.push(input);
-    return {
+    const result: RazorpaySubscriptionResult = {
       id: this.nextSubscriptionId,
       planId: input.planId,
       status: 'created',
-      shortUrl: `https://rzp.io/i/${this.nextSubscriptionId}`
+      shortUrl: `https://rzp.io/i/${this.nextSubscriptionId}`,
+      currentStart: null,
+      currentEnd: null
+    };
+    this.subscriptionStore.set(this.nextSubscriptionId, result);
+    return result;
+  }
+
+  public async getSubscription(subscriptionId: string): Promise<RazorpaySubscriptionResult> {
+    const existing = this.subscriptionStore.get(subscriptionId.trim());
+    if (existing) {
+      return existing;
+    }
+    return {
+      id: subscriptionId.trim(),
+      planId: 'plan_mock_123',
+      status: 'active',
+      currentStart: Math.floor(Date.now() / 1000),
+      currentEnd: Math.floor(Date.now() / 1000) + 30 * 86400
     };
   }
 

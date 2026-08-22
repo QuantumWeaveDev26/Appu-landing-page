@@ -20,11 +20,56 @@ const createSubscriptionSchema = z.object({
   planCode: z.string().min(1, 'planCode is required')
 });
 
-const verifyCheckoutSchema = z.object({
-  razorpayPaymentId: z.string().min(1, 'razorpayPaymentId is required'),
-  razorpaySubscriptionId: z.string().min(1, 'razorpaySubscriptionId is required'),
-  razorpaySignature: z.string().min(1, 'razorpaySignature is required')
-});
+const verifyCheckoutSchema = z
+  .object({
+    razorpayPaymentId: z.string().optional(),
+    razorpaySubscriptionId: z.string().optional(),
+    razorpaySignature: z.string().optional(),
+    razorpay_payment_id: z.string().optional(),
+    razorpay_subscription_id: z.string().optional(),
+    razorpay_signature: z.string().optional(),
+    paymentId: z.string().optional(),
+    subscriptionId: z.string().optional(),
+    signature: z.string().optional()
+  })
+  .superRefine((data, ctx) => {
+    const paymentId = data.razorpayPaymentId || data.razorpay_payment_id || data.paymentId;
+    const subscriptionId = data.razorpaySubscriptionId || data.razorpay_subscription_id || data.subscriptionId;
+    const signature = data.razorpaySignature || data.razorpay_signature || data.signature;
+
+    if (!paymentId || !paymentId.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'razorpayPaymentId is required',
+        path: ['razorpayPaymentId']
+      });
+    }
+    if (!subscriptionId || !subscriptionId.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'razorpaySubscriptionId is required',
+        path: ['razorpaySubscriptionId']
+      });
+    }
+    if (!signature || !signature.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'razorpaySignature is required',
+        path: ['razorpaySignature']
+      });
+    }
+  })
+  .transform((data) => {
+    const paymentId = data.razorpayPaymentId || data.razorpay_payment_id || data.paymentId;
+    const subscriptionId = data.razorpaySubscriptionId || data.razorpay_subscription_id || data.subscriptionId;
+    const signature = data.razorpaySignature || data.razorpay_signature || data.signature;
+
+    return {
+      razorpayPaymentId: paymentId!.trim(),
+      razorpaySubscriptionId: subscriptionId!.trim(),
+      razorpaySignature: signature!.trim()
+    };
+  });
 
 export const subscriptionsRoutes: FastifyPluginAsync<SubscriptionsRouteOptions> = async (
   fastify,

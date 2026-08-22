@@ -450,9 +450,9 @@
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                subscriptionId,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySubscriptionId: response.razorpay_subscription_id || providerSubscriptionId,
+                razorpaySignature: response.razorpay_signature
               })
             });
 

@@ -30,6 +30,21 @@ export interface WebhookProcessResult {
   subscriptionId?: string | null;
 }
 
+export interface ReconcileSubscriptionInput {
+  providerSubscriptionId: string;
+}
+
+export interface ReconcileSubscriptionResult {
+  reconciled: boolean;
+  actionTaken: 'activated' | 'already_active' | 'updated_period' | 'no_change' | 'provider_not_active';
+  providerStatus: string;
+  previousStatus: string;
+  currentStatus: string;
+  subscriptionId: string;
+  householdId: string;
+  planCode: string;
+}
+
 const RAZORPAY_EVENT_TO_STATE: Record<string, SubscriptionState> = {
   'subscription.authenticated': SubscriptionStates.AUTHENTICATED,
   'subscription.activated': SubscriptionStates.ACTIVE,
@@ -180,24 +195,44 @@ export class SubscriptionService {
       signature: string;
     }
   ): Promise<VerifyCheckoutResult> {
-    // Find local subscription by provider_subscription_id and verify household ownership
-    const subscription = await SubscriptionRepository.getSubscriptionByProviderId(
+    // Find local subscription by provider_subscription_id (or local UUID fallback) and verify household ownership
+    let subscription = await SubscriptionRepository.getSubscriptionByProviderId(
       db,
       input.subscriptionId
     );
+
+    if (!subscription) {
+      subscription = await SubscriptionRepository.getSubscriptionById(
+        db,
+        input.subscriptionId
+      );
+    }
 
     if (!subscription || subscription.householdId !== input.householdId) {
       throw new NotFoundError('Subscription not found for this household');
     }
 
+    const providerSubId = subscription.providerSubscriptionId || input.subscriptionId;
+
     const isValid = razorpayClient.verifyCheckoutSignature({
       paymentId: input.paymentId,
-      subscriptionId: subscription.providerSubscriptionId!,
+      subscriptionId: providerSubId,
       signature: input.signature
     });
 
     if (!isValid) {
       throw new BadRequestError('Invalid checkout verification signature');
+    }
+
+    // Idempotent: If already in AUTHENTICATED or ACTIVE state, return verified without transition error
+    if (
+      subscription.status === SubscriptionStates.AUTHENTICATED ||
+      subscription.status === SubscriptionStates.ACTIVE
+    ) {
+      return {
+        subscription,
+        verified: true
+      };
     }
 
     // Validate state transition to AUTHENTICATED
@@ -252,89 +287,225 @@ export class SubscriptionService {
     const providerEventId: string =
       input.eventIdHeader || payload.event_id || `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-    // 1. Idempotency Check: check if event has already been recorded
-    const existingEvent = await SubscriptionRepository.getPaymentEvent(
-      db,
-      'razorpay',
-      providerEventId
-    );
-
-    if (existingEvent) {
-      return {
-        status: 'already_processed',
-        eventType,
+    return await db.transaction(async (tx) => {
+      // 1. Idempotency Check: check if event has already been recorded
+      const existingEvent = await SubscriptionRepository.getPaymentEvent(
+        tx,
+        'razorpay',
         providerEventId
-      };
-    }
-
-    // 2. Resolve subscription from payload entity
-    const subEntity = payload.payload?.subscription?.entity;
-    const providerSubscriptionId: string | null = subEntity?.id ?? null;
-    let localSubscription: Subscription | null = null;
-
-    if (providerSubscriptionId) {
-      localSubscription = await SubscriptionRepository.getSubscriptionByProviderId(
-        db,
-        providerSubscriptionId
       );
+
+      if (existingEvent) {
+        return {
+          status: 'already_processed',
+          eventType,
+          providerEventId
+        };
+      }
+
+      // 2. Resolve subscription from payload entity
+      const subEntity = payload.payload?.subscription?.entity;
+      const providerSubscriptionId: string | null = subEntity?.id ?? null;
+      let localSubscription: Subscription | null = null;
+
+      if (providerSubscriptionId) {
+        localSubscription = await SubscriptionRepository.getSubscriptionByProviderId(
+          tx,
+          providerSubscriptionId
+        );
+      }
+
+      // 3. Map event to target subscription state
+      const targetState = RAZORPAY_EVENT_TO_STATE[eventType];
+
+      if (localSubscription && targetState) {
+        // Invariant 1: If subscription is ALREADY in target state (e.g. ACTIVE -> ACTIVE on subscription.charged or duplicate webhook),
+        // handle idempotently as a successful no-op. Do not throw, do not duplicate entitlement work.
+        if (localSubscription.status === targetState) {
+          const currentPeriodStart = subEntity?.current_start
+            ? new Date(subEntity.current_start * 1000)
+            : null;
+          const currentPeriodEnd = subEntity?.current_end
+            ? new Date(subEntity.current_end * 1000)
+            : null;
+
+          if (currentPeriodStart || currentPeriodEnd) {
+            await SubscriptionRepository.updateSubscription(tx, localSubscription.id, {
+              status: targetState,
+              currentPeriodStart: currentPeriodStart || localSubscription.currentPeriodStart,
+              currentPeriodEnd: currentPeriodEnd || localSubscription.currentPeriodEnd
+            });
+          }
+        } else if (
+          localSubscription.status === SubscriptionStates.ACTIVE &&
+          targetState === SubscriptionStates.AUTHENTICATED
+        ) {
+          // Invariant 2: Never downgrade an already ACTIVE subscription back to AUTHENTICATED on out-of-order webhook
+        } else {
+          // Normal valid cross-state transition
+          SubscriptionStateMachine.validateTransition(localSubscription.status, targetState);
+
+          const currentPeriodStart = subEntity?.current_start
+            ? new Date(subEntity.current_start * 1000)
+            : null;
+          const currentPeriodEnd = subEntity?.current_end
+            ? new Date(subEntity.current_end * 1000)
+            : null;
+
+          await SubscriptionRepository.updateSubscription(tx, localSubscription.id, {
+            status: targetState,
+            currentPeriodStart,
+            currentPeriodEnd
+          });
+
+          // Expire older active subscriptions for the household only when first transitioning to ACTIVE
+          if (targetState === SubscriptionStates.ACTIVE && localSubscription.householdId) {
+            await tx.query(
+              `UPDATE subscriptions
+               SET status = 'EXPIRED', updated_at = NOW()
+               WHERE household_id = $1 AND id != $2 AND status = 'ACTIVE';`,
+              [localSubscription.householdId, localSubscription.id]
+            );
+          }
+        }
+      }
+
+      // 4. Record event in payment_events for idempotency & audit atomically
+      await SubscriptionRepository.recordPaymentEvent(tx, {
+        provider: 'razorpay',
+        providerEventId,
+        eventType,
+        subscriptionId: localSubscription?.id ?? null,
+        providerSubscriptionId,
+        status: 'PROCESSED',
+        payloadSummary: {
+          event: eventType,
+          subscription_id: providerSubscriptionId,
+          status: subEntity?.status
+        }
+      });
+
+      return {
+        status: 'processed',
+        eventType,
+        providerEventId,
+        subscriptionId: localSubscription?.id ?? null
+      };
+    });
+  }
+
+  /**
+   * Safe operator-side reconciliation for a paid subscription against authoritative Razorpay state.
+   * NEVER promotes a subscription unless Razorpay authoritative status is 'active'.
+   */
+  public static async reconcileSubscription(
+    db: TransactionalQueryable,
+    razorpayClient: RazorpayClient,
+    input: ReconcileSubscriptionInput
+  ): Promise<ReconcileSubscriptionResult> {
+    if (!input.providerSubscriptionId || !input.providerSubscriptionId.trim()) {
+      throw new BadRequestError('providerSubscriptionId is required');
     }
 
-    // 3. Map event to target subscription state
-    const targetState = RAZORPAY_EVENT_TO_STATE[eventType];
+    const providerSubId = input.providerSubscriptionId.trim();
 
-    if (localSubscription && targetState) {
-      try {
-        // Validate state transition rules
-        SubscriptionStateMachine.validateTransition(localSubscription.status, targetState);
+    return await db.transaction(async (tx) => {
+      // 1. Load local subscription by provider_subscription_id
+      const localSubscription = await SubscriptionRepository.getSubscriptionByProviderId(
+        tx,
+        providerSubId
+      );
 
-        const currentPeriodStart = subEntity?.current_start
-          ? new Date(subEntity.current_start * 1000)
-          : null;
-        const currentPeriodEnd = subEntity?.current_end
-          ? new Date(subEntity.current_end * 1000)
-          : null;
+      if (!localSubscription) {
+        throw new NotFoundError(`No local subscription found with provider ID '${providerSubId}'`);
+      }
 
-        await SubscriptionRepository.updateSubscription(db, localSubscription.id, {
-          status: targetState,
+      let planCode = localSubscription.planCode;
+      if (!planCode) {
+        const plan = await SubscriptionRepository.getPlanById(tx, localSubscription.planId);
+        planCode = plan?.code || 'unknown';
+      }
+
+      // 2. Fetch authoritative status directly from Razorpay (server-to-server)
+      const rzpSub = await razorpayClient.getSubscription(providerSubId);
+      const providerStatus = (rzpSub.status || '').toLowerCase();
+
+      // 3. Reconcile based on authoritative Razorpay status
+      if (providerStatus === 'active') {
+        const currentPeriodStart = rzpSub.currentStart
+          ? new Date(rzpSub.currentStart * 1000)
+          : localSubscription.currentPeriodStart || new Date();
+        const currentPeriodEnd = rzpSub.currentEnd
+          ? new Date(rzpSub.currentEnd * 1000)
+          : localSubscription.currentPeriodEnd || new Date(Date.now() + 30 * 86400 * 1000);
+
+        if (localSubscription.status === SubscriptionStates.ACTIVE) {
+          // Already active - update period if dates differ
+          await SubscriptionRepository.updateSubscription(tx, localSubscription.id, {
+            status: SubscriptionStates.ACTIVE,
+            currentPeriodStart,
+            currentPeriodEnd
+          });
+
+          return {
+            reconciled: true,
+            actionTaken: 'already_active',
+            providerStatus,
+            previousStatus: localSubscription.status,
+            currentStatus: SubscriptionStates.ACTIVE,
+            subscriptionId: localSubscription.id,
+            householdId: localSubscription.householdId,
+            planCode
+          };
+        }
+
+        // Local state is AUTHENTICATED or PENDING_PAYMENT -> promote to ACTIVE
+        SubscriptionStateMachine.validateTransition(
+          localSubscription.status,
+          SubscriptionStates.ACTIVE
+        );
+
+        await SubscriptionRepository.updateSubscription(tx, localSubscription.id, {
+          status: SubscriptionStates.ACTIVE,
           currentPeriodStart,
           currentPeriodEnd
         });
 
-        // Expire older active subscriptions for the household when becoming ACTIVE
-        if (targetState === SubscriptionStates.ACTIVE && localSubscription.householdId) {
-          await db.query(
+        // Expire any other ACTIVE subscription for that household
+        if (localSubscription.householdId) {
+          await tx.query(
             `UPDATE subscriptions
              SET status = 'EXPIRED', updated_at = NOW()
              WHERE household_id = $1 AND id != $2 AND status = 'ACTIVE';`,
             [localSubscription.householdId, localSubscription.id]
           );
         }
-      } catch (err: any) {
-        console.warn(`[SubscriptionService] State transition error during webhook: ${err.message}`);
-      }
-    }
 
-    // 4. Record event in payment_events for idempotency & audit
-    await SubscriptionRepository.recordPaymentEvent(db, {
-      provider: 'razorpay',
-      providerEventId,
-      eventType,
-      subscriptionId: localSubscription?.id ?? null,
-      providerSubscriptionId,
-      status: 'PROCESSED',
-      payloadSummary: {
-        event: eventType,
-        subscription_id: providerSubscriptionId,
-        status: subEntity?.status
+        return {
+          reconciled: true,
+          actionTaken: 'activated',
+          providerStatus,
+          previousStatus: localSubscription.status,
+          currentStatus: SubscriptionStates.ACTIVE,
+          subscriptionId: localSubscription.id,
+          householdId: localSubscription.householdId,
+          planCode
+        };
       }
+
+      // Provider is NOT active (e.g. 'created', 'authenticated', 'cancelled', 'expired')
+      // Invariant: Do NOT promote to ACTIVE
+      return {
+        reconciled: false,
+        actionTaken: 'provider_not_active',
+        providerStatus,
+        previousStatus: localSubscription.status,
+        currentStatus: localSubscription.status,
+        subscriptionId: localSubscription.id,
+        householdId: localSubscription.householdId,
+        planCode
+      };
     });
-
-    return {
-      status: 'processed',
-      eventType,
-      providerEventId,
-      subscriptionId: localSubscription?.id ?? null
-    };
   }
 
   /**

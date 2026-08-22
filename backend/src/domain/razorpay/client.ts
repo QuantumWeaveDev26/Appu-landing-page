@@ -62,7 +62,43 @@ export class DefaultRazorpayClient implements RazorpayClient {
       id: data.id,
       planId: data.plan_id,
       status: data.status,
-      shortUrl: data.short_url
+      shortUrl: data.short_url,
+      currentStart: data.current_start ?? null,
+      currentEnd: data.current_end ?? null
+    };
+  }
+
+  /**
+   * Fetches authoritative subscription details from Razorpay (server-to-server).
+   */
+  public async getSubscription(subscriptionId: string): Promise<RazorpaySubscriptionResult> {
+    if (!subscriptionId || !subscriptionId.trim()) {
+      throw new Error('subscriptionId is required for getSubscription');
+    }
+
+    const authHeader = `Basic ${Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64')}`;
+
+    const response = await fetch(`${this.baseUrl}/subscriptions/${encodeURIComponent(subscriptionId.trim())}`, {
+      method: 'GET',
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`Razorpay getSubscription failed (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json() as any;
+    return {
+      id: data.id,
+      planId: data.plan_id,
+      status: data.status,
+      shortUrl: data.short_url,
+      currentStart: data.current_start ?? null,
+      currentEnd: data.current_end ?? null
     };
   }
 
