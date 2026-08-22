@@ -41,3 +41,40 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## Frontend Production Deployment Architecture
+
+Production frontend deployments are automated via GitHub Actions:
+
+```text
+main branch (monorepo source of truth)
+   │
+   │  (push to main with changes in frontend/**)
+   ▼
+GitHub Actions (.github/workflows/deploy-frontend.yml)
+   │
+   ├── 1. Runs full test suite (Node.js + Python)
+   ├── 2. Scans for secret leaks & localhost URL fallbacks
+   ├── 3. Validates static asset integrity & zero duplicates
+   │
+   ▼ (only on test pass)
+frontend-production branch
+   │  (contains ONLY the root contents of frontend/)
+   │
+   ▼ (automatic webhook trigger)
+Hostinger Git Auto Deployment
+   │
+   ▼
+appuai.online/public_html
+```
+
+### Hostinger Configuration Instructions
+
+1. Log in to **Hostinger hPanel** $\rightarrow$ **Websites** $\rightarrow$ **Manage** `appuai.online`.
+2. Navigate to **Advanced** $\rightarrow$ **GIT**.
+3. Configure the repository deployment:
+   - **Repository**: `https://github.com/QuantumWeaveDev26/Appu-landing-page.git`
+   - **Branch**: `frontend-production`
+   - **Install Directory**: `public_html`
+4. Click **Create / Deploy**.
+5. Enable **Auto Deployment Webhook** in Hostinger and copy the webhook URL into your GitHub repository under **Settings** $\rightarrow$ **Webhooks** (trigger on push).

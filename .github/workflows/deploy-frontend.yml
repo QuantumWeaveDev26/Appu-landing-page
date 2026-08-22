@@ -1,0 +1,78 @@
+name: Deploy Frontend to Production Branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+# Minimum permissions: contents write needed to publish to frontend-production branch
+permissions:
+  contents: write
+
+# Prevent concurrent deployment race conditions
+concurrency:
+  group: deploy-frontend-production
+  cancel-in-progress: false
+
+jobs:
+  validate-and-deploy:
+    name: Validate & Publish Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Static Frontend Dependency & Integrity Audit
+        run: node tests/audit-frontend-bundle.cjs
+
+      - name: Run Monorepo Duplicate Prevention Audit
+        run: node tests/check-no-duplicates.cjs
+
+      - name: Run Frontend Integration Tests
+        run: node --test tests/*.test.js
+
+      - name: Run Page Structure & Media Tests
+        run: python tests/page-structure.test.py
+
+      - name: Static Security Scan (Zero Secrets & Zero Localhost Fallbacks)
+        run: |
+          echo "Scanning frontend/ for disallowed secrets or database credentials..."
+          if grep -E -rn "RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|SUPABASE_SERVICE_ROLE_KEY|postgres:\/\/|DATABASE_URL" frontend/; then
+            echo "SECURITY VIOLATION: Disallowed private secret detected in frontend/!"
+            exit 1
+          fi
+
+          echo "Scanning frontend/ for disallowed localhost fallbacks..."
+          if grep -E -rn "localhost:3000|127\.0\.0\.1:3000" frontend/; then
+            echo "SECURITY VIOLATION: Disallowed localhost fallback detected in frontend/!"
+            exit 1
+          fi
+
+          echo "Security scan passed: 0 secrets and 0 localhost fallbacks found."
+
+      - name: Publish frontend/ to frontend-production branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: frontend-production
+          publish_dir: ./frontend
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: sync frontend production bundle from main@${{ github.sha }} [skip ci]'
