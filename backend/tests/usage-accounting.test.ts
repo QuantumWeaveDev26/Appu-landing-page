@@ -488,7 +488,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     });
 
     assert.equal(res.statusCode, 204);
-    assert.equal(res.headers['access-control-allow-origin'], '*');
+    assert.equal(res.headers['access-control-allow-origin'], 'http://localhost:5500');
     const allowHeaders = String(res.headers['access-control-allow-headers'] || '');
     assert.ok(allowHeaders.toLowerCase().includes('idempotency-key'), 'CORS must allow Idempotency-Key');
     assert.ok(allowHeaders.toLowerCase().includes('authorization'), 'CORS must allow Authorization');

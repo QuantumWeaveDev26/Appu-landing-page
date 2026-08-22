@@ -198,8 +198,9 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       },
       (err: any) => {
         return (
-          err.message.includes('RAZORPAY_PLAN_GROWTH_ID') &&
-          err.message.includes('RAZORPAY_PLAN_FAMILY_ID')
+          err.message.includes('growth') &&
+          err.message.includes('family') &&
+          err.message.includes('missing provider plan ID')
         );
       }
     );

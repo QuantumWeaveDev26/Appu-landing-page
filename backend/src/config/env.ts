@@ -18,6 +18,9 @@ export const envSchema = z.object({
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .optional(),
   DATABASE_URL: z
     .string()
     .optional(),
@@ -44,6 +47,9 @@ export const envSchema = z.object({
   RAZORPAY_WEBHOOK_SECRET: z
     .string()
     .min(1, 'RAZORPAY_WEBHOOK_SECRET cannot be empty')
+    .optional(),
+  RAZORPAY_PLAN_MAPPINGS: z
+    .string()
     .optional(),
   RAZORPAY_PLAN_STARTER_ID: z
     .string()

@@ -399,12 +399,14 @@
 
       plans.forEach((p) => {
         const card = document.createElement('div');
-        card.className = `pos-plan-card ${p.code === 'growth' ? 'featured' : ''}`;
+        const isFeatured = Boolean(p.isFeatured || p.is_featured || p.code === 'growth');
+        const badgeText = p.badge || (p.code === 'growth' ? 'Most Popular' : null);
+        card.className = `pos-plan-card ${isFeatured ? 'featured' : ''}`;
         const priceRupees = Math.round(p.amountPaise / 100);
         const maxChildren = p.entitlements?.max_children ?? 1;
 
         card.innerHTML = `
-          ${p.code === 'growth' ? '<span class="pos-badge">Most Popular</span>' : ''}
+          ${badgeText ? `<span class="pos-badge">${badgeText}</span>` : ''}
           <h3>${p.name}</h3>
           <div class="pos-price">₹${priceRupees}<span>/month</span></div>
           <p class="pos-plan-desc">${p.description || ''}</p>

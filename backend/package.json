@@ -12,6 +12,7 @@
     "test": "node --import tsx --test tests/**/*.test.ts",
     "test:postgres": "node --import tsx --test tests/postgres-integration.test.ts",
     "db:migrate": "tsx src/db/migrate-cli.ts",
+    "migrate": "node dist/db/migrate-cli.js",
     "plans:sync": "tsx src/db/sync-plans-cli.ts",
     "gateway:smoke": "tsx src/gateway/smoke-test-n8n.ts"
   },

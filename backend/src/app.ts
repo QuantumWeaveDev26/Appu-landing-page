@@ -42,15 +42,61 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     trustProxy: false
   });
 
-  // Enable CORS for client / browser access
+  // Configure environment-aware CORS policy
+  const configuredOrigins = config.CORS_ALLOWED_ORIGINS
+    ? config.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : [];
+
+  const isDevOrTest = config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
+
   app.addHook('onRequest', async (request, reply) => {
-    reply.header('Access-Control-Allow-Origin', '*');
+    const origin = request.headers.origin;
+
+    let isAllowedOrigin = false;
+
+    if (origin) {
+      if (configuredOrigins.includes(origin)) {
+        isAllowedOrigin = true;
+      } else if (isDevOrTest) {
+        try {
+          const parsed = new URL(origin);
+          if (
+            parsed.hostname === 'localhost' ||
+            parsed.hostname === '127.0.0.1' ||
+            parsed.hostname === '0.0.0.0'
+          ) {
+            isAllowedOrigin = true;
+          }
+        } catch {
+          // Ignore unparseable origin
+        }
+      }
+    }
+
+    if (isAllowedOrigin && origin) {
+      reply.header('Access-Control-Allow-Origin', origin);
+      reply.header('Vary', 'Origin');
+      reply.header('Access-Control-Allow-Credentials', 'true');
+    } else if (isDevOrTest && !origin) {
+      // Direct server-to-server or test requests without origin header
+      reply.header('Access-Control-Allow-Origin', '*');
+    }
+
     reply.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
     reply.header(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, Idempotency-Key, X-Idempotency-Key, X-Razorpay-Signature, X-Razorpay-Event-Id'
     );
+
     if (request.method === 'OPTIONS') {
+      if (origin && !isAllowedOrigin && !isDevOrTest) {
+        return reply.status(403).send({
+          error: {
+            code: ErrorCodes.FORBIDDEN,
+            message: 'CORS origin not allowed'
+          }
+        });
+      }
       return reply.status(204).send();
     }
   });

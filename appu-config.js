@@ -14,14 +14,38 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  return {
-    // Backend API base URL for Phase 2 endpoints (e.g. /api/appu/message)
-    apiBaseUrl:
+  function resolveApiBaseUrl() {
+    // 1. Explicit window override (can be injected by hosting/CDN environment)
+    if (
+      typeof window !== 'undefined' &&
+      window.__APPU_API_BASE_URL__ &&
+      typeof window.__APPU_API_BASE_URL__ === 'string' &&
+      window.__APPU_API_BASE_URL__.trim()
+    ) {
+      return window.__APPU_API_BASE_URL__.trim().replace(/\/+$/, '');
+    }
+
+    // 2. Development localhost detection
+    if (
       typeof window !== 'undefined' &&
       window.location &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:3000'
-        : 'http://localhost:3000',
+      (window.location.hostname === 'localhost' ||
+       window.location.hostname === '127.0.0.1' ||
+       window.location.hostname === '0.0.0.0')
+    ) {
+      return 'http://localhost:3000';
+    }
+
+    // 3. Hosted / Production environment default placeholder
+    // In production, configure window.__APPU_API_BASE_URL__ or replace this placeholder with your live backend domain
+    return 'https://api.example.com';
+  }
+
+  return {
+    // Dynamic getter for Backend API base URL (reactively evaluates window overrides and hostname)
+    get apiBaseUrl() {
+      return resolveApiBaseUrl();
+    },
     // Public Supabase configuration (client-safe publishable key only)
     supabaseUrl: 'https://cmulkkpinwernuzhtegp.supabase.co',
     supabasePublishableKey: 'sb_publishable_N-I0xWkc2SXY6kga0iD0_Q_awDjKXNr'

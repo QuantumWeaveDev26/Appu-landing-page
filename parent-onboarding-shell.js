@@ -158,8 +158,8 @@
         monthlyAiSessions: planAiLimit,
         monthlyVoiceMinutes: planVoiceLimit,
         multilingual: currentPlan?.entitlements?.multilingual ?? true,
-        advancedPersonalisation: currentPlan?.entitlements?.advanced_personalisation ?? (sub?.planCode !== 'starter'),
-        parentReports: currentPlan?.entitlements?.parent_reports ?? (sub?.planCode === 'family')
+        advancedPersonalisation: Boolean(currentPlan?.entitlements?.advanced_personalisation),
+        parentReports: Boolean(currentPlan?.entitlements?.parent_reports)
       },
       activeChild,
       children
@@ -504,7 +504,7 @@
           householdName: state.household?.name || 'Family',
           childName: targetChild.preferredName,
           gradeBand: targetChild.gradeBand,
-          planCode: state.subscription?.planCode || 'starter'
+          planCode: state.subscription?.planCode || state.plans?.[0]?.code || 'active_plan'
         }
       });
     }

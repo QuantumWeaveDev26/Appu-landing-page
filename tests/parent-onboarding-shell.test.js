@@ -780,4 +780,58 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     );
     assert.equal(leaked, false, 'Application code must NEVER write bearer tokens to storage');
   });
+
+  test('frontend handles arbitrary number of plans (1, 2, 4+) and arbitrary plan codes without hardcoded names', async () => {
+    const originalFetch = global.fetch;
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/plans')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              plans: [
+                { id: 'p-custom-1', code: 'solo_learner', name: 'Solo Learner', amountPaise: 19900, entitlements: { max_children: 1, monthly_ai_sessions: 50, monthly_voice_minutes: 15, advanced_personalisation: false } },
+                { id: 'p-custom-2', code: 'family_explorer', name: 'Family Explorer', amountPaise: 79900, entitlements: { max_children: 3, monthly_ai_sessions: 300, monthly_voice_minutes: 90, advanced_personalisation: true } },
+                { id: 'p-custom-3', code: 'school_pack', name: 'School Pack', amountPaise: 199900, entitlements: { max_children: 10, monthly_ai_sessions: 1500, monthly_voice_minutes: 500, advanced_personalisation: true } },
+                { id: 'p-custom-4', code: 'annual_vip', name: 'Annual VIP', amountPaise: 499900, entitlements: { max_children: 5, monthly_ai_sessions: 1000, monthly_voice_minutes: 300, advanced_personalisation: true } }
+              ]
+            };
+          }
+        };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
+
+    try {
+      const plans = await ParentOnboardingShell.fetchPlans();
+      assert.equal(plans.length, 4);
+      assert.equal(plans[0].code, 'solo_learner');
+      assert.equal(plans[3].code, 'annual_vip');
+
+      // Test view-model with a custom plan code
+      ParentOnboardingShell.state.subscription = {
+        id: 'sub-vip',
+        status: 'ACTIVE',
+        planCode: 'annual_vip'
+      };
+      ParentOnboardingShell.state.children = [
+        { id: 'c1', preferredName: 'Child 1' },
+        { id: 'c2', preferredName: 'Child 2' }
+      ];
+
+      const vm = ParentOnboardingShell.getSubscriptionViewModel();
+      assert.equal(vm.isPaidAccess, true);
+      assert.equal(vm.planName, 'Annual VIP');
+      assert.equal(vm.displayPrice, '₹4999');
+      assert.equal(vm.maxChildren, 5);
+      assert.equal(vm.canAddLearner, true); // 2/5 used
+      assert.equal(vm.entitlements.advancedPersonalisation, true);
+      assert.equal(vm.aiSessions.limit, 1000);
+      assert.equal(vm.voiceMinutes.limit, 300);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

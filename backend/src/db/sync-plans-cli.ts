@@ -20,14 +20,19 @@ async function main() {
       process.exit(1);
     }
 
-    const result = await SubscriptionService.syncPlans(db, {
-      starterId: config.RAZORPAY_PLAN_STARTER_ID,
-      growthId: config.RAZORPAY_PLAN_GROWTH_ID,
-      familyId: config.RAZORPAY_PLAN_FAMILY_ID
-    });
+    const mappings = SubscriptionService.parsePlanMappings(
+      config.RAZORPAY_PLAN_MAPPINGS,
+      {
+        starterId: config.RAZORPAY_PLAN_STARTER_ID,
+        growthId: config.RAZORPAY_PLAN_GROWTH_ID,
+        familyId: config.RAZORPAY_PLAN_FAMILY_ID
+      }
+    );
+
+    const result = await SubscriptionService.syncPlans(db, mappings);
 
     console.log(
-      `[PlanSync] Successfully synchronized ${result.syncedCount} plans: [${result.updatedPlans.join(', ')}]`
+      `[PlanSync] Successfully synchronized ${result.syncedCount} plan(s): [${result.updatedPlans.join(', ')}]`
     );
   } catch (error: any) {
     console.error(`[PlanSync] Synchronization error: ${error.message}`);

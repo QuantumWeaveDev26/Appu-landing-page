@@ -262,49 +262,138 @@ export class SubscriptionService {
   }
 
   /**
-   * Synchronizes external Razorpay plan IDs for known active plans.
-   * Fails safely if required plan IDs are missing.
-   * Idempotently updates only known plans.
+   * Parses arbitrary provider plan mappings from JSON strings, key-value strings, or objects.
+   * Merges legacy env vars (RAZORPAY_PLAN_STARTER_ID, etc.) for backward compatibility.
    */
-  public static async syncPlans(
-    db: TransactionalQueryable,
-    planMappings: {
+  public static parsePlanMappings(
+    input?: string | Record<string, string | undefined> | null,
+    legacyFallbacks?: {
       starterId?: string;
       growthId?: string;
       familyId?: string;
+      [key: string]: string | undefined;
     }
-  ): Promise<{ syncedCount: number; updatedPlans: string[] }> {
-    const { starterId, growthId, familyId } = planMappings;
+  ): Record<string, string> {
+    const result: Record<string, string> = {};
 
-    if (!starterId?.trim() || !growthId?.trim() || !familyId?.trim()) {
-      const missing: string[] = [];
-      if (!starterId?.trim()) missing.push('RAZORPAY_PLAN_STARTER_ID');
-      if (!growthId?.trim()) missing.push('RAZORPAY_PLAN_GROWTH_ID');
-      if (!familyId?.trim()) missing.push('RAZORPAY_PLAN_FAMILY_ID');
+    // 1. Process primary input
+    if (typeof input === 'string' && input.trim().length > 0) {
+      const trimmed = input.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === 'object') {
+            for (const [k, v] of Object.entries(parsed)) {
+              if (typeof k === 'string' && typeof v === 'string' && v.trim()) {
+                result[k.trim().toLowerCase()] = v.trim();
+              }
+            }
+          }
+        } catch {
+          // Fall through to delimiter parsing
+        }
+      }
 
-      throw new Error(
-        `Plan synchronization failed: missing required environment configuration for [${missing.join(', ')}]`
-      );
+      if (Object.keys(result).length === 0) {
+        // Parse format "starter:plan_123,growth:plan_456"
+        const pairs = trimmed.split(',');
+        for (const pair of pairs) {
+          const [k, v] = pair.split(':');
+          if (k && v && k.trim() && v.trim()) {
+            result[k.trim().toLowerCase()] = v.trim();
+          }
+        }
+      }
+    } else if (input && typeof input === 'object') {
+      for (const [k, v] of Object.entries(input)) {
+        if (typeof k === 'string' && typeof v === 'string' && v.trim()) {
+          result[k.trim().toLowerCase()] = v.trim();
+        }
+      }
     }
 
-    const mapping: Record<string, string> = {
-      starter: starterId.trim(),
-      growth: growthId.trim(),
-      family: familyId.trim()
-    };
+    // 2. Merge legacy fallbacks if provided and not already present
+    if (legacyFallbacks) {
+      if (legacyFallbacks.starterId?.trim() && !result['starter']) {
+        result['starter'] = legacyFallbacks.starterId.trim();
+      }
+      if (legacyFallbacks.growthId?.trim() && !result['growth']) {
+        result['growth'] = legacyFallbacks.growthId.trim();
+      }
+      if (legacyFallbacks.familyId?.trim() && !result['family']) {
+        result['family'] = legacyFallbacks.familyId.trim();
+      }
+      for (const [k, v] of Object.entries(legacyFallbacks)) {
+        if (k !== 'starterId' && k !== 'growthId' && k !== 'familyId' && typeof v === 'string' && v.trim() && !result[k.toLowerCase()]) {
+          result[k.toLowerCase()] = v.trim();
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Synchronizes external Razorpay plan IDs for all active plans in the database.
+   * Dynamically inspects whatever active plans exist in the database.
+   * Fails safely if any active plan lacks a corresponding provider mapping.
+   * Idempotently updates provider_plan_id in the plans table.
+   */
+  public static async syncPlans(
+    db: TransactionalQueryable,
+    planMappings:
+      | string
+      | Record<string, string | undefined>
+      | {
+          starterId?: string;
+          growthId?: string;
+          familyId?: string;
+          [key: string]: string | undefined;
+        }
+  ): Promise<{ syncedCount: number; updatedPlans: string[]; unmappedPlans: string[] }> {
+    const activePlans = await SubscriptionRepository.listActivePlans(db);
+    if (activePlans.length === 0) {
+      return { syncedCount: 0, updatedPlans: [], unmappedPlans: [] };
+    }
+
+    const mapping = typeof planMappings === 'object' && !('starterId' in planMappings || 'growthId' in planMappings || 'familyId' in planMappings)
+      ? this.parsePlanMappings(planMappings as Record<string, string>)
+      : this.parsePlanMappings(
+          typeof planMappings === 'string' ? planMappings : undefined,
+          typeof planMappings === 'object' ? (planMappings as any) : undefined
+        );
 
     const updatedPlans: string[] = [];
+    const missing: string[] = [];
 
-    for (const [code, planId] of Object.entries(mapping)) {
-      const updated = await SubscriptionRepository.updateProviderPlanId(db, code, planId);
-      if (updated) {
-        updatedPlans.push(code);
+    for (const plan of activePlans) {
+      const planCode = plan.code.toLowerCase();
+      const providerPlanId = mapping[planCode];
+
+      if (!providerPlanId || !providerPlanId.trim()) {
+        missing.push(plan.code);
+      } else {
+        const updated = await SubscriptionRepository.updateProviderPlanId(
+          db,
+          plan.code,
+          providerPlanId.trim()
+        );
+        if (updated) {
+          updatedPlans.push(plan.code);
+        }
       }
+    }
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Plan synchronization failed: missing provider plan ID for active plan(s) [${missing.join(', ')}]. Please configure provider plan mapping in RAZORPAY_PLAN_MAPPINGS.`
+      );
     }
 
     return {
       syncedCount: updatedPlans.length,
-      updatedPlans
+      updatedPlans,
+      unmappedPlans: []
     };
   }
 }

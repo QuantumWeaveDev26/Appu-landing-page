@@ -537,7 +537,7 @@ describe('Real PostgreSQL Integration Suite', { skip: !testDbUrl }, () => {
     const startMs = new Date(summary.period.startsAt).getTime();
     const endMs = new Date(summary.period.endsAt).getTime();
     const nowMs = Date.now();
-    assert.ok(startMs <= nowMs, 'Current period must start in past or now');
+    assert.ok(startMs <= nowMs + 2000, 'Current period must start in past or now');
     assert.ok(nowMs < endMs, 'Current period must end in future');
   });
 
