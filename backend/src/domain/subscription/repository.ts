@@ -13,12 +13,23 @@ import {
 interface PlanRow {
   id: string;
   code: string;
+  tier_code?: string | null;
+  tier_name?: string | null;
   name: string;
   description: string | null;
   currency: string;
   amount_paise: number;
   billing_interval: string;
+  annual_savings_paise?: number | null;
+  monthly_equivalent_paise?: number | null;
   is_active: boolean;
+  is_public?: boolean | null;
+  is_primary_card?: boolean | null;
+  is_recommended?: boolean | null;
+  checkout_enabled?: boolean | null;
+  display_order?: number | null;
+  cta_text?: string | null;
+  cta_action?: string | null;
   provider_plan_id: string | null;
   created_at: Date | string;
   updated_at: Date | string;
@@ -63,12 +74,23 @@ function mapPlanRow(row: PlanRow, entitlements: EntitlementsMap = {}): Plan {
   return {
     id: row.id,
     code: row.code,
+    tierCode: row.tier_code || row.code,
+    tierName: row.tier_name || row.name,
     name: row.name,
     description: row.description,
     currency: row.currency,
     amountPaise: Number(row.amount_paise),
     billingInterval: row.billing_interval,
+    annualSavingsPaise: row.annual_savings_paise !== undefined && row.annual_savings_paise !== null ? Number(row.annual_savings_paise) : 0,
+    monthlyEquivalentPaise: row.monthly_equivalent_paise !== undefined && row.monthly_equivalent_paise !== null ? Number(row.monthly_equivalent_paise) : Number(row.amount_paise),
     isActive: Boolean(row.is_active),
+    isPublic: row.is_public !== undefined && row.is_public !== null ? Boolean(row.is_public) : true,
+    isPrimaryCard: row.is_primary_card !== undefined && row.is_primary_card !== null ? Boolean(row.is_primary_card) : true,
+    isRecommended: Boolean(row.is_recommended),
+    checkoutEnabled: row.checkout_enabled !== undefined && row.checkout_enabled !== null ? Boolean(row.checkout_enabled) : true,
+    displayOrder: row.display_order !== undefined && row.display_order !== null ? Number(row.display_order) : 0,
+    ctaText: row.cta_text || null,
+    ctaAction: row.cta_action || 'checkout',
     providerPlanId: row.provider_plan_id,
     entitlements,
     createdAt: new Date(row.created_at),
@@ -114,10 +136,13 @@ export class SubscriptionRepository {
    */
   public static async listActivePlans(db: Queryable): Promise<Plan[]> {
     const plansResult = await db.query<PlanRow>(
-      `SELECT id, code, name, description, currency, amount_paise, billing_interval, is_active, provider_plan_id, created_at, updated_at
+      `SELECT id, code, tier_code, tier_name, name, description, currency, amount_paise, billing_interval,
+              annual_savings_paise, monthly_equivalent_paise, is_active, is_public, is_primary_card,
+              is_recommended, checkout_enabled, display_order, cta_text, cta_action, provider_plan_id,
+              created_at, updated_at
        FROM plans
        WHERE is_active = TRUE
-       ORDER BY amount_paise ASC;`
+       ORDER BY display_order ASC, amount_paise ASC;`
     );
 
     if (plansResult.rows.length === 0) {
@@ -148,11 +173,14 @@ export class SubscriptionRepository {
   }
 
   /**
-   * Retrieves an active plan by its unique code (e.g. 'growth').
+   * Retrieves an active plan by its unique code (e.g. 'evolve_monthly').
    */
   public static async getPlanByCode(db: Queryable, code: string): Promise<Plan | null> {
     const result = await db.query<PlanRow>(
-      `SELECT id, code, name, description, currency, amount_paise, billing_interval, is_active, provider_plan_id, created_at, updated_at
+      `SELECT id, code, tier_code, tier_name, name, description, currency, amount_paise, billing_interval,
+              annual_savings_paise, monthly_equivalent_paise, is_active, is_public, is_primary_card,
+              is_recommended, checkout_enabled, display_order, cta_text, cta_action, provider_plan_id,
+              created_at, updated_at
        FROM plans
        WHERE code = $1 AND is_active = TRUE;`,
       [code.trim().toLowerCase()]
@@ -187,7 +215,10 @@ export class SubscriptionRepository {
    */
   public static async getPlanById(db: Queryable, planId: string): Promise<Plan | null> {
     const result = await db.query<PlanRow>(
-      `SELECT id, code, name, description, currency, amount_paise, billing_interval, is_active, provider_plan_id, created_at, updated_at
+      `SELECT id, code, tier_code, tier_name, name, description, currency, amount_paise, billing_interval,
+              annual_savings_paise, monthly_equivalent_paise, is_active, is_public, is_primary_card,
+              is_recommended, checkout_enabled, display_order, cta_text, cta_action, provider_plan_id,
+              created_at, updated_at
        FROM plans
        WHERE id = $1;`,
       [planId]

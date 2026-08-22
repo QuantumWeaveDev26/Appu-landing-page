@@ -317,7 +317,16 @@
       throw new Error(err.error?.message || 'Failed to create subscription');
     }
 
-    const { keyId, providerSubscriptionId, subscriptionId } = await subRes.json();
+    const subData = await subRes.json();
+    const { keyId, providerSubscriptionId, subscriptionId, isFree } = subData;
+
+    // 1. FREE tier or provider-free subscription activates immediately without Razorpay modal
+    if (isFree || !providerSubscriptionId) {
+      if (onStatusUpdate) onStatusUpdate('Activating your companion plan...');
+      await fetchCurrentSubscription();
+      await fetchUsageSummary();
+      return state.subscription;
+    }
 
     return new Promise((resolve, reject) => {
       if (typeof window === 'undefined' || !window.Razorpay) {

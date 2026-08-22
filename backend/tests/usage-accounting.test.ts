@@ -113,9 +113,12 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     n8nClient = new MockN8nClient();
 
     await SubscriptionService.syncPlans(db, {
-      starterId: 'plan_starter_test',
-      growthId: 'plan_growth_test',
-      familyId: 'plan_family_test'
+      evolve_monthly: 'plan_evolve_mo_test',
+      evolve_annual: 'plan_evolve_yr_test',
+      evolve_plus_monthly: 'plan_evolve_plus_mo_test',
+      evolve_plus_annual: 'plan_evolve_plus_yr_test',
+      genesis_monthly: 'plan_genesis_mo_test',
+      genesis_annual: 'plan_genesis_yr_test'
     });
 
     const config = loadConfig({
@@ -124,9 +127,14 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       RAZORPAY_KEY_ID: 'rzp_test_key',
       RAZORPAY_KEY_SECRET: 'rzp_secret',
       RAZORPAY_WEBHOOK_SECRET: 'webhook_secret',
-      RAZORPAY_PLAN_STARTER_ID: 'plan_starter_test',
-      RAZORPAY_PLAN_GROWTH_ID: 'plan_growth_test',
-      RAZORPAY_PLAN_FAMILY_ID: 'plan_family_test'
+      RAZORPAY_PLAN_MAPPINGS: JSON.stringify({
+        evolve_monthly: 'plan_evolve_mo_test',
+        evolve_annual: 'plan_evolve_yr_test',
+        evolve_plus_monthly: 'plan_evolve_plus_mo_test',
+        evolve_plus_annual: 'plan_evolve_plus_yr_test',
+        genesis_monthly: 'plan_genesis_mo_test',
+        genesis_annual: 'plan_genesis_yr_test'
+      })
     });
 
     app = buildApp(config, {
@@ -150,10 +158,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Verma Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     const subscription = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_test_1',
       status: SubscriptionStates.ACTIVE
@@ -168,8 +176,8 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // Check usage before request
     const usageBefore = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usageBefore.aiSessions.used, 0);
-    assert.equal(usageBefore.aiSessions.limit, 100);
-    assert.equal(usageBefore.aiSessions.remaining, 100);
+    assert.equal(usageBefore.aiSessions.limit, 150);
+    assert.equal(usageBefore.aiSessions.remaining, 150);
 
     // Make authenticated Appu message request
     const res = await app.inject({
@@ -190,7 +198,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // Check usage after request: exactly 1 session consumed
     const usageAfter = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usageAfter.aiSessions.used, 1);
-    assert.equal(usageAfter.aiSessions.remaining, 99);
+    assert.equal(usageAfter.aiSessions.remaining, 149);
   });
 
   it('failed upstream provider request rolls back and does not permanently consume AI quota', async () => {
@@ -206,10 +214,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Sharma Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_test_2',
       status: SubscriptionStates.ACTIVE
@@ -241,7 +249,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // Quota remains 0 consumed because reservation was released
     const usage = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usage.aiSessions.used, 0);
-    assert.equal(usage.aiSessions.remaining, 100);
+    assert.equal(usage.aiSessions.remaining, 150);
   });
 
   it('exhausted AI quota rejects with 429 and does NOT invoke n8n', async () => {
@@ -257,10 +265,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Gupta Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     const subscription = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_test_3',
       status: SubscriptionStates.ACTIVE
@@ -272,13 +280,13 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       gradeBand: 'Grade 7'
     });
 
-    // Simulate 100 already-consumed sessions in the current period
+    // Simulate 150 already-consumed sessions in the current period
     const period = UsageRepository.resolveUsagePeriod(subscription);
     await db.query(
       `INSERT INTO usage_records (
          household_id, subscription_id, child_id, metric, quantity, status,
          period_start, period_end, created_at, updated_at
-       ) VALUES ($1, $2, $3, 'ai_sessions', 100, 'committed', $4, $5, NOW(), NOW())`,
+       ) VALUES ($1, $2, $3, 'ai_sessions', 150, 'committed', $4, $5, NOW(), NOW())`,
       [household.id, subscription.id, child.id, period.startsAt.toISOString(), period.endsAt.toISOString()]
     );
 
@@ -317,10 +325,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Mehta Household'
     });
 
-    const growthPlan = await SubscriptionRepository.getPlanByCode(db, 'growth');
+    const evolvePlusPlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_plus_monthly');
     const subscription = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: growthPlan!.id,
+      planId: evolvePlusPlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_growth_1',
       status: SubscriptionStates.ACTIVE
@@ -346,10 +354,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     assert.ok(body.period.startsAt);
     assert.ok(body.period.endsAt);
     assert.equal(body.aiSessions.used, 7);
-    assert.equal(body.aiSessions.limit, 300); // Growth plan limit
+    assert.equal(body.aiSessions.limit, 400); // Evolve+ plan limit
     assert.equal(body.voiceMinutes.used, 0);
-    assert.equal(body.voiceMinutes.limit, 90);
-    assert.equal(body.voiceMinutes.remaining, 90);
+    assert.equal(body.voiceMinutes.limit, 120);
+    assert.equal(body.voiceMinutes.remaining, 120);
     assert.equal(body.voiceMinutes.meteringStatus, 'active');
   });
 
@@ -371,10 +379,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Household B'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     await SubscriptionRepository.createSubscription(db, {
       householdId: hhA.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_a',
       status: SubscriptionStates.ACTIVE
@@ -382,7 +390,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
 
     await SubscriptionRepository.createSubscription(db, {
       householdId: hhB.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_b',
       status: SubscriptionStates.ACTIVE
@@ -421,10 +429,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Idempotency Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_test_idem',
       status: SubscriptionStates.ACTIVE
@@ -473,7 +481,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // Verify usage count is exactly 1 (not 2)
     const usage = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usage.aiSessions.used, 1);
-    assert.equal(usage.aiSessions.remaining, 99);
+    assert.equal(usage.aiSessions.remaining, 149);
   });
 
   it('OPTIONS /api/appu/message preflight accepts Idempotency-Key header and returns 204', async () => {
@@ -566,10 +574,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Child Delete Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     const sub = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_child_del',
       status: SubscriptionStates.ACTIVE
@@ -588,7 +596,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       childId: child.id,
       metric: 'ai_sessions',
       quantity: 1,
-      quotaLimit: 100
+      quotaLimit: 150
     });
     await UsageRepository.commitReservation(db, household.id, res.reservationId);
 
@@ -620,10 +628,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Conflict Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_test_conflict',
       status: SubscriptionStates.ACTIVE
@@ -693,10 +701,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Separate Household'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_test_separate',
       status: SubscriptionStates.ACTIVE
@@ -741,7 +749,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // Total used must be 2
     const usage = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usage.aiSessions.used, 2);
-    assert.equal(usage.aiSessions.remaining, 98);
+    assert.equal(usage.aiSessions.remaining, 148);
   });
 
   // ============================================================================
@@ -761,10 +769,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Voice Family 1'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     const sub = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_voice_1',
       status: SubscriptionStates.ACTIVE
@@ -805,8 +813,8 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(summary.voiceMinutes.meteringStatus, 'active');
     assert.equal(summary.voiceMinutes.used, 2.0); // 120,000 ms / 60,000 = 2.0 min
-    assert.equal(summary.voiceMinutes.limit, 30);
-    assert.equal(summary.voiceMinutes.remaining, 28.0);
+    assert.equal(summary.voiceMinutes.limit, 45);
+    assert.equal(summary.voiceMinutes.remaining, 43.0);
   });
 
   it('retrying with same idempotency-key does not double-charge voice duration', async () => {
@@ -822,10 +830,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Voice Family 2'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_voice_2',
       status: SubscriptionStates.ACTIVE
@@ -876,7 +884,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // Voice usage must be charged exactly once (1.0 min, not 2.0 min)
     const summary = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(summary.voiceMinutes.used, 1.0);
-    assert.equal(summary.voiceMinutes.remaining, 29.0);
+    assert.equal(summary.voiceMinutes.remaining, 44.0);
   });
 
   it('exhausted voice quota omits audio response while allowing AI text response to succeed', async () => {
@@ -892,10 +900,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Voice Family 3'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     const sub = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_voice_3',
       status: SubscriptionStates.ACTIVE
@@ -907,18 +915,18 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       gradeBand: 'Grade 2'
     });
 
-    // Exhaust 30 minutes of voice usage in advance (30 * 60,000 ms = 1,800,000 ms)
+    // Exhaust 45 minutes of voice usage in advance (45 * 60,000 ms = 2,700,000 ms)
     await UsageService.recordVoiceUsageAtomic(db, {
       householdId: household.id,
       subscriptionId: sub.id,
       childId: child.id,
-      durationMs: 1800000,
-      quotaLimitMs: 1800000,
+      durationMs: 2700000,
+      quotaLimitMs: 2700000,
       idempotencyKey: 'exhaust_voice_quota'
     });
 
     const preSummary = await UsageService.getHouseholdUsageSummary(db, household.id);
-    assert.equal(preSummary.voiceMinutes.used, 30.0);
+    assert.equal(preSummary.voiceMinutes.used, 45.0);
     assert.equal(preSummary.voiceMinutes.remaining, 0.0);
 
     // Upstream n8n would generate audio if called
@@ -952,7 +960,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     // AI session quota was consumed (1 session)
     const postSummary = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(postSummary.aiSessions.used, 1);
-    assert.equal(postSummary.voiceMinutes.used, 30.0);
+    assert.equal(postSummary.voiceMinutes.used, 45.0);
   });
 
   it('strict voice boundary: generated audio exceeding remaining quota is suppressed without charging', async () => {
@@ -968,10 +976,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Voice Boundary Family'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     const sub = await SubscriptionRepository.createSubscription(db, {
       householdId: household.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_voice_boundary',
       status: SubscriptionStates.ACTIVE
@@ -983,13 +991,13 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       gradeBand: 'Grade 4'
     });
 
-    // 1. Pre-charge 1,798,000 ms (29.966 min) -> Remaining = 2,000 ms (2 seconds)
+    // 1. Pre-charge 2,698,000 ms (44.966 min) -> Remaining = 2,000 ms (2 seconds) out of 45 min
     await UsageService.recordVoiceUsageAtomic(db, {
       householdId: household.id,
       subscriptionId: sub.id,
       childId: child.id,
-      durationMs: 1798000,
-      quotaLimitMs: 1800000,
+      durationMs: 2698000,
+      quotaLimitMs: 2700000,
       idempotencyKey: 'boundary_pre_charge'
     });
 
@@ -1021,7 +1029,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     assert.equal(body.audioDurationMs, null);
 
     const postSummary = await UsageService.getHouseholdUsageSummary(db, household.id);
-    assert.equal(postSummary.voiceMinutes.used, 30.0); // 1,798,000 / 60,000 = 29.966 -> rounded display
+    assert.equal(postSummary.voiceMinutes.used, 45.0); // 2,698,000 / 60,000 = 44.966 -> rounded display
     assert.ok(postSummary.voiceMinutes.remaining >= 0);
   });
 
@@ -1044,11 +1052,11 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       householdName: 'Household B'
     });
 
-    const starterPlan = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
 
     const subA = await SubscriptionRepository.createSubscription(db, {
       householdId: hhA.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_iso_a',
       status: SubscriptionStates.ACTIVE
@@ -1056,18 +1064,18 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
 
     const subB = await SubscriptionRepository.createSubscription(db, {
       householdId: hhB.id,
-      planId: starterPlan!.id,
+      planId: evolvePlan!.id,
       provider: 'razorpay',
       providerSubscriptionId: 'sub_iso_b',
       status: SubscriptionStates.ACTIVE
     });
 
-    // Record 600,000 ms (10.0 min) for Household A
+    // Record 600,000 ms (10.0 min) for Household A (quotaLimit = 2,700,000 ms)
     await UsageService.recordVoiceUsageAtomic(db, {
       householdId: hhA.id,
       subscriptionId: subA.id,
       durationMs: 600000,
-      quotaLimitMs: 1800000,
+      quotaLimitMs: 2700000,
       idempotencyKey: 'iso_voice_a'
     });
 
@@ -1075,11 +1083,11 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     const summaryB = await UsageService.getHouseholdUsageSummary(db, hhB.id);
 
     assert.equal(summaryA.voiceMinutes.used, 10.0);
-    assert.equal(summaryA.voiceMinutes.remaining, 20.0);
+    assert.equal(summaryA.voiceMinutes.remaining, 35.0);
 
-    // Household B must have 0 used and full 30.0 min remaining
+    // Household B must have 0 used and full 45.0 min remaining
     assert.equal(summaryB.voiceMinutes.used, 0.0);
-    assert.equal(summaryB.voiceMinutes.remaining, 30.0);
+    assert.equal(summaryB.voiceMinutes.remaining, 45.0);
   });
 });
 

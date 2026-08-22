@@ -83,9 +83,12 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
 
     // Sync plans with mock provider IDs by default for route tests
     await SubscriptionService.syncPlans(db, {
-      starterId: 'plan_rzp_starter_test',
-      growthId: 'plan_rzp_growth_test',
-      familyId: 'plan_rzp_family_test'
+      evolve_monthly: 'plan_rzp_evolve_mo_test',
+      evolve_annual: 'plan_rzp_evolve_yr_test',
+      evolve_plus_monthly: 'plan_rzp_evolve_plus_mo_test',
+      evolve_plus_annual: 'plan_rzp_evolve_plus_yr_test',
+      genesis_monthly: 'plan_rzp_genesis_mo_test',
+      genesis_annual: 'plan_rzp_genesis_yr_test'
     });
 
     authVerifier = new MockAuthVerifier();
@@ -99,9 +102,14 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       RAZORPAY_KEY_ID: 'rzp_test_mockKeyId',
       RAZORPAY_KEY_SECRET: 'mock_secret_key',
       RAZORPAY_WEBHOOK_SECRET: 'mock_webhook_secret',
-      RAZORPAY_PLAN_STARTER_ID: 'plan_rzp_starter_test',
-      RAZORPAY_PLAN_GROWTH_ID: 'plan_rzp_growth_test',
-      RAZORPAY_PLAN_FAMILY_ID: 'plan_rzp_family_test'
+      RAZORPAY_PLAN_MAPPINGS: JSON.stringify({
+        evolve_monthly: 'plan_rzp_evolve_mo_test',
+        evolve_annual: 'plan_rzp_evolve_yr_test',
+        evolve_plus_monthly: 'plan_rzp_evolve_plus_mo_test',
+        evolve_plus_annual: 'plan_rzp_evolve_plus_yr_test',
+        genesis_monthly: 'plan_rzp_genesis_mo_test',
+        genesis_annual: 'plan_rzp_genesis_yr_test'
+      })
     });
 
     app = buildApp(config, {
@@ -116,10 +124,10 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
   });
 
   // ============================================================================
-  // 1. PUBLIC PLANS API & PRICE CORRECTIONS (MIGRATION 003)
+  // 1. PUBLIC PLANS API & APPROVED STUDENT CATALOGUE
   // ============================================================================
 
-  test('GET /api/plans returns updated corrected test plan prices (299, 599, 999)', async () => {
+  test('GET /api/plans returns approved student catalogue with tier metadata', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/plans'
@@ -128,60 +136,83 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
     assert.equal(res.statusCode, 200);
     const payload = JSON.parse(res.payload);
     assert.ok(Array.isArray(payload.plans));
-    assert.equal(payload.plans.length, 3);
+    assert.equal(payload.plans.length, 8);
 
-    const starter = payload.plans.find((p: any) => p.code === 'starter');
-    assert.ok(starter);
-    assert.equal(starter.amountPaise, 29900, 'Starter must be ₹299 (29900 paise)');
-    assert.equal(starter.displayPrice, '₹299/mo');
-    assert.equal(starter.entitlements.max_children, 1);
+    const free = payload.plans.find((p: any) => p.code === 'free');
+    assert.ok(free);
+    assert.equal(free.amountPaise, 0);
+    assert.equal(free.displayPrice, '₹0');
+    assert.equal(free.entitlements.max_children, 1);
 
-    const growth = payload.plans.find((p: any) => p.code === 'growth');
-    assert.ok(growth);
-    assert.equal(growth.amountPaise, 59900, 'Growth must be ₹599 (59900 paise)');
-    assert.equal(growth.displayPrice, '₹599/mo');
-    assert.equal(growth.entitlements.max_children, 2);
+    const evolveMo = payload.plans.find((p: any) => p.code === 'evolve_monthly');
+    assert.ok(evolveMo);
+    assert.equal(evolveMo.amountPaise, 49900, 'Evolve Monthly must be ₹499');
+    assert.equal(evolveMo.displayPrice, '₹499/mo');
+    assert.equal(evolveMo.entitlements.max_children, 1);
 
-    const family = payload.plans.find((p: any) => p.code === 'family');
-    assert.ok(family);
-    assert.equal(family.amountPaise, 99900, 'Family must be ₹999 (99900 paise)');
-    assert.equal(family.displayPrice, '₹999/mo');
-    assert.equal(family.entitlements.max_children, 4);
+    const evolveYr = payload.plans.find((p: any) => p.code === 'evolve_annual');
+    assert.ok(evolveYr);
+    assert.equal(evolveYr.amountPaise, 499900, 'Evolve Annual must be ₹4,999');
+    assert.equal(evolveYr.displayPrice, '₹4,999/yr');
+    assert.equal(evolveYr.annualSavingsPaise, 98900);
+
+    const evolvePlusYr = payload.plans.find((p: any) => p.code === 'evolve_plus_annual');
+    assert.ok(evolvePlusYr);
+    assert.equal(evolvePlusYr.amountPaise, 999900);
+    assert.equal(evolvePlusYr.isRecommended, true);
+
+    const sig = payload.plans.find((p: any) => p.code === 'signature');
+    assert.ok(sig);
+    assert.equal(sig.checkoutEnabled, false);
   });
 
   // ============================================================================
   // 2. PLAN SYNCHRONIZATION SERVICE & CLI LOGIC
   // ============================================================================
 
-  test('SubscriptionService.syncPlans maps all three plans and is idempotent', async () => {
+  test('SubscriptionService.syncPlans maps student plans and is idempotent', async () => {
     const freshDb = createTestDatabase();
     await runMigrations(freshDb);
 
     // Initial state: provider_plan_id is null from migration
     const beforePlans = await SubscriptionRepository.listActivePlans(freshDb);
-    assert.equal(beforePlans.every((p) => p.providerPlanId === null), true);
+    const paidPlans = beforePlans.filter((p) => p.checkoutEnabled && p.amountPaise > 0);
+    assert.equal(paidPlans.every((p) => p.providerPlanId === null), true);
 
     // 1. First sync run
     const result1 = await SubscriptionService.syncPlans(freshDb, {
-      starterId: 'plan_starter_custom_1',
-      growthId: 'plan_growth_custom_2',
-      familyId: 'plan_family_custom_3'
+      evolve_monthly: 'plan_evolve_custom_1',
+      evolve_annual: 'plan_evolve_custom_2',
+      evolve_plus_monthly: 'plan_evolve_plus_custom_3',
+      evolve_plus_annual: 'plan_evolve_plus_custom_4',
+      genesis_monthly: 'plan_genesis_custom_5',
+      genesis_annual: 'plan_genesis_custom_6'
     });
 
-    assert.equal(result1.syncedCount, 3);
-    assert.deepEqual(result1.updatedPlans, ['starter', 'growth', 'family']);
+    assert.equal(result1.syncedCount, 6);
+    assert.deepEqual(result1.updatedPlans.sort(), [
+      'evolve_annual',
+      'evolve_monthly',
+      'evolve_plus_annual',
+      'evolve_plus_monthly',
+      'genesis_annual',
+      'genesis_monthly'
+    ].sort());
 
     const afterPlans1 = await SubscriptionRepository.listActivePlans(freshDb);
-    const starter1 = afterPlans1.find((p) => p.code === 'starter');
-    assert.equal(starter1?.providerPlanId, 'plan_starter_custom_1');
+    const evolve1 = afterPlans1.find((p) => p.code === 'evolve_monthly');
+    assert.equal(evolve1?.providerPlanId, 'plan_evolve_custom_1');
 
     // 2. Second sync run (idempotent update)
     const result2 = await SubscriptionService.syncPlans(freshDb, {
-      starterId: 'plan_starter_custom_1',
-      growthId: 'plan_growth_custom_2',
-      familyId: 'plan_family_custom_3'
+      evolve_monthly: 'plan_evolve_custom_1',
+      evolve_annual: 'plan_evolve_custom_2',
+      evolve_plus_monthly: 'plan_evolve_plus_custom_3',
+      evolve_plus_annual: 'plan_evolve_plus_custom_4',
+      genesis_monthly: 'plan_genesis_custom_5',
+      genesis_annual: 'plan_genesis_custom_6'
     });
-    assert.equal(result2.syncedCount, 3);
+    assert.equal(result2.syncedCount, 6);
   });
 
   test('SubscriptionService.syncPlans fails safely when required plan IDs are missing', async () => {
@@ -191,15 +222,12 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
     await assert.rejects(
       async () => {
         await SubscriptionService.syncPlans(freshDb, {
-          starterId: 'plan_starter_only',
-          growthId: '',
-          familyId: undefined
+          evolve_monthly: 'plan_evolve_only'
         });
       },
       (err: any) => {
         return (
-          err.message.includes('growth') &&
-          err.message.includes('family') &&
+          err.message.includes('evolve_annual') &&
           err.message.includes('missing provider plan ID')
         );
       }
@@ -240,7 +268,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       method: 'POST',
       url: '/api/subscriptions',
       headers: { authorization: `Bearer ${token}` },
-      payload: { planCode: 'starter' }
+      payload: { planCode: 'evolve_monthly' }
     });
 
     assert.equal(res.statusCode, 400);
@@ -268,21 +296,21 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       payload: { householdName: 'Sub Test Household' }
     });
 
-    // 2. Request Growth plan subscription
+    // 2. Request Evolve Monthly plan subscription
     razorpayClient.nextSubscriptionId = 'sub_rzp_test_1001';
     const subRes = await app.inject({
       method: 'POST',
       url: '/api/subscriptions',
       headers: { authorization: `Bearer ${token}` },
-      payload: { planCode: 'growth' }
+      payload: { planCode: 'evolve_monthly' }
     });
 
     assert.equal(subRes.statusCode, 201);
     const subPayload = JSON.parse(subRes.payload);
     assert.ok(subPayload.subscriptionId);
     assert.equal(subPayload.providerSubscriptionId, 'sub_rzp_test_1001');
-    assert.equal(subPayload.planCode, 'growth');
-    assert.equal(subPayload.amountPaise, 59900, 'Growth amount must be 59900 paise');
+    assert.equal(subPayload.planCode, 'evolve_monthly');
+    assert.equal(subPayload.amountPaise, 49900, 'Evolve monthly amount must be 49900 paise');
     assert.equal(subPayload.status, SubscriptionStates.PENDING_PAYMENT);
 
     // Verify DB record
@@ -337,7 +365,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       method: 'POST',
       url: '/api/subscriptions',
       headers: { authorization: `Bearer ${token}` },
-      payload: { planCode: 'starter' }
+      payload: { planCode: 'evolve_monthly' }
     });
 
     // Compute valid checkout signature: HMAC_SHA256(paymentId + "|" + subscriptionId, secretKey)
@@ -396,7 +424,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       method: 'POST',
       url: '/api/subscriptions',
       headers: { authorization: `Bearer ${token}` },
-      payload: { planCode: 'starter' }
+      payload: { planCode: 'evolve_monthly' }
     });
 
     const verifyRes = await app.inject({
@@ -436,7 +464,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       method: 'POST',
       url: '/api/subscriptions',
       headers: { authorization: `Bearer ${token}` },
-      payload: { planCode: 'family' }
+      payload: { planCode: 'evolve_plus_monthly' }
     });
 
     // Construct Razorpay subscription.activated webhook body
@@ -476,7 +504,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
     assert.equal(webhookPayload.received, true);
     assert.equal(webhookPayload.status, 'processed');
 
-    // Verify GET /api/subscriptions/current now reports ACTIVE and grants Family entitlements
+    // Verify GET /api/subscriptions/current now reports ACTIVE and grants Evolve+ entitlements
     const currentRes = await app.inject({
       method: 'GET',
       url: '/api/subscriptions/current',
@@ -486,9 +514,9 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
     const currentPayload = JSON.parse(currentRes.payload);
     assert.equal(currentPayload.subscription.status, 'ACTIVE');
     assert.ok(currentPayload.entitlements);
-    assert.equal(currentPayload.entitlements.max_children, 4);
-    assert.equal(currentPayload.entitlements.monthly_voice_minutes, 200);
-    assert.equal(currentPayload.entitlements.premium_themes, true);
+    assert.equal(currentPayload.entitlements.max_children, 1);
+    assert.equal(currentPayload.entitlements.monthly_voice_minutes, 120);
+    assert.equal(currentPayload.entitlements.advanced_personalisation, true);
   });
 
   test('POST /api/webhooks/razorpay duplicate event is safely ignored (idempotency)', async () => {
@@ -587,7 +615,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       method: 'POST',
       url: '/api/subscriptions',
       headers: { authorization: `Bearer ${tokenB}` },
-      payload: { planCode: 'growth' }
+      payload: { planCode: 'evolve_monthly' }
     });
 
     // 3. Parent A attempts to verify checkout for Parent B's subscription

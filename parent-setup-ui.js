@@ -231,7 +231,6 @@
           const currentPlanCard = document.createElement('div');
           currentPlanCard.className = 'pos-current-plan-card';
 
-          const pctLearnersUsed = Math.min(100, Math.round((vm.childCount / (vm.maxChildren || 1)) * 100));
           const pctAiUsed = Math.min(100, Math.round((vm.aiSessions.used / (vm.aiSessions.limit || 1)) * 100));
           const pctVoiceUsed = vm.voiceMinutes.used !== null
             ? Math.min(100, Math.round((vm.voiceMinutes.used / (vm.voiceMinutes.limit || 1)) * 100))
@@ -262,13 +261,12 @@
               </div>
               <div class="pos-status-pill active"><i class="fa-solid fa-circle-check"></i> ACTIVE</div>
             </div>
-            <div class="pos-price-tag">${vm.displayPrice} <span>/ month</span></div>
+            <div class="pos-price-tag">${vm.displayPrice} <span>/ ${vm.billingInterval || 'month'}</span></div>
             <p class="pos-status-msg">${vm.statusMessage}</p>
 
             <div class="pos-plan-features-box">
               <strong>Included with your plan:</strong>
               <ul class="pos-features-list">
-                <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${vm.maxChildren} learner slot${vm.maxChildren > 1 ? 's' : ''}</strong></li>
                 <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.aiSessions.limit} AI sessions</strong> / month included</li>
                 <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.voiceMinutes.limit} voice minutes</strong> / month included ${voiceStatusPill}</li>
                 <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
@@ -286,16 +284,6 @@
             </div>
 
             ${voiceMeterBox}
-
-            <div class="pos-usage-meter-box" style="margin-top: 6px;">
-              <div class="pos-usage-meter-label">
-                <span>Learner slots</span>
-                <strong>${vm.childCount} of ${vm.maxChildren} used</strong>
-              </div>
-              <div class="pos-meter-track">
-                <div class="pos-meter-fill" style="width: ${pctLearnersUsed}%;"></div>
-              </div>
-            </div>
 
             <div class="pos-card-actions">
               <button id="pos-btn-continue-plan" class="primary-modal-btn" type="button">
@@ -357,32 +345,64 @@
                 <i class="fa-solid fa-arrow-right"></i>
               </button>
             </div>
-            <div id="pos-plans-select-grid" class="pos-plans-grid" style="display:none; margin-top: 15px;"></div>
+            <div id="pos-plans-select-grid-wrap" style="display:none; margin-top: 15px;">
+              <div id="pos-plans-select-grid" class="pos-plans-grid"></div>
+            </div>
           `;
 
           plansContainer.appendChild(subNotice);
 
           const btnAct = subNotice.querySelector('#pos-btn-activate-plan');
+          const gridWrap = subNotice.querySelector('#pos-plans-select-grid-wrap');
           const grid = subNotice.querySelector('#pos-plans-select-grid');
-          if (btnAct && grid) {
+          if (btnAct && gridWrap && grid) {
             btnAct.addEventListener('click', () => {
-              grid.style.display = 'grid';
+              gridWrap.style.display = 'block';
               btnAct.style.display = 'none';
               renderPlansGrid(grid);
             });
           }
 
         } else {
-          // NO SUBSCRIPTION: RENDER SELECTION GRID
+          // NO SUBSCRIPTION: RENDER SELECTION VIEW WITH BILLING INTERVAL TOGGLE
           const gridTitle = document.createElement('p');
           gridTitle.className = 'pos-subtitle';
-          gridTitle.textContent = 'Choose an AI Learning Companion Plan:';
+          gridTitle.textContent = 'Choose an APPU AI Learning Companion Plan:';
           plansContainer.appendChild(gridTitle);
+
+          let currentInterval = 'yearly';
+
+          const toggleWrap = document.createElement('div');
+          toggleWrap.className = 'pos-interval-toggle';
+          toggleWrap.innerHTML = `
+            <button type="button" class="pos-interval-btn ${currentInterval === 'yearly' ? 'active' : ''}" data-interval="yearly">
+              Annual <span class="pos-interval-save-badge">Save up to ₹4,989</span>
+            </button>
+            <button type="button" class="pos-interval-btn ${currentInterval === 'monthly' ? 'active' : ''}" data-interval="monthly">
+              Monthly
+            </button>
+          `;
+          plansContainer.appendChild(toggleWrap);
 
           const grid = document.createElement('div');
           grid.className = 'pos-plans-grid';
           plansContainer.appendChild(grid);
-          renderPlansGrid(grid);
+
+          const updateInterval = (newInterval) => {
+            currentInterval = newInterval;
+            toggleWrap.querySelectorAll('.pos-interval-btn').forEach((b) => {
+              b.classList.toggle('active', b.dataset.interval === newInterval);
+            });
+            renderPlansGrid(grid, currentInterval);
+          };
+
+          toggleWrap.querySelectorAll('.pos-interval-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              if (btn.dataset.interval) updateInterval(btn.dataset.interval);
+            });
+          });
+
+          renderPlansGrid(grid, currentInterval);
         }
 
       } catch (err) {
@@ -391,40 +411,124 @@
     }
 
     /**
-     * Renders plan purchase cards for unpaid or new subscriptions.
+     * Renders primary public student plan cards (Free, Evolve, Evolve+, Signature).
      */
-    function renderPlansGrid(container) {
-      const plans = window.ParentOnboardingShell.state.plans || [];
+    function renderPlansGrid(container, interval = 'yearly') {
+      const allPlans = window.ParentOnboardingShell.state.plans || [];
       container.innerHTML = '';
 
-      plans.forEach((p) => {
+      // Tiers to display on primary public pricing
+      const primaryTiers = ['free', 'evolve', 'evolve_plus', 'signature'];
+
+      primaryTiers.forEach((tierCode) => {
+        // Find matching plan for tier and interval (Free & Signature share single tier)
+        let plan = allPlans.find((p) => (p.tierCode === tierCode || p.code === tierCode) && (p.billingInterval === interval || p.billingInterval === 'free' || tierCode === 'free' || tierCode === 'signature'));
+
+        if (!plan) {
+          plan = allPlans.find((p) => p.tierCode === tierCode || p.code === tierCode);
+        }
+        if (!plan) return;
+
         const card = document.createElement('div');
-        const isFeatured = Boolean(p.isFeatured || p.is_featured || p.code === 'growth');
-        const badgeText = p.badge || (p.code === 'growth' ? 'Most Popular' : null);
-        card.className = `pos-plan-card ${isFeatured ? 'featured' : ''}`;
-        const priceRupees = Math.round(p.amountPaise / 100);
-        const maxChildren = p.entitlements?.max_children ?? 1;
+        const isRecommended = Boolean(plan.isRecommended || tierCode === 'evolve_plus');
+        const isSignature = tierCode === 'signature';
+        const isFree = tierCode === 'free';
+
+        card.className = `pos-plan-card ${isRecommended ? 'featured' : ''}`;
+
+        let badgeHtml = '';
+        if (isRecommended) {
+          badgeHtml = '<span class="pos-badge">MOST POPULAR</span>';
+        } else if (isSignature) {
+          badgeHtml = '<span class="pos-badge bespoke">BESPOKE</span>';
+        }
+
+        let priceHtml = '';
+        let equivHtml = '';
+
+        if (isFree) {
+          priceHtml = '<div class="pos-price">₹0</div>';
+          equivHtml = '<div style="font-size: 11px; color: #86efac; margin-bottom: 8px;">No credit card required</div>';
+        } else if (isSignature) {
+          const sigPrice = interval === 'yearly' ? 'From ₹49,999' : 'From ₹4,999';
+          priceHtml = `<div class="pos-price">${sigPrice}<span>/${interval === 'yearly' ? 'yr' : 'mo'}</span></div>`;
+          equivHtml = '<div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Custom institutional architecture</div>';
+        } else {
+          const priceNum = Math.round(plan.amountPaise / 100);
+          if (interval === 'yearly') {
+            const equivMo = Math.round((plan.monthlyEquivalentPaise || (plan.amountPaise / 12)) / 100);
+            const savings = Math.round((plan.annualSavingsPaise || 0) / 100);
+            priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')}<span>/year</span></div>`;
+            equivHtml = `<div style="font-size: 11px; color: #86efac; margin-bottom: 8px;">₹${equivMo}/mo equivalent • Save ₹${savings.toLocaleString('en-IN')}</div>`;
+          } else {
+            priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')}<span>/month</span></div>`;
+            equivHtml = '<div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Billed monthly</div>';
+          }
+        }
+
+        const aiSessions = plan.entitlements?.monthly_ai_sessions ?? (isFree ? 20 : tierCode === 'evolve' ? 150 : tierCode === 'evolve_plus' ? 400 : 1000);
+        const voiceMins = plan.entitlements?.monthly_voice_minutes ?? (isFree ? 5 : tierCode === 'evolve' ? 45 : tierCode === 'evolve_plus' ? 120 : 300);
+
+        let featuresHtml = '';
+        if (isFree) {
+          featuresHtml = `
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${aiSessions} AI sessions</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${voiceMins} voice mins</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Basic learning discovery</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Essential subject practice</li>
+          `;
+        } else if (tierCode === 'evolve') {
+          featuresHtml = `
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${aiSessions} AI sessions</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${voiceMins} voice mins</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Persistent learner profile & memory</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Adaptive learning paths & storytelling</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Weekly missions & gamification</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual companion</li>
+          `;
+        } else if (tierCode === 'evolve_plus') {
+          featuresHtml = `
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${aiSessions} AI sessions</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${voiceMins} voice mins</strong> / month</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Advanced personalisation & deep memory</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Strength identification & gap detection</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Goal journeys & project learning</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Parent insights & progress intelligence</li>
+          `;
+        } else if (isSignature) {
+          featuresHtml = `
+            <li><i class="fa-solid fa-check text-cyan"></i> Custom AI & voice session allocation</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Tailored curriculum & institutional blueprints</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Dedicated learning architect & priority SLA</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Custom reporting & parent advisory</li>
+          `;
+        }
+
+        const ctaBtnText = isFree ? 'Start Free' : isSignature ? 'Apply for Signature' : `Choose ${plan.tierName || plan.name}`;
 
         card.innerHTML = `
-          ${badgeText ? `<span class="pos-badge">${badgeText}</span>` : ''}
-          <h3>${p.name}</h3>
-          <div class="pos-price">₹${priceRupees}<span>/month</span></div>
-          <p class="pos-plan-desc">${p.description || ''}</p>
+          ${badgeHtml}
+          <h3>${plan.tierName || plan.name}</h3>
+          ${priceHtml}
+          ${equivHtml}
+          <p class="pos-plan-desc">${plan.description || ''}</p>
           <ul class="pos-features">
-            <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${maxChildren} learner${maxChildren > 1 ? 's' : ''}</strong></li>
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_ai_sessions || 100} AI sessions</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_voice_minutes || 30} voice mins</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual explanations</li>
+            ${featuresHtml}
           </ul>
-          <button class="pos-plan-btn" data-code="${p.code}" type="button">Select ${p.name}</button>
+          <button class="pos-plan-btn" data-code="${plan.code}" type="button">${ctaBtnText}</button>
         `;
 
         const btnSelect = card.querySelector('.pos-plan-btn');
         btnSelect.addEventListener('click', async () => {
+          if (isSignature) {
+            showAlert('Signature is our bespoke institutional solution. Please reach out to our team at support@appu.ai or schedule a consultation.', 'success');
+            return;
+          }
+
           try {
             btnSelect.disabled = true;
-            btnSelect.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Starting Checkout...`;
-            await window.ParentOnboardingShell.subscribeToPlan(p.code, (status) => {
+            btnSelect.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${isFree ? 'Activating Free Plan...' : 'Starting Checkout...'}`;
+            await window.ParentOnboardingShell.subscribeToPlan(plan.code, (status) => {
               if (planStatusText) planStatusText.textContent = status;
             });
             await renderChildStep();
@@ -432,7 +536,7 @@
             showAlert(err.message || 'Subscription failed');
           } finally {
             btnSelect.disabled = false;
-            btnSelect.textContent = `Select ${p.name}`;
+            btnSelect.textContent = ctaBtnText;
             if (planStatusText) planStatusText.textContent = '';
           }
         });
@@ -448,35 +552,51 @@
       const plans = window.ParentOnboardingShell.state.plans || [];
       container.innerHTML = '';
 
-      plans.forEach((p) => {
+      // Group active plans
+      plans.filter((p) => p.isPublic !== false).forEach((p) => {
         const isCurrent = p.code === activePlanCode;
         const card = document.createElement('div');
         card.className = `pos-plan-card ${isCurrent ? 'featured' : ''}`;
         const priceRupees = Math.round(p.amountPaise / 100);
-        const maxChildren = p.entitlements?.max_children ?? 1;
 
         card.innerHTML = `
-          ${isCurrent ? '<span class="pos-badge" style="background:#86efac; color:#042f1a;">CURRENT PLAN</span>' : '<span class="pos-badge">UPGRADE OPTION</span>'}
+          ${isCurrent ? '<span class="pos-badge" style="background:#86efac; color:#042f1a;">CURRENT PLAN</span>' : ''}
           <h3>${p.name}</h3>
-          <div class="pos-price">₹${priceRupees}<span>/month</span></div>
+          <div class="pos-price">${p.displayPrice || `₹${priceRupees}`}</div>
           <p class="pos-plan-desc">${p.description || ''}</p>
           <ul class="pos-features">
-            <li><i class="fa-solid fa-check text-cyan"></i> Up to <strong>${maxChildren} learner${maxChildren > 1 ? 's' : ''}</strong></li>
             <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_ai_sessions || 100} AI sessions</strong> / month</li>
             <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_voice_minutes || 30} voice mins</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual explanations</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
           </ul>
           ${
             isCurrent
               ? `<button class="pos-plan-btn" disabled style="opacity: 0.7; background: #86efac; color: #042f1a;">Active Plan</button>`
-              : `<button class="pos-secondary-btn pos-btn-upgrade-notice" type="button">Upgrade (Coming Soon)</button>`
+              : `<button class="pos-secondary-btn pos-btn-upgrade-notice" type="button">Switch Plan</button>`
           }
         `;
 
         const btnUpgrade = card.querySelector('.pos-btn-upgrade-notice');
         if (btnUpgrade) {
-          btnUpgrade.addEventListener('click', () => {
-            showAlert('Seamless in-app plan upgrades will be available in the next release. Contact support if you need immediate capacity expansion.', 'success');
+          btnUpgrade.addEventListener('click', async () => {
+            if (p.code === 'signature') {
+              showAlert('Please apply for Signature with our team at support@appu.ai.', 'success');
+              return;
+            }
+            try {
+              btnUpgrade.disabled = true;
+              btnUpgrade.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+              await window.ParentOnboardingShell.subscribeToPlan(p.code, (status) => {
+                if (planStatusText) planStatusText.textContent = status;
+              });
+              await renderPlansStep();
+            } catch (err) {
+              showAlert(err.message || 'Plan update failed');
+            } finally {
+              btnUpgrade.disabled = false;
+              btnUpgrade.textContent = 'Switch Plan';
+              if (planStatusText) planStatusText.textContent = '';
+            }
           });
         }
 
@@ -506,16 +626,16 @@
         summaryBar.innerHTML = `
           <div>
             <span class="pos-pill-sm ${vm.statusBadgeClass}">${vm.statusLabel}</span>
-            <strong>${vm.planName} (${vm.displayPrice}/mo)</strong>
+            <strong>${vm.planName}</strong>
           </div>
-          <span>Learners: <strong>${vm.childCount} / ${vm.maxChildren}</strong></span>
+          <span style="font-size: 11px; color: var(--muted);">${vm.displayPrice}</span>
         `;
         childListContainer.appendChild(summaryBar);
 
         if (vm.children.length > 0) {
           const listTitle = document.createElement('h4');
           listTitle.className = 'pos-subtitle';
-          listTitle.textContent = 'Select Learner Profile:';
+          listTitle.textContent = 'Learner Profile:';
           childListContainer.appendChild(listTitle);
 
           vm.children.forEach((c) => {
@@ -557,18 +677,18 @@
 
         // Learner Quota Limit UX
         if (!vm.canAddLearner) {
-          // Quota reached: hide child form and show informative upgrade prompt
+          // Quota reached: hide child form and show informative profile active prompt
           if (childNewFormWrap) childNewFormWrap.style.display = 'none';
 
           const quotaNotice = document.createElement('div');
           quotaNotice.className = 'pos-quota-box';
           quotaNotice.innerHTML = `
-            <i class="fa-solid fa-circle-info text-cyan"></i>
+            <i class="fa-solid fa-circle-check text-cyan"></i>
             <div>
-              <strong>Learner limit reached (${vm.childCount} of ${vm.maxChildren} used)</strong>
-              <p>Your current ${vm.planName.endsWith('Plan') ? vm.planName : `${vm.planName} Plan`} supports up to ${vm.maxChildren} learner${vm.maxChildren > 1 ? 's' : ''}.</p>
+              <strong>Learner profile active</strong>
+              <p>Your student companion is configured for this learner profile.</p>
               <button id="pos-btn-view-upgrade-from-quota" class="pos-link-btn" type="button">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> View / Upgrade Plans
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Manage Subscription Plans
               </button>
             </div>
           `;

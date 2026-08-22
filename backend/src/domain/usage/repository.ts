@@ -45,6 +45,83 @@ function mapUsageRecordRow(row: UsageRecordRow): UsageRecord {
   };
 }
 
+/**
+ * Computes the k-th calendar-month anniversary date anchored to an initial Date in UTC.
+ *
+ * Rules & Invariants:
+ * 1. Preserves original time of day in UTC (hours, minutes, seconds, milliseconds).
+ * 2. Target month is (anchorMonth + monthsToAdd).
+ * 3. Target day is Math.min(anchorDay, daysInTargetMonth).
+ *    - Example with anchorDay = 31:
+ *      - Jan 31 (k=0) -> Jan 31
+ *      - Feb (k=1)    -> Feb 28 (or Feb 29 in leap year) [Clamped to end of month]
+ *      - Mar (k=2)    -> Mar 31 [Recovers original 31st]
+ *      - Apr (k=3)    -> Apr 30 [Clamped to 30th]
+ *      - May (k=4)    -> May 31 [Recovers original 31st]
+ */
+export function getMonthlyAnniversary(anchor: Date, monthsToAdd: number): Date {
+  const anchorDate = new Date(anchor);
+  const anchorYear = anchorDate.getUTCFullYear();
+  const anchorMonth = anchorDate.getUTCMonth();
+  const anchorDay = anchorDate.getUTCDate();
+  const hours = anchorDate.getUTCHours();
+  const minutes = anchorDate.getUTCMinutes();
+  const seconds = anchorDate.getUTCSeconds();
+  const ms = anchorDate.getUTCMilliseconds();
+
+  const totalMonths = anchorYear * 12 + anchorMonth + monthsToAdd;
+  const targetYear = Math.floor(totalMonths / 12);
+  const targetMonth = totalMonths % 12;
+
+  // Day 0 of next month in UTC returns the last day of targetMonth
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const targetDay = Math.min(anchorDay, daysInTargetMonth);
+
+  return new Date(Date.UTC(targetYear, targetMonth, targetDay, hours, minutes, seconds, ms));
+}
+
+/**
+ * Resolves the active monthly billing cycle [startsAt, endsAt) for a given reference time.
+ */
+export function resolveMonthlyCycle(
+  anchor: Date,
+  referenceTimeMs: number,
+  periodEndLimit?: Date | null
+): { startsAt: Date; endsAt: Date } {
+  const anchorMs = new Date(anchor).getTime();
+  if (isNaN(anchorMs) || referenceTimeMs < anchorMs) {
+    const startsAt = new Date(isNaN(anchorMs) ? referenceTimeMs : anchorMs);
+    const endsAt = getMonthlyAnniversary(startsAt, 1);
+    return { startsAt, endsAt };
+  }
+
+  const anchorDate = new Date(anchor);
+  const refDate = new Date(referenceTimeMs);
+
+  let k =
+    (refDate.getUTCFullYear() - anchorDate.getUTCFullYear()) * 12 +
+    (refDate.getUTCMonth() - anchorDate.getUTCMonth());
+
+  while (k > 0 && referenceTimeMs < getMonthlyAnniversary(anchor, k).getTime()) {
+    k--;
+  }
+  while (referenceTimeMs >= getMonthlyAnniversary(anchor, k + 1).getTime()) {
+    k++;
+  }
+
+  const startsAt = getMonthlyAnniversary(anchor, k);
+  let endsAt = getMonthlyAnniversary(anchor, k + 1);
+
+  if (periodEndLimit) {
+    const limitMs = new Date(periodEndLimit).getTime();
+    if (!isNaN(limitMs) && endsAt.getTime() > limitMs) {
+      endsAt = new Date(limitMs);
+    }
+  }
+
+  return { startsAt, endsAt };
+}
+
 export class UsageRepository {
   /**
    * Resolves the authoritative billing/usage period for a subscription.
@@ -55,7 +132,9 @@ export class UsageRepository {
    *   2. currentPeriodStart < currentPeriodEnd.
    *   3. The period contains "now": currentPeriodStart <= now < currentPeriodEnd.
    * - If provider timestamps fail this invariant (e.g. future or expired period, or missing),
-   *   source is strictly set to 'fallback' using a deterministic 30-day UTC cycle anchored at createdAt.
+   *   source is strictly set to 'fallback' using a deterministic calendar-month UTC cycle anchored at createdAt.
+   * - For annual subscriptions (span > 32 days), calendar-month anniversary cycles anchored at currentPeriodStart
+   *   are computed so that subscribers receive monthly AI and voice quota resets rather than one giant annual bucket.
    *
    * @param subscription Subscription with timestamps
    * @param referenceTime Optional reference date (defaults to current time Date.now())
@@ -71,33 +150,38 @@ export class UsageRepository {
     const now = typeof referenceTime === 'number' ? referenceTime : referenceTime.getTime();
 
     if (subscription.currentPeriodStart && subscription.currentPeriodEnd) {
-      const pStart = new Date(subscription.currentPeriodStart).getTime();
-      const pEnd = new Date(subscription.currentPeriodEnd).getTime();
+      const pStart = new Date(subscription.currentPeriodStart);
+      const pEnd = new Date(subscription.currentPeriodEnd);
+      const pStartMs = pStart.getTime();
+      const pEndMs = pEnd.getTime();
 
-      if (!isNaN(pStart) && !isNaN(pEnd) && pStart < pEnd && pStart <= now && now < pEnd) {
+      if (!isNaN(pStartMs) && !isNaN(pEndMs) && pStartMs < pEndMs && pStartMs <= now && now < pEndMs) {
+        const spanMs = pEndMs - pStartMs;
+        const thirtyTwoDaysMs = 32 * 24 * 60 * 60 * 1000;
+
+        // Monthly billing (or standard short provider cycles <= 32 days) use provider start/end directly
+        if (spanMs <= thirtyTwoDaysMs) {
+          return {
+            startsAt: pStart,
+            endsAt: pEnd,
+            source: 'provider'
+          };
+        }
+
+        // Annual/multi-month billing receives monthly quota resets on calendar-month anniversary cycles within the active term
+        const { startsAt, endsAt } = resolveMonthlyCycle(pStart, now, pEnd);
+
         return {
-          startsAt: new Date(pStart),
-          endsAt: new Date(pEnd),
+          startsAt,
+          endsAt,
           source: 'provider'
         };
       }
     }
 
-    const cycleMs = 30 * 24 * 60 * 60 * 1000;
-    const startAnchor = new Date(subscription.createdAt).getTime();
-
-    if (isNaN(startAnchor) || now < startAnchor) {
-      const safeAnchor = isNaN(startAnchor) ? now : startAnchor;
-      return {
-        startsAt: new Date(safeAnchor),
-        endsAt: new Date(safeAnchor + cycleMs),
-        source: 'fallback'
-      };
-    }
-
-    const elapsedCycles = Math.floor((now - startAnchor) / cycleMs);
-    const startsAt = new Date(startAnchor + elapsedCycles * cycleMs);
-    const endsAt = new Date(startAnchor + (elapsedCycles + 1) * cycleMs);
+    // Fallback calendar-month cycle anchored at subscription.createdAt
+    const startAnchor = new Date(subscription.createdAt);
+    const { startsAt, endsAt } = resolveMonthlyCycle(startAnchor, now);
 
     return { startsAt, endsAt, source: 'fallback' };
   }

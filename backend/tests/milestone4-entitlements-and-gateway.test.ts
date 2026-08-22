@@ -99,9 +99,12 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     await runMigrations(db);
 
     await SubscriptionService.syncPlans(db, {
-      starterId: 'plan_starter_test',
-      growthId: 'plan_growth_test',
-      familyId: 'plan_family_test'
+      evolve_monthly: 'plan_evolve_mo_test',
+      evolve_annual: 'plan_evolve_yr_test',
+      evolve_plus_monthly: 'plan_evolve_plus_mo_test',
+      evolve_plus_annual: 'plan_evolve_plus_yr_test',
+      genesis_monthly: 'plan_genesis_mo_test',
+      genesis_annual: 'plan_genesis_yr_test'
     });
 
     authVerifier = new MockAuthVerifier();
@@ -116,9 +119,14 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       RAZORPAY_KEY_ID: 'rzp_test_mockKeyId',
       RAZORPAY_KEY_SECRET: 'mock_secret_key',
       RAZORPAY_WEBHOOK_SECRET: 'mock_webhook_secret',
-      RAZORPAY_PLAN_STARTER_ID: 'plan_starter_test',
-      RAZORPAY_PLAN_GROWTH_ID: 'plan_growth_test',
-      RAZORPAY_PLAN_FAMILY_ID: 'plan_family_test',
+      RAZORPAY_PLAN_MAPPINGS: JSON.stringify({
+        evolve_monthly: 'plan_evolve_mo_test',
+        evolve_annual: 'plan_evolve_yr_test',
+        evolve_plus_monthly: 'plan_evolve_plus_mo_test',
+        evolve_plus_annual: 'plan_evolve_plus_yr_test',
+        genesis_monthly: 'plan_genesis_mo_test',
+        genesis_annual: 'plan_genesis_yr_test'
+      }),
       N8N_APPU_WEBHOOK_URL: 'https://n8n.example.com/webhook/test/chat'
     });
 
@@ -178,7 +186,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     assert.ok(payload.error.message.includes('active subscription'));
   });
 
-  test('Starter plan enforces max_children = 1 (second child rejected)', async () => {
+  test('Evolve plan enforces max_children = 1 (second child rejected)', async () => {
     const parentUserId = crypto.randomUUID();
     const token = 'token-parent-starter';
     authVerifier.registerToken(token, { userId: parentUserId });
@@ -190,8 +198,8 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
 
-    // Activate Starter subscription (max_children = 1)
-    await activateHouseholdSubscription(householdId, 'starter');
+    // Activate Evolve subscription (max_children = 1)
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     // 1st child creation -> SUCCESS
     const child1Res = await app.inject({
@@ -214,7 +222,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     assert.equal(err.error.code, 'quota_exceeded');
   });
 
-  test('Growth plan allows 2 children and rejects third child', async () => {
+  test('Tier with max_children = 2 allows 2 children and rejects third child', async () => {
     const parentUserId = crypto.randomUUID();
     const token = 'token-parent-growth';
     authVerifier.registerToken(token, { userId: parentUserId });
@@ -226,8 +234,16 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
 
-    // Activate Growth subscription (max_children = 2)
-    await activateHouseholdSubscription(householdId, 'growth');
+    // Update evolve plan entitlement to 2 children for this custom limit test
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    assert.ok(plan);
+    await db.query(
+      `UPDATE plan_entitlements SET value = '2'::jsonb WHERE plan_id = $1 AND entitlement_key = 'max_children'`,
+      [plan.id]
+    );
+
+    // Activate subscription
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     // 1st child -> 201
     const child1Res = await app.inject({
@@ -273,7 +289,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${token}` }
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
-    await activateHouseholdSubscription(householdId, 'starter');
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     const childRes = await app.inject({
       method: 'POST',
@@ -308,7 +324,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${token}` }
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
-    await activateHouseholdSubscription(householdId, 'starter');
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     const childRes = await app.inject({
       method: 'POST',
@@ -359,7 +375,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${token}` }
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
-    await activateHouseholdSubscription(householdId, 'starter');
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     const childRes = await app.inject({
       method: 'POST',
@@ -417,7 +433,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${tokenA}` }
     });
     const hhA = JSON.parse(obA.payload).household.id;
-    await activateHouseholdSubscription(hhA, 'starter');
+    await activateHouseholdSubscription(hhA, 'evolve_monthly');
     const chARes = await app.inject({
       method: 'POST',
       url: '/api/children',
@@ -436,7 +452,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${tokenB}` }
     });
     const hhB = JSON.parse(obB.payload).household.id;
-    await activateHouseholdSubscription(hhB, 'starter');
+    await activateHouseholdSubscription(hhB, 'evolve_monthly');
 
     // Parent B tries to GET Parent A's child personalisation -> 404
     const getRes = await app.inject({
@@ -471,7 +487,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${token}` }
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
-    await activateHouseholdSubscription(householdId, 'growth');
+    await activateHouseholdSubscription(householdId, 'evolve_plus_monthly');
 
     const childRes = await app.inject({
       method: 'POST',
@@ -526,7 +542,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${token}` }
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
-    await activateHouseholdSubscription(householdId, 'starter');
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     const childRes = await app.inject({
       method: 'POST',
@@ -604,7 +620,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       headers: { authorization: `Bearer ${token}` }
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
-    await activateHouseholdSubscription(householdId, 'starter');
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
 
     const childRes = await app.inject({
       method: 'POST',

@@ -19,12 +19,23 @@ export const ALL_SUBSCRIPTION_STATES: readonly SubscriptionState[] = Object.valu
 export interface Plan {
   id: string;
   code: string;
+  tierCode?: string;
+  tierName?: string;
   name: string;
   description: string | null;
   currency: string;
   amountPaise: number;
   billingInterval: string;
+  annualSavingsPaise?: number;
+  monthlyEquivalentPaise?: number;
   isActive: boolean;
+  isPublic?: boolean;
+  isPrimaryCard?: boolean;
+  isRecommended?: boolean;
+  checkoutEnabled?: boolean;
+  displayOrder?: number;
+  ctaText?: string | null;
+  ctaAction?: string | null;
   providerPlanId: string | null;
   entitlements?: EntitlementsMap;
   createdAt: Date;

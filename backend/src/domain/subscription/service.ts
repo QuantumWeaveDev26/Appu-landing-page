@@ -15,6 +15,7 @@ export interface CreateSubscriptionResult {
   plan: Plan;
   providerSubscriptionId: string;
   shortUrl?: string;
+  isFree?: boolean;
 }
 
 export interface VerifyCheckoutResult {
@@ -45,6 +46,8 @@ export class SubscriptionService {
   /**
    * Creates a pending subscription for a household against a selected plan.
    * Creates the remote Razorpay subscription in TEST MODE.
+   * Free tier creates an immediate ACTIVE subscription without Razorpay.
+   * Signature tier rejects self-service automated checkout.
    */
   public static async createSubscription(
     db: TransactionalQueryable,
@@ -59,6 +62,44 @@ export class SubscriptionService {
       throw new BadRequestError(`Plan '${input.planCode}' is not active or does not exist`);
     }
 
+    // 1. Signature tier is bespoke / non-self-service
+    if (plan.checkoutEnabled === false || plan.code === 'signature') {
+      throw new BadRequestError(
+        `Plan '${input.planCode}' is a custom solution and cannot be purchased via automated checkout. Please apply for Signature.`
+      );
+    }
+
+    // 2. Free tier activates immediately with zero payment method / Razorpay call
+    if (plan.code === 'free' || plan.amountPaise === 0) {
+      const now = new Date();
+      const end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+      const subscription = await SubscriptionRepository.createSubscription(db, {
+        householdId: input.householdId,
+        planId: plan.id,
+        provider: 'internal',
+        providerSubscriptionId: null,
+        status: SubscriptionStates.ACTIVE
+      });
+
+      await db.query(
+        `UPDATE subscriptions
+         SET current_period_start = $1, current_period_end = $2
+         WHERE id = $3;`,
+        [now.toISOString(), end.toISOString(), subscription.id]
+      );
+      subscription.currentPeriodStart = now;
+      subscription.currentPeriodEnd = end;
+
+      return {
+        subscription,
+        plan,
+        providerSubscriptionId: '',
+        isFree: true
+      };
+    }
+
+    // 3. Paid self-service tiers require configured provider_plan_id
     if (!plan.providerPlanId || plan.providerPlanId.trim().length === 0) {
       throw new BadRequestError(
         `Plan '${input.planCode}' has no configured provider plan ID. Please run plan synchronization.`
@@ -66,11 +107,12 @@ export class SubscriptionService {
     }
 
     const providerPlanId = plan.providerPlanId.trim();
+    const totalCount = plan.billingInterval === 'yearly' ? 10 : 12;
 
-    // 1. Create remote Razorpay subscription
+    // Create remote Razorpay subscription
     const rzpResult = await razorpayClient.createSubscription({
       planId: providerPlanId,
-      totalCount: 12,
+      totalCount,
       customerNotify: true,
       notes: {
         household_id: input.householdId,
@@ -78,7 +120,7 @@ export class SubscriptionService {
       }
     });
 
-    // 2. Persist local subscription in PENDING_PAYMENT state
+    // Persist local subscription in PENDING_PAYMENT state
     const subscription = await SubscriptionRepository.createSubscription(db, {
       householdId: input.householdId,
       planId: plan.id,
@@ -91,7 +133,8 @@ export class SubscriptionService {
       subscription,
       plan,
       providerSubscriptionId: rzpResult.id,
-      shortUrl: rzpResult.shortUrl
+      shortUrl: rzpResult.shortUrl,
+      isFree: false
     };
   }
 
@@ -367,6 +410,11 @@ export class SubscriptionService {
     const missing: string[] = [];
 
     for (const plan of activePlans) {
+      // Free and custom non-checkout plans (like Signature) do not have or require a provider plan ID
+      if (plan.amountPaise === 0 || plan.code === 'free' || plan.checkoutEnabled === false) {
+        continue;
+      }
+
       const planCode = plan.code.toLowerCase();
       const providerPlanId = mapping[planCode];
 

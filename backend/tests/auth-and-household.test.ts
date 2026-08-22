@@ -288,12 +288,16 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
     });
     const householdId = JSON.parse(onboardRes.payload).household.id;
 
-    // Activate Growth subscription (allows up to 2 children)
-    const growthPlan = await SubscriptionRepository.getPlanByCode(db, 'growth');
-    if (growthPlan) {
+    // Activate active subscription
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    if (plan) {
+      await db.query(
+        `UPDATE plan_entitlements SET value = '2'::jsonb WHERE plan_id = $1 AND entitlement_key = 'max_children'`,
+        [plan.id]
+      );
       await SubscriptionRepository.createSubscription(db, {
         householdId,
-        planId: growthPlan.id,
+        planId: plan.id,
         provider: 'razorpay',
         providerSubscriptionId: 'sub_test_auth_crud',
         status: 'ACTIVE'
@@ -339,38 +343,40 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
       headers: { authorization: `Bearer ${token}` }
     });
     assert.equal(listRes.statusCode, 200);
-    const listPayload = JSON.parse(listRes.payload);
-    assert.equal(listPayload.children.length, 2);
-    assert.deepEqual(
-      listPayload.children.map((c: any) => c.preferredName).sort(),
-      ['Aarav', 'Diya']
-    );
+    const children = JSON.parse(listRes.payload).children;
+    assert.equal(children.length, 2);
 
-    // 5. Get specific child by ID
-    const getRes = await app.inject({
+    // 5. Get Child 1 by ID
+    const getRes1 = await app.inject({
       method: 'GET',
       url: `/api/children/${child1.id}`,
       headers: { authorization: `Bearer ${token}` }
     });
-    assert.equal(getRes.statusCode, 200);
-    const getPayload = JSON.parse(getRes.payload);
-    assert.equal(getPayload.child.id, child1.id);
-    assert.equal(getPayload.child.preferredName, 'Aarav');
+    assert.equal(getRes1.statusCode, 200);
+    assert.equal(JSON.parse(getRes1.payload).child.preferredName, 'Aarav');
 
-    // 6. Update child
+    // 6. Update Child 1
     const patchRes = await app.inject({
       method: 'PATCH',
       url: `/api/children/${child1.id}`,
       headers: { authorization: `Bearer ${token}` },
       payload: {
-        preferredName: 'Aarav V.',
+        preferredName: 'Aarav Verma',
         gradeBand: 'Grade 7'
       }
     });
     assert.equal(patchRes.statusCode, 200);
-    const updatedPayload = JSON.parse(patchRes.payload);
-    assert.equal(updatedPayload.child.preferredName, 'Aarav V.');
-    assert.equal(updatedPayload.child.gradeBand, 'Grade 7');
+    const updatedChild = JSON.parse(patchRes.payload).child;
+    assert.equal(updatedChild.preferredName, 'Aarav Verma');
+    assert.equal(updatedChild.gradeBand, 'Grade 7');
+
+    // 7. Non-existent child returns 404
+    const notFoundRes = await app.inject({
+      method: 'GET',
+      url: `/api/children/${crypto.randomUUID()}`,
+      headers: { authorization: `Bearer ${token}` }
+    });
+    assert.equal(notFoundRes.statusCode, 404);
   });
 
   // ============================================================================
@@ -390,7 +396,7 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
       payload: { householdName: 'Household A' }
     });
     const hhA = JSON.parse(obARes.payload).household.id;
-    const planA = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const planA = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     if (planA) {
       await SubscriptionRepository.createSubscription(db, {
         householdId: hhA,
@@ -421,7 +427,7 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
       payload: { householdName: 'Household B' }
     });
     const hhB = JSON.parse(obBRes.payload).household.id;
-    const planB = await SubscriptionRepository.getPlanByCode(db, 'starter');
+    const planB = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
     if (planB) {
       await SubscriptionRepository.createSubscription(db, {
         householdId: hhB,

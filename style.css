@@ -277,10 +277,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .pos-tab { flex: 1; min-height: 38px; border: 0; border-radius: 10px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 800; cursor: pointer; transition: background .2s, color .2s; }
 .pos-tab.active { color: #00121d; background: var(--cyan-bright); box-shadow: 0 4px 12px rgba(34, 211, 238, .2); }
 
+.pos-interval-toggle { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 10px auto 16px; padding: 4px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); border-radius: 999px; max-width: 320px; }
+.pos-interval-btn { flex: 1; padding: 6px 12px; border-radius: 999px; border: 0; background: transparent; color: var(--muted); font: 800 11px/1.2 Space Grotesk, sans-serif; cursor: pointer; transition: all .2s ease; }
+.pos-interval-btn.active { background: var(--cyan-bright); color: #00121d; box-shadow: 0 2px 8px rgba(34, 211, 238, .3); }
+.pos-interval-save-badge { display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 999px; background: #22c55e; color: #042f1a; font-size: 9px; font-weight: 800; }
+
 .pos-plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 15px; }
 .pos-plan-card { position: relative; display: flex; flex-direction: column; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, .03); text-align: left; }
 .pos-plan-card.featured { border-color: rgba(34, 211, 238, .45); background: linear-gradient(145deg, rgba(34, 211, 238, .08), rgba(4, 18, 38, .8)); }
 .pos-badge { position: absolute; top: -10px; right: 14px; padding: 2px 8px; border-radius: 999px; color: #00121d; background: var(--cyan-bright); font: 800 9px/1.2 Space Grotesk, sans-serif; text-transform: uppercase; }
+.pos-badge.bespoke { background: #c084fc; color: #1e1136; }
 .pos-plan-card h3 { margin: 0 0 6px; font-size: 17px; }
 .pos-price { font: 800 22px Space Grotesk, sans-serif; color: var(--cyan-bright); margin-bottom: 4px; }
 .pos-price span { font-size: 11px; color: var(--muted); font-weight: 400; }

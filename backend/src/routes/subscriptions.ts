@@ -67,7 +67,8 @@ export const subscriptionsRoutes: FastifyPluginAsync<SubscriptionsRouteOptions> 
       amountPaise: result.plan.amountPaise,
       currency: result.plan.currency,
       status: result.subscription.status,
-      shortUrl: result.shortUrl
+      shortUrl: result.shortUrl,
+      isFree: result.isFree || false
     });
   });
 
