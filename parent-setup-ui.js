@@ -101,8 +101,12 @@
       }
     }
 
+    let lastFocusedElement = null;
+
     function openModal() {
+      lastFocusedElement = document.activeElement;
       modal.classList.add('is-visible');
+      modal.setAttribute('aria-hidden', 'false');
       clearAlert();
 
       const shell = typeof window !== 'undefined' ? window.ParentOnboardingShell : null;
@@ -123,10 +127,33 @@
       } else {
         setStep(1);
       }
+
+      // Place focus inside modal safely
+      window.requestAnimationFrame(() => {
+        if (modal.classList.contains('is-visible')) {
+          if (btnClose && typeof btnClose.focus === 'function') {
+            btnClose.focus();
+          } else if (modal && typeof modal.focus === 'function') {
+            modal.focus();
+          }
+        }
+      });
     }
 
     function closeModal() {
+      // Restore focus to opener element BEFORE setting aria-hidden='true' to avoid:
+      // "Blocked aria-hidden on an element because its descendant retained focus."
+      if (modal.contains(document.activeElement)) {
+        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function' && lastFocusedElement.isConnected) {
+          lastFocusedElement.focus();
+        } else if (btnOpen && typeof btnOpen.focus === 'function' && btnOpen.isConnected) {
+          btnOpen.focus();
+        } else if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+      }
       modal.classList.remove('is-visible');
+      modal.setAttribute('aria-hidden', 'true');
     }
 
     if (btnOpen) btnOpen.addEventListener('click', openModal);
@@ -141,6 +168,13 @@
     // Modal background dismiss
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closeModal();
+    });
+
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeModal();
+      }
     });
 
     // -------------------------------------------------------------
@@ -226,10 +260,12 @@
         if (!plansContainer) return;
         plansContainer.innerHTML = '';
 
+        const cleanPlanName = (vm.planName || 'APPU Free').replace(/\s+Plan$/i, '').trim();
+
         if (vm.isPaidAccess) {
-          // ACTIVE PLAN SUMMARY CARD
+          // ACTIVE PLAN FULL-WIDTH DASHBOARD SUMMARY
           const currentPlanCard = document.createElement('div');
-          currentPlanCard.className = 'pos-current-plan-card';
+          currentPlanCard.className = 'pos-current-plan-dashboard';
 
           const pctAiUsed = Math.min(100, Math.round((vm.aiSessions.used / (vm.aiSessions.limit || 1)) * 100));
           const pctVoiceUsed = vm.voiceMinutes.used !== null
@@ -240,64 +276,73 @@
             ? `<span class="pos-pill-sm" style="background:rgba(34,197,94,.15);color:#22c55e;margin-left:4px;">Active</span>`
             : `<span class="pos-pill-sm" style="background:rgba(148,163,184,.15);color:#94a3b8;margin-left:4px;">Metering pending</span>`;
 
-          const voiceMeterBox = vm.voiceMinutes.meteringStatus === 'active' && vm.voiceMinutes.used !== null
-            ? `
-            <div class="pos-usage-meter-box" style="margin-top: 6px;">
-              <div class="pos-usage-meter-label">
-                <span>Voice Minutes (Monthly)</span>
-                <strong>${vm.voiceMinutes.used} of ${vm.voiceMinutes.limit} min used (${vm.voiceMinutes.remaining} min remaining)</strong>
+          const voiceMetricBox = `
+            <div class="pos-dashboard-metric-box">
+              <div class="pos-metric-header">
+                <div class="pos-metric-title">
+                  <i class="fa-solid fa-microphone text-cyan"></i>
+                  <span>Voice Minutes (Monthly)</span>
+                  ${voiceStatusPill}
+                </div>
+                <strong class="pos-metric-count">${vm.voiceMinutes.used !== null ? vm.voiceMinutes.used : 0} / ${vm.voiceMinutes.limit} min</strong>
               </div>
               <div class="pos-meter-track">
                 <div class="pos-meter-fill" style="width: ${pctVoiceUsed}%;"></div>
               </div>
-            </div>`
-            : '';
+              <div class="pos-metric-sub">
+                <span>${vm.voiceMinutes.remaining !== null ? vm.voiceMinutes.remaining : vm.voiceMinutes.limit} min remaining</span>
+                <span>${pctVoiceUsed}% used</span>
+              </div>
+            </div>
+          `;
 
           currentPlanCard.innerHTML = `
-            <div class="pos-current-plan-header">
-              <div>
-                <span class="pos-kicker">YOUR CURRENT PLAN</span>
-                <h3>${vm.planName.endsWith('Plan') ? vm.planName : `${vm.planName} Plan`}</h3>
+            <div class="pos-dashboard-header">
+              <div class="pos-dashboard-plan-meta">
+                <span class="pos-kicker">YOUR CURRENT SUBSCRIPTION</span>
+                <div class="pos-dashboard-title-row">
+                  <h3>${cleanPlanName}</h3>
+                  <div class="pos-dashboard-price-pill">${vm.displayPrice} <span>/ ${vm.billingInterval || 'month'}</span></div>
+                </div>
+                <p class="pos-dashboard-msg">${vm.statusMessage}</p>
               </div>
               <div class="pos-status-pill active"><i class="fa-solid fa-circle-check"></i> ACTIVE</div>
             </div>
-            <div class="pos-price-tag">${vm.displayPrice} <span>/ ${vm.billingInterval || 'month'}</span></div>
-            <p class="pos-status-msg">${vm.statusMessage}</p>
 
-            <div class="pos-plan-features-box">
-              <strong>Included with your plan:</strong>
-              <ul class="pos-features-list">
-                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.aiSessions.limit} AI sessions</strong> / month included</li>
-                <li><i class="fa-solid fa-check text-cyan"></i> <strong>${vm.voiceMinutes.limit} voice minutes</strong> / month included ${voiceStatusPill}</li>
-                <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
-              </ul>
+            <div class="pos-dashboard-metrics-grid">
+              <div class="pos-dashboard-metric-box">
+                <div class="pos-metric-header">
+                  <div class="pos-metric-title">
+                    <i class="fa-solid fa-bolt text-cyan"></i>
+                    <span>AI Sessions (Monthly)</span>
+                  </div>
+                  <strong class="pos-metric-count">${vm.aiSessions.used} / ${vm.aiSessions.limit}</strong>
+                </div>
+                <div class="pos-meter-track">
+                  <div class="pos-meter-fill" style="width: ${pctAiUsed}%;"></div>
+                </div>
+                <div class="pos-metric-sub">
+                  <span>${vm.aiSessions.remaining} remaining</span>
+                  <span>${pctAiUsed}% used</span>
+                </div>
+              </div>
+
+              ${voiceMetricBox}
             </div>
 
-            <div class="pos-usage-meter-box">
-              <div class="pos-usage-meter-label">
-                <span>AI Sessions (Monthly)</span>
-                <strong>${vm.aiSessions.used} of ${vm.aiSessions.limit} used (${vm.aiSessions.remaining} remaining)</strong>
-              </div>
-              <div class="pos-meter-track">
-                <div class="pos-meter-fill" style="width: ${pctAiUsed}%;"></div>
-              </div>
-            </div>
-
-            ${voiceMeterBox}
-
-            <div class="pos-card-actions">
+            <div class="pos-dashboard-actions">
               <button id="pos-btn-continue-plan" class="primary-modal-btn" type="button">
-                <span>Continue with ${vm.planName}</span>
+                <span>Continue with ${cleanPlanName}</span>
                 <i class="fa-solid fa-arrow-right"></i>
               </button>
               <button id="pos-btn-toggle-plans" class="pos-secondary-btn" type="button">
-                <i class="fa-solid fa-table-columns"></i> View / Compare All Plans
+                <i class="fa-solid fa-table-columns"></i> View / Compare Plans
               </button>
             </div>
 
-            <div id="pos-compare-grid-wrap" style="display: none; margin-top: 15px;">
+            <div id="pos-compare-grid-wrap" style="display: none; margin-top: 20px; width: 100%;">
               <p class="pos-subtitle">All Learning Companion Plans:</p>
-              <div class="pos-plans-grid" id="pos-compare-grid"></div>
+              <div id="pos-compare-section-container"></div>
             </div>
           `;
 
@@ -310,18 +355,22 @@
 
           const btnToggle = currentPlanCard.querySelector('#pos-btn-toggle-plans');
           const compareWrap = currentPlanCard.querySelector('#pos-compare-grid-wrap');
-          const compareGrid = currentPlanCard.querySelector('#pos-compare-grid');
+          const compareContainer = currentPlanCard.querySelector('#pos-compare-section-container');
 
-          if (btnToggle && compareWrap && compareGrid) {
+          if (btnToggle && compareWrap && compareContainer) {
             btnToggle.addEventListener('click', () => {
               const isHidden = compareWrap.style.display === 'none';
               compareWrap.style.display = isHidden ? 'block' : 'none';
               btnToggle.innerHTML = isHidden
                 ? '<i class="fa-solid fa-chevron-up"></i> Hide Plan Comparison'
-                : '<i class="fa-solid fa-table-columns"></i> View / Compare All Plans';
+                : '<i class="fa-solid fa-table-columns"></i> View / Compare Plans';
 
-              if (isHidden && compareGrid.children.length === 0) {
-                renderComparisonCards(compareGrid, vm.planCode);
+              if (isHidden && compareContainer.children.length === 0) {
+                renderPricingSection(compareContainer, {
+                  currentPlanCode: vm.planCode,
+                  defaultInterval: vm.planCode?.includes('monthly') ? 'monthly' : 'yearly',
+                  onPlanActivated: renderPlansStep
+                });
               }
             });
           }
@@ -329,24 +378,26 @@
         } else if (vm.hasSubscription && !vm.isPaidAccess) {
           // NON-ACTIVE SUBSCRIPTION STATUS CARD
           const subNotice = document.createElement('div');
-          subNotice.className = 'pos-current-plan-card';
+          subNotice.className = 'pos-current-plan-dashboard';
           subNotice.innerHTML = `
-            <div class="pos-current-plan-header">
-              <div>
+            <div class="pos-dashboard-header">
+              <div class="pos-dashboard-plan-meta">
                 <span class="pos-kicker">SUBSCRIPTION STATUS</span>
-                <h3>${vm.planName}</h3>
+                <div class="pos-dashboard-title-row">
+                  <h3>${cleanPlanName}</h3>
+                </div>
+                <p class="pos-dashboard-msg">${vm.statusMessage}</p>
               </div>
               <div class="pos-status-pill ${vm.statusBadgeClass}">${vm.statusLabel}</div>
             </div>
-            <p class="pos-status-msg">${vm.statusMessage}</p>
-            <div class="pos-card-actions">
+            <div class="pos-dashboard-actions" style="margin-top: 10px;">
               <button id="pos-btn-activate-plan" class="primary-modal-btn" type="button">
                 <span>Select Plan to Activate</span>
                 <i class="fa-solid fa-arrow-right"></i>
               </button>
             </div>
-            <div id="pos-plans-select-grid-wrap" style="display:none; margin-top: 15px;">
-              <div id="pos-plans-select-grid" class="pos-plans-grid"></div>
+            <div id="pos-plans-select-grid-wrap" style="display:none; margin-top: 20px; width: 100%;">
+              <div id="pos-plans-select-grid"></div>
             </div>
           `;
 
@@ -354,55 +405,35 @@
 
           const btnAct = subNotice.querySelector('#pos-btn-activate-plan');
           const gridWrap = subNotice.querySelector('#pos-plans-select-grid-wrap');
-          const grid = subNotice.querySelector('#pos-plans-select-grid');
-          if (btnAct && gridWrap && grid) {
+          const gridContainer = subNotice.querySelector('#pos-plans-select-grid');
+          if (btnAct && gridWrap && gridContainer) {
             btnAct.addEventListener('click', () => {
               gridWrap.style.display = 'block';
               btnAct.style.display = 'none';
-              renderPlansGrid(grid);
+              renderPricingSection(gridContainer, {
+                currentPlanCode: null,
+                defaultInterval: 'yearly',
+                onPlanActivated: renderChildStep
+              });
             });
           }
 
         } else {
-          // NO SUBSCRIPTION: RENDER SELECTION VIEW WITH BILLING INTERVAL TOGGLE
+          // NO SUBSCRIPTION: RENDER SELECTION VIEW WITH PROMINENT ANNUAL TOGGLE
           const gridTitle = document.createElement('p');
           gridTitle.className = 'pos-subtitle';
           gridTitle.textContent = 'Choose an APPU AI Learning Companion Plan:';
           plansContainer.appendChild(gridTitle);
 
-          let currentInterval = 'yearly';
+          const pricingContainer = document.createElement('div');
+          pricingContainer.className = 'pos-pricing-root';
+          plansContainer.appendChild(pricingContainer);
 
-          const toggleWrap = document.createElement('div');
-          toggleWrap.className = 'pos-interval-toggle';
-          toggleWrap.innerHTML = `
-            <button type="button" class="pos-interval-btn ${currentInterval === 'yearly' ? 'active' : ''}" data-interval="yearly">
-              Annual <span class="pos-interval-save-badge">Save up to ₹4,989</span>
-            </button>
-            <button type="button" class="pos-interval-btn ${currentInterval === 'monthly' ? 'active' : ''}" data-interval="monthly">
-              Monthly
-            </button>
-          `;
-          plansContainer.appendChild(toggleWrap);
-
-          const grid = document.createElement('div');
-          grid.className = 'pos-plans-grid';
-          plansContainer.appendChild(grid);
-
-          const updateInterval = (newInterval) => {
-            currentInterval = newInterval;
-            toggleWrap.querySelectorAll('.pos-interval-btn').forEach((b) => {
-              b.classList.toggle('active', b.dataset.interval === newInterval);
-            });
-            renderPlansGrid(grid, currentInterval);
-          };
-
-          toggleWrap.querySelectorAll('.pos-interval-btn').forEach((btn) => {
-            btn.addEventListener('click', () => {
-              if (btn.dataset.interval) updateInterval(btn.dataset.interval);
-            });
+          renderPricingSection(pricingContainer, {
+            currentPlanCode: null,
+            defaultInterval: 'yearly',
+            onPlanActivated: renderChildStep
           });
-
-          renderPlansGrid(grid, currentInterval);
         }
 
       } catch (err) {
@@ -411,197 +442,319 @@
     }
 
     /**
-     * Renders primary public student plan cards (Free, Evolve, Evolve+, Signature).
+     * Renders prominent Monthly / Annual toggle and exactly 4 tier-grouped cards
+     * with outcome-focused content, annual savings, and Genesis contextual upsell.
      */
-    function renderPlansGrid(container, interval = 'yearly') {
-      const allPlans = window.ParentOnboardingShell.state.plans || [];
+    function renderPricingSection(container, options = {}) {
+      const currentPlanCode = options.currentPlanCode || null;
+      let currentInterval = options.defaultInterval || (currentPlanCode?.includes('monthly') ? 'monthly' : 'yearly');
+      const onPlanActivated = options.onPlanActivated || renderChildStep;
+
       container.innerHTML = '';
 
-      // Tiers to display on primary public pricing
-      const primaryTiers = ['free', 'evolve', 'evolve_plus', 'signature'];
+      // 1. Prominent Frequency Toggle
+      const toggleWrap = document.createElement('div');
+      toggleWrap.className = 'pos-billing-toggle-wrap';
+      toggleWrap.innerHTML = `
+        <div class="pos-billing-toggle" role="radiogroup" aria-label="Billing frequency">
+          <button type="button" class="pos-billing-btn ${currentInterval === 'yearly' ? 'active' : ''}" data-interval="yearly">
+            Annual <span class="pos-billing-save-badge">Save up to 17%</span>
+          </button>
+          <button type="button" class="pos-billing-btn ${currentInterval === 'monthly' ? 'active' : ''}" data-interval="monthly">
+            Monthly
+          </button>
+        </div>
+        <div class="pos-billing-caption">
+          <i class="fa-solid fa-sparkles text-cyan"></i>
+          <span>Pay annually. Save more. Grow longer. (Recommended)</span>
+        </div>
+      `;
+      container.appendChild(toggleWrap);
 
-      primaryTiers.forEach((tierCode) => {
-        // Find matching plan for tier and interval (Free & Signature share single tier)
-        let plan = allPlans.find((p) => (p.tierCode === tierCode || p.code === tierCode) && (p.billingInterval === interval || p.billingInterval === 'free' || tierCode === 'free' || tierCode === 'signature'));
+      // 2. Primary 4-Cards Grid
+      const grid = document.createElement('div');
+      grid.className = 'pos-plans-grid';
+      container.appendChild(grid);
 
-        if (!plan) {
-          plan = allPlans.find((p) => p.tierCode === tierCode || p.code === tierCode);
-        }
-        if (!plan) return;
+      // 3. Genesis Contextual Upsell Strip (Below Primary Grid)
+      const upsellWrap = document.createElement('div');
+      upsellWrap.className = 'pos-genesis-upsell';
+      upsellWrap.innerHTML = `
+        <div class="pos-genesis-text">
+          <i class="fa-solid fa-sparkles text-cyan" style="margin-right: 6px;"></i>
+          <span>Need deeper personalisation and continuous Learning DNA coaching?</span>
+        </div>
+        <button type="button" class="pos-link-btn pos-btn-toggle-genesis">
+          Explore APPU Genesis →
+        </button>
+      `;
+      container.appendChild(upsellWrap);
 
-        const card = document.createElement('div');
-        const isRecommended = Boolean(plan.isRecommended || tierCode === 'evolve_plus');
-        const isSignature = tierCode === 'signature';
-        const isFree = tierCode === 'free';
+      const genesisDetail = document.createElement('div');
+      genesisDetail.className = 'pos-genesis-detail-box';
+      genesisDetail.style.display = 'none';
+      container.appendChild(genesisDetail);
 
-        card.className = `pos-plan-card ${isRecommended ? 'featured' : ''}`;
-
-        let badgeHtml = '';
-        if (isRecommended) {
-          badgeHtml = '<span class="pos-badge">MOST POPULAR</span>';
-        } else if (isSignature) {
-          badgeHtml = '<span class="pos-badge bespoke">BESPOKE</span>';
-        }
-
-        let priceHtml = '';
-        let equivHtml = '';
-
-        if (isFree) {
-          priceHtml = '<div class="pos-price">₹0</div>';
-          equivHtml = '<div style="font-size: 11px; color: #86efac; margin-bottom: 8px;">No credit card required</div>';
-        } else if (isSignature) {
-          const sigPrice = interval === 'yearly' ? 'From ₹49,999' : 'From ₹4,999';
-          priceHtml = `<div class="pos-price">${sigPrice}<span>/${interval === 'yearly' ? 'yr' : 'mo'}</span></div>`;
-          equivHtml = '<div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Custom institutional architecture</div>';
-        } else {
-          const priceNum = Math.round(plan.amountPaise / 100);
-          if (interval === 'yearly') {
-            const equivMo = Math.round((plan.monthlyEquivalentPaise || (plan.amountPaise / 12)) / 100);
-            const savings = Math.round((plan.annualSavingsPaise || 0) / 100);
-            priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')}<span>/year</span></div>`;
-            equivHtml = `<div style="font-size: 11px; color: #86efac; margin-bottom: 8px;">₹${equivMo}/mo equivalent • Save ₹${savings.toLocaleString('en-IN')}</div>`;
-          } else {
-            priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')}<span>/month</span></div>`;
-            equivHtml = '<div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">Billed monthly</div>';
-          }
-        }
-
-        const aiSessions = plan.entitlements?.monthly_ai_sessions ?? (isFree ? 20 : tierCode === 'evolve' ? 150 : tierCode === 'evolve_plus' ? 400 : 1000);
-        const voiceMins = plan.entitlements?.monthly_voice_minutes ?? (isFree ? 5 : tierCode === 'evolve' ? 45 : tierCode === 'evolve_plus' ? 120 : 300);
-
-        let featuresHtml = '';
-        if (isFree) {
-          featuresHtml = `
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${aiSessions} AI sessions</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${voiceMins} voice mins</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Basic learning discovery</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Essential subject practice</li>
-          `;
-        } else if (tierCode === 'evolve') {
-          featuresHtml = `
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${aiSessions} AI sessions</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${voiceMins} voice mins</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Persistent learner profile & memory</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Adaptive learning paths & storytelling</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Weekly missions & gamification</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual companion</li>
-          `;
-        } else if (tierCode === 'evolve_plus') {
-          featuresHtml = `
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${aiSessions} AI sessions</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${voiceMins} voice mins</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Advanced personalisation & deep memory</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Strength identification & gap detection</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Goal journeys & project learning</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Parent insights & progress intelligence</li>
-          `;
-        } else if (isSignature) {
-          featuresHtml = `
-            <li><i class="fa-solid fa-check text-cyan"></i> Custom AI & voice session allocation</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Tailored curriculum & institutional blueprints</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Dedicated learning architect & priority SLA</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Custom reporting & parent advisory</li>
-          `;
-        }
-
-        const ctaBtnText = isFree ? 'Start Free' : isSignature ? 'Apply for Signature' : `Choose ${plan.tierName || plan.name}`;
-
-        card.innerHTML = `
-          ${badgeHtml}
-          <h3>${plan.tierName || plan.name}</h3>
-          ${priceHtml}
-          ${equivHtml}
-          <p class="pos-plan-desc">${plan.description || ''}</p>
-          <ul class="pos-features">
-            ${featuresHtml}
-          </ul>
-          <button class="pos-plan-btn" data-code="${plan.code}" type="button">${ctaBtnText}</button>
-        `;
-
-        const btnSelect = card.querySelector('.pos-plan-btn');
-        btnSelect.addEventListener('click', async () => {
-          if (isSignature) {
-            showAlert('Signature is our bespoke institutional solution. Please reach out to our team at support@appu.ai or schedule a consultation.', 'success');
-            return;
-          }
-
-          try {
-            btnSelect.disabled = true;
-            btnSelect.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${isFree ? 'Activating Free Plan...' : 'Starting Checkout...'}`;
-            await window.ParentOnboardingShell.subscribeToPlan(plan.code, (status) => {
-              if (planStatusText) planStatusText.textContent = status;
-            });
-            await renderChildStep();
-          } catch (err) {
-            showAlert(err.message || 'Subscription failed');
-          } finally {
-            btnSelect.disabled = false;
-            btnSelect.textContent = ctaBtnText;
-            if (planStatusText) planStatusText.textContent = '';
+      const btnToggleGenesis = upsellWrap.querySelector('.pos-btn-toggle-genesis');
+      if (btnToggleGenesis) {
+        btnToggleGenesis.addEventListener('click', () => {
+          const isHidden = genesisDetail.style.display === 'none';
+          genesisDetail.style.display = isHidden ? 'block' : 'none';
+          btnToggleGenesis.textContent = isHidden
+            ? 'Hide APPU Genesis Details'
+            : 'Explore APPU Genesis →';
+          if (isHidden) {
+            renderGenesisDetailCard(genesisDetail, currentInterval, currentPlanCode);
           }
         });
+      }
 
-        container.appendChild(card);
-      });
-    }
+      function renderGenesisDetailCard(box, interval, activeCode) {
+        const allTiers = (window.ParentOnboardingShell.groupPlansByTier && window.ParentOnboardingShell.groupPlansByTier()) || [];
+        const genesisTier = allTiers.find((t) => t.tierCode === 'genesis') || {
+          tierCode: 'genesis',
+          tierName: 'APPU Genesis',
+          description: 'Complete multimodal cognitive architecture with bespoke learning DNA and continuous coaching.',
+          monthly: { code: 'genesis_monthly', amountPaise: 249900 },
+          annual: { code: 'genesis_annual', amountPaise: 2499900 }
+        };
 
-    /**
-     * Renders plan comparison cards marking the active plan.
-     */
-    function renderComparisonCards(container, activePlanCode) {
-      const plans = window.ParentOnboardingShell.state.plans || [];
-      container.innerHTML = '';
+        const genesisPlan = interval === 'yearly' ? genesisTier.annual : genesisTier.monthly;
+        const targetCode = genesisPlan?.code || (interval === 'yearly' ? 'genesis_annual' : 'genesis_monthly');
+        const isCurrent = activeCode === targetCode;
+        const priceText = interval === 'yearly' ? '₹24,999/year' : '₹2,499/month';
+        const equivText = interval === 'yearly' ? '₹2,083/mo billed annually • Save ₹4,989/yr' : 'Billed monthly';
 
-      // Group active plans
-      plans.filter((p) => p.isPublic !== false).forEach((p) => {
-        const isCurrent = p.code === activePlanCode;
-        const card = document.createElement('div');
-        card.className = `pos-plan-card ${isCurrent ? 'featured' : ''}`;
-        const priceRupees = Math.round(p.amountPaise / 100);
-
-        card.innerHTML = `
-          ${isCurrent ? '<span class="pos-badge" style="background:#86efac; color:#042f1a;">CURRENT PLAN</span>' : ''}
-          <h3>${p.name}</h3>
-          <div class="pos-price">${p.displayPrice || `₹${priceRupees}`}</div>
-          <p class="pos-plan-desc">${p.description || ''}</p>
-          <ul class="pos-features">
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_ai_sessions || 100} AI sessions</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> <strong>${p.entitlements?.monthly_voice_minutes || 30} voice mins</strong> / month</li>
-            <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
+        box.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+            <div>
+              <span class="pos-kicker" style="color:#c084fc;">SPECIALIZED COGNITIVE ARCHITECTURE</span>
+              <h4 style="margin:2px 0 0; color:#fff; font-size:16px;">APPU Genesis Tier</h4>
+            </div>
+            <span class="pos-badge bespoke">COGNITIVE DNA</span>
+          </div>
+          <div class="pos-price" style="font-size:18px; color:#c084fc; margin-bottom:2px;">${priceText}</div>
+          <div class="pos-equiv-sub" style="margin-bottom:8px;">${equivText}</div>
+          <div class="pos-plan-quota-badge" style="border-color:rgba(192,132,252,.3); background:rgba(192,132,252,.08); color:#e9d5ff; margin-bottom:10px;">
+            <i class="fa-solid fa-bolt"></i> 1,000 AI sessions • 300 voice mins / mo
+          </div>
+          <p style="margin:0 0 10px; font-size:12px; color:#cbd5e1;">${genesisTier.description}</p>
+          <ul class="pos-features" style="margin-bottom:12px;">
+            <li><i class="fa-solid fa-check text-cyan"></i> Complete multimodal cognitive memory & learning DNA</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Continuous 1-on-1 mentor guidance & goal mastery</li>
+            <li><i class="fa-solid fa-check text-cyan"></i> Bespoke learning blueprints & priority advisory</li>
           </ul>
           ${
             isCurrent
-              ? `<button class="pos-plan-btn" disabled style="opacity: 0.7; background: #86efac; color: #042f1a;">Active Plan</button>`
-              : `<button class="pos-secondary-btn pos-btn-upgrade-notice" type="button">Switch Plan</button>`
+              ? `<button class="pos-plan-btn current" type="button" disabled>Current Active Plan</button>`
+              : `<button class="pos-plan-btn bespoke pos-btn-select-genesis" type="button" data-code="${targetCode}">Get Genesis (${priceText})</button>`
           }
         `;
 
-        const btnUpgrade = card.querySelector('.pos-btn-upgrade-notice');
-        if (btnUpgrade) {
-          btnUpgrade.addEventListener('click', async () => {
-            if (p.code === 'signature') {
-              showAlert('Please apply for Signature with our team at support@appu.ai.', 'success');
-              return;
-            }
+        const btnGenesis = box.querySelector('.pos-btn-select-genesis');
+        if (btnGenesis) {
+          btnGenesis.addEventListener('click', async () => {
             try {
-              btnUpgrade.disabled = true;
-              btnUpgrade.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
-              await window.ParentOnboardingShell.subscribeToPlan(p.code, (status) => {
+              btnGenesis.disabled = true;
+              btnGenesis.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Starting Checkout...';
+              await window.ParentOnboardingShell.subscribeToPlan(targetCode, (status) => {
                 if (planStatusText) planStatusText.textContent = status;
               });
-              await renderPlansStep();
+              await onPlanActivated();
             } catch (err) {
-              showAlert(err.message || 'Plan update failed');
+              showAlert(err.message || 'Subscription failed');
             } finally {
-              btnUpgrade.disabled = false;
-              btnUpgrade.textContent = 'Switch Plan';
+              btnGenesis.disabled = false;
+              btnGenesis.textContent = `Get Genesis (${priceText})`;
               if (planStatusText) planStatusText.textContent = '';
             }
           });
         }
+      }
 
-        container.appendChild(card);
+      function renderCards() {
+        grid.innerHTML = '';
+        const allTiers = (window.ParentOnboardingShell.groupPlansByTier && window.ParentOnboardingShell.groupPlansByTier()) || [];
+        const primaryTiers = allTiers.filter((t) => t.isPrimaryCard);
+
+        primaryTiers.forEach((tier) => {
+          const card = document.createElement('div');
+          const isFree = tier.tierCode === 'free';
+          const isSignature = tier.tierCode === 'signature';
+          const isEvolvePlus = tier.tierCode === 'evolve_plus';
+
+          const plan = isFree
+            ? (tier.monthly || tier.annual)
+            : isSignature
+            ? ((currentInterval === 'yearly' ? tier.annual : tier.monthly) || tier.monthly || tier.annual)
+            : (currentInterval === 'yearly' ? tier.annual : tier.monthly);
+
+          const targetPlanCode = plan?.code || (isFree ? 'free' : isSignature ? 'signature' : `${tier.tierCode}_${currentInterval === 'yearly' ? 'annual' : 'monthly'}`);
+          const isCurrent = currentPlanCode === targetPlanCode || (isFree && currentPlanCode === 'free');
+
+          card.className = `pos-plan-card ${isEvolvePlus ? 'featured' : ''} ${isCurrent ? 'current' : ''}`;
+          card.setAttribute('data-tier', tier.tierCode);
+
+          // Badges
+          let badgeHtml = '';
+          if (isCurrent) {
+            badgeHtml = '<span class="pos-badge current">CURRENT PLAN</span>';
+          } else if (isEvolvePlus) {
+            badgeHtml = '<span class="pos-badge">MOST POPULAR</span>';
+          } else if (isSignature) {
+            badgeHtml = '<span class="pos-badge bespoke">BESPOKE</span>';
+          }
+
+          // Pricing & Subtitles
+          let priceHtml = '';
+          let subHtml = '';
+
+          if (isFree) {
+            priceHtml = '<div class="pos-price">₹0 <span>Forever</span></div>';
+            subHtml = '<div class="pos-equiv-sub"><span class="pos-save-tag">No credit card required</span></div>';
+          } else if (isSignature) {
+            const sigPrice = currentInterval === 'yearly' ? 'From ₹49,999' : 'From ₹4,999';
+            const sigUnit = currentInterval === 'yearly' ? 'year' : 'month';
+            priceHtml = `<div class="pos-price">${sigPrice} <span>/${sigUnit}</span></div>`;
+            subHtml = '<div class="pos-equiv-sub">Custom institutional architecture</div>';
+          } else {
+            const amountPaise = plan?.amountPaise ?? (tier.tierCode === 'evolve' ? (currentInterval === 'yearly' ? 499900 : 49900) : (currentInterval === 'yearly' ? 999900 : 99900));
+            const priceNum = Math.round(amountPaise / 100);
+
+            if (currentInterval === 'yearly') {
+              const equivMo = Math.round((plan?.monthlyEquivalentPaise || (tier.tierCode === 'evolve' ? 41700 : 83300)) / 100);
+              const savings = Math.round((plan?.annualSavingsPaise || (tier.tierCode === 'evolve' ? 98900 : 198900)) / 100);
+              const pct = tier.tierCode === 'evolve' ? '~16%' : '~17%';
+              priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')} <span>/year</span></div>`;
+              subHtml = `<div class="pos-equiv-sub">₹${equivMo}/mo billed annually • <span class="pos-save-tag">Save ₹${savings.toLocaleString('en-IN')}/yr (${pct})</span></div>`;
+            } else {
+              priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')} <span>/month</span></div>`;
+              subHtml = '<div class="pos-equiv-sub">Billed monthly</div>';
+            }
+          }
+
+          // Quota Badges
+          let quotaBadge = '';
+          if (isFree) {
+            quotaBadge = '<div class="pos-plan-quota-badge"><i class="fa-solid fa-bolt"></i> 20 AI sessions • 5 voice mins / mo</div>';
+          } else if (tier.tierCode === 'evolve') {
+            quotaBadge = '<div class="pos-plan-quota-badge"><i class="fa-solid fa-bolt"></i> 150 AI sessions • 45 voice mins / mo</div>';
+          } else if (isEvolvePlus) {
+            quotaBadge = '<div class="pos-plan-quota-badge"><i class="fa-solid fa-bolt"></i> 400 AI sessions • 120 voice mins / mo</div>';
+          } else if (isSignature) {
+            quotaBadge = '<div class="pos-plan-quota-badge"><i class="fa-solid fa-bolt"></i> Custom capacity & priority SLA</div>';
+          }
+
+          // Feature bullet points (Outcome focused per HR guidelines - No learner counts)
+          let featuresHtml = '';
+          if (isFree) {
+            featuresHtml = `
+              <li><i class="fa-solid fa-check text-cyan"></i> Basic AI learning companion</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Essential subject practice & discovery</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Interactive learning questions</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Standard safety & privacy guardrails</li>
+            `;
+          } else if (tier.tierCode === 'evolve') {
+            featuresHtml = `
+              <li><i class="fa-solid fa-check text-cyan"></i> APPU remembers how you learn</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Your learning path adapts</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Learn through stories and challenges</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Weekly missions and personalised quizzes</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Multilingual learning companion</li>
+            `;
+          } else if (isEvolvePlus) {
+            featuresHtml = `
+              <li><i class="fa-solid fa-check text-cyan"></i> Everything adapts more deeply to you</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Strength and learning-gap discovery</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Advanced missions and project learning</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Goal journeys and career exploration</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Parent insights and progress intelligence</li>
+            `;
+          } else if (isSignature) {
+            featuresHtml = `
+              <li><i class="fa-solid fa-check text-cyan"></i> Custom AI & voice session allocation</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Tailored curriculum & institutional blueprints</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Dedicated learning architect & priority SLA</li>
+              <li><i class="fa-solid fa-check text-cyan"></i> Custom reporting & parent advisory</li>
+            `;
+          }
+
+          // Action Button
+          let btnHtml = '';
+          if (isCurrent) {
+            btnHtml = `<button class="pos-plan-btn current" type="button" disabled>Current Active Plan</button>`;
+          } else if (isSignature) {
+            btnHtml = `<button class="pos-plan-btn bespoke pos-btn-select-plan" type="button" data-action="signature">Apply for Signature</button>`;
+          } else if (isFree) {
+            btnHtml = `<button class="pos-plan-btn pos-btn-select-plan" type="button" data-code="free">Start Free</button>`;
+          } else {
+            const btnText = currentPlanCode ? `Switch to ${tier.tierName}` : `Choose ${tier.tierName}`;
+            btnHtml = `<button class="pos-plan-btn pos-btn-select-plan" type="button" data-code="${targetPlanCode}">${btnText}</button>`;
+          }
+
+          card.innerHTML = `
+            ${badgeHtml}
+            <h3>${tier.tierName}</h3>
+            ${priceHtml}
+            ${subHtml}
+            ${quotaBadge}
+            <p class="pos-plan-desc">${tier.description}</p>
+            <ul class="pos-features">
+              ${featuresHtml}
+            </ul>
+            ${btnHtml}
+          `;
+
+          const btnSelect = card.querySelector('.pos-btn-select-plan');
+          if (btnSelect) {
+            btnSelect.addEventListener('click', async () => {
+              if (btnSelect.dataset.action === 'signature') {
+                showAlert('Signature is our bespoke institutional solution. Please reach out to our team at support@appu.ai or schedule an advisory session.', 'success');
+                return;
+              }
+
+              const selectedCode = btnSelect.dataset.code;
+              if (!selectedCode) return;
+
+              try {
+                btnSelect.disabled = true;
+                btnSelect.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${selectedCode === 'free' ? 'Activating Free Plan...' : 'Starting Checkout...'}`;
+                await window.ParentOnboardingShell.subscribeToPlan(selectedCode, (status) => {
+                  if (planStatusText) planStatusText.textContent = status;
+                });
+                await onPlanActivated();
+              } catch (err) {
+                showAlert(err.message || 'Subscription selection failed');
+              } finally {
+                btnSelect.disabled = false;
+                btnSelect.textContent = isFree ? 'Start Free' : (currentPlanCode ? `Switch to ${tier.tierName}` : `Choose ${tier.tierName}`);
+                if (planStatusText) planStatusText.textContent = '';
+              }
+            });
+          }
+
+          grid.appendChild(card);
+        });
+
+        if (genesisDetail.style.display === 'block') {
+          renderGenesisDetailCard(genesisDetail, currentInterval, currentPlanCode);
+        }
+      }
+
+      // Toggle click handlers
+      toggleWrap.querySelectorAll('.pos-billing-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const newInterval = btn.dataset.interval;
+          if (!newInterval || newInterval === currentInterval) return;
+          currentInterval = newInterval;
+          toggleWrap.querySelectorAll('.pos-billing-btn').forEach((b) => {
+            b.classList.toggle('active', b.dataset.interval === currentInterval);
+          });
+          renderCards();
+        });
       });
+
+      renderCards();
     }
 
     // -------------------------------------------------------------
@@ -814,7 +967,17 @@
         }
       });
     }
+
+    activeOpenModal = openModal;
+    activeCloseModal = closeModal;
   }
 
-  return { init };
+  let activeOpenModal = null;
+  let activeCloseModal = null;
+
+  return {
+    init,
+    openModal: () => { if (activeOpenModal) activeOpenModal(); },
+    closeModal: () => { if (activeCloseModal) activeCloseModal(); }
+  };
 });

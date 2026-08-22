@@ -177,10 +177,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function deactivateDialog(dialog) {
     if (!dialog) return;
+    // Restore focus to opener element BEFORE setting aria-hidden to avoid:
+    // "Blocked aria-hidden on an element because its descendant retained focus."
+    if (dialog.contains(document.activeElement)) {
+      if (lastFocusedElement?.isConnected && typeof lastFocusedElement.focus === 'function') {
+        lastFocusedElement.focus();
+      } else if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+    }
+    if (appShell) appShell.inert = false;
     dialog.setAttribute('aria-hidden', 'true');
     if (activeDialog === dialog) activeDialog = null;
-    if (appShell) appShell.inert = false;
-    if (lastFocusedElement?.isConnected) lastFocusedElement.focus();
   }
 
   // ==========================================
@@ -576,7 +584,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
     if (e.target === parentSetupModal && parentSetupModal) {
-      parentSetupModal.classList.remove('is-visible');
+      if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
+        window.ParentSetupUI.closeModal();
+      } else {
+        if (parentSetupModal.contains(document.activeElement)) {
+          const btnOpen = document.getElementById('btn-parent-setup');
+          if (btnOpen?.isConnected) btnOpen.focus();
+          else if (document.activeElement) document.activeElement.blur();
+        }
+        parentSetupModal.classList.remove('is-visible');
+        parentSetupModal.setAttribute('aria-hidden', 'true');
+      }
     }
   });
 
@@ -598,8 +616,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') {
       closeDiscoveryModal();
       closeSettingsModal();
-      if (parentSetupModal) parentSetupModal.classList.remove('is-visible');
+      if (parentSetupModal && parentSetupModal.classList.contains('is-visible')) {
+        if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
+          window.ParentSetupUI.closeModal();
+        } else {
+          if (parentSetupModal.contains(document.activeElement)) {
+            const btnOpen = document.getElementById('btn-parent-setup');
+            if (btnOpen?.isConnected) btnOpen.focus();
+            else if (document.activeElement) document.activeElement.blur();
+          }
+          parentSetupModal.classList.remove('is-visible');
+          parentSetupModal.setAttribute('aria-hidden', 'true');
+        }
+      }
       toggleChatDrawer(false);
     }
   });
 });
+

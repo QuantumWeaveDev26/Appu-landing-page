@@ -258,6 +258,105 @@
   }
 
   /**
+   * Groups plan variants into primary product tiers with monthly & annual options.
+   */
+  function groupPlansByTier(plans = state.plans || []) {
+    const defaultTiers = [
+      {
+        tierCode: 'free',
+        tierName: 'APPU Free',
+        description: 'Basic AI discovery and essential learning for every student.',
+        isRecommended: false,
+        isPrimaryCard: true,
+        isFree: true,
+        monthly: null,
+        annual: null
+      },
+      {
+        tierCode: 'evolve',
+        tierName: 'APPU Evolve',
+        description: 'Persistent learner profile, adaptive learning paths, storytelling, and weekly missions.',
+        isRecommended: false,
+        isPrimaryCard: true,
+        monthly: null,
+        annual: null
+      },
+      {
+        tierCode: 'evolve_plus',
+        tierName: 'APPU Evolve+',
+        description: 'Advanced personalisation, strength identification, gap detection, goal journeys, and parent insights.',
+        isRecommended: true,
+        isPrimaryCard: true,
+        monthly: null,
+        annual: null
+      },
+      {
+        tierCode: 'signature',
+        tierName: 'APPU Signature',
+        description: 'Bespoke institutional learning architecture, custom curricula, and high-touch private cohorts.',
+        isRecommended: false,
+        isPrimaryCard: true,
+        isSignature: true,
+        monthly: null,
+        annual: null
+      },
+      {
+        tierCode: 'genesis',
+        tierName: 'APPU Genesis',
+        description: 'Complete multimodal cognitive architecture with bespoke learning DNA and continuous coaching.',
+        isRecommended: false,
+        isPrimaryCard: false,
+        monthly: null,
+        annual: null
+      }
+    ];
+
+    const tierMap = {};
+    defaultTiers.forEach((t) => {
+      tierMap[t.tierCode] = { ...t };
+    });
+
+    const orderedCodes = ['free', 'evolve', 'evolve_plus', 'signature', 'genesis'];
+
+    plans.forEach((p) => {
+      const code = p.code || '';
+      let tierCode = p.tierCode || code.replace(/_(monthly|annual)$/, '');
+      if (!tierMap[tierCode]) {
+        tierMap[tierCode] = {
+          tierCode,
+          tierName: p.tierName || p.name,
+          description: p.description || '',
+          isRecommended: Boolean(p.isRecommended),
+          isPrimaryCard: p.isPrimaryCard !== false,
+          monthly: null,
+          annual: null
+        };
+        orderedCodes.push(tierCode);
+      }
+
+      const tier = tierMap[tierCode];
+      if (p.isRecommended) tier.isRecommended = true;
+      if (p.description && !tier.description) tier.description = p.description;
+
+      if (p.billingInterval === 'yearly' || code.endsWith('_annual')) {
+        tier.annual = p;
+      } else if (p.billingInterval === 'monthly' || code.endsWith('_monthly')) {
+        tier.monthly = p;
+      } else if (tierCode === 'free') {
+        tier.monthly = p;
+        tier.annual = p;
+      } else if (tierCode === 'signature') {
+        if (p.billingInterval === 'yearly') tier.annual = p;
+        else tier.monthly = p;
+      }
+    });
+
+    return orderedCodes
+      .filter((tc) => Boolean(tierMap[tc]))
+      .map((tc) => tierMap[tc]);
+  }
+
+  /**
    * Checks current subscription status.
    */
   async function fetchCurrentSubscription() {
@@ -777,6 +876,7 @@
     whenReady,
     getAuthStatus,
     fetchPlans,
+    groupPlansByTier,
     fetchCurrentSubscription,
     fetchUsageSummary,
     getSubscriptionViewModel,

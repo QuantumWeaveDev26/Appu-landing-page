@@ -186,7 +186,7 @@
       <div id="pos-alert" class="pos-alert" role="alert"></div>
 
       <!-- STEP 1: AUTHENTICATION -->
-      <div id="pos-step-auth">
+      <div id="pos-step-auth" class="pos-step-auth-content">
         <div class="pos-tabs">
           <button id="pos-tab-login" class="pos-tab active" type="button">Sign In</button>
           <button id="pos-tab-signup" class="pos-tab" type="button">Create Account</button>
@@ -202,14 +202,13 @@
       </div>
 
       <!-- STEP 2: PLAN SELECTION & SUBSCRIPTION -->
-      <div id="pos-step-plan" style="display:none;">
-        <p class="pos-subtitle">Choose an AI Learning Companion Plan:</p>
-        <div id="pos-plans-container" class="pos-plans-grid"></div>
+      <div id="pos-step-plan" class="pos-step-plan-content" style="display:none;">
+        <div id="pos-plans-container" class="pos-plans-container"></div>
         <div id="pos-plan-status" class="pos-plan-status" aria-live="polite"></div>
       </div>
 
       <!-- STEP 3: CHILD SETUP -->
-      <div id="pos-step-child" style="display:none;">
+      <div id="pos-step-child" class="pos-step-child-content" style="display:none;">
         <div id="pos-child-list" class="pos-child-list"></div>
         <div id="pos-child-form-wrap" class="setting-row" style="margin-top: 15px;">
           <h4 class="pos-subtitle" style="margin-bottom: 8px;">Add New Learner Profile:</h4>
@@ -235,7 +234,7 @@
       </div>
 
       <!-- STEP 4: PERSONALISATION QUESTIONNAIRE -->
-      <div id="pos-step-pers" style="display:none;">
+      <div id="pos-step-pers" class="pos-step-pers-content" style="display:none;">
         <p class="pos-subtitle">Personalize Appu for <strong id="pos-pers-child-name" class="text-cyan">Learner</strong>:</p>
         <form id="pos-pers-form" class="discovery-form">
           <div class="field-grid">
@@ -296,7 +295,7 @@
       </div>
 
       <!-- STEP 5: SUCCESS & LAUNCH -->
-      <div id="pos-step-success" class="success-view">
+      <div id="pos-step-success" class="pos-step-ready-content success-view">
         <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
         <h3>Personalized Appu is Ready!</h3>
         <p>Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.</p>
