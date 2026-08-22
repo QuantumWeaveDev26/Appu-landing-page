@@ -1,9 +1,9 @@
 const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
-const AppuSession = require('../appu-session.js');
-const AppuBackendClient = require('../appu-backend-client.js');
-const ParentOnboardingShell = require('../parent-onboarding-shell.js');
+const AppuSession = require('../frontend/appu-session.js');
+const AppuBackendClient = require('../frontend/appu-backend-client.js');
+const ParentOnboardingShell = require('../frontend/parent-onboarding-shell.js');
 
 describe('Parent Onboarding Integration Shell & Session Flow', () => {
   beforeEach(() => {

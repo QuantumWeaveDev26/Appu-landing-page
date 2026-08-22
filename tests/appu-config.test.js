@@ -10,7 +10,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
 
     // Load module fresh
     delete global.APPU_CONFIG;
-    const configModule = await import(`../appu-config.js?t=${Date.now()}`);
+    const configModule = await import(`../frontend/appu-config.js?t=${Date.now()}`);
     const config = configModule.default || global.APPU_CONFIG;
 
     assert.equal(config.apiBaseUrl, 'https://antiquewhite-elk-758047.hostingersite.com');
@@ -28,7 +28,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
     };
 
     delete global.APPU_CONFIG;
-    const configModule = await import(`../appu-config.js?t=${Date.now()}`);
+    const configModule = await import(`../frontend/appu-config.js?t=${Date.now()}`);
     const config = configModule.default || global.APPU_CONFIG;
 
     assert.equal(config.apiBaseUrl, 'https://api.yourdomain.com');
@@ -43,7 +43,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
     };
 
     delete global.APPU_CONFIG;
-    const configModule = await import(`../appu-config.js?t=${Date.now()}`);
+    const configModule = await import(`../frontend/appu-config.js?t=${Date.now()}`);
     const config = configModule.default || global.APPU_CONFIG;
 
     assert.equal(config.apiBaseUrl, 'https://antiquewhite-elk-758047.hostingersite.com');
@@ -58,7 +58,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
     };
 
     delete global.APPU_CONFIG;
-    const configModule = await import(`../appu-config.js?t=${Date.now()}`);
+    const configModule = await import(`../frontend/appu-config.js?t=${Date.now()}`);
     const config = configModule.default || global.APPU_CONFIG;
 
     const str = JSON.stringify(config);

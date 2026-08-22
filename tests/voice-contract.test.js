@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const {
   normalizeResponse,
   toAudioSource
-} = require('../voice-contract.js');
+} = require('../frontend/voice-contract.js');
 
 test('normalizes n8n output with raw Base64 audio', () => {
   const result = normalizeResponse({

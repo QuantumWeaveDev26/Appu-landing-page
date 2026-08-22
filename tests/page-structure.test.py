@@ -5,7 +5,8 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+FRONTEND = ROOT / "frontend"
+HTML = (FRONTEND / "index.html").read_text(encoding="utf-8")
 
 
 class PageParser(HTMLParser):
@@ -86,7 +87,7 @@ class LandingPageStructureTests(unittest.TestCase):
         )
         self.assertEqual(source.get("src"), "assets/tribute-intro.mp4")
         self.assertEqual(source.get("type"), "video/mp4")
-        self.assertGreater((ROOT / source["src"]).stat().st_size, 0)
+        self.assertGreater((FRONTEND / source["src"]).stat().st_size, 0)
 
     def test_has_exactly_four_learning_missions(self):
         self.assertEqual(len(self.parser.mission_cards), 4)

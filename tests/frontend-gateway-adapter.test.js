@@ -1,9 +1,9 @@
 const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
-const AppuSession = require('../appu-session.js');
-const AppuBackendClient = require('../appu-backend-client.js');
-const AppuVoiceContract = require('../voice-contract.js');
+const AppuSession = require('../frontend/appu-session.js');
+const AppuBackendClient = require('../frontend/appu-backend-client.js');
+const AppuVoiceContract = require('../frontend/voice-contract.js');
 
 describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
   beforeEach(() => {

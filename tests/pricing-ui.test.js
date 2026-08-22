@@ -1,6 +1,6 @@
 const { test, describe, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const ParentOnboardingShell = require('../parent-onboarding-shell.js');
+const ParentOnboardingShell = require('../frontend/parent-onboarding-shell.js');
 
 describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
   const mockApprovedPlans = [
@@ -290,7 +290,7 @@ describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
   test('CSS rules: Desktop modal is widened to min(1180px, calc(100vw - 48px)) and has 4-column responsive grid', () => {
     const fs = require('node:fs');
     const path = require('node:path');
-    const css = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf-8');
+    const css = fs.readFileSync(path.resolve(__dirname, '../frontend/style.css'), 'utf-8');
 
     // Invariant 1: Desktop modal width
     assert.match(
@@ -348,7 +348,7 @@ describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
   test('UI Code: Zero learner-count wording, clean plan names, and Genesis contextual strip', () => {
     const fs = require('node:fs');
     const path = require('node:path');
-    const uiCode = fs.readFileSync(path.resolve(__dirname, '../parent-setup-ui.js'), 'utf-8');
+    const uiCode = fs.readFileSync(path.resolve(__dirname, '../frontend/parent-setup-ui.js'), 'utf-8');
 
     // Invariant 1: No learner wording in plan cards
     assert.equal(uiCode.includes('1 student learner profile'), false, 'Must not include "1 student learner profile"');
@@ -373,8 +373,8 @@ describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
   test('Accessibility & Focus Management: Focus restored before setting aria-hidden="true"', () => {
     const fs = require('node:fs');
     const path = require('node:path');
-    const uiCode = fs.readFileSync(path.resolve(__dirname, '../parent-setup-ui.js'), 'utf-8');
-    const appCode = fs.readFileSync(path.resolve(__dirname, '../app.js'), 'utf-8');
+    const uiCode = fs.readFileSync(path.resolve(__dirname, '../frontend/parent-setup-ui.js'), 'utf-8');
+    const appCode = fs.readFileSync(path.resolve(__dirname, '../frontend/app.js'), 'utf-8');
 
     // Invariant 1: parent-setup-ui.js manages aria-hidden and focus restoration
     assert.match(
@@ -396,7 +396,7 @@ describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
     );
 
     // Invariant 3: Mobile header compact rules defined
-    const css = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf-8');
+    const css = fs.readFileSync(path.resolve(__dirname, '../frontend/style.css'), 'utf-8');
     assert.match(
       css,
       /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.topbar\s*\{[^}]*display:\s*flex;/,

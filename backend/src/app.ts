@@ -147,7 +147,10 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       const candidates = [
         path.resolve(process.cwd(), 'checkout-test.html'),
         path.resolve(process.cwd(), '..', 'checkout-test.html'),
-        path.resolve(fileURLToPath(import.meta.url), '..', '..', '..', 'checkout-test.html')
+        path.resolve(process.cwd(), 'tests', 'fixtures', 'checkout-test.html'),
+        path.resolve(process.cwd(), '..', 'tests', 'fixtures', 'checkout-test.html'),
+        path.resolve(fileURLToPath(import.meta.url), '..', '..', '..', 'checkout-test.html'),
+        path.resolve(fileURLToPath(import.meta.url), '..', '..', '..', 'tests', 'fixtures', 'checkout-test.html')
       ];
 
       let htmlContent: string | null = null;

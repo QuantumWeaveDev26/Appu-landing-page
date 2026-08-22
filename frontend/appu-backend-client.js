@@ -29,7 +29,7 @@
     ) {
       return globalThis.APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '');
     }
-    return 'http://localhost:3000';
+    return 'https://antiquewhite-elk-758047.hostingersite.com';
   }
 
   /**

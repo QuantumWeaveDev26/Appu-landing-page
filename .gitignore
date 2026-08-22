@@ -26,3 +26,7 @@ yarn-error.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Deployment artifacts & archives
+deploy/
+*.zip
