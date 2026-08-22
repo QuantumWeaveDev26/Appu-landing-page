@@ -25,20 +25,8 @@
       return window.__APPU_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
 
-    // 2. Development localhost detection
-    if (
-      typeof window !== 'undefined' &&
-      window.location &&
-      (window.location.hostname === 'localhost' ||
-       window.location.hostname === '127.0.0.1' ||
-       window.location.hostname === '0.0.0.0')
-    ) {
-      return 'http://localhost:3000';
-    }
-
-    // 3. Hosted / Production environment default placeholder
-    // In production, configure window.__APPU_API_BASE_URL__ or replace this placeholder with your live backend domain
-    return 'https://api.example.com';
+    // 2. Deployed Hostinger backend URL
+    return 'https://antiquewhite-elk-758047.hostingersite.com';
   }
 
   return {
