@@ -13,21 +13,22 @@
     "test:postgres": "node --import tsx --test tests/postgres-integration.test.ts",
     "db:migrate": "tsx src/db/migrate-cli.ts",
     "migrate": "node dist/db/migrate-cli.js",
-    "plans:sync": "tsx src/db/sync-plans-cli.ts",
+    "plans:sync": "node dist/db/sync-plans-cli.js",
+    "plans:sync:dev": "tsx src/db/sync-plans-cli.ts",
     "gateway:smoke": "tsx src/gateway/smoke-test-n8n.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
+    "@types/node": "^22.13.4",
+    "@types/pg": "^8.11.11",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
     "pg": "^8.13.1",
+    "typescript": "^5.7.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.4",
-    "@types/pg": "^8.11.11",
     "pg-mem": "^3.0.4",
-    "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "tsx": "^4.19.3"
   }
 }

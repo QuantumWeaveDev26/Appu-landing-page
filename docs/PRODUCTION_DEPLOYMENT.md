@@ -63,6 +63,9 @@ When deploying to Hostinger Node.js or similar containerized hosting:
 | **Start Command** | `npm start` | Launches compiled server (`node dist/server.js`) |
 
 > [!IMPORTANT]
+> **Hostinger / Production Build Invariant:**
+> When deploying with `NODE_ENV=production`, `npm install` automatically omits `devDependencies`.
+> Therefore, compile-time build dependencies (`typescript`, `@types/node`, `@types/pg`) are included in `dependencies` so that `npm run build` (`tsc`) executes successfully inside the production build environment without requiring globally installed packages or network access during compilation.
 > Never use `npm run dev` or `tsx` in production. Always run the compiled artifact via `npm start`.
 
 ---
