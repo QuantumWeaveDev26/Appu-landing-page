@@ -142,13 +142,20 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
     assert.ok(free);
     assert.equal(free.amountPaise, 0);
     assert.equal(free.displayPrice, '₹0');
-    assert.equal(free.entitlements.max_children, 1);
+    assert.equal(free.entitlements.max_children, undefined, 'max_children must not be exposed in public API');
+    assert.equal(free.entitlements.monthly_ai_sessions, 20);
 
     const evolveMo = payload.plans.find((p: any) => p.code === 'evolve_monthly');
     assert.ok(evolveMo);
     assert.equal(evolveMo.amountPaise, 49900, 'Evolve Monthly must be ₹499');
     assert.equal(evolveMo.displayPrice, '₹499/mo');
-    assert.equal(evolveMo.entitlements.max_children, 1);
+    assert.equal(evolveMo.entitlements.max_children, undefined, 'max_children must not be exposed in public API');
+    assert.equal(evolveMo.entitlements.monthly_ai_sessions, 150);
+
+    // Verify every single public plan has max_children stripped
+    payload.plans.forEach((p: any) => {
+      assert.equal(p.entitlements?.max_children, undefined, `Plan ${p.code} must not expose max_children in public API`);
+    });
 
     const evolveYr = payload.plans.find((p: any) => p.code === 'evolve_annual');
     assert.ok(evolveYr);

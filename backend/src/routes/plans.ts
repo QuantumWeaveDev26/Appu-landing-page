@@ -31,6 +31,9 @@ export const plansRoutes: FastifyPluginAsync<PlansRouteOptions> = async (fastify
             : `₹${priceNum.toLocaleString('en-IN')}/mo`;
         }
 
+        // Public entitlements: internal limits like max_children are stripped
+        const { max_children: _maxChildren, ...publicEntitlements } = p.entitlements || {};
+
         return {
           code: p.code,
           tierCode: p.tierCode || p.code,
@@ -50,7 +53,7 @@ export const plansRoutes: FastifyPluginAsync<PlansRouteOptions> = async (fastify
           displayOrder: p.displayOrder || 0,
           ctaText: p.ctaText || (isFree ? 'Start Free' : isSignature ? 'Apply for Signature' : 'Choose Plan'),
           ctaAction: p.ctaAction || (isFree ? 'free_checkout' : isSignature ? 'apply' : 'checkout'),
-          entitlements: p.entitlements
+          entitlements: publicEntitlements
         };
       })
     });

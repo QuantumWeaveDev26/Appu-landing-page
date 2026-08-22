@@ -8,10 +8,13 @@ import { SubscriptionRepository } from '../src/domain/subscription/repository.js
 import { SubscriptionService } from '../src/domain/subscription/service.js';
 import { EntitlementEnforcementService } from '../src/domain/entitlements/enforcement-service.js';
 import { MockRazorpayClient } from '../src/domain/razorpay/mock-client.js';
+import { MockAuthVerifier } from '../src/domain/auth/mock-verifier.js';
 import { TenancyService } from '../src/domain/tenancy/service.js';
 import { TenancyRepository } from '../src/domain/tenancy/repository.js';
 import { UsageRepository } from '../src/domain/usage/repository.js';
 import { BadRequestError, QuotaExceededError } from '../src/errors/index.js';
+import { buildApp } from '../src/app.js';
+import { loadConfig } from '../src/config/index.js';
 
 function createTestDatabase(): TransactionalQueryable {
   const memDb = newDb();
@@ -406,12 +409,12 @@ describe('HR-Approved APPU AI Student Pricing & Tier Architecture', () => {
 
   it('syncPlans: selectively synchronizes paid self-service plans while skipping free and signature', async () => {
     const mappings = {
-      evolve_monthly: 'plan_evolve_mo_test123',
-      evolve_annual: 'plan_evolve_yr_test123',
-      evolve_plus_monthly: 'plan_evolve_plus_mo_test123',
-      evolve_plus_annual: 'plan_evolve_plus_yr_test123',
-      genesis_monthly: 'plan_genesis_mo_test123',
-      genesis_annual: 'plan_genesis_yr_test123'
+      evolve_monthly: 'plan_TSjT9Ifa8DTh7Z',
+      evolve_annual: 'plan_TSjUXWPgXzcgq8',
+      evolve_plus_monthly: 'plan_TSjVjSNRMup7HO',
+      evolve_plus_annual: 'plan_TSjZ318E9ZXK2O',
+      genesis_monthly: 'plan_TSja9QfOGIJzZz',
+      genesis_annual: 'plan_TSjbfa4D4Iemuo'
     };
 
     const syncResult = await SubscriptionService.syncPlans(db, mappings);
@@ -425,8 +428,77 @@ describe('HR-Approved APPU AI Student Pricing & Tier Architecture', () => {
       'genesis_monthly'
     ].sort());
 
-    // Verify DB updated
+    // Verify DB updated with exact provider IDs
     const evolveMo = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
-    assert.equal(evolveMo?.providerPlanId, 'plan_evolve_mo_test123');
+    assert.equal(evolveMo?.providerPlanId, 'plan_TSjT9Ifa8DTh7Z');
+
+    const evolveYr = await SubscriptionRepository.getPlanByCode(db, 'evolve_annual');
+    assert.equal(evolveYr?.providerPlanId, 'plan_TSjUXWPgXzcgq8');
+
+    const evolvePlusMo = await SubscriptionRepository.getPlanByCode(db, 'evolve_plus_monthly');
+    assert.equal(evolvePlusMo?.providerPlanId, 'plan_TSjVjSNRMup7HO');
+
+    const evolvePlusYr = await SubscriptionRepository.getPlanByCode(db, 'evolve_plus_annual');
+    assert.equal(evolvePlusYr?.providerPlanId, 'plan_TSjZ318E9ZXK2O');
+
+    const genesisMo = await SubscriptionRepository.getPlanByCode(db, 'genesis_monthly');
+    assert.equal(genesisMo?.providerPlanId, 'plan_TSja9QfOGIJzZz');
+
+    const genesisYr = await SubscriptionRepository.getPlanByCode(db, 'genesis_annual');
+    assert.equal(genesisYr?.providerPlanId, 'plan_TSjbfa4D4Iemuo');
+
+    // FREE and SIGNATURE must have no provider plan ID
+    const freePlan = await SubscriptionRepository.getPlanByCode(db, 'free');
+    assert.equal(freePlan?.providerPlanId, null, 'Free plan must have null providerPlanId');
+
+    const sigPlan = await SubscriptionRepository.getPlanByCode(db, 'signature');
+    assert.equal(sigPlan?.providerPlanId, null, 'Signature plan must have null providerPlanId');
+  });
+
+  it('PUBLIC CONTRACT: GET /api/plans removes max_children from all public plan entitlements', async () => {
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      PORT: '3000',
+      HOST: '127.0.0.1',
+      LOG_LEVEL: 'silent',
+      RAZORPAY_KEY_ID: 'rzp_test_key',
+      RAZORPAY_KEY_SECRET: 'secret'
+    });
+
+    const app = buildApp(config, {
+      database: db,
+      authVerifier: new MockAuthVerifier(),
+      razorpayClient: mockRazorpay
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/plans'
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.payload);
+    assert.ok(Array.isArray(body.plans));
+    assert.equal(body.plans.length, 8);
+
+    for (const plan of body.plans) {
+      assert.equal(
+        plan.entitlements?.max_children,
+        undefined,
+        `Plan '${plan.code}' must NOT expose max_children in public API response`
+      );
+      if (plan.code !== 'signature') {
+        assert.ok(
+          typeof plan.entitlements?.monthly_ai_sessions === 'number',
+          `Plan '${plan.code}' must retain monthly_ai_sessions`
+        );
+        assert.ok(
+          typeof plan.entitlements?.monthly_voice_minutes === 'number',
+          `Plan '${plan.code}' must retain monthly_voice_minutes`
+        );
+      }
+    }
+
+    await app.close();
   });
 });
