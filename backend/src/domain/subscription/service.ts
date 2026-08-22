@@ -71,6 +71,29 @@ export class SubscriptionService {
 
     // 2. Free tier activates immediately with zero payment method / Razorpay call
     if (plan.code === 'free' || plan.amountPaise === 0) {
+      const existing = await SubscriptionRepository.getLatestSubscriptionForHousehold(
+        db,
+        input.householdId
+      );
+
+      if (existing && existing.status === SubscriptionStates.ACTIVE) {
+        const existingPlan = await SubscriptionRepository.getPlanById(db, existing.planId);
+        // If household already has an active paid plan, reject downgrade via ordinary free checkout
+        if (existingPlan && (existingPlan.amountPaise > 0 || existingPlan.code !== 'free')) {
+          throw new BadRequestError(
+            `Household already has an active paid subscription ('${existingPlan.code}'). Downgrading to Free must use explicit cancellation flow.`
+          );
+        }
+
+        // If household already has active Free subscription, return it idempotently
+        return {
+          subscription: existing,
+          plan,
+          providerSubscriptionId: '',
+          isFree: true
+        };
+      }
+
       const now = new Date();
       const end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
@@ -276,6 +299,16 @@ export class SubscriptionService {
           currentPeriodStart,
           currentPeriodEnd
         });
+
+        // Expire older active subscriptions for the household when becoming ACTIVE
+        if (targetState === SubscriptionStates.ACTIVE && localSubscription.householdId) {
+          await db.query(
+            `UPDATE subscriptions
+             SET status = 'EXPIRED', updated_at = NOW()
+             WHERE household_id = $1 AND id != $2 AND status = 'ACTIVE';`,
+            [localSubscription.householdId, localSubscription.id]
+          );
+        }
       } catch (err: any) {
         console.warn(`[SubscriptionService] State transition error during webhook: ${err.message}`);
       }

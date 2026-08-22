@@ -501,4 +501,221 @@ describe('HR-Approved APPU AI Student Pricing & Tier Architecture', () => {
 
     await app.close();
   });
+
+  describe('Subscription Lifecycle & Invariant Hardening', () => {
+    it('creating Free cannot replace an existing paid ACTIVE plan (rejects downgrade)', async () => {
+      const parentId = crypto.randomUUID();
+      const onboard = await TenancyService.createHouseholdWithOwner(db, {
+        userId: parentId,
+        householdName: 'Active Paid Household'
+      });
+
+      // Synchronize provider plan IDs for testing
+      await SubscriptionService.syncPlans(db, {
+        evolve_monthly: 'plan_TSjT9Ifa8DTh7Z',
+        evolve_annual: 'plan_TSjUXWPgXzcgq8',
+        evolve_plus_monthly: 'plan_TSjVjSNRMup7HO',
+        evolve_plus_annual: 'plan_TSjZ318E9ZXK2O',
+        genesis_monthly: 'plan_TSja9QfOGIJzZz',
+        genesis_annual: 'plan_TSjbfa4D4Iemuo'
+      });
+
+      // 1. Create paid subscription order and activate via webhook
+      mockRazorpay.nextSubscriptionId = `sub_paid_test_${crypto.randomUUID()}`;
+      const createPaid = await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'evolve_monthly'
+      });
+
+      const activateWebhookPayload = {
+        event: 'subscription.activated',
+        payload: {
+          subscription: {
+            entity: {
+              id: createPaid.providerSubscriptionId,
+              status: 'active',
+              current_start: Math.floor(Date.now() / 1000),
+              current_end: Math.floor(Date.now() / 1000) + 30 * 86400
+            }
+          }
+        }
+      };
+
+      const rawBody = JSON.stringify(activateWebhookPayload);
+      const signature = crypto
+        .createHmac('sha256', mockRazorpay.webhookSecret)
+        .update(rawBody)
+        .digest('hex');
+
+      await SubscriptionService.processWebhook(db, mockRazorpay, {
+        rawBody,
+        signature,
+        eventIdHeader: `evt_test_${Date.now()}`
+      });
+
+      // Verify Evolve Monthly is ACTIVE
+      const currentSub = await SubscriptionRepository.getLatestSubscriptionForHousehold(
+        db,
+        onboard.household.id
+      );
+      assert.equal(currentSub?.status, 'ACTIVE');
+      assert.equal(currentSub?.planCode, 'evolve_monthly');
+
+      // 2. Attempting to call createSubscription('free') must throw BadRequestError and NOT downgrade
+      await assert.rejects(
+        async () => {
+          await SubscriptionService.createSubscription(db, mockRazorpay, {
+            householdId: onboard.household.id,
+            planCode: 'free'
+          });
+        },
+        (err: any) => {
+          assert.ok(err instanceof BadRequestError);
+          assert.match(err.message, /active paid subscription/i);
+          return true;
+        }
+      );
+
+      // Verify paid plan is STILL active and untouched
+      const subAfterAttempt = await SubscriptionRepository.getLatestSubscriptionForHousehold(
+        db,
+        onboard.household.id
+      );
+      assert.equal(subAfterAttempt?.status, 'ACTIVE');
+      assert.equal(subAfterAttempt?.planCode, 'evolve_monthly');
+    });
+
+    it('creating Free for an already-active Free household is idempotent and creates no duplicate rows', async () => {
+      const parentId = crypto.randomUUID();
+      const onboard = await TenancyService.createHouseholdWithOwner(db, {
+        userId: parentId,
+        householdName: 'Idempotent Free Household'
+      });
+
+      // 1. Initial Free activation
+      const first = await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'free'
+      });
+      assert.equal(first.subscription.status, 'ACTIVE');
+
+      // 2. Re-trigger Free activation
+      const second = await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'free'
+      });
+      assert.equal(second.subscription.id, first.subscription.id, 'Must return same subscription idempotently');
+
+      // Verify total count in database is exactly 1
+      const countRes = await db.query(
+        `SELECT COUNT(*) as count FROM subscriptions WHERE household_id = $1;`,
+        [onboard.household.id]
+      );
+      assert.equal(Number(countRes.rows[0].count), 1);
+    });
+
+    it('failed or abandoned checkout leaves existing active plan untouched and entitled', async () => {
+      const parentId = crypto.randomUUID();
+      const onboard = await TenancyService.createHouseholdWithOwner(db, {
+        userId: parentId,
+        householdName: 'Abandoned Checkout Household'
+      });
+
+      // 1. User starts with Free plan
+      await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'free'
+      });
+
+      // 2. User initiates Evolve+ checkout (PENDING_PAYMENT)
+      mockRazorpay.nextSubscriptionId = `sub_abandoned_${crypto.randomUUID()}`;
+      const paidOrder = await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'evolve_plus_monthly'
+      });
+      assert.equal(paidOrder.subscription.status, 'PENDING_PAYMENT');
+
+      // 3. User abandons checkout without paying
+      // Verify household entitlements are STILL active from original Free plan
+      const entitlements = await EntitlementEnforcementService.getHouseholdEntitlements(
+        db,
+        onboard.household.id
+      );
+      assert.equal(entitlements.hasActiveSubscription, true);
+      assert.equal(entitlements.planCode, 'free');
+      assert.equal(entitlements.entitlements?.monthly_ai_sessions, 20);
+    });
+
+    it('successful paid activation expires previous Free plan and guarantees exactly 1 ACTIVE subscription', async () => {
+      const parentId = crypto.randomUUID();
+      const onboard = await TenancyService.createHouseholdWithOwner(db, {
+        userId: parentId,
+        householdName: 'Upgraded Household'
+      });
+
+      // 1. User starts with Free
+      const freeResult = await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'free'
+      });
+      assert.equal(freeResult.subscription.status, 'ACTIVE');
+
+      // 2. User creates paid subscription
+      mockRazorpay.nextSubscriptionId = `sub_upgrade_${crypto.randomUUID()}`;
+      const paidOrder = await SubscriptionService.createSubscription(db, mockRazorpay, {
+        householdId: onboard.household.id,
+        planCode: 'evolve_monthly'
+      });
+
+      // 3. Webhook confirms payment and activates paid subscription
+      const rawBody = JSON.stringify({
+        event: 'subscription.activated',
+        payload: {
+          subscription: {
+            entity: {
+              id: paidOrder.providerSubscriptionId,
+              status: 'active',
+              current_start: Math.floor(Date.now() / 1000),
+              current_end: Math.floor(Date.now() / 1000) + 30 * 86400
+            }
+          }
+        }
+      });
+      const signature = crypto
+        .createHmac('sha256', mockRazorpay.webhookSecret)
+        .update(rawBody)
+        .digest('hex');
+
+      await SubscriptionService.processWebhook(db, mockRazorpay, {
+        rawBody,
+        signature,
+        eventIdHeader: `evt_upgrade_${Date.now()}`
+      });
+
+      // 4. Assert exactly ONE ACTIVE subscription exists for this household
+      const activeSubsRes = await db.query(
+        `SELECT id, status, provider FROM subscriptions WHERE household_id = $1 AND status = 'ACTIVE';`,
+        [onboard.household.id]
+      );
+      assert.equal(activeSubsRes.rows.length, 1, 'Exactly one subscription must be ACTIVE');
+      assert.equal(activeSubsRes.rows[0].id, paidOrder.subscription.id);
+      assert.equal(activeSubsRes.rows[0].provider, 'razorpay');
+
+      // 5. Assert previous Free subscription was expired
+      const oldFreeRes = await db.query(
+        `SELECT id, status FROM subscriptions WHERE id = $1;`,
+        [freeResult.subscription.id]
+      );
+      assert.equal(oldFreeRes.rows[0].status, 'EXPIRED');
+
+      // 6. Entitlements reflect paid plan
+      const entitlements = await EntitlementEnforcementService.getHouseholdEntitlements(
+        db,
+        onboard.household.id
+      );
+      assert.equal(entitlements.planCode, 'evolve_monthly');
+      assert.equal(entitlements.entitlements?.monthly_ai_sessions, 150);
+      assert.equal(entitlements.entitlements?.monthly_voice_minutes, 45);
+    });
+  });
 });

@@ -317,7 +317,8 @@ export class SubscriptionRepository {
        FROM subscriptions s
        JOIN plans p ON p.id = s.plan_id
        WHERE s.household_id = $1
-       ORDER BY s.created_at DESC
+       ORDER BY (CASE WHEN s.status = 'ACTIVE' THEN 1 WHEN s.status = 'AUTHENTICATED' THEN 2 ELSE 3 END) ASC,
+                s.created_at DESC
        LIMIT 1;`,
       [householdId]
     );
