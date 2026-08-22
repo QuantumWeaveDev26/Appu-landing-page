@@ -3,6 +3,11 @@ import { loadConfig } from './config/index.js';
 import { createDatabase, type PostgresDatabase } from './db/client.js';
 
 async function startServer() {
+  const port = Number(process.env.PORT || 3000);
+  const host = process.env.HOST || '0.0.0.0';
+
+  console.log(`[AppuBackend] Server startup initiated (host=${host}, port=${port})...`);
+
   const config = loadConfig();
 
   let database: PostgresDatabase | undefined;
@@ -18,13 +23,11 @@ async function startServer() {
   const app = buildApp(config, { database });
 
   try {
-    const address = await app.listen({
-      port: config.PORT,
-      host: config.HOST
-    });
+    const address = await app.listen({ port, host });
+    console.log(`[AppuBackend] Server listening successfully at ${address} in ${config.NODE_ENV} mode`);
     app.log.info(`[AppuBackend] Server listening at ${address} in ${config.NODE_ENV} mode`);
-  } catch (err) {
-    console.error('[AppuBackend] Failed to start server:', err);
+  } catch (err: any) {
+    console.error('[AppuBackend] Failed to start server:', err?.message || err);
     if (database) {
       await database.close().catch(() => {});
     }
@@ -38,6 +41,9 @@ async function startServer() {
       app.log.info(`[AppuBackend] Received ${signal}, shutting down gracefully...`);
       try {
         await app.close();
+        if (database) {
+          await database.close().catch(() => {});
+        }
         app.log.info('[AppuBackend] Server closed cleanly');
         process.exit(0);
       } catch (err) {
@@ -48,13 +54,11 @@ async function startServer() {
   }
 }
 
-// Only start when invoked directly
-if (
-  import.meta.url === `file://${process.argv[1]}` ||
-  process.argv[1]?.endsWith('server.ts') ||
-  process.argv[1]?.endsWith('server.js')
-) {
-  startServer();
-}
+// Unconditional startup invocation when file is loaded/imported as Hostinger entry file
+startServer().catch((err) => {
+  console.error('[AppuBackend] Unhandled error during startup:', err);
+  process.exit(1);
+});
 
 export { startServer };
+

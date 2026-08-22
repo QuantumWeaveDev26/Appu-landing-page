@@ -63,10 +63,11 @@ When deploying to Hostinger Node.js or similar containerized hosting:
 | **Start Command** | `npm start` | Launches compiled server (`node dist/server.js`) |
 
 > [!IMPORTANT]
-> **Hostinger / Production Build Invariant:**
-> When deploying with `NODE_ENV=production`, `npm install` automatically omits `devDependencies`.
-> Therefore, compile-time build dependencies (`typescript`, `@types/node`, `@types/pg`) are included in `dependencies` so that `npm run build` (`tsc`) executes successfully inside the production build environment without requiring globally installed packages or network access during compilation.
-> Never use `npm run dev` or `tsx` in production. Always run the compiled artifact via `npm start`.
+> **Hostinger / Production Build & Startup Invariants:**
+> 1. **Build Dependencies:** When deploying with `NODE_ENV=production`, `npm install` automatically omits `devDependencies`. Compile-time build dependencies (`typescript`, `@types/node`, `@types/pg`) are included in `dependencies` so `npm run build` (`tsc`) compiles cleanly without external downloads.
+> 2. **Unconditional `listen()` Execution:** Hostinger's managed Node.js launcher expects the entry file (`dist/server.js`) to invoke `app.listen({ port, host })` promptly (within 3 seconds). The entry file must never use `require.main === module` or `process.argv` startup guards, as Hostinger loads the entry file via its internal launcher.
+> 3. **Non-Blocking Startup:** Heavy operations (database migrations, plan syncing, network calls) must never execute before `listen()`. Run migrations via `npm run migrate` before starting the server.
+> 4. **Runtime Command:** Always run the compiled artifact via `npm start` (`node dist/server.js`). Never use `npm run dev` or `tsx` in production.
 
 ---
 

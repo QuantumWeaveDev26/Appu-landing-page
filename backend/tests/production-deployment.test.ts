@@ -125,4 +125,72 @@ describe('Production Deployment & Environment Readiness', () => {
       assert.equal(config.CORS_ALLOWED_ORIGINS, 'https://a.com, https://b.com');
     });
   });
+
+  describe('Compiled Entry Point Bootstrap (Hostinger Compatibility)', () => {
+    it('node dist/server.js starts unconditionally and listens promptly under 3 seconds', async () => {
+      const { spawn } = await import('node:child_process');
+      const path = await import('node:path');
+      const serverScript = path.resolve(process.cwd(), 'dist/server.js');
+
+      const child = spawn(process.execPath, [serverScript], {
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: '3199',
+          HOST: '127.0.0.1',
+          LOG_LEVEL: 'info',
+          DATABASE_URL: ''
+        },
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let output = '';
+      let isListening = false;
+
+      const listenPromise = new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`Server failed to listen within 3000ms. Output: ${output}`));
+        }, 3000);
+
+        child.stdout?.on('data', (data) => {
+          output += data.toString();
+          if (output.includes('Server listening successfully') || output.includes('Server listening at')) {
+            isListening = true;
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+
+        child.stderr?.on('data', (data) => {
+          output += data.toString();
+        });
+
+        child.on('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+
+        child.on('exit', (code) => {
+          if (!isListening) {
+            clearTimeout(timeout);
+            reject(new Error(`Server exited prematurely with code ${code}. Output: ${output}`));
+          }
+        });
+      });
+
+      try {
+        await listenPromise;
+        assert.ok(isListening, 'Server must reach listening state');
+        assert.ok(output.includes('[AppuBackend] Server startup initiated'));
+
+        const res = await fetch('http://127.0.0.1:3199/health');
+        assert.equal(res.status, 200);
+        const data = (await res.json()) as any;
+        assert.equal(data.status, 'ok');
+      } finally {
+        child.kill('SIGTERM');
+      }
+    });
+  });
 });
+
