@@ -226,14 +226,14 @@
             btnAuthSubmit.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...`;
           }
 
-          await window.ParentOnboardingShell.signInParent({
+          const authState = await window.ParentOnboardingShell.signInParent({
             email,
             password,
             isSignUp: isSignUpMode,
             householdName
           });
 
-          await renderPlansStep();
+          await renderPlansStep({ refresh: !authState.synchronized });
         } catch (err) {
           showAlert(err.message || 'Authentication failed. Please check your credentials.');
         } finally {
@@ -248,19 +248,21 @@
     // -------------------------------------------------------------
     // Step 2: Current Plan Summary & Subscription View
     // -------------------------------------------------------------
-    async function renderPlansStep() {
+    async function renderPlansStep({ refresh = true } = {}) {
       setStep(2);
       if (plansContainer) {
         plansContainer.innerHTML = '<div class="pos-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading subscription details...</div>';
       }
 
       try {
-        await Promise.all([
-          window.ParentOnboardingShell.fetchPlans(),
-          window.ParentOnboardingShell.fetchCurrentSubscription(),
-          window.ParentOnboardingShell.fetchUsageSummary().catch(() => null),
-          window.ParentOnboardingShell.fetchChildren().catch(() => [])
-        ]);
+        if (refresh) {
+          await Promise.all([
+            window.ParentOnboardingShell.fetchPlans(),
+            window.ParentOnboardingShell.fetchCurrentSubscription(),
+            window.ParentOnboardingShell.fetchUsageSummary().catch(() => null),
+            window.ParentOnboardingShell.fetchChildren().catch(() => [])
+          ]);
+        }
 
         const vm = window.ParentOnboardingShell.getSubscriptionViewModel();
         if (!plansContainer) return;

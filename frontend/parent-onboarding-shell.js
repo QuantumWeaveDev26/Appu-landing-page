@@ -67,22 +67,91 @@
 
   let _readyPromise = null;
   let _resolveReady = null;
+  let _authListenerClient = null;
+  let _authListenerSubscription = null;
+  let _interactiveAuthPending = false;
+  let _lastSynchronizedAccessToken = null;
+  let _authEventChain = Promise.resolve();
+  let _authGeneration = 0;
 
-  function initReadyPromise() {
-    if (!_readyPromise) {
-      _readyPromise = new Promise((resolve) => {
-        _resolveReady = resolve;
-      });
+  function beginAuthTransition() {
+    state.authStatus = 'AUTH_CHECKING';
+    _readyPromise = new Promise((resolve) => {
+      _resolveReady = resolve;
+    });
+    notifyAuthStateChanged();
+  }
+
+  function finishAuthTransition(status) {
+    state.authStatus = status;
+    notifyAuthStateChanged();
+    if (_resolveReady) {
+      _resolveReady(status);
+      _resolveReady = null;
     }
   }
 
-  initReadyPromise();
-
   function whenReady() {
-    if (!_readyPromise) {
-      return Promise.resolve(state.authStatus);
+    return state.authStatus === 'AUTH_CHECKING' && _readyPromise
+      ? _readyPromise
+      : Promise.resolve(state.authStatus);
+  }
+
+  function clearAuthenticatedRuntimeState() {
+    state.session = null;
+    state.household = null;
+    state.subscription = null;
+    state.usage = null;
+    state.children = [];
+    state.selectedChild = null;
+    state.personalisation = null;
+    _lastSynchronizedAccessToken = null;
+
+    if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
+      window.AppuSession.clear();
     }
-    return _readyPromise;
+  }
+
+  function notifyAuthStateChanged() {
+    updateHeaderSessionBadge();
+
+    if (typeof window === 'undefined' || !window.app) return;
+    if (typeof window.app.updateGuestBadge === 'function') {
+      window.app.updateGuestBadge();
+    }
+    if (state.session && typeof window.app.closeGuestGateModal === 'function') {
+      window.app.closeGuestGateModal();
+    }
+  }
+
+  function enqueueAuthSynchronization(session, options) {
+    const operation = _authEventChain.then(() => synchronizeAuthenticatedSession(session, options));
+    _authEventChain = operation.catch(() => {});
+    return operation;
+  }
+
+  function handleSupabaseAuthEvent(event, session) {
+    if (event === 'SIGNED_OUT') {
+      _authGeneration += 1;
+      clearAuthenticatedRuntimeState();
+      finishAuthTransition('UNAUTHENTICATED');
+      return;
+    }
+
+    if (event === 'SIGNED_IN') {
+      if (_interactiveAuthPending || !session?.access_token) return;
+      if (session.access_token === _lastSynchronizedAccessToken && state.authStatus !== 'AUTH_CHECKING') return;
+      const generation = ++_authGeneration;
+      beginAuthTransition();
+      void enqueueAuthSynchronization(session, { source: 'SIGNED_IN', transitionStarted: true, generation }).catch(() => {});
+      return;
+    }
+
+    if (event === 'TOKEN_REFRESHED' && session?.access_token) {
+      const generation = ++_authGeneration;
+      beginAuthTransition();
+      void enqueueAuthSynchronization(session, { source: 'TOKEN_REFRESHED', force: true, transitionStarted: true, generation }).catch(() => {});
+    }
   }
 
   /**
@@ -181,6 +250,22 @@
           detectSessionInUrl: false
         }
       });
+
+      if (
+        state.supabaseClient.auth &&
+        typeof state.supabaseClient.auth.onAuthStateChange === 'function' &&
+        _authListenerClient !== state.supabaseClient
+      ) {
+        if (_authListenerSubscription && typeof _authListenerSubscription.unsubscribe === 'function') {
+          _authListenerSubscription.unsubscribe();
+        }
+        const listener = state.supabaseClient.auth.onAuthStateChange((event, session) => {
+          // Keep this callback synchronous. Backend synchronization runs on the auth event queue.
+          handleSupabaseAuthEvent(event, session);
+        });
+        _authListenerClient = state.supabaseClient;
+        _authListenerSubscription = listener?.data?.subscription || null;
+      }
       return state.supabaseClient;
     }
     return null;
@@ -196,52 +281,37 @@
     }
 
     let authRes;
-    if (isSignUp) {
-      authRes = await supabase.auth.signUp({ email, password });
-    } else {
-      authRes = await supabase.auth.signInWithPassword({ email, password });
-    }
-
-    if (authRes.error) {
-      throw new Error(authRes.error.message || 'Authentication failed');
-    }
-
-    if (!authRes.data || !authRes.data.session) {
-      throw new Error('Sign up successful! Please check your email to confirm your account, then sign in.');
-    }
-
-    state.session = authRes.data.session;
-    const token = state.session.access_token;
-
-    // Verify /api/auth/me
-    const meRes = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!meRes.ok) {
-      throw new Error('Failed to verify parent identity with backend');
-    }
-
-    const meData = await meRes.json();
-    if (!meData.household) {
-      // Idempotent household onboarding
-      const onboardRes = await fetch(`${getApiBaseUrl()}/api/household/onboard`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ householdName: householdName || 'Family Household' })
-      });
-      if (!onboardRes.ok) {
-        throw new Error('Failed to create household');
+    const generation = ++_authGeneration;
+    _interactiveAuthPending = true;
+    try {
+      if (isSignUp) {
+        authRes = await supabase.auth.signUp({ email, password });
+      } else {
+        authRes = await supabase.auth.signInWithPassword({ email, password });
       }
-      const onboardData = await onboardRes.json();
-      state.household = onboardData.household;
-    } else {
-      state.household = meData.household;
-    }
 
-    return { session: state.session, household: state.household };
+      if (authRes.error) {
+        throw new Error(authRes.error.message || 'Authentication failed');
+      }
+
+      if (!authRes.data || !authRes.data.session) {
+        throw new Error('Sign up successful! Please check your email to confirm your account, then sign in.');
+      }
+
+      const result = await synchronizeAuthenticatedSession(authRes.data.session, {
+        source: 'INTERACTIVE_SIGN_IN',
+        allowHouseholdOnboarding: true,
+        householdName,
+        force: true,
+        generation
+      });
+      if (result.status === 'UNAUTHENTICATED') {
+        throw new Error('Failed to verify parent identity with backend');
+      }
+      return result;
+    } finally {
+      _interactiveAuthPending = false;
+    }
   }
 
   /**
@@ -617,139 +687,187 @@
       });
     }
 
-    updateHeaderSessionBadge();
+    notifyAuthStateChanged();
   }
 
   /**
-   * Session Restoration / Auth Rehydration Boot Flow:
-   * 
-   * 1. Query official Supabase client for current persisted session.
-   * 2. If unauthenticated -> clear session and remain in UNAUTHENTICATED mode.
-   * 3. If session present:
-   *    a. Confirm identity and household via GET /api/auth/me.
-   *    b. Confirm active subscription via GET /api/subscriptions/current.
-   *    c. Fetch children via GET /api/children.
-   *    d. If exactly 1 child: safely auto-restore AppuSession and transition to READY.
-   *    e. If multiple children: transition to CHILD_SELECTION_REQUIRED (requires explicit learner selection).
-   *    f. If 0 children: transition to CHILD_SELECTION_REQUIRED (prompt child setup).
+   * Shared post-auth synchronization for interactive sign-in, persisted-session restore,
+   * and Supabase auth events. The backend remains authoritative for household,
+   * subscription, usage, learner, and personalisation state.
+   */
+  async function synchronizeAuthenticatedSession(session, options = {}) {
+    const token = session?.access_token;
+    const generation = options.generation ?? ++_authGeneration;
+    const isSuperseded = () => generation !== _authGeneration;
+    const supersededResult = () => {
+      if (!state.session) clearAuthenticatedRuntimeState();
+      return { status: state.authStatus, reason: 'superseded' };
+    };
+    if (isSuperseded()) return supersededResult();
+    if (!token) {
+      clearAuthenticatedRuntimeState();
+      finishAuthTransition('UNAUTHENTICATED');
+      return { status: 'UNAUTHENTICATED', reason: 'no_session' };
+    }
+
+    if (!options.force && token === _lastSynchronizedAccessToken && state.authStatus !== 'AUTH_CHECKING') {
+      return {
+        status: state.authStatus,
+        synchronized: true,
+        session: state.session,
+        household: state.household,
+        child: state.selectedChild
+      };
+    }
+
+    if (!options.transitionStarted) {
+      beginAuthTransition();
+    }
+    clearAuthenticatedRuntimeState();
+    state.session = session;
+
+    try {
+      const meRes = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (isSuperseded()) return supersededResult();
+
+      if (!meRes.ok) {
+        const supabase = state.supabaseClient;
+        clearAuthenticatedRuntimeState();
+        finishAuthTransition('UNAUTHENTICATED');
+        if (supabase?.auth && typeof supabase.auth.signOut === 'function') {
+          await supabase.auth.signOut().catch(() => {});
+        }
+        return { status: 'UNAUTHENTICATED', reason: 'auth_rejected' };
+      }
+
+      const meData = await meRes.json();
+      if (isSuperseded()) return supersededResult();
+      state.household = meData.household || null;
+
+      if (!state.household && options.allowHouseholdOnboarding) {
+        const onboardRes = await fetch(`${getApiBaseUrl()}/api/household/onboard`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ householdName: options.householdName || 'Family Household' })
+        });
+        if (isSuperseded()) return supersededResult();
+        if (!onboardRes.ok) {
+          throw new Error('Failed to create household');
+        }
+        const onboardData = await onboardRes.json();
+        state.household = onboardData.household;
+      }
+
+      if (!state.household) {
+        _lastSynchronizedAccessToken = token;
+        finishAuthTransition('PARENT_AUTHENTICATED');
+        return {
+          status: 'PARENT_AUTHENTICATED',
+          synchronized: true,
+          session: state.session,
+          household: null,
+          reason: 'no_household'
+        };
+      }
+
+      await Promise.all([
+        fetchPlans().catch(() => []),
+        fetchUsageSummary().catch(() => null)
+      ]);
+      if (isSuperseded()) return supersededResult();
+
+      const sub = await fetchCurrentSubscription().catch(() => null);
+      if (isSuperseded()) return supersededResult();
+      if (!sub || sub.status !== 'ACTIVE') {
+        _lastSynchronizedAccessToken = token;
+        finishAuthTransition('PARENT_AUTHENTICATED');
+        return {
+          status: 'PARENT_AUTHENTICATED',
+          synchronized: true,
+          session: state.session,
+          household: state.household,
+          subscription: sub,
+          reason: 'subscription_inactive'
+        };
+      }
+
+      const children = await fetchChildren().catch(() => []);
+      if (isSuperseded()) return supersededResult();
+      if (children.length === 1) {
+        state.selectedChild = children[0];
+        await fetchPersonalisation(state.selectedChild.id).catch(() => null);
+        if (isSuperseded()) return supersededResult();
+        launchAppuSession(state.selectedChild);
+        _lastSynchronizedAccessToken = token;
+        finishAuthTransition('READY');
+        return {
+          status: 'READY',
+          synchronized: true,
+          session: state.session,
+          household: state.household,
+          subscription: state.subscription,
+          child: state.selectedChild
+        };
+      }
+
+      state.selectedChild = null;
+      _lastSynchronizedAccessToken = token;
+      finishAuthTransition('CHILD_SELECTION_REQUIRED');
+      return {
+        status: 'CHILD_SELECTION_REQUIRED',
+        synchronized: true,
+        session: state.session,
+        household: state.household,
+        subscription: state.subscription,
+        children
+      };
+    } catch (err) {
+      if (isSuperseded()) return supersededResult();
+      clearAuthenticatedRuntimeState();
+      finishAuthTransition('UNAUTHENTICATED');
+      return { status: 'UNAUTHENTICATED', reason: 'exception', error: err?.message };
+    }
+  }
+
+  /**
+   * Restores the persisted Supabase session, then delegates to the shared post-auth path.
    */
   async function restoreSession() {
-    state.authStatus = 'AUTH_CHECKING';
-    initReadyPromise();
-    updateHeaderSessionBadge();
-
+    const generation = ++_authGeneration;
+    beginAuthTransition();
     const supabase = initSupabase();
     if (!supabase || !supabase.auth || typeof supabase.auth.getSession !== 'function') {
-      state.authStatus = 'UNAUTHENTICATED';
-      updateHeaderSessionBadge();
-      if (_resolveReady) _resolveReady(state.authStatus);
+      clearAuthenticatedRuntimeState();
+      finishAuthTransition('UNAUTHENTICATED');
       return { status: 'UNAUTHENTICATED', reason: 'supabase_unavailable' };
     }
 
     try {
       const { data, error } = await supabase.auth.getSession();
-      if (error || !data?.session || !data.session.access_token) {
-        state.session = null;
-        state.authStatus = 'UNAUTHENTICATED';
-        if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
-          window.AppuSession.clear();
-        }
-        updateHeaderSessionBadge();
-        if (_resolveReady) _resolveReady(state.authStatus);
+      if (error || !data?.session?.access_token) {
+        clearAuthenticatedRuntimeState();
+        finishAuthTransition('UNAUTHENTICATED');
         return { status: 'UNAUTHENTICATED', reason: 'no_session' };
       }
-
-      state.session = data.session;
-      const token = state.session.access_token;
-
-      // 1. Verify parent identity and household membership: GET /api/auth/me
-      const meRes = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!meRes.ok) {
-        // Expired, revoked, or invalid token
-        await signOut().catch(() => {});
-        state.authStatus = 'UNAUTHENTICATED';
-        if (_resolveReady) _resolveReady(state.authStatus);
-        return { status: 'UNAUTHENTICATED', reason: 'auth_rejected' };
-      }
-
-      const meData = await meRes.json();
-      if (!meData.household) {
-        state.household = null;
-        state.authStatus = 'PARENT_AUTHENTICATED';
-        updateHeaderSessionBadge();
-        if (_resolveReady) _resolveReady(state.authStatus);
-        return { status: 'PARENT_AUTHENTICATED', reason: 'no_household' };
-      }
-      state.household = meData.household;
-
-      // 2. Fetch plans & usage summary in parallel
-      await Promise.all([
-        fetchPlans().catch(() => []),
-        fetchUsageSummary().catch(() => null)
-      ]);
-
-      // 3. Confirm active subscription: GET /api/subscriptions/current
-      const sub = await fetchCurrentSubscription().catch(() => null);
-      if (!sub || sub.status !== 'ACTIVE') {
-        state.authStatus = 'PARENT_AUTHENTICATED';
-        if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
-          window.AppuSession.clear();
-        }
-        updateHeaderSessionBadge();
-        if (_resolveReady) _resolveReady(state.authStatus);
-        return { status: 'PARENT_AUTHENTICATED', subscription: sub, reason: 'subscription_inactive' };
-      }
-
-      // 4. Fetch child profiles: GET /api/children
-      const children = await fetchChildren().catch(() => []);
-
-      if (children.length === 1) {
-        // Exactly 1 child -> safely auto-restore learner context
-        state.selectedChild = children[0];
-        launchAppuSession(state.selectedChild);
-        state.authStatus = 'READY';
-        updateHeaderSessionBadge();
-        if (_resolveReady) _resolveReady(state.authStatus);
-        return { status: 'READY', child: state.selectedChild };
-      }
-
-      if (children.length > 1) {
-        // Multiple children -> require explicit learner selection before AppuSession becomes active
-        state.selectedChild = null;
-        if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
-          window.AppuSession.clear();
-        }
-        state.authStatus = 'CHILD_SELECTION_REQUIRED';
-        updateHeaderSessionBadge();
-        if (_resolveReady) _resolveReady(state.authStatus);
-        return { status: 'CHILD_SELECTION_REQUIRED', children };
-      }
-
-      // 0 children
-      state.selectedChild = null;
-      if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
-        window.AppuSession.clear();
-      }
-      state.authStatus = 'CHILD_SELECTION_REQUIRED';
-      updateHeaderSessionBadge();
-      if (_resolveReady) _resolveReady(state.authStatus);
-      return { status: 'CHILD_SELECTION_REQUIRED', children: [] };
+      return synchronizeAuthenticatedSession(data.session, { source: 'INITIAL_SESSION', force: true, transitionStarted: true, generation });
     } catch (err) {
-      state.authStatus = 'UNAUTHENTICATED';
-      if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
-        window.AppuSession.clear();
-      }
-      updateHeaderSessionBadge();
-      if (_resolveReady) _resolveReady(state.authStatus);
+      clearAuthenticatedRuntimeState();
+      finishAuthTransition('UNAUTHENTICATED');
       return { status: 'UNAUTHENTICATED', reason: 'exception', error: err?.message };
     }
   }
 
   function getAuthStatus() {
     return state.authStatus;
+  }
+
+  function isParentAuthenticated() {
+    return Boolean(state.session?.access_token && state.authStatus !== 'UNAUTHENTICATED');
   }
 
   /**
@@ -847,34 +965,24 @@
    * Signs out parent and clears AppuSession.
    */
   async function signOut() {
+    _authGeneration += 1;
     const supabase = initSupabase();
     if (supabase && supabase.auth && typeof supabase.auth.signOut === 'function') {
       await supabase.auth.signOut().catch(() => {});
     }
-
-    state.session = null;
-    state.household = null;
-    state.subscription = null;
-    state.usage = null;
-    state.children = [];
-    state.selectedChild = null;
-    state.personalisation = null;
-    state.authStatus = 'UNAUTHENTICATED';
-
-    if (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.clear === 'function') {
-      window.AppuSession.clear();
-    }
-
-    updateHeaderSessionBadge();
+    clearAuthenticatedRuntimeState();
+    finishAuthTransition('UNAUTHENTICATED');
   }
 
   return {
     state,
     initSupabase,
     signInParent,
+    synchronizeAuthenticatedSession,
     restoreSession,
     whenReady,
     getAuthStatus,
+    isParentAuthenticated,
     fetchPlans,
     groupPlansByTier,
     fetchCurrentSubscription,

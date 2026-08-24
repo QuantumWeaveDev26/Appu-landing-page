@@ -100,6 +100,117 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     }
   });
 
+  test('guest login immediately restores the active learner and uses bearer auth without a reload', async () => {
+    const originalFetch = global.fetch;
+    const originalLocalStorage = global.localStorage;
+    let gatewayHeaders = null;
+    let guestBadgeUpdates = 0;
+    let authStateCallback = null;
+    let identityFetches = 0;
+
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+    global.window.app = {
+      updateGuestBadge() {
+        guestBadgeUpdates += 1;
+      },
+      closeGuestGateModal() {}
+    };
+    global.localStorage = {
+      getItem(key) {
+        return key === 'appu_guest_session_token' ? 'gst_before_login' : null;
+      },
+      setItem() {},
+      removeItem() {}
+    };
+
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          onAuthStateChange(callback) {
+            authStateCallback = callback;
+            return { data: { subscription: { unsubscribe() {} } } };
+          },
+          async signInWithPassword({ email }) {
+            const session = {
+              access_token: 'fresh-parent-token',
+              user: { id: 'parent-1', email }
+            };
+            authStateCallback('SIGNED_IN', session);
+            return {
+              data: { session },
+              error: null
+            };
+          }
+        }
+      })
+    };
+
+    global.fetch = async (url, options = {}) => {
+      if (url.endsWith('/api/auth/me')) {
+        identityFetches += 1;
+        return { ok: true, status: 200, async json() { return { household: { id: 'hh-1', name: 'Rao Family' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [{ code: 'growth', name: 'Growth' }] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return { aiSessions: { used: 2, limit: 100, remaining: 98 } }; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { id: 'sub-1', status: 'ACTIVE', planCode: 'growth' } }; } };
+      }
+      if (url.endsWith('/api/children')) {
+        return { ok: true, status: 200, async json() { return { children: [{ id: 'child-1', preferredName: 'Aarav', gradeBand: 'Grade 5' }] }; } };
+      }
+      if (url.endsWith('/api/children/child-1/personalisation')) {
+        return { ok: true, status: 200, async json() { return { personalisation: { primaryLanguage: 'en', interests: ['space'] } }; } };
+      }
+      if (url.endsWith('/api/appu/message')) {
+        gatewayHeaders = options.headers;
+        return { ok: true, status: 200, async json() { return { text: 'Welcome back, Aarav!' }; } };
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    try {
+      const result = await ParentOnboardingShell.signInParent({
+        email: 'parent@example.com',
+        password: 'password123'
+      });
+
+      assert.equal(result.status, 'READY');
+      assert.equal(result.synchronized, true);
+      assert.equal(ParentOnboardingShell.state.household.id, 'hh-1');
+      assert.equal(ParentOnboardingShell.state.subscription.status, 'ACTIVE');
+      assert.equal(ParentOnboardingShell.state.personalisation.primaryLanguage, 'en');
+      assert.equal(AppuSession.isAuthenticated(), true);
+      assert.equal(AppuSession.accessToken, 'fresh-parent-token');
+      assert.equal(AppuSession.childId, 'child-1');
+      assert.equal(ParentOnboardingShell.isParentAuthenticated(), true);
+
+      authStateCallback('SIGNED_IN', ParentOnboardingShell.state.session);
+      await ParentOnboardingShell.whenReady();
+      assert.equal(identityFetches, 1, 'SIGNED_IN and signInParent must not run duplicate bootstraps');
+      assert.ok(guestBadgeUpdates > 0, 'authenticated state must notify the guest quota UI');
+
+      const response = await AppuBackendClient.sendAppuMessage({
+        accessToken: AppuSession.accessToken,
+        childId: AppuSession.childId,
+        message: 'Teach me fractions',
+        language: 'en'
+      });
+
+      assert.equal(response.text, 'Welcome back, Aarav!');
+      assert.equal(gatewayHeaders.Authorization, 'Bearer fresh-parent-token');
+      assert.equal(gatewayHeaders['X-Guest-Session-Token'], undefined);
+    } finally {
+      global.fetch = originalFetch;
+      global.localStorage = originalLocalStorage;
+      delete global.window.app;
+    }
+  });
+
   // ============================================================================
   // 2. PLANS & SUBSCRIPTION SELECTION
   // ============================================================================
@@ -490,6 +601,137 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
   // ============================================================================
   // 6. SESSION RESTORATION & AUTH REHYDRATION
   // ============================================================================
+
+  test('Supabase auth events synchronize sign-in, refreshed bearer tokens, and sign-out state', async () => {
+    const originalFetch = global.fetch;
+    let authStateCallback = null;
+
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          onAuthStateChange(callback) {
+            authStateCallback = callback;
+            return { data: { subscription: { unsubscribe() {} } } };
+          }
+        }
+      })
+    };
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return { ok: true, status: 200, async json() { return { household: { id: 'hh-events', name: 'Event Family' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [{ code: 'growth' }] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return { aiSessions: { used: 1, limit: 100, remaining: 99 } }; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { id: 'sub-events', status: 'ACTIVE', planCode: 'growth' } }; } };
+      }
+      if (url.endsWith('/api/children')) {
+        return { ok: true, status: 200, async json() { return { children: [{ id: 'child-events', preferredName: 'Mira', gradeBand: 'Grade 6' }] }; } };
+      }
+      if (url.endsWith('/api/children/child-events/personalisation')) {
+        return { ok: true, status: 200, async json() { return { personalisation: { primaryLanguage: 'kn' } }; } };
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    try {
+      ParentOnboardingShell.initSupabase();
+      assert.equal(typeof authStateCallback, 'function');
+
+      authStateCallback('SIGNED_IN', {
+        access_token: 'signed-in-event-token',
+        user: { email: 'events@example.com' }
+      });
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'AUTH_CHECKING');
+      assert.equal(await ParentOnboardingShell.whenReady(), 'READY');
+      assert.equal(AppuSession.accessToken, 'signed-in-event-token');
+      assert.equal(AppuSession.childId, 'child-events');
+
+      authStateCallback('TOKEN_REFRESHED', {
+        access_token: 'refreshed-event-token',
+        user: { email: 'events@example.com' }
+      });
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'AUTH_CHECKING');
+      assert.equal(await ParentOnboardingShell.whenReady(), 'READY');
+      assert.equal(AppuSession.accessToken, 'refreshed-event-token');
+      assert.equal(AppuSession.childId, 'child-events');
+
+      authStateCallback('SIGNED_OUT', null);
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'UNAUTHENTICATED');
+      assert.equal(ParentOnboardingShell.state.session, null);
+      assert.equal(AppuSession.isAuthenticated(), false);
+      assert.equal(ParentOnboardingShell.isParentAuthenticated(), false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('SIGNED_OUT cannot be overwritten by an in-flight SIGNED_IN bootstrap', async () => {
+    const originalFetch = global.fetch;
+    let authStateCallback = null;
+    let releaseIdentity;
+    const identityBlocked = new Promise((resolve) => {
+      releaseIdentity = resolve;
+    });
+
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          onAuthStateChange(callback) {
+            authStateCallback = callback;
+            return { data: { subscription: { unsubscribe() {} } } };
+          }
+        }
+      })
+    };
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        await identityBlocked;
+        return { ok: true, status: 200, async json() { return { household: { id: 'hh-race' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return null; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { status: 'ACTIVE', planCode: 'growth' } }; } };
+      }
+      if (url.endsWith('/api/children')) {
+        return { ok: true, status: 200, async json() { return { children: [{ id: 'child-race', preferredName: 'Race Child' }] }; } };
+      }
+      if (url.endsWith('/api/children/child-race/personalisation')) {
+        return { ok: true, status: 200, async json() { return { personalisation: null }; } };
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    };
+
+    try {
+      ParentOnboardingShell.initSupabase();
+      authStateCallback('SIGNED_IN', { access_token: 'token-before-signout' });
+      await Promise.resolve();
+      authStateCallback('SIGNED_OUT', null);
+      releaseIdentity();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      assert.equal(ParentOnboardingShell.getAuthStatus(), 'UNAUTHENTICATED');
+      assert.equal(ParentOnboardingShell.state.session, null);
+      assert.equal(AppuSession.isAuthenticated(), false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 
   test('valid Supabase session with 1 child auto-restores AppuSession to READY state', async () => {
     const originalFetch = global.fetch;

@@ -216,9 +216,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateGuestBadge(guestData) {
-    const isAuthed = typeof window.AppuSession !== 'undefined' &&
+    const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated();
+    const isAuthed = hasAuthenticatedParent || (typeof window.AppuSession !== 'undefined' &&
       typeof window.AppuSession.isAuthenticated === 'function' &&
-      window.AppuSession.isAuthenticated();
+      window.AppuSession.isAuthenticated());
 
     if (isAuthed || !guestAccessBadge) {
       if (guestAccessBadge) guestAccessBadge.classList.add('is-hidden');
@@ -343,9 +346,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const isAuthed = typeof window.AppuSession !== 'undefined' &&
       typeof window.AppuSession.isAuthenticated === 'function' &&
       window.AppuSession.isAuthenticated();
+    const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated();
 
     // If unauthenticated and known guest limit reached, gate immediately
-    if (!isAuthed && currentGuestRemaining <= 0) {
+    if (!isAuthed && !hasAuthenticatedParent && currentGuestRemaining <= 0) {
       voiceEngine.playClick();
       showGuestGateModal();
       const subtitlesText = document.getElementById('subtitles-text');

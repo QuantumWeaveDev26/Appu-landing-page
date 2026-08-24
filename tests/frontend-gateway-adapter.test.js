@@ -164,4 +164,52 @@ describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
       global.fetch = originalFetch;
     }
   });
+
+  test('authenticated parent without an active learner never falls back to the guest gateway', async () => {
+    const originalWindow = global.window;
+    const originalDocument = global.document;
+    let gatewayCalls = 0;
+
+    global.document = {
+      getElementById() {
+        return null;
+      }
+    };
+    global.window = {
+      AppuSession,
+      ParentOnboardingShell: {
+        state: {
+          session: { access_token: 'valid-parent-without-learner' },
+          authStatus: 'CHILD_SELECTION_REQUIRED'
+        },
+        whenReady() {
+          return Promise.resolve('CHILD_SELECTION_REQUIRED');
+        }
+      },
+      ParentSetupUI: {
+        openModal() {}
+      },
+      AppuBackendClient: {
+        async sendAppuMessage() {
+          gatewayCalls += 1;
+          return { text: 'This guest request must not happen.' };
+        }
+      }
+    };
+
+    try {
+      delete require.cache[require.resolve('../frontend/chat-agent.js')];
+      require('../frontend/chat-agent.js');
+      const agent = new global.window.ChatAgent();
+      const response = await agent.sendMessage('Teach me fractions');
+
+      assert.equal(gatewayCalls, 0);
+      assert.match(response.text, /select.*learner/i);
+      assert.equal(response.actionCard.title, 'Parent Zone');
+    } finally {
+      global.window = originalWindow;
+      global.document = originalDocument;
+      delete require.cache[require.resolve('../frontend/chat-agent.js')];
+    }
+  });
 });

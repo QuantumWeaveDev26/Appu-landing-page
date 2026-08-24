@@ -102,6 +102,29 @@ class ChatAgent {
 
       const backendClient = typeof window !== 'undefined' ? window.AppuBackendClient : null;
 
+      const hasAuthenticatedParentSession =
+        typeof window !== 'undefined' &&
+        window.ParentOnboardingShell &&
+        Boolean(window.ParentOnboardingShell.state?.session?.access_token);
+
+      // A verified parent session without an active learner is not a guest session.
+      // Block locally so a child-selection/subscription state can never consume guest access.
+      if (hasAuthenticatedParentSession && !hasSecureSession) {
+        responseText = 'Please open Parent Zone to activate your plan or select a learner before chatting with Appu.';
+        actionCard = {
+          title: 'Parent Zone',
+          buttonText: 'Choose learner',
+          onClick: () => {
+            if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+              window.ParentSetupUI.openModal(4);
+            }
+          }
+        };
+        if (this.typingIndicator) this.typingIndicator.style.display = 'none';
+        if (onFinishThinking) onFinishThinking(responseText, null);
+        return this.addMessage('appu', responseText, actionCard);
+      }
+
       if (!backendClient || typeof backendClient.sendAppuMessage !== 'function') {
         throw new Error('AppuBackendClient unavailable');
       }
