@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator v4.0 for Appu AI Digital Mentor
- * Connects AvatarStage, VoiceEngine, ChatAgent, Modals, Audio SFX and Live n8n Workflows.
+ * Connects AvatarStage, VoiceEngine, ChatAgent, Modals, Audio SFX, Guest Access Control, and Secure Backend Gateway.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (loaderVideoPlayer) {
     loaderVideoPlayer.muted = true;
-    loaderVideoPlayer.playbackRate = 2.0; // 2x playback speed!
+    loaderVideoPlayer.playbackRate = 2.0; // 2x playback speed
     loaderVideoPlayer.addEventListener('loadedmetadata', () => {
       loaderVideoPlayer.playbackRate = 2.0;
     });
@@ -106,8 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // CONFIGURATION & PERSISTED PREFERENCES
   // ==========================================
-  const defaultN8nUrl = 'https://n8n.srv1871828.hstgr.cloud/webhook/4a108e85-050f-427e-aa03-784492ddfe89/chat';
-  const savedWebhook = defaultN8nUrl;
   localStorage.removeItem('appu_n8n_url');
   localStorage.removeItem('appu_mock_mode');
   const savedRate = parseFloat(localStorage.getItem('appu_voice_rate') || '0.88');
@@ -132,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
   voiceEngine.soundEnabled = savedSound;
 
   const chatAgent = new ChatAgent({
-    n8nWebhookUrl: savedWebhook,
     mockMode: false
   });
   chatAgent.mockMode = false;
@@ -146,6 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
     closeDiscoveryModal,
     openSettingsModal,
     closeSettingsModal,
+    showGuestGateModal,
+    closeGuestGateModal,
+    updateGuestBadge,
+    onGuestLimitReached,
     toggleChatDrawer,
     handleUserInteraction,
     setLanguage
@@ -177,8 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function deactivateDialog(dialog) {
     if (!dialog) return;
-    // Restore focus to opener element BEFORE setting aria-hidden to avoid:
-    // "Blocked aria-hidden on an element because its descendant retained focus."
     if (dialog.contains(document.activeElement)) {
       if (lastFocusedElement?.isConnected && typeof lastFocusedElement.focus === 'function') {
         lastFocusedElement.focus();
@@ -189,6 +188,113 @@ document.addEventListener('DOMContentLoaded', () => {
     if (appShell) appShell.inert = false;
     dialog.setAttribute('aria-hidden', 'true');
     if (activeDialog === dialog) activeDialog = null;
+  }
+
+  // ==========================================
+  // GUEST ACCESS & 3-TURN LIMIT GATE
+  // ==========================================
+  const guestLimitModal = document.getElementById('guest-limit-modal');
+  const btnCloseGuestLimit = document.getElementById('btn-close-guest-limit');
+  const btnGuestSignin = document.getElementById('btn-guest-signin');
+  const btnGuestRegister = document.getElementById('btn-guest-register');
+  const btnGuestPlans = document.getElementById('btn-guest-plans');
+  const guestAccessBadge = document.getElementById('guest-access-badge');
+  const guestAccessText = document.getElementById('guest-access-text');
+
+  let currentGuestRemaining = 3;
+
+  function showGuestGateModal() {
+    if (!guestLimitModal) return;
+    guestLimitModal.classList.add('is-visible');
+    activateDialog(guestLimitModal, btnGuestSignin);
+    voiceEngine.playClick();
+  }
+
+  function closeGuestGateModal() {
+    if (!guestLimitModal) return;
+    guestLimitModal.classList.remove('is-visible');
+    deactivateDialog(guestLimitModal);
+  }
+
+  function updateGuestBadge(guestData) {
+    const isAuthed = typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated();
+
+    if (isAuthed || !guestAccessBadge) {
+      if (guestAccessBadge) guestAccessBadge.classList.add('is-hidden');
+      return;
+    }
+
+    guestAccessBadge.classList.remove('is-hidden');
+
+    if (guestData && typeof guestData.remaining === 'number') {
+      currentGuestRemaining = guestData.remaining;
+    }
+
+    guestAccessBadge.classList.remove('is-warning', 'is-exhausted');
+
+    if (currentGuestRemaining === 3) {
+      if (guestAccessText) guestAccessText.textContent = '3 complimentary chats available';
+    } else if (currentGuestRemaining === 2) {
+      if (guestAccessText) guestAccessText.textContent = '2 complimentary chats remaining';
+    } else if (currentGuestRemaining === 1) {
+      if (guestAccessText) guestAccessText.textContent = '1 complimentary chat remaining';
+      guestAccessBadge.classList.add('is-warning');
+    } else {
+      if (guestAccessText) guestAccessText.textContent = '0 complimentary chats remaining';
+      guestAccessBadge.classList.add('is-exhausted');
+    }
+  }
+
+  function onGuestLimitReached(err) {
+    currentGuestRemaining = 0;
+    updateGuestBadge({ remaining: 0, used: 3 });
+    showGuestGateModal();
+
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = 'Your complimentary APPU chats are complete. Sign in to continue learning!';
+    }
+    avatarStage.setState('idle');
+  }
+
+  if (btnGuestSignin) {
+    btnGuestSignin.addEventListener('click', () => {
+      closeGuestGateModal();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnGuestRegister) {
+    btnGuestRegister.addEventListener('click', () => {
+      closeGuestGateModal();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnGuestPlans) {
+    btnGuestPlans.addEventListener('click', () => {
+      closeGuestGateModal();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(2);
+      }
+    });
+  }
+
+  if (btnCloseGuestLimit) {
+    btnCloseGuestLimit.addEventListener('click', closeGuestGateModal);
+  }
+
+  // Load initial guest status
+  if (typeof window.AppuBackendClient !== 'undefined' && typeof window.AppuBackendClient.getGuestStatus === 'function') {
+    window.AppuBackendClient.getGuestStatus().then((status) => {
+      updateGuestBadge(status);
+    }).catch(() => {});
   }
 
   // ==========================================
@@ -228,6 +334,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   async function handleUserInteraction(text) {
     if (!text || !text.trim()) return;
+
+    const isAuthed = typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated();
+
+    // If unauthenticated and known guest limit reached, gate immediately
+    if (!isAuthed && currentGuestRemaining <= 0) {
+      voiceEngine.playClick();
+      showGuestGateModal();
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = 'Your complimentary APPU chats are complete. Sign in to continue learning!';
+      }
+      return;
+    }
 
     voiceEngine.playClick();
     avatarStage.setState('thinking');
@@ -301,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   const chipButtons = document.querySelectorAll('.chip-action-btn');
   chipButtons.forEach((btn) => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
       chipButtons.forEach((b) => b.classList.remove('is-active'));
       btn.classList.add('is-active');
 
@@ -357,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (chatScrim) chatScrim.classList.add('is-visible');
       activateDialog(chatDrawer, btnCloseChat);
       voiceEngine.playClick();
+      updateGuestBadge();
     } else {
       chatDrawer.classList.remove('is-open');
       if (chatScrim) chatScrim.classList.remove('is-visible');
@@ -364,57 +486,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (btnToggleChat) btnToggleChat.addEventListener('click', () => toggleChatDrawer());
-  if (btnCloseChat) btnCloseChat.addEventListener('click', () => toggleChatDrawer(false));
-  if (chatScrim) chatScrim.addEventListener('click', () => toggleChatDrawer(false));
+  if (btnToggleChat) {
+    btnToggleChat.addEventListener('click', () => toggleChatDrawer(true));
+  }
+  if (btnCloseChat) {
+    btnCloseChat.addEventListener('click', () => toggleChatDrawer(false));
+  }
+  if (chatScrim) {
+    chatScrim.addEventListener('click', () => toggleChatDrawer(false));
+  }
 
   if (btnClearChat) {
     btnClearChat.addEventListener('click', () => {
-      chatAgent.clearHistory();
       voiceEngine.playClick();
+      chatAgent.clearHistory();
     });
   }
 
   if (chatForm && chatInput) {
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const val = chatInput.value.trim();
-      if (val) {
-        chatInput.value = '';
-        handleUserInteraction(val);
-      }
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      chatInput.value = '';
+      handleUserInteraction(text);
     });
   }
 
   if (btnChatMic) {
     btnChatMic.addEventListener('click', () => {
-      voiceEngine.playClick();
       voiceEngine.toggleLiveSession();
     });
   }
 
   // ==========================================
-  // 0-CLICK DISCOVERY MODAL & WORKFLOW
+  // DISCOVERY MODAL & CALENDAR INTEGRATION
   // ==========================================
   const discoveryModal = document.getElementById('discovery-modal');
-  const btnCloseDiscoveryModal = document.getElementById('btn-close-discovery-modal');
+  const btnCloseDiscovery = document.getElementById('btn-close-discovery-modal');
   const discoveryForm = document.getElementById('discovery-form');
   const discoverySuccessView = document.getElementById('discovery-success-view');
   const btnDoneDiscovery = document.getElementById('btn-done-discovery');
 
   function openDiscoveryModal() {
     if (discoveryModal) {
-      voiceEngine.playClick();
-      if (discoveryForm) discoveryForm.style.display = 'flex';
+      if (discoveryForm) discoveryForm.style.display = 'block';
       if (discoverySuccessView) discoverySuccessView.style.display = 'none';
 
-      // Set default datetime to tomorrow at 11:00 AM
-      const dateInput = document.getElementById('lead-date');
-      if (dateInput && !dateInput.value) {
+      // Prefill default datetime (tomorrow 11:00 AM)
+      const leadDate = document.getElementById('lead-date');
+      if (leadDate && !leadDate.value) {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(11, 0, 0, 0);
-        dateInput.value = tomorrow.toISOString().slice(0, 16);
+        leadDate.value = tomorrow.toISOString().slice(0, 16);
       }
 
       discoveryModal.classList.add('is-visible');
@@ -429,24 +555,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (btnCloseDiscoveryModal) btnCloseDiscoveryModal.addEventListener('click', closeDiscoveryModal);
+  if (btnCloseDiscovery) btnCloseDiscovery.addEventListener('click', closeDiscoveryModal);
   if (btnDoneDiscovery) btnDoneDiscovery.addEventListener('click', closeDiscoveryModal);
 
   if (discoveryForm) {
     discoveryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const name = document.getElementById('lead-name').value.trim();
-      const phone = document.getElementById('lead-phone').value.trim();
-      const email = document.getElementById('lead-email').value.trim();
-      const dateVal = document.getElementById('lead-date').value;
-      const interest = document.getElementById('lead-interest').value;
+      const name = document.getElementById('lead-name')?.value?.trim();
+      const phone = document.getElementById('lead-phone')?.value?.trim();
+      const email = document.getElementById('lead-email')?.value?.trim();
+      const dateVal = document.getElementById('lead-date')?.value;
+      const interest = document.getElementById('lead-interest')?.value;
 
       const submitBtn = document.getElementById('btn-submit-discovery');
       const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Scheduling your call...</span>';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scheduling...';
       }
 
       try {
@@ -460,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
           sessionId: chatAgent.sessionId
         };
 
-        const res = await fetch(chatAgent.n8nWebhookUrl, {
+        const res = await fetch(chatAgent.n8nWebhookUrl || defaultN8nUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -492,7 +619,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       } catch (err) {
         console.error('Discovery call submission error:', err);
-        // Fallback success state
         discoveryForm.style.display = 'none';
         discoverySuccessView.style.display = 'flex';
         voiceEngine.playSuccess();
@@ -570,11 +696,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Restore authenticated session after page refresh
   if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.restoreSession === 'function') {
-    window.ParentOnboardingShell.restoreSession().catch((err) => {
+    window.ParentOnboardingShell.restoreSession().then(() => {
+      updateGuestBadge();
+    }).catch((err) => {
       console.warn('[Appu] Session restoration warning:', err?.message || err);
+      updateGuestBadge();
     });
   } else if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
     window.ParentOnboardingShell.updateHeaderSessionBadge();
+    updateGuestBadge();
   }
 
   const parentSetupModal = document.getElementById('parent-setup-modal');
@@ -583,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('click', (e) => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === guestLimitModal) closeGuestGateModal();
     if (e.target === parentSetupModal && parentSetupModal) {
       if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
         window.ParentSetupUI.closeModal();
@@ -616,6 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') {
       closeDiscoveryModal();
       closeSettingsModal();
+      closeGuestGateModal();
       if (parentSetupModal && parentSetupModal.classList.contains('is-visible')) {
         if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
           window.ParentSetupUI.closeModal();
@@ -633,4 +765,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-

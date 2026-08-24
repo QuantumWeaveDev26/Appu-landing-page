@@ -255,7 +255,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       app.register(appuGatewayRoutes, {
         db: options.database,
         authVerifier,
-        n8nClient
+        n8nClient,
+        guestSessionSecret: config.GUEST_SESSION_SECRET
       });
     }
   }

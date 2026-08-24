@@ -85,7 +85,7 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     const migrations = await db.query<{ version: string; checksum: string; applied_at: Date }>(
       'SELECT version, checksum, applied_at FROM schema_migrations;'
     );
-    assert.equal(migrations.rows.length, 9);
+    assert.equal(migrations.rows.length, 10);
     assert.equal(migrations.rows[0].version, '001_initial_tenancy.sql');
     assert.match(migrations.rows[0].checksum, /^[a-f0-9]{64}$/);
     assert.equal(migrations.rows[1].version, '002_subscription_plans.sql');
@@ -104,6 +104,8 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     assert.match(migrations.rows[7].checksum, /^[a-f0-9]{64}$/);
     assert.equal(migrations.rows[8].version, '009_appu_student_catalogue.sql');
     assert.match(migrations.rows[8].checksum, /^[a-f0-9]{64}$/);
+    assert.equal(migrations.rows[9].version, '010_guest_sessions.sql');
+    assert.match(migrations.rows[9].checksum, /^[a-f0-9]{64}$/);
 
     // Idempotency: running migrations a second time applies 0 new files without error
     const secondRun = await runMigrations(db);
@@ -161,7 +163,7 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
       CREATE TABLE child_profiles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), household_id UUID NOT NULL REFERENCES households(id) ON DELETE RESTRICT, preferred_name VARCHAR(100) NOT NULL, grade_band VARCHAR(50) NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), CONSTRAINT uq_child_profiles_household_id UNIQUE (household_id, id));
     `);
 
-    // 2. Run migrator on legacy database: should safely add 'checksum' column, backfill checksum, and apply pending 002-009
+    // 2. Run migrator on legacy database: should safely add 'checksum' column, backfill checksum, and apply pending 002-010
     const applied = await runMigrations(freshDb);
     assert.deepEqual(applied, [
       '002_subscription_plans.sql',
@@ -171,7 +173,8 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
       '006_usage_accounting_hardening.sql',
       '007_child_fk_and_idempotency_fingerprint.sql',
       '008_voice_duration_metering.sql',
-      '009_appu_student_catalogue.sql'
+      '009_appu_student_catalogue.sql',
+      '010_guest_sessions.sql'
     ]);
 
     // 3. Verify 'checksum' column exists and has valid SHA-256 value for 001

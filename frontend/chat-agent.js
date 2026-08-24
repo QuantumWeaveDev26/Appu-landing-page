@@ -1,15 +1,13 @@
 /**
- * ChatAgent: Real-Time n8n Webhook Connector (WebSocket + Async Executions) & AI Mentor Engine
+ * ChatAgent: Secure Gateway Connector & AI Mentor Engine
+ *
+ * All interactions (authenticated and guest) route strictly through the backend
+ * gateway (POST /api/appu/message) via AppuBackendClient.
  */
 
 class ChatAgent {
   constructor(options = {}) {
-    // Exact user n8n webhook URL
-    this.n8nWebhookUrl = options.n8nWebhookUrl || 'https://n8n.srv1871828.hstgr.cloud/webhook/4a108e85-050f-427e-aa03-784492ddfe89/chat';
-    this.mockMode = false; // Always LIVE workflow
-    this.sessionId = localStorage.getItem('appu_session_id') || ('appu_session_' + Math.random().toString(36).substring(2, 9));
-    localStorage.setItem('appu_session_id', this.sessionId);
-
+    this.mockMode = false;
     this.messages = [];
     this.messagesContainer = document.getElementById('chat-messages');
     this.typingIndicator = document.getElementById('chat-typing');
@@ -45,7 +43,7 @@ class ChatAgent {
       card.className = 'chat-action-card';
 
       const title = document.createElement('h5');
-      title.innerHTML = `<i class="fa-solid fa-calendar-check"></i> ${msg.actionCard.title}`;
+      title.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${msg.actionCard.title}`;
       card.appendChild(title);
 
       const btn = document.createElement('button');
@@ -70,7 +68,7 @@ class ChatAgent {
   }
 
   /**
-   * Sends user message to live n8n workflow and awaits response via WebSocket or polling
+   * Sends user message to backend gateway and returns response
    */
   async sendMessage(userText, onStartThinking, onFinishThinking) {
     if (!userText || !userText.trim()) return null;
@@ -82,14 +80,12 @@ class ChatAgent {
     if (onStartThinking) onStartThinking();
     if (this.typingIndicator) this.typingIndicator.style.display = 'flex';
 
-    this.mockMode = false;
-
     try {
       let responseText = '';
       let actionCard = null;
       let audioSource = null;
 
-      // Ensure startup auth restoration has completed before deciding transport
+      // Ensure startup auth restoration has completed before dispatching
       if (
         typeof window !== 'undefined' &&
         window.ParentOnboardingShell &&
@@ -98,60 +94,54 @@ class ChatAgent {
         await window.ParentOnboardingShell.whenReady().catch(() => {});
       }
 
-      // =========================================================================
-      // TRANSPORT ADAPTER ROUTING:
-      // When an authenticated AppuSession is present, route via the secure backend
-      // gateway (POST /api/appu/message).
-      // Otherwise, fallback to the direct n8n webhook (LEGACY_PHASE1_DIRECT_N8N).
-      // =========================================================================
       const hasSecureSession =
         typeof window !== 'undefined' &&
         window.AppuSession &&
         typeof window.AppuSession.isAuthenticated === 'function' &&
-        window.AppuSession.isAuthenticated() &&
-        window.AppuBackendClient &&
-        typeof window.AppuBackendClient.sendAppuMessage === 'function';
+        window.AppuSession.isAuthenticated();
 
-      if (hasSecureSession) {
-        // SECURE PHASE 2 BACKEND GATEWAY TRANSPORT
-        const result = await window.AppuBackendClient.sendAppuMessage({
-          accessToken: window.AppuSession.accessToken,
-          childId: window.AppuSession.childId,
-          message: cleanInput,
-          language: this.language || 'en'
-        });
+      const backendClient = typeof window !== 'undefined' ? window.AppuBackendClient : null;
 
-        responseText = result.text;
-        audioSource = result.audioSource;
-      } else {
-        // LEGACY_PHASE1_DIRECT_N8N:
-        // Remove after final parent authentication/onboarding UI is connected to AppuSession.
-        const res = await fetch(this.n8nWebhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'sendMessage',
-            sessionId: this.sessionId,
-            chatInput: cleanInput,
-            message: cleanInput
-          })
-        });
+      if (!backendClient || typeof backendClient.sendAppuMessage !== 'function') {
+        throw new Error('AppuBackendClient unavailable');
+      }
 
-        if (!res.ok) {
-          throw new Error(`n8n HTTP error: ${res.status} ${res.statusText}`);
+      const requestPayload = hasSecureSession
+        ? {
+            accessToken: window.AppuSession.accessToken,
+            childId: window.AppuSession.childId,
+            message: cleanInput,
+            language: this.language || 'en'
+          }
+        : {
+            message: cleanInput,
+            language: this.language || 'en'
+          };
+
+      const result = await backendClient.sendAppuMessage(requestPayload);
+
+      responseText = result.text;
+      audioSource = result.audioSource || null;
+
+      // Handle guest limit reached
+      if (result.error === 'guest_limit_reached' || result.code === 'GUEST_LIMIT_REACHED') {
+        actionCard = {
+          title: 'Parent Zone',
+          buttonText: 'Sign in to save progress & continue',
+          onClick: () => {
+            if (typeof window !== 'undefined' && window.app && typeof window.app.showGuestGateModal === 'function') {
+              window.app.showGuestGateModal();
+            } else if (typeof window !== 'undefined' && window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+              window.ParentSetupUI.openModal(1);
+            }
+          }
+        };
+
+        if (typeof window !== 'undefined' && window.app && typeof window.app.onGuestLimitReached === 'function') {
+          window.app.onGuestLimitReached(result);
         }
-
-        const rawText = await res.text();
-        try {
-          const parsed = JSON.parse(rawText);
-          const normalized = window.AppuVoiceContract.normalizeResponse(parsed);
-          responseText = normalized.text;
-          audioSource = normalized.audioSource;
-        } catch {
-          responseText = rawText;
-        }
+      } else if (result.guestSession && typeof window !== 'undefined' && window.app && typeof window.app.updateGuestBadge === 'function') {
+        window.app.updateGuestBadge(result.guestSession);
       }
 
       // Clean formatted \n characters so line breaks render properly
@@ -160,19 +150,25 @@ class ChatAgent {
       }
 
       if (!responseText || !responseText.trim()) {
-        responseText = "I received your message, but the workflow returned an empty output. Please verify your n8n Respond to Webhook node.";
+        responseText = "I received your message, but the answer service returned an empty output. Please try asking again!";
       }
 
       // Detect if response invites scheduling a discovery call
-      if (responseText.toLowerCase().includes('discovery call') || 
-          responseText.toLowerCase().includes('google meet') || 
-          responseText.toLowerCase().includes('schedule') ||
+      if (!actionCard && (
+          responseText.toLowerCase().includes('discovery call') ||
+          responseText.toLowerCase().includes('google meet') ||
+          responseText.toLowerCase().includes('parent zone') ||
           cleanInput.toLowerCase().includes('schedule') ||
-          cleanInput.toLowerCase().includes('discovery')) {
+          cleanInput.toLowerCase().includes('parent zone')
+      )) {
         actionCard = {
           title: 'Parent Zone',
           buttonText: 'Plan a learning support call',
-          onClick: () => window.app.openDiscoveryModal()
+          onClick: () => {
+            if (window.app && typeof window.app.openDiscoveryModal === 'function') {
+              window.app.openDiscoveryModal();
+            }
+          }
         };
       }
 
@@ -183,10 +179,10 @@ class ChatAgent {
       return appuMsg;
 
     } catch (error) {
-      console.error('Appu answer request failed.', error);
+      console.error('Appu message request failed:', error);
       if (this.typingIndicator) this.typingIndicator.style.display = 'none';
 
-      const errorDisplay = 'I could not reach my answer service just now. Please wait a moment and try again.';
+      const errorDisplay = 'I could not reach my answer service just now. Please check your connection and try again.';
       if (onFinishThinking) onFinishThinking(errorDisplay, null);
       return this.addMessage('appu', errorDisplay);
     }

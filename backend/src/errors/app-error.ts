@@ -31,7 +31,10 @@ export class AppError extends Error {
         code: this.code,
         message: this.message,
         ...(this.details ? { details: this.details } : {})
-      }
+      },
+      code: this.code,
+      message: this.message,
+      ...(this.details || {})
     };
   }
 }
@@ -156,6 +159,38 @@ export class IdempotencyConflictError extends AppError {
       statusCode: 409
     });
     this.name = 'IdempotencyConflictError';
+  }
+}
+
+export class RateLimitedError extends AppError {
+  constructor(message = 'Too many requests. Please slow down and try again.') {
+    super({
+      code: ErrorCodes.RATE_LIMITED,
+      message,
+      statusCode: 429
+    });
+    this.name = 'RateLimitedError';
+  }
+}
+
+export class GuestLimitReachedError extends AppError {
+  constructor(
+    message = 'Your complimentary APPU chats are complete. Sign in to continue learning and save your progress.',
+    details?: Record<string, unknown>
+  ) {
+    super({
+      code: ErrorCodes.GUEST_LIMIT_REACHED,
+      message,
+      statusCode: 403,
+      details: {
+        guestLimit: 3,
+        used: 3,
+        remaining: 0,
+        loginRequired: true,
+        ...details
+      }
+    });
+    this.name = 'GuestLimitReachedError';
   }
 }
 

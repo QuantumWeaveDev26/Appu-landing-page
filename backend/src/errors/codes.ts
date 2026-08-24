@@ -16,7 +16,8 @@ export const ErrorCodes = {
   BAD_GATEWAY: 'bad_gateway',
   INTERNAL_ERROR: 'internal_error',
   INVALID_STATE_TRANSITION: 'invalid_state_transition',
-  INVALID_ENTITLEMENT_VALUE: 'invalid_entitlement_value'
+  INVALID_ENTITLEMENT_VALUE: 'invalid_entitlement_value',
+  GUEST_LIMIT_REACHED: 'GUEST_LIMIT_REACHED'
 } as const;
 
 export type AppErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

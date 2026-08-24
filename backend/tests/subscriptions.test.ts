@@ -674,7 +674,8 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       NODE_ENV: 'production',
       PORT: '3000',
       HOST: '0.0.0.0',
-      LOG_LEVEL: 'silent'
+      LOG_LEVEL: 'silent',
+      GUEST_SESSION_SECRET: 'test_prod_guest_secret_32_characters'
     });
 
     const prodApp = buildApp(prodConfig, {

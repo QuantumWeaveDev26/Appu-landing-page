@@ -122,6 +122,10 @@
     </header>
     <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
     <div id="chat-typing" class="chat-typing" aria-label="Appu is thinking"><span></span><span></span><span></span></div>
+    <div id="guest-access-badge" class="guest-access-badge" aria-live="polite">
+      <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
+      <span id="guest-access-text">3 complimentary chats available</span>
+    </div>
     <form id="chat-form" class="chat-composer">
       <label class="sr-only" for="chat-input">Your question for Appu</label>
       <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homework…">
@@ -129,6 +133,28 @@
       <button class="composer-send" type="submit" aria-label="Send question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
     </form>
   </aside>
+
+  <!-- GUEST LIMIT REACHED GATE MODAL -->
+  <section id="guest-limit-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="guest-limit-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet guest-limit-sheet">
+      <button id="btn-close-guest-limit" class="icon-btn modal-close close-btn" type="button" aria-label="Close dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> APPU AI Companion</div>
+      <h2 id="guest-limit-title">Your complimentary APPU chats are complete</h2>
+      <p class="modal-lead">Sign in to continue learning, save your progress, and unlock tailored study plans.</p>
+
+      <div class="guest-gate-features">
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Personalized explanations for your syllabus</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Save chat history across all your devices</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Voice practice in English and Kannada</span></div>
+      </div>
+
+      <div class="guest-gate-actions">
+        <button id="btn-guest-signin" class="primary-modal-btn" type="button"><span>Sign in</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+        <button id="btn-guest-register" class="secondary-modal-btn" type="button"><span>Create free account</span></button>
+        <button id="btn-guest-plans" class="tertiary-modal-btn" type="button"><span>View learning plans</span><i class="fa-solid fa-tags" aria-hidden="true"></i></button>
+      </div>
+    </div>
+  </section>
 
   <section id="discovery-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="parent-dialog-title" aria-hidden="true" tabindex="-1">
     <div class="modal-sheet">

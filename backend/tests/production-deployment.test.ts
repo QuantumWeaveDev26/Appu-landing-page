@@ -15,7 +15,8 @@ describe('Production Deployment & Environment Readiness', () => {
     PORT: '8080',
     HOST: '0.0.0.0',
     LOG_LEVEL: 'silent',
-    CORS_ALLOWED_ORIGINS: 'https://appu.example.com,https://www.appu.example.com'
+    CORS_ALLOWED_ORIGINS: 'https://appu.example.com,https://www.appu.example.com',
+    GUEST_SESSION_SECRET: 'test_prod_guest_secret_32_characters'
   });
 
   describe('CORS Enforcement in Production vs Development', () => {
@@ -112,7 +113,8 @@ describe('Production Deployment & Environment Readiness', () => {
     it('coerces string PORT from environment and validates range', () => {
       const config = loadConfig({
         PORT: '8080',
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        GUEST_SESSION_SECRET: 'test_prod_guest_secret_32_characters'
       });
       assert.equal(config.PORT, 8080);
       assert.equal(config.NODE_ENV, 'production');
@@ -139,7 +141,8 @@ describe('Production Deployment & Environment Readiness', () => {
           PORT: '3199',
           HOST: '127.0.0.1',
           LOG_LEVEL: 'info',
-          DATABASE_URL: ''
+          DATABASE_URL: '',
+          GUEST_SESSION_SECRET: 'test_prod_guest_secret_32_characters'
         },
         stdio: ['ignore', 'pipe', 'pipe']
       });

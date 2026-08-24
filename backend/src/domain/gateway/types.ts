@@ -7,8 +7,8 @@ export interface N8nMessageEnvelope {
   chatInput: string;
   message: string;
   language: string;
-  childId: string;
-  context: ChildAIContext;
+  childId?: string;
+  context: ChildAIContext | Record<string, unknown>;
 }
 
 export interface N8nMessageResponse {

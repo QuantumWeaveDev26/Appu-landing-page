@@ -103,7 +103,7 @@
 
     let lastFocusedElement = null;
 
-    function openModal() {
+    function openModal(preferredStep) {
       lastFocusedElement = document.activeElement;
       modal.classList.add('is-visible');
       modal.setAttribute('aria-hidden', 'false');
@@ -112,7 +112,13 @@
       const shell = typeof window !== 'undefined' ? window.ParentOnboardingShell : null;
       const isAuthed = shell && shell.state.session;
 
-      if (isAuthed) {
+      if (preferredStep === 1) {
+        setStep(1);
+      } else if (preferredStep === 2) {
+        renderPlansStep();
+      } else if (preferredStep === 3) {
+        renderChildrenStep();
+      } else if (isAuthed) {
         const sub = shell.state.subscription;
         if (sub && sub.status === 'ACTIVE') {
           // If child selection required or multiple learners, route to step 3
@@ -977,7 +983,7 @@
 
   return {
     init,
-    openModal: () => { if (activeOpenModal) activeOpenModal(); },
+    openModal: (step) => { if (activeOpenModal) activeOpenModal(step); },
     closeModal: () => { if (activeCloseModal) activeCloseModal(); }
   };
 });
