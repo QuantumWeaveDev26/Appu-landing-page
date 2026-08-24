@@ -64,7 +64,13 @@ jobs:
             exit 1
           fi
 
-          echo "Security scan passed: 0 secrets and 0 localhost fallbacks found."
+          echo "Scanning frontend/ for disallowed n8n or webhook endpoints..."
+          if grep -E -rn "n8n\.srv1871828|4a108e85|n8nWebhookUrl|defaultN8nUrl|appu_n8n_url" frontend/; then
+            echo "SECURITY VIOLATION: Disallowed n8n / webhook endpoint detected in frontend/!"
+            exit 1
+          fi
+
+          echo "Security scan passed: 0 secrets, 0 localhost fallbacks, and 0 n8n endpoints found."
 
       - name: Publish frontend/ to frontend-production branch
         uses: peaceiris/actions-gh-pages@v4

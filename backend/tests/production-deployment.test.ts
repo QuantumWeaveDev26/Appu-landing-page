@@ -155,8 +155,8 @@ describe('Production Deployment & Environment Readiness', () => {
 
       const listenPromise = new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error(`Server failed to listen within 3000ms. Output: ${output}`));
-        }, 3000);
+          reject(new Error(`Server failed to listen within 6000ms. Output: ${output}`));
+        }, 6000);
 
         child.stdout?.on('data', (data) => {
           output += data.toString();

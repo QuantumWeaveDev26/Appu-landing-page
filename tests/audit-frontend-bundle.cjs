@@ -107,7 +107,11 @@ const forbiddenPatterns = [
   'http://127.0.0.1:3000',
   'N8N_APPU_WEBHOOK_URL',
   'n8n.srv1871828.hstgr.cloud',
-  '/webhook/4a108e85'
+  '4a108e85-050f-427e-aa03-784492ddfe89',
+  '/webhook/',
+  'n8nWebhookUrl',
+  'defaultN8nUrl',
+  'appu_n8n_url'
 ];
 
 for (const f of files) {

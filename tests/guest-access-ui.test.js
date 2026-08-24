@@ -200,9 +200,11 @@ describe('Guest Access UI & 3-Turn Authoritative Quota Invariants', () => {
     const forbiddenPatterns = [
       'n8n.srv1871828.hstgr.cloud',
       'N8N_APPU_WEBHOOK_URL',
-      '/webhook/4a108e85',
+      '4a108e85-050f-427e-aa03-784492ddfe89',
+      '/webhook/',
       'n8nWebhookUrl',
-      'defaultN8nUrl'
+      'defaultN8nUrl',
+      'appu_n8n_url'
     ];
 
     const violations = [];
