@@ -6,4 +6,5 @@ export * from './plans.js';
 export * from './subscriptions.js';
 export * from './webhooks.js';
 export * from './appu-gateway.js';
+export * from './appu-callback.js';
 export * from './usage.js';

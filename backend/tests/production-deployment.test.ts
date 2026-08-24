@@ -145,7 +145,10 @@ describe('Production Deployment & Environment Readiness', () => {
           HOST: '127.0.0.1',
           LOG_LEVEL: 'info',
           DATABASE_URL: '',
-          GUEST_SESSION_SECRET: 'test_prod_guest_secret_32_characters'
+          GUEST_SESSION_SECRET: 'test_prod_guest_secret_32_characters',
+          N8N_APPU_WEBHOOK_URL: 'https://n8n.example.com/webhook/appu-test',
+          N8N_APPU_REQUEST_HMAC_SECRET: 'test_request_signing_secret_32_characters',
+          N8N_APPU_CALLBACK_HMAC_SECRET: 'test_callback_signing_secret_32_characters'
         },
         stdio: ['ignore', 'pipe', 'pipe']
       });

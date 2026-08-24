@@ -9,6 +9,8 @@ test('loadConfig applies safe defaults when env is empty', () => {
   assert.equal(config.PORT, 3000);
   assert.equal(config.HOST, '0.0.0.0');
   assert.equal(config.LOG_LEVEL, 'info');
+  assert.equal(config.N8N_APPU_TIMEOUT_MS, 20000);
+  assert.equal(config.N8N_APPU_HMAC_MAX_AGE_SECONDS, 300);
 });
 
 test('loadConfig parses valid custom environment variables', () => {
@@ -90,4 +92,30 @@ test('loadConfig in production accepts valid GUEST_SESSION_SECRET', () => {
     GUEST_SESSION_SECRET: 'super_secure_production_secret_key_123'
   });
   assert.equal(config.GUEST_SESSION_SECRET, 'super_secure_production_secret_key_123');
+});
+
+test('loadConfig requires both n8n HMAC secrets when the production APPU webhook is configured', () => {
+  const base = {
+    NODE_ENV: 'production',
+    GUEST_SESSION_SECRET: 'super_secure_production_secret_key_123',
+    N8N_APPU_WEBHOOK_URL: 'https://n8n.example.com/webhook/appu'
+  };
+
+  assert.throws(
+    () => loadConfig(base),
+    (err) => err instanceof ConfigValidationError
+      && 'N8N_APPU_REQUEST_HMAC_SECRET' in err.issues
+      && 'N8N_APPU_CALLBACK_HMAC_SECRET' in err.issues
+  );
+
+  const config = loadConfig({
+    ...base,
+    N8N_APPU_REQUEST_HMAC_SECRET: 'request_signing_secret_at_least_32_chars',
+    N8N_APPU_CALLBACK_HMAC_SECRET: 'callback_signing_secret_at_least_32_chars',
+    N8N_APPU_TIMEOUT_MS: '45000',
+    N8N_APPU_HMAC_MAX_AGE_SECONDS: '120'
+  });
+
+  assert.equal(config.N8N_APPU_TIMEOUT_MS, 45000);
+  assert.equal(config.N8N_APPU_HMAC_MAX_AGE_SECONDS, 120);
 });

@@ -356,6 +356,8 @@ The APPU response is guided by the selected learner's language, grade, learning 
 6. Activate the changed workflow only after backend deployment and a rollback snapshot are ready.
 7. Monitor validation failures, n8n latency/errors, text response success, audio response success, and backend reservation release/commit behavior.
 
+Before production cutover, also complete the signed request/callback procedure in `docs/APPU_REQUEST_LIFECYCLE_RUNBOOK.md`. The duplicate MentorContext, OpenAI, ElevenLabs, guest, identity, Kannada, and synthetic WhatsApp regressions passed, but the HMAC verifier/callback wiring remains pending because no authorized n8n secret provisioning channel was available. Do not embed a secret in workflow JSON to bypass that requirement.
+
 ## Confirmed export security findings
 
 - `Generate APPU Voice (ElevenLabs)` has a literal `xi-api-key` value in node parameters and no n8n Credential reference. Rotate and migrate it; the value is intentionally not reproduced here.

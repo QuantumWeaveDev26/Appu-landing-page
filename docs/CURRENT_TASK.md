@@ -8,9 +8,20 @@ Phase 2 SaaS Foundation
 
 ## Current Milestone:
 
-MentorContext Personalization Adapter — Backend implementation complete; live n8n manual integration pending
+APPU latency and timeout-boundary remediation — backend implementation complete; secure duplicate callback/signature cutover pending secret provisioning
 
 ## Completed:
+
+- **Durable APPU request lifecycle and duplicate-workflow latency sprint (2026-08-24)**:
+  - Added migration `011_appu_request_lifecycle.sql` with tenant-scoped idempotency and `PENDING`, `SUCCEEDED`, `DEFINITE_FAILURE`, and `UNKNOWN` states.
+  - Made authenticated usage reservation + lifecycle creation and guest-turn reservation + lifecycle creation atomic and concurrency-safe.
+  - Preserved reservations on unknown transport outcomes; same-key retries never invoke n8n again and late signed callbacks reconcile exactly once.
+  - Added backend-to-n8n and n8n-to-backend HMAC helpers over `timestamp + "." + exactRawBody`, timestamp freshness checks, and constant-time comparison.
+  - Added the strict internal callback route and persisted callback completion time/execution ID without storing response audio.
+  - Production config now fails closed if an APPU webhook is configured without independent request and callback signing secrets.
+  - Duplicate workflow only: measured low reasoning, 1,200 output cap, memory window 8, and isolated tool exposure; retained all tools and left the duplicate inactive.
+  - Real duplicate regressions passed for learner differentiation, guest isolation, Kannada current-message priority, APPU identity, website ElevenLabs audio, and synthetic WhatsApp with side effects pinned.
+  - Secure n8n verifier/callback wiring remains blocked until secrets can be provisioned through an authorized n8n credential/environment channel; no secret was embedded in workflow JSON.
 
 - **Canonical MentorContext backend adapter (2026-08-24)**:
   - Replaced the generic mixed `context` envelope with one explicit, typed `mentorContext` contract.
@@ -109,7 +120,7 @@ MentorContext Personalization Adapter — Backend implementation complete; live 
   - **Domain Usage Service & Repository (`backend/src/domain/usage/`)**:
     - Implemented `UsageRepository.resolveUsagePeriod` dynamically resolving cycle from subscription `current_period_start`/`current_period_end` or deterministic 30-day UTC rolling cycle.
     - Implemented atomic AI session quota check and reservation (`UsageService.reserveAiSession` / `UsageRepository.reserveUsageAtomic`).
-    - Enforced reservation commit on upstream provider success (`commitAiSession`) and rollback release on upstream failure or timeout (`releaseAiSession`).
+    - Enforced reservation commit on success and release only on confirmed failure; transport timeout/network/5xx ambiguity now remains reserved as `UNKNOWN` until signed reconciliation.
     - Implemented `QuotaExceededError` mapping to HTTP 429 when cumulative usage in the billing period exceeds the active plan limit (e.g. 100 on Starter).
   - **Protected Usage API & Gateway Integration**:
     - Registered `GET /api/usage/current` returning authoritative period, AI session usage (`used`, `limit`, `remaining`), and honest voice allowance status (`meteringStatus: "pending"`).
@@ -191,10 +202,11 @@ MentorContext Personalization Adapter — Backend implementation complete; live 
 - **Milestone 4 regression suite**: PASSED (14/14 tests).
 - **MentorContext TypeScript typecheck**: PASSED.
 - **Full backend/frontend/build validation**: PASSED for this working tree.
-- **Live n8n prompt consumption**: PENDING manual workflow changes and production smoke tests.
+- **Duplicate n8n prompt/voice consumption**: VERIFIED with real OpenAI and ElevenLabs; production remains unchanged.
+- **Signed duplicate verifier/callback**: PENDING authorized n8n secret provisioning and controlled tests.
 
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 179 tests: 178 passed, 1 documented PostgreSQL-only behavior skipped in pg-mem, 0 failures)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 188 tests: 187 passed, 1 documented PostgreSQL-only behavior skipped in pg-mem, 0 failures)
 - **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with configured test database — 16/16 tests passed, 0 failures)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)

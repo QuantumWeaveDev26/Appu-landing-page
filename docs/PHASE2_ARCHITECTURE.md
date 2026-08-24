@@ -518,6 +518,21 @@ Required incremental changes after the backend adapter exists:
 4. Return a stable response envelope including text, audio, and measurable usage metadata.
 5. Preserve the existing ElevenLabs path until adapter tests pass.
 6. Disable or isolate the direct public website webhook only after a verified cutover.
+
+### Durable request lifecycle and signed reconciliation
+
+`appu_requests` is separate from the append-only usage ledger and records one logical downstream invocation. Authenticated uniqueness is `(household_id, idempotency_key)`; guest uniqueness is `(guest_session_id, idempotency_key)`. The reservation and lifecycle row are created in one transaction under a PostgreSQL advisory transaction lock, with partial unique indexes as the cross-process authority.
+
+```text
+PENDING -> SUCCEEDED
+PENDING -> DEFINITE_FAILURE
+PENDING -> UNKNOWN -> SUCCEEDED
+PENDING -> UNKNOWN -> DEFINITE_FAILURE
+```
+
+`UNKNOWN` means transport outcome is ambiguous, not failure. Its reservation is never released merely because a timeout or TTL elapsed. The n8n callback carries only request ID, terminal outcome, completion timestamp, optional execution ID, and a bounded failure code. It does not carry learner/billing/auth data or audio. Terminal reconciliation locks the lifecycle row and atomically commits/releases the linked usage record or guest turn. Duplicate terminal callbacks are no-ops; contradictory terminal outcomes are rejected.
+
+Both directions use independent HMAC-SHA256 secrets and sign `timestamp + "." + exactRawBody`. n8n Webhook v2.1 raw-body mode retains the exact bytes as binary data. The verifier must run before Normalize/Validate accepts MentorContext. Production startup fails closed if the APPU webhook is configured without both secrets.
 7. Replace the stale repository snapshot with a fresh sanitised export.
 
 As of 2026-08-24, the backend adapter emits the canonical `mentorContext` property and has differential/isolation/update tests. The live n8n workflow has not been changed. Apply the exact manual node changes in `docs/N8N_MENTOR_CONTEXT_RUNBOOK.md` to `Normalize Website Input`, `Validate APPU Conversation Envelope`, and `APPU Mentor`. The APPU Mentor change is append-only and preserves the complete existing production master prompt and WhatsApp profile path.

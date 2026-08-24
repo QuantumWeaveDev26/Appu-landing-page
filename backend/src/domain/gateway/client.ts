@@ -1,10 +1,13 @@
 import { BadGatewayError, ServiceUnavailableError } from '../../errors/index.js';
 import type { N8nClient, N8nMessageEnvelope, N8nMessageResponse } from './types.js';
 import { parseAudioDuration } from './audio-duration-parser.js';
+import { createAppuHmacSignature } from './hmac.js';
 
 export interface DefaultN8nClientOptions {
   webhookUrl: string;
   timeoutMs?: number;
+  requestSigningSecret?: string;
+  now?: () => number;
 }
 
 function toAudioSource(value: unknown): string | null {
@@ -22,6 +25,8 @@ function toAudioSource(value: unknown): string | null {
 export class DefaultN8nClient implements N8nClient {
   private readonly webhookUrl: string;
   private readonly timeoutMs: number;
+  private readonly requestSigningSecret: string | null;
+  private readonly now: () => number;
 
   constructor(options: DefaultN8nClientOptions) {
     if (!options.webhookUrl || typeof options.webhookUrl !== 'string') {
@@ -29,18 +34,32 @@ export class DefaultN8nClient implements N8nClient {
     }
     this.webhookUrl = options.webhookUrl;
     this.timeoutMs = options.timeoutMs ?? 20000;
+    this.requestSigningSecret = options.requestSigningSecret?.trim() || null;
+    this.now = options.now ?? Date.now;
   }
 
   public async sendMessage(envelope: N8nMessageEnvelope): Promise<N8nMessageResponse> {
     let response: Response;
+    const rawBody = JSON.stringify(envelope);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    if (this.requestSigningSecret) {
+      const timestamp = String(Math.floor(this.now() / 1000));
+      headers['X-APPU-Timestamp'] = timestamp;
+      headers['X-APPU-Signature'] = createAppuHmacSignature(
+        rawBody,
+        timestamp,
+        this.requestSigningSecret
+      );
+    }
 
     try {
       response = await fetch(this.webhookUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(envelope),
+        headers,
+        body: rawBody,
         signal: AbortSignal.timeout(this.timeoutMs)
       });
     } catch (error: any) {
@@ -49,10 +68,17 @@ export class DefaultN8nClient implements N8nClient {
           'AI mentor service timed out waiting for response. Please try again.'
         );
       }
-      throw new BadGatewayError('Could not reach AI mentor service. Please try again later.');
+      throw new ServiceUnavailableError(
+        'AI mentor request outcome is unknown. Please retry with the same request ID.'
+      );
     }
 
     if (!response.ok) {
+      if (response.status >= 500) {
+        throw new ServiceUnavailableError(
+          'AI mentor request outcome is unknown. Please retry with the same request ID.'
+        );
+      }
       throw new BadGatewayError(
         `AI mentor service returned an error status (${response.status}).`
       );

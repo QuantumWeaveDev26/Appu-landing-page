@@ -192,16 +192,18 @@ export class GuestSessionService {
     let session: GuestSession | null = null;
 
     if (decoded) {
-      // 1. Check in-memory store
-      session = this.memoryStore.get(decoded.id) || null;
-
-      // 2. Check database if available
-      if (!session && db) {
+      // Prefer the database whenever available. It is authoritative for quota and
+      // late callback reconciliation; memory is only a cache/fallback.
+      if (db) {
         try {
           session = await GuestRepository.getById(db, decoded.id);
         } catch {
           session = null;
         }
+      }
+
+      if (!session) {
+        session = this.memoryStore.get(decoded.id) || null;
       }
 
       // 3. If session not found in store but token was valid and unexpired, restore from token

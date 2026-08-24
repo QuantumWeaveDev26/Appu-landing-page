@@ -31,7 +31,13 @@ The product must remain child-safe, privacy-conscious, multilingual, voice-enabl
 
 For every authenticated APPU message, the backend verifies bearer identity, household membership, child ownership, ACTIVE subscription, entitlements, and quota before reading child personalisation and constructing a fresh `AuthenticatedMentorContext`. The n8n envelope carries it only under `mentorContext`. Guests receive a minimal discriminated context with no learner identifiers or saved preferences. UI-only settings, arbitrary `additionalContext`, parent/household/payment/security data, and secrets are excluded.
 
-The live workflow still requires the manual append-only integration in `docs/N8N_MENTOR_CONTEXT_RUNBOOK.md`; until deployed, backend payloads contain MentorContext but the production mentor prompt will not yet consume it.
+The duplicate workflow `APPU Mentor - MentorContext TEST - 2026-08-24` has consumed and validated MentorContext with real OpenAI and ElevenLabs. Production remains unchanged and still requires the controlled cutover in `docs/N8N_MENTOR_CONTEXT_RUNBOOK.md`.
+
+### Durable APPU request boundary (2026-08-24)
+
+Each downstream request has a stable backend request ID and tenant-scoped idempotency key. The backend atomically reserves quota and creates an `appu_requests` row before invoking n8n. Normal success commits usage as `SUCCEEDED`; a confirmed failure releases it as `DEFINITE_FAILURE`; a timeout/network ambiguity becomes `UNKNOWN` and remains reserved until a signed callback reconciles it. Same-key retries and concurrent duplicates make zero additional n8n calls.
+
+The backend signs the exact serialized request body and verifies callbacks over `timestamp + "." + exactRawBody`. Production requires independent request/callback secrets. The duplicate n8n verifier and callback are not yet wired because no authorized secret provisioning channel was available; never embed these secrets in workflow JSON.
 
 ## Phase 1 capabilities to preserve
 
@@ -75,7 +81,7 @@ A fresh sanitized export should replace it before it is used as architecture doc
 
 The Fastify backend is the application authority for authentication, household/child ownership, ACTIVE subscription state, entitlements, guest limits, and usage reservations. The browser supplies a selected `childId`, but the backend scopes every child/personalisation lookup to the authenticated household. Invalid bearer tokens never fall back to guest access.
 
-The n8n website webhook remains a server-side integration boundary that must be restricted or cryptographically authenticated; validating the MentorContext shape alone cannot prove that a request originated from the APPU backend.
+The n8n website webhook remains a server-side integration boundary that must verify the backend HMAC before accepting MentorContext; validating the MentorContext shape alone cannot prove origin. n8n Webhook v2.1 can preserve the exact raw request as binary data, so no JSON canonicalization fallback is required.
 
 ## Phase 2 target
 

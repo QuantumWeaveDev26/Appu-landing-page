@@ -9,6 +9,7 @@ import type { Queryable, TransactionalQueryable } from '../src/db/types.js';
 import { MockAuthVerifier } from '../src/domain/auth/mock-verifier.js';
 import { MockN8nClient } from '../src/domain/gateway/mock-client.js';
 import { GuestSessionService } from '../src/domain/guest/service.js';
+import { ServiceUnavailableError } from '../src/errors/index.js';
 
 function createTestDatabase(): TransactionalQueryable {
   const memDb = newDb();
@@ -140,6 +141,16 @@ describe('APPU Guest Access Control & 3-Turn Authoritative Quota', () => {
     assert.equal(body.guestSession.guestLimit, 3);
     assert.equal(body.guestSession.loginRequired, false);
     assert.ok(body.guestSession.token);
+    assert.match(body.requestId, /^[0-9a-f-]{36}$/i);
+    assert.match(String(res.headers['idempotency-key']), /^[0-9a-f-]{36}$/i);
+
+    const lifecycle = await db.query<any>(
+      `SELECT status, guest_session_id FROM appu_requests WHERE id = $1`,
+      [body.requestId]
+    );
+    assert.equal(lifecycle.rows.length, 1);
+    assert.equal(lifecycle.rows[0].status, 'SUCCEEDED');
+    assert.ok(lifecycle.rows[0].guest_session_id);
   });
 
   it('2. Guest turn 2 succeeds and returns remaining = 1', async () => {
@@ -295,6 +306,58 @@ describe('APPU Guest Access Control & 3-Turn Authoritative Quota', () => {
     const body = JSON.parse(resSuccess.body);
     assert.equal(body.guestSession.used, 1);
     assert.equal(body.guestSession.remaining, 2);
+  });
+
+  it('transport timeout keeps a guest turn reserved and same-key retry makes zero additional n8n calls', async () => {
+    mockN8nClient.callCount = 0;
+    mockN8nClient.nextError = new ServiceUnavailableError('Unknown downstream outcome');
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'x-forwarded-for': '203.0.113.99',
+        'idempotency-key': 'guest_timeout_same_key'
+      },
+      payload: { message: 'Explain acceleration' }
+    });
+    assert.equal(first.statusCode, 503);
+    assert.equal(first.headers['idempotency-key'], 'guest_timeout_same_key');
+    assert.match(String(first.headers['x-appu-request-id']), /^[0-9a-f-]{36}$/i);
+    assert.equal(mockN8nClient.callCount, 1);
+
+    const lifecycle = await db.query<any>(
+      `SELECT id, status, guest_session_id FROM appu_requests
+       WHERE idempotency_key = $1`,
+      ['guest_timeout_same_key']
+    );
+    assert.equal(lifecycle.rows.length, 1);
+    assert.equal(lifecycle.rows[0].status, 'UNKNOWN');
+    assert.equal(first.headers['x-appu-request-id'], lifecycle.rows[0].id);
+
+    const guest = await db.query<any>(
+      'SELECT used_turns FROM guest_sessions WHERE id = $1',
+      [lifecycle.rows[0].guest_session_id]
+    );
+    assert.equal(Number(guest.rows[0].used_turns), 1);
+
+    const sessionToken = GuestSessionService.signGuestToken({
+      id: lifecycle.rows[0].guest_session_id,
+      turns: 1,
+      ipHash: GuestSessionService.computeIpHash('203.0.113.99')
+    });
+    const retry = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'x-forwarded-for': '203.0.113.99',
+        'x-guest-session-token': sessionToken,
+        'idempotency-key': 'guest_timeout_same_key'
+      },
+      payload: { message: 'Explain acceleration' }
+    });
+    assert.equal(retry.statusCode, 202, retry.body);
+    assert.equal(mockN8nClient.callCount, 1);
   });
 
   it('8. GET /api/appu/guest-status returns accurate live quota', async () => {
@@ -603,4 +666,3 @@ describe('APPU Guest Access Control & 3-Turn Authoritative Quota', () => {
     assert.equal(dbRow.rows[0].used_turns, 3);
   });
 });
-

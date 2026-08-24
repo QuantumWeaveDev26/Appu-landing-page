@@ -68,6 +68,18 @@ export const envSchema = z
       .string()
       .url('N8N_APPU_WEBHOOK_URL must be a valid URL')
       .optional(),
+    N8N_APPU_REQUEST_HMAC_SECRET: z
+      .string()
+      .min(32, 'N8N_APPU_REQUEST_HMAC_SECRET must be at least 32 characters')
+      .optional(),
+    N8N_APPU_CALLBACK_HMAC_SECRET: z
+      .string()
+      .min(32, 'N8N_APPU_CALLBACK_HMAC_SECRET must be at least 32 characters')
+      .optional(),
+    N8N_APPU_HMAC_MAX_AGE_SECONDS: z
+      .coerce.number().int().min(30).max(900).default(300),
+    N8N_APPU_TIMEOUT_MS: z
+      .coerce.number().int().min(1000).max(120000).default(20000),
     GUEST_SESSION_SECRET: z
       .string()
       .min(16, 'GUEST_SESSION_SECRET must be at least 16 characters')
@@ -81,6 +93,23 @@ export const envSchema = z
           path: ['GUEST_SESSION_SECRET'],
           message: 'GUEST_SESSION_SECRET is required in production and must not be empty'
         });
+      }
+
+      if (data.N8N_APPU_WEBHOOK_URL) {
+        if (!data.N8N_APPU_REQUEST_HMAC_SECRET) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['N8N_APPU_REQUEST_HMAC_SECRET'],
+            message: 'N8N_APPU_REQUEST_HMAC_SECRET is required when the production APPU webhook is configured'
+          });
+        }
+        if (!data.N8N_APPU_CALLBACK_HMAC_SECRET) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['N8N_APPU_CALLBACK_HMAC_SECRET'],
+            message: 'N8N_APPU_CALLBACK_HMAC_SECRET is required when the production APPU webhook is configured'
+          });
+        }
       }
     }
   });

@@ -12,12 +12,14 @@ import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
 import type { GuestMentorContext } from '../domain/personalisation/types.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
+import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import {
   BadRequestError,
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
-  BadGatewayError
+  BadGatewayError,
+  ErrorCodes
 } from '../errors/index.js';
 
 export interface AppuGatewayRouteOptions {
@@ -199,17 +201,15 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       );
       const idempotencyKey = typeof rawIdempotencyKey === 'string' && rawIdempotencyKey.trim().length > 0
         ? rawIdempotencyKey.trim().slice(0, 128)
-        : null;
+        : crypto.randomUUID();
 
       // Compute deterministic request fingerprint for idempotency binding
-      const requestFingerprint = idempotencyKey
-        ? crypto.createHash('sha256')
-            .update([household.id, child.id, message.trim().toLowerCase(), language || 'en'].join('|'))
-            .digest('hex')
-        : null;
+      const requestFingerprint = crypto.createHash('sha256')
+        .update([household.id, child.id, message.trim().toLowerCase(), language || 'en'].join('|'))
+        .digest('hex');
 
       // 4. Concurrency-safe atomic AI session quota check & reservation (prior to upstream execution)
-      const reservation = await UsageService.reserveAiSession(opts.db, {
+      const initiation = await AppuRequestService.beginAuthenticated(opts.db, {
         householdId: household.id,
         subscriptionId: subscription.id,
         childId: child.id,
@@ -217,6 +217,33 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         idempotencyKey,
         requestFingerprint
       });
+      const reservation = initiation.reservation;
+
+      // A stable idempotency key may only start one downstream execution.
+      // Completed requests return a bounded replay marker; in-flight/unknown requests
+      // remain pending without invoking n8n again.
+      if (initiation.isExisting) {
+        const existingLifecycle = initiation.request;
+        const isCompleted = reservation.status === 'committed';
+        reply.header('idempotency-key', idempotencyKey);
+        reply.header('x-appu-request-id', existingLifecycle.id);
+        return reply.status(isCompleted ? 200 : 202).send({
+          childId: child.id,
+          text: isCompleted ? 'This request was already completed.' : null,
+          audioSource: null,
+          audioDurationMs: null,
+          guestSession: null,
+          requestId: existingLifecycle.id,
+          requestStatus: existingLifecycle.status,
+          idempotentReplay: true
+        });
+      }
+
+      const lifecycle = initiation.request;
+      // Publish the stable retry identifiers before invoking n8n so Fastify keeps
+      // them on timeout/unknown error responses as well as successful responses.
+      reply.header('idempotency-key', idempotencyKey);
+      reply.header('x-appu-request-id', lifecycle.id);
 
       // 5. Build fresh, safe, server-owned MentorContext from authoritative storage
       const mentorContext = await MentorContextBuilder.buildMentorContext(
@@ -228,6 +255,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       // 6. Construct structured server-generated envelope for n8n
       const envelope: N8nMessageEnvelope = {
+        requestId: lifecycle.id,
         action: 'sendMessage',
         channel: 'website',
         sessionId: `appu_child_${child.id}`,
@@ -243,9 +271,22 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       try {
         response = await opts.n8nClient.sendMessage(envelope);
       } catch (error: any) {
-        // Release new reservation on failure so the household is not charged for failed responses
-        if (!reservation.isExisting) {
-          await UsageService.releaseAiSession(opts.db, household.id, reservation.reservationId).catch(() => {});
+        // A transport timeout has an unknown downstream outcome: keep the reservation held.
+        // Only confirmed failures may release it.
+        if (error?.code !== ErrorCodes.SERVICE_TEMPORARILY_UNAVAILABLE) {
+          await AppuRequestService.reconcile(opts.db, {
+            requestId: lifecycle.id,
+            outcome: AppuRequestStates.DEFINITE_FAILURE,
+            failureCode: error?.code || 'upstream_failure'
+          }).catch(() => {});
+        } else {
+          await AppuRequestRepository.transition(
+            opts.db,
+            lifecycle.id,
+            [AppuRequestStates.PENDING],
+            AppuRequestStates.UNKNOWN,
+            { failureCode: 'transport_timeout' }
+          ).catch(() => {});
         }
         if (error?.name === 'AppError' || error?.statusCode) {
           throw error;
@@ -253,10 +294,11 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         throw new BadGatewayError('Could not reach AI mentor service. Please try again later.');
       }
 
-      // 8. Commit usage reservation after successful upstream response
-      if (!reservation.isExisting) {
-        await UsageService.commitAiSession(opts.db, household.id, reservation.reservationId);
-      }
+      // 8. Commit usage and lifecycle together after successful upstream response.
+      await AppuRequestService.reconcile(opts.db, {
+        requestId: lifecycle.id,
+        outcome: AppuRequestStates.SUCCEEDED
+      });
 
       // 9. Strict Voice Quota Enforcement & Atomic Voice Duration Recording
       let finalAudioSource: string | null = null;
@@ -272,7 +314,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
             childId: child.id,
             durationMs: candidateDurationMs,
             quotaLimitMs: voiceQuotaLimitMs,
-            idempotencyKey: idempotencyKey ? `voice_${idempotencyKey}` : null,
+            idempotencyKey: `voice_${idempotencyKey}`,
             requestFingerprint
           });
 
@@ -292,6 +334,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       }
 
       return reply.status(200).send({
+        requestId: lifecycle.id,
+        requestStatus: AppuRequestStates.SUCCEEDED,
         childId: child.id,
         text: response.text,
         audioSource: finalAudioSource,
@@ -337,12 +381,40 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       opts.guestSessionSecret
     );
 
-    // 3. Atomically reserve 1 guest turn before upstream execution (throws 403 if turns >= 3)
-    const reservation = await GuestSessionService.reserveGuestTurn(
-      opts.db,
+    const rawIdempotencyKey =
+      request.headers['idempotency-key'] || request.headers['x-idempotency-key'];
+    const idempotencyKey = typeof rawIdempotencyKey === 'string' && rawIdempotencyKey.trim()
+      ? rawIdempotencyKey.trim().slice(0, 128)
+      : crypto.randomUUID();
+    const requestFingerprint = crypto.createHash('sha256')
+      .update([session.id, message.trim().toLowerCase(), language || 'en'].join('|'))
+      .digest('hex');
+
+    // 3. Atomically reserve the guest turn and durable lifecycle in one transaction.
+    const initiation = await AppuRequestService.beginGuest(opts.db, {
       session,
-      GuestSessionService.DEFAULT_MAX_TURNS
-    );
+      maxTurns: GuestSessionService.DEFAULT_MAX_TURNS,
+      idempotencyKey,
+      requestFingerprint
+    });
+
+    if (initiation.isExisting) {
+      reply.header('idempotency-key', idempotencyKey);
+      reply.header('x-appu-request-id', initiation.request.id);
+      const completed = initiation.request.status === AppuRequestStates.SUCCEEDED;
+      return reply.status(completed ? 200 : 202).send({
+        requestId: initiation.request.id,
+        requestStatus: initiation.request.status,
+        idempotentReplay: true,
+        text: completed ? 'This request was already completed.' : null,
+        audioSource: null,
+        audioDurationMs: null
+      });
+    }
+
+    // Keep retry identifiers visible even when the transport outcome is UNKNOWN.
+    reply.header('idempotency-key', idempotencyKey);
+    reply.header('x-appu-request-id', initiation.request.id);
 
     // 4. Construct safe server-generated guest envelope for n8n
     const mentorContext: GuestMentorContext = {
@@ -352,6 +424,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     };
 
     const envelope: N8nMessageEnvelope = {
+      requestId: initiation.request.id,
       action: 'sendMessage',
       channel: 'website',
       sessionId: `appu_guest_${session.id}`,
@@ -366,8 +439,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     try {
       response = await opts.n8nClient.sendMessage(envelope);
     } catch (error: any) {
-      // NOTE: On technical or upstream failure, release reserved turn so user is not penalized!
-      await GuestSessionService.releaseGuestTurn(opts.db, session.id).catch(() => {});
+      if (error?.code === ErrorCodes.SERVICE_TEMPORARILY_UNAVAILABLE) {
+        await AppuRequestRepository.transition(
+          opts.db,
+          initiation.request.id,
+          [AppuRequestStates.PENDING],
+          AppuRequestStates.UNKNOWN,
+          { failureCode: 'transport_timeout' }
+        ).catch(() => {});
+      } else {
+        await AppuRequestService.reconcile(opts.db, {
+          requestId: initiation.request.id,
+          outcome: AppuRequestStates.DEFINITE_FAILURE,
+          failureCode: error?.code || 'upstream_failure'
+        }).catch(() => {});
+      }
       if (error?.name === 'AppError' || error?.statusCode) {
         throw error;
       }
@@ -377,30 +463,37 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     // 6. Generate signed token reflecting the successfully completed turn count
     const guestTokenResult = GuestSessionService.signGuestToken({
       id: session.id,
-      turns: reservation.used,
+      turns: initiation.used,
       exp: session.expiresAt.getTime(),
       ipHash: session.ipHash
     }, opts.guestSessionSecret);
 
     // 7. Deliver response with updated guest session metadata and signed token
+    await AppuRequestService.reconcile(opts.db, {
+      requestId: initiation.request.id,
+      outcome: AppuRequestStates.SUCCEEDED
+    });
+
     reply.header('x-guest-session-token', guestTokenResult);
     return reply.status(200).send({
+      requestId: initiation.request.id,
+      requestStatus: AppuRequestStates.SUCCEEDED,
       text: response.text,
       audioSource: response.audioSource || null,
       audioDurationMs: response.audioDurationMs || null,
       guest: {
         token: guestTokenResult,
         limit: GuestSessionService.DEFAULT_MAX_TURNS,
-        used: reservation.used,
-        remaining: reservation.remaining,
-        loginRequired: reservation.remaining === 0
+        used: initiation.used,
+        remaining: initiation.remaining,
+        loginRequired: initiation.remaining === 0
       },
       guestSession: {
         token: guestTokenResult,
         guestLimit: GuestSessionService.DEFAULT_MAX_TURNS,
-        used: reservation.used,
-        remaining: reservation.remaining,
-        loginRequired: reservation.remaining === 0
+        used: initiation.used,
+        remaining: initiation.remaining,
+        loginRequired: initiation.remaining === 0
       }
     });
   });

@@ -12,8 +12,8 @@ export class GuestRepository {
     const result = await db.query(
       `SELECT id, ip_hash, used_turns, created_at, updated_at, expires_at
        FROM guest_sessions
-       WHERE id = $1 AND expires_at > CURRENT_TIMESTAMP`,
-      [id]
+       WHERE id = $1 AND expires_at > $2`,
+      [id, new Date().toISOString()]
     );
 
     if (result.rows.length === 0) {

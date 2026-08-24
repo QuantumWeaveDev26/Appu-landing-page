@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import nodeCrypto from 'node:crypto';
 import { newDb } from 'pg-mem';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config/index.js';
@@ -13,7 +14,7 @@ import { MockRazorpayClient } from '../src/domain/razorpay/mock-client.js';
 import { MockN8nClient } from '../src/domain/gateway/mock-client.js';
 import { UsageService } from '../src/domain/usage/service.js';
 import { UsageRepository } from '../src/domain/usage/repository.js';
-import { QuotaExceededError } from '../src/errors/index.js';
+import { QuotaExceededError, ServiceUnavailableError } from '../src/errors/index.js';
 
 interface MockUser {
   userId: string;
@@ -38,6 +39,7 @@ class TestAuthVerifier {
 }
 
 describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
+  const callbackSigningSecret = 'test_callback_signing_secret_at_least_32_chars';
   let db: any;
   let authVerifier: TestAuthVerifier;
   let razorpayClient: MockRazorpayClient;
@@ -137,12 +139,38 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
       })
     });
 
-    app = buildApp(config, {
+    app = buildApp({
+      ...config,
+      N8N_APPU_CALLBACK_HMAC_SECRET: callbackSigningSecret
+    } as any, {
       database: db,
       authVerifier,
       razorpayClient,
       n8nClient
     });
+  });
+
+  it('migration creates the additive APPU request lifecycle table and state constraint', async () => {
+    const tableResult = await db.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+         WHERE table_name = 'appu_requests'
+       ) AS exists`
+    );
+    assert.equal(Boolean(tableResult.rows[0]?.exists), true);
+
+    await db.query(
+      `INSERT INTO guest_sessions (id, ip_hash, used_turns, expires_at)
+       VALUES ('gst_lifecycle_constraint', 'test_hash', 0, NOW() + INTERVAL '1 day')`
+    );
+    await assert.rejects(
+      db.query(
+        `INSERT INTO appu_requests (
+           actor_type, guest_session_id, idempotency_key, request_fingerprint, status
+         ) VALUES ('guest', 'gst_lifecycle_constraint', 'constraint-key', $1, 'NOT_A_STATE')`,
+        ['a'.repeat(64)]
+      )
+    );
   });
 
   it('successful Appu message request consumes exactly 1 AI session', async () => {
@@ -194,6 +222,15 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     const body = JSON.parse(res.body);
     assert.equal(body.childId, child.id);
     assert.ok(body.text);
+    assert.match(body.requestId, /^[0-9a-f-]{36}$/i);
+    assert.match(String(res.headers['idempotency-key']), /^[0-9a-f-]{36}$/i);
+
+    const lifecycle = await db.query(
+      'SELECT status, usage_record_id FROM appu_requests WHERE id = $1',
+      [body.requestId]
+    );
+    assert.equal(lifecycle.rows.length, 1);
+    assert.equal(lifecycle.rows[0].status, 'SUCCEEDED');
 
     // Check usage after request: exactly 1 session consumed
     const usageAfter = await UsageService.getHouseholdUsageSummary(db, household.id);
@@ -237,7 +274,10 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/appu/message',
-      headers: { authorization: 'Bearer token-parent-2' },
+      headers: {
+        authorization: 'Bearer token-parent-2',
+        'idempotency-key': 'failed_provider_request_1'
+      },
       payload: {
         childId: child.id,
         message: 'Explain photosynthesis'
@@ -246,10 +286,231 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
 
     assert.equal(res.statusCode, 502);
 
+    const lifecycle = await db.query(
+      `SELECT status FROM appu_requests
+       WHERE household_id = $1 AND idempotency_key = $2`,
+      [household.id, 'failed_provider_request_1']
+    );
+    assert.equal(lifecycle.rows.length, 1);
+    assert.equal(lifecycle.rows[0].status, 'DEFINITE_FAILURE');
+
     // Quota remains 0 consumed because reservation was released
     const usage = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usage.aiSessions.used, 0);
     assert.equal(usage.aiSessions.remaining, 150);
+  });
+
+  it('transport timeout retains the AI reservation because downstream outcome is unknown', async () => {
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token-parent-timeout-unknown', {
+      userId: parentUserId,
+      email: 'parent.timeout@example.com'
+    });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'parent.timeout@example.com',
+      householdName: 'Timeout Household'
+    });
+
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: evolvePlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_timeout_unknown',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Ishaan',
+      gradeBand: 'Grade 7'
+    });
+
+    n8nClient.nextError = new ServiceUnavailableError('AI mentor request outcome is unknown');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-parent-timeout-unknown',
+        'idempotency-key': 'timeout_unknown_request_1'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Explain inertia'
+      }
+    });
+
+    assert.equal(response.statusCode, 503);
+    assert.equal(response.headers['idempotency-key'], 'timeout_unknown_request_1');
+    assert.match(String(response.headers['x-appu-request-id']), /^[0-9a-f-]{36}$/i);
+
+    const records = await db.query(
+      `SELECT id, status FROM usage_records
+       WHERE household_id = $1 AND metric = 'ai_sessions' AND idempotency_key = $2`,
+      [household.id, 'timeout_unknown_request_1']
+    );
+    assert.equal(records.rows.length, 1);
+    assert.equal(records.rows[0].status, 'reserved');
+
+    const lifecycle = await db.query(
+      `SELECT id, status, usage_record_id FROM appu_requests
+       WHERE household_id = $1 AND idempotency_key = $2`,
+      [household.id, 'timeout_unknown_request_1']
+    );
+    assert.equal(lifecycle.rows.length, 1);
+    assert.equal(lifecycle.rows[0].status, 'UNKNOWN');
+    assert.equal(lifecycle.rows[0].usage_record_id, records.rows[0].id);
+    assert.equal(response.headers['x-appu-request-id'], lifecycle.rows[0].id);
+
+    const rawCallbackBody = JSON.stringify({
+      requestId: lifecycle.rows[0].id,
+      outcome: 'SUCCEEDED',
+      completedAt: '2026-08-24T12:00:00.000Z',
+      executionId: 'duplicate-execution-123'
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = nodeCrypto
+      .createHmac('sha256', callbackSigningSecret)
+      .update(`${timestamp}.${rawCallbackBody}`, 'utf8')
+      .digest('hex');
+
+    const unsignedCallback = await app.inject({
+      method: 'POST',
+      url: '/api/internal/n8n/appu/callback',
+      headers: { 'content-type': 'application/json' },
+      payload: rawCallbackBody
+    });
+    assert.equal(unsignedCallback.statusCode, 401);
+
+    const staleTimestamp = String(Number(timestamp) - 301);
+    const staleSignature = nodeCrypto
+      .createHmac('sha256', callbackSigningSecret)
+      .update(`${staleTimestamp}.${rawCallbackBody}`, 'utf8')
+      .digest('hex');
+    const staleCallback = await app.inject({
+      method: 'POST',
+      url: '/api/internal/n8n/appu/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-appu-timestamp': staleTimestamp,
+        'x-appu-signature': `v1=${staleSignature}`
+      },
+      payload: rawCallbackBody
+    });
+    assert.equal(staleCallback.statusCode, 401);
+
+    const alteredCallback = await app.inject({
+      method: 'POST',
+      url: '/api/internal/n8n/appu/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-appu-timestamp': timestamp,
+        'x-appu-signature': `v1=${signature}`
+      },
+      payload: rawCallbackBody.replace('SUCCEEDED', 'DEFINITE_FAILURE')
+    });
+    assert.equal(alteredCallback.statusCode, 401);
+
+    const callback = await app.inject({
+      method: 'POST',
+      url: '/api/internal/n8n/appu/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-appu-timestamp': timestamp,
+        'x-appu-signature': `v1=${signature}`
+      },
+      payload: rawCallbackBody
+    });
+    assert.equal(callback.statusCode, 200);
+
+    const afterCallback = await db.query(
+      `SELECT r.status AS request_status, r.completed_at, u.status AS usage_status
+       FROM appu_requests r
+       JOIN usage_records u ON u.id = r.usage_record_id
+       WHERE r.id = $1`,
+      [lifecycle.rows[0].id]
+    );
+    assert.equal(afterCallback.rows[0].request_status, 'SUCCEEDED');
+    assert.equal(afterCallback.rows[0].usage_status, 'committed');
+    assert.equal(
+      new Date(afterCallback.rows[0].completed_at).toISOString(),
+      '2026-08-24T12:00:00.000Z'
+    );
+
+    const duplicateCallback = await app.inject({
+      method: 'POST',
+      url: '/api/internal/n8n/appu/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-appu-timestamp': timestamp,
+        'x-appu-signature': `v1=${signature}`
+      },
+      payload: rawCallbackBody
+    });
+    assert.equal(duplicateCallback.statusCode, 200);
+
+    const committedCount = await db.query(
+      `SELECT COUNT(*)::text AS count FROM usage_records
+       WHERE household_id = $1 AND metric = 'ai_sessions' AND status = 'committed'`,
+      [household.id]
+    );
+    assert.equal(Number(committedCount.rows[0].count), 1);
+
+    const lateFailureResponse = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-parent-timeout-unknown',
+        'idempotency-key': 'timeout_unknown_request_2'
+      },
+      payload: {
+        childId: child.id,
+        message: 'Explain friction'
+      }
+    });
+    assert.equal(lateFailureResponse.statusCode, 503);
+
+    const secondLifecycle = await db.query(
+      `SELECT id FROM appu_requests
+       WHERE household_id = $1 AND idempotency_key = $2`,
+      [household.id, 'timeout_unknown_request_2']
+    );
+    const rawFailureBody = JSON.stringify({
+      requestId: secondLifecycle.rows[0].id,
+      outcome: 'DEFINITE_FAILURE',
+      completedAt: '2026-08-24T12:01:00.000Z',
+      executionId: 'duplicate-execution-124',
+      failureCode: 'provider_rejected'
+    });
+    const failureTimestamp = String(Math.floor(Date.now() / 1000));
+    const failureSignature = nodeCrypto
+      .createHmac('sha256', callbackSigningSecret)
+      .update(`${failureTimestamp}.${rawFailureBody}`, 'utf8')
+      .digest('hex');
+    const failureCallback = await app.inject({
+      method: 'POST',
+      url: '/api/internal/n8n/appu/callback',
+      headers: {
+        'content-type': 'application/json',
+        'x-appu-timestamp': failureTimestamp,
+        'x-appu-signature': `v1=${failureSignature}`
+      },
+      payload: rawFailureBody
+    });
+    assert.equal(failureCallback.statusCode, 200);
+
+    const afterFailure = await db.query(
+      `SELECT r.status AS request_status, u.status AS usage_status
+       FROM appu_requests r
+       JOIN usage_records u ON u.id = r.usage_record_id
+       WHERE r.id = $1`,
+      [secondLifecycle.rows[0].id]
+    );
+    assert.equal(afterFailure.rows[0].request_status, 'DEFINITE_FAILURE');
+    assert.equal(afterFailure.rows[0].usage_status, 'released');
   });
 
   it('exhausted AI quota rejects with 429 and does NOT invoke n8n', async () => {
@@ -445,6 +706,7 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     });
 
     const clientKey = 'msg_req_uuid_12345';
+    n8nClient.callCount = 0;
 
     // First request with idempotency key
     const res1 = await app.inject({
@@ -477,11 +739,74 @@ describe('Phase 2: Usage Accounting Foundation & AI Quota Enforcement', () => {
     });
 
     assert.equal(res2.statusCode, 200);
+    assert.equal(n8nClient.callCount, 1, 'same-key retry must not invoke n8n again');
 
     // Verify usage count is exactly 1 (not 2)
     const usage = await UsageService.getHouseholdUsageSummary(db, household.id);
     assert.equal(usage.aiSessions.used, 1);
     assert.equal(usage.aiSessions.remaining, 149);
+  });
+
+  it('concurrent requests with the same idempotency key start exactly one downstream invocation', async () => {
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token-parent-concurrent-idem', {
+      userId: parentUserId,
+      email: 'parent.concurrent@example.com'
+    });
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'parent.concurrent@example.com',
+      householdName: 'Concurrent Idempotency Household'
+    });
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_concurrent_idem',
+      status: SubscriptionStates.ACTIVE
+    });
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Riya',
+      gradeBand: 'Grade 6'
+    });
+
+    n8nClient.callCount = 0;
+    n8nClient.sendMessage = async (envelope) => {
+      n8nClient.callCount += 1;
+      n8nClient.lastEnvelope = envelope;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return { text: 'One result', audioSource: null };
+    };
+
+    const request = () => app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer token-parent-concurrent-idem',
+        'idempotency-key': 'same_concurrent_request_key'
+      },
+      payload: { childId: child.id, message: 'What is momentum?' }
+    });
+
+    const responses = await Promise.all([request(), request()]);
+    assert.equal(
+      n8nClient.callCount,
+      1,
+      responses.map((response: any) => `${response.statusCode}:${response.body}`).join(' | ')
+    );
+    assert.deepEqual(
+      responses.map((response: any) => response.statusCode).sort(),
+      [200, 202]
+    );
+
+    const lifecycleCount = await db.query(
+      `SELECT COUNT(*)::text AS count FROM appu_requests
+       WHERE household_id = $1 AND idempotency_key = $2`,
+      [household.id, 'same_concurrent_request_key']
+    );
+    assert.equal(Number(lifecycleCount.rows[0].count), 1);
   });
 
   it('OPTIONS /api/appu/message preflight accepts Idempotency-Key header and returns 204', async () => {

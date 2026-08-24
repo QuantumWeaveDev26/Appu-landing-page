@@ -17,6 +17,7 @@ import {
   subscriptionsRoutes,
   webhooksRoutes,
   appuGatewayRoutes,
+  appuCallbackRoutes,
   usageRoutes
 } from './routes/index.js';
 
@@ -90,6 +91,7 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     reply.header(
       'Access-Control-Expose-Headers',
       'X-Guest-Session-Token, Idempotency-Key, Content-Type'
+        + ', X-Appu-Request-Id'
     );
 
     if (request.method === 'OPTIONS') {
@@ -205,7 +207,17 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
   let n8nClient = options.n8nClient;
   if (!n8nClient && config.N8N_APPU_WEBHOOK_URL) {
     n8nClient = new DefaultN8nClient({
-      webhookUrl: config.N8N_APPU_WEBHOOK_URL
+      webhookUrl: config.N8N_APPU_WEBHOOK_URL,
+      timeoutMs: config.N8N_APPU_TIMEOUT_MS,
+      requestSigningSecret: config.N8N_APPU_REQUEST_HMAC_SECRET
+    });
+  }
+
+  if (options.database && config.N8N_APPU_CALLBACK_HMAC_SECRET) {
+    app.register(appuCallbackRoutes, {
+      db: options.database,
+      callbackSigningSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
+      signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
     });
   }
 

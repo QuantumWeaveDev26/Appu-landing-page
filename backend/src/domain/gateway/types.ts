@@ -1,6 +1,7 @@
 import type { MentorContext } from '../personalisation/types.js';
 
 export interface N8nMessageEnvelope {
+  requestId: string;
   action: 'sendMessage';
   channel: 'website';
   sessionId: string;

@@ -18,7 +18,8 @@ async function runSmokeTest() {
   });
 
   try {
-    const response = await client.sendMessage({
+  const response = await client.sendMessage({
+    requestId: crypto.randomUUID(),
       action: 'sendMessage',
       channel: 'website',
       sessionId: 'smoke_test_session_' + Date.now(),

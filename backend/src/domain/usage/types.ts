@@ -75,6 +75,7 @@ export interface VoiceUsageRecordResult {
 export interface UsageReservationResult {
   reservationId: string;
   isExisting: boolean;
+  status: UsageStatus;
   periodStart: Date;
   periodEnd: Date;
   usedBeforeReservation: number;

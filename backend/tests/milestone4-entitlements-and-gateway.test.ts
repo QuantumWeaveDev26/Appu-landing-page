@@ -800,6 +800,25 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
 
     assert.equal(response.statusCode, 404);
     assert.equal(n8nClient.callCount, beforeCalls);
+
+    const lifecycleAfterSpoof = await db.query<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM appu_requests'
+    );
+    assert.equal(Number(lifecycleAfterSpoof.rows[0].count), 0);
+
+    const invalidBearer = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: 'Bearer not-a-valid-test-token' },
+      payload: { childId: childA.id, message: 'Try to create request state' }
+    });
+    assert.equal(invalidBearer.statusCode, 401);
+    assert.equal(n8nClient.callCount, beforeCalls);
+
+    const lifecycleAfterInvalidBearer = await db.query<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM appu_requests'
+    );
+    assert.equal(Number(lifecycleAfterInvalidBearer.rows[0].count), 0);
   });
 
   test('guest messages receive only the minimal guest MentorContext', async () => {

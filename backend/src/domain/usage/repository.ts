@@ -250,6 +250,7 @@ export class UsageRepository {
           return {
             reservationId: existing.id,
             isExisting: true,
+            status: existing.status,
             periodStart: existing.periodStart,
             periodEnd: existing.periodEnd,
             usedBeforeReservation: 0,
@@ -309,6 +310,7 @@ export class UsageRepository {
          household_id, subscription_id, child_id, metric, quantity, status,
          period_start, period_end, idempotency_key, request_fingerprint, metadata, created_at, updated_at
        ) VALUES ($1, $2, $3, $4, $5, 'reserved', $6, $7, $8, $9, $10, NOW(), NOW())
+       ON CONFLICT (household_id, metric, idempotency_key) DO NOTHING
        RETURNING *`,
       [
         input.householdId,
@@ -324,11 +326,38 @@ export class UsageRepository {
       ]
     );
 
+    if (insertRes.rows.length === 0 && input.idempotencyKey) {
+      const concurrent = await db.query<UsageRecordRow>(
+        `SELECT * FROM usage_records
+         WHERE household_id = $1 AND metric = $2 AND idempotency_key = $3`,
+        [input.householdId, input.metric, input.idempotencyKey]
+      );
+      if (concurrent.rows[0]) {
+        const storedFp = concurrent.rows[0].request_fingerprint;
+        if (input.requestFingerprint && storedFp && storedFp !== input.requestFingerprint) {
+          throw new IdempotencyConflictError(
+            'Idempotency key has already been used for a different request. Use a new key for each distinct message.'
+          );
+        }
+        const existing = mapUsageRecordRow(concurrent.rows[0]);
+        return {
+          reservationId: existing.id,
+          isExisting: true,
+          status: existing.status,
+          periodStart: existing.periodStart,
+          periodEnd: existing.periodEnd,
+          usedBeforeReservation: used,
+          remainingAfterReservation: Math.max(0, input.quotaLimit - used)
+        };
+      }
+    }
+
     const record = mapUsageRecordRow(insertRes.rows[0]);
 
     return {
       reservationId: record.id,
       isExisting: false,
+      status: record.status,
       periodStart: record.periodStart,
       periodEnd: record.periodEnd,
       usedBeforeReservation: used,
