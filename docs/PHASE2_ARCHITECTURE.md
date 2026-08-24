@@ -453,34 +453,38 @@ Onboarding is progressive. Pre-payment drafts contain minimal information and ex
 
 ## 15. Child AI context architecture
 
-`AIContextService` constructs a minimal, sanitised context from trusted server data.
+`MentorContextBuilder` constructs a new minimal, sanitised context from tenant-scoped server data for every authenticated APPU message. Construction occurs only after bearer verification, household membership, child ownership, ACTIVE subscription, entitlement resolution, and AI quota reservation.
 
 Example backend-to-n8n contract:
 
 ```json
 {
-  "request_id": "req_...",
-  "session_id": "server_owned_session_...",
-  "child_context": {
-    "preferred_language": "te",
-    "secondary_language": "en",
-    "grade_band": "4",
+  "action": "sendMessage",
+  "channel": "website",
+  "sessionId": "appu_child_<verified-child-id>",
+  "chatInput": "fractions ardham cheppu",
+  "message": "fractions ardham cheppu",
+  "language": "te",
+  "childId": "<verified-child-id>",
+  "mentorContext": {
+    "mode": "authenticated",
+    "learnerId": "<verified-child-id>",
+    "learnerName": "Aarav",
+    "grade": "Grade 6",
+    "primaryLanguage": "te",
+    "learningStyle": "visual",
+    "responseStyle": "playful",
+    "favoriteSubjects": ["mathematics"],
     "interests": ["cricket", "space"],
-    "explanation_style": "story_based",
-    "difficulty": "adaptive",
-    "voice_token": "appu_voice_standard",
-    "voice_speed": 0.9
-  },
-  "capabilities": {
-    "voice_enabled": true,
-    "advanced_personalisation": true,
-    "long_term_context": false
-  },
-  "message": "fractions ardham cheppu"
+    "learningGoals": ["understand fractions"],
+    "personalizationEnabled": true,
+    "advancedPersonalizationEnabled": true,
+    "longTermContextEnabled": false
+  }
 }
 ```
 
-Do not send parent contact data, billing data, provider identifiers, payment state, authentication tokens, raw entitlement grants, or private account metadata to n8n/AI.
+Guests receive only `{ "mode": "guest", "primaryLanguage": "...", "personalizationEnabled": false }`. Do not send UI-only colors/fonts/themes, voice configuration, arbitrary `additionalContext`, parent/household data, billing/provider/payment state, authentication tokens, raw entitlement grants, or private security metadata to n8n/AI.
 
 The backend owns the n8n session key. Recommended key structure uses non-guessable internal IDs and an environment/version namespace. A child's key never derives from a browser-controlled value.
 
@@ -515,6 +519,8 @@ Required incremental changes after the backend adapter exists:
 5. Preserve the existing ElevenLabs path until adapter tests pass.
 6. Disable or isolate the direct public website webhook only after a verified cutover.
 7. Replace the stale repository snapshot with a fresh sanitised export.
+
+As of 2026-08-24, the backend adapter emits the canonical `mentorContext` property and has differential/isolation/update tests. The live n8n workflow has not been changed. Apply the exact manual node changes in `docs/N8N_MENTOR_CONTEXT_RUNBOOK.md` to `Normalize Website Input`, `Validate APPU Conversation Envelope`, and `APPU Mentor`. The APPU Mentor change is append-only and preserves the complete existing production master prompt and WhatsApp profile path.
 
 ## 17. Voice and ElevenLabs flow
 

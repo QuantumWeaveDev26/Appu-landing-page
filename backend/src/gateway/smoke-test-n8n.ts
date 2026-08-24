@@ -26,30 +26,20 @@ async function runSmokeTest() {
       message: 'Hello Appu, this is a smoke test from backend gateway.',
       language: 'en',
       childId: '00000000-0000-0000-0000-000000000000',
-      context: {
-        child: {
-          id: '00000000-0000-0000-0000-000000000000',
-          preferredName: 'SmokeTestChild',
-          gradeBand: 'Grade 5'
-        },
-        preferences: {
-          language: 'en',
-          learningStyle: 'visual',
-          interests: ['science'],
-          favoriteSubjects: ['math'],
-          goals: ['smoke test'],
-          responseStyle: 'playful'
-        },
-        presentation: {
-          favoriteColor: 'blue',
-          fontPreference: 'friendly',
-          themePreference: 'bright'
-        },
-        entitlements: {
-          multilingual: true,
-          advancedPersonalisation: true,
-          longTermContext: true
-        }
+      mentorContext: {
+        mode: 'authenticated',
+        learnerId: '00000000-0000-0000-0000-000000000000',
+        learnerName: 'SmokeTestChild',
+        grade: 'Grade 5',
+        primaryLanguage: 'en',
+        learningStyle: 'visual',
+        responseStyle: 'playful',
+        favoriteSubjects: ['math'],
+        interests: ['science'],
+        learningGoals: ['smoke test'],
+        personalizationEnabled: true,
+        advancedPersonalizationEnabled: true,
+        longTermContextEnabled: true
       }
     });
 

@@ -1,6 +1,6 @@
 # Appu Project Context
 
-Last updated: 2026-08-20
+Last updated: 2026-08-24
 
 ## Start here
 
@@ -20,20 +20,18 @@ The product must remain child-safe, privacy-conscious, multilingual, voice-enabl
 
 ## Current repository
 
-The repository is currently a static application with no backend or database:
+- `frontend/` is the only canonical browser application. Production frontend deployment is GitHub `frontend-production` → Hostinger.
+- `backend/` is a Node.js/TypeScript/Fastify API with PostgreSQL, Supabase token verification, household/child tenancy, database-driven plans/entitlements, Razorpay test-mode subscription state, usage/voice accounting, guest access, and the protected APPU n8n gateway.
+- Browser AI traffic follows Browser → APPU Backend → policy/accounting checks → n8n. Direct browser-to-n8n traffic is not an approved runtime path.
+- `docs/` contains architecture, deployment, current-task, and operational runbook material.
+- `scratch_workflow_raw.json` is stale.
+- The untracked `0-Click Discovery Call Scheduling (Google Meet + WhatsApp) (2).json` is a sensitive read-only export of the current live production workflow. Never commit or use it as a source of credentials.
 
-- `index.html` — child-facing single-screen Appu experience and dialogs.
-- `style.css` — complete responsive design system.
-- `app.js` — UI orchestration, chat, voice, language, settings, and Parent Zone.
-- `chat-agent.js` — direct browser-to-n8n messages.
-- `voice-engine.js` — browser speech recognition and returned-audio playback.
-- `voice-contract.js` — n8n response normalisation.
-- `avatar-stage.js` — Appu visual states.
-- `tests/` — Phase 1 structural and voice safety/contract tests.
-- `deploy/` and `deploy-to-hostinger.zip` — Hostinger static deployment artefacts.
-- `scratch_workflow_raw.json` — stale n8n snapshot; not the current live topology.
+### Canonical MentorContext (2026-08-24)
 
-No `package.json`, application server, authentication, database schema, migration system, or `.env.example` exists yet.
+For every authenticated APPU message, the backend verifies bearer identity, household membership, child ownership, ACTIVE subscription, entitlements, and quota before reading child personalisation and constructing a fresh `AuthenticatedMentorContext`. The n8n envelope carries it only under `mentorContext`. Guests receive a minimal discriminated context with no learner identifiers or saved preferences. UI-only settings, arbitrary `additionalContext`, parent/household/payment/security data, and secrets are excluded.
+
+The live workflow still requires the manual append-only integration in `docs/N8N_MENTOR_CONTEXT_RUNBOOK.md`; until deployed, backend payloads contain MentorContext but the production mentor prompt will not yet consume it.
 
 ## Phase 1 capabilities to preserve
 
@@ -75,9 +73,9 @@ A fresh sanitized export should replace it before it is used as architecture doc
 
 ## Current security boundary
 
-There is no trusted application boundary yet. The browser embeds and calls the public n8n webhook directly. It creates a short `localStorage` session ID that n8n currently uses for continuity. This ID is not authentication and must not become a child/tenant identity.
+The Fastify backend is the application authority for authentication, household/child ownership, ACTIVE subscription state, entitlements, guest limits, and usage reservations. The browser supplies a selected `childId`, but the backend scopes every child/personalisation lookup to the authenticated household. Invalid bearer tokens never fall back to guest access.
 
-The Parent Zone also sends parent contact data directly to n8n and currently shows a fallback success state on request failure. This must be corrected when the backend flow is introduced.
+The n8n website webhook remains a server-side integration boundary that must be restricted or cryptographically authenticated; validating the MentorContext shape alone cannot prove that a request originated from the APPU backend.
 
 ## Phase 2 target
 

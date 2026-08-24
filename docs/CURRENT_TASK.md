@@ -1,6 +1,6 @@
 # Current Task
 
-Last updated: 2026-08-21
+Last updated: 2026-08-24
 
 ## Current Phase:
 
@@ -8,9 +8,18 @@ Phase 2 SaaS Foundation
 
 ## Current Milestone:
 
-Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
+MentorContext Personalization Adapter — Backend implementation complete; live n8n manual integration pending
 
 ## Completed:
+
+- **Canonical MentorContext backend adapter (2026-08-24)**:
+  - Replaced the generic mixed `context` envelope with one explicit, typed `mentorContext` contract.
+  - Added a fresh authoritative per-request builder using household-scoped child and personalisation reads plus server-resolved entitlements.
+  - Excluded UI-only settings, arbitrary `additionalContext`, voice preferences, parent/household/payment/security data, and secrets.
+  - Added minimal isolated guest MentorContext without learner identifiers or saved preferences.
+  - Preserved existing bearer, tenant, ACTIVE-subscription, quota reservation, usage commit/release, response, and voice-accounting order.
+  - Added focused tests for database authority, browser spoof resistance, two-child differentiation, next-request preference propagation, cross-household rejection, guest isolation, and usage count.
+  - Created `docs/N8N_MENTOR_CONTEXT_RUNBOOK.md` from the read-only authoritative production export; the export and live workflow were not modified.
 
 - **Milestone 0**:
   - Audited the static Phase 1 repository.
@@ -178,12 +187,18 @@ Milestone 3 — Subscription Persistence + Razorpay TEST Integration (COMPLETE)
 
 ## Validation Status:
 
+- **MentorContext focused tests**: PASSED (4/4 selected tests).
+- **Milestone 4 regression suite**: PASSED (14/14 tests).
+- **MentorContext TypeScript typecheck**: PASSED.
+- **Full backend/frontend/build validation**: PASSED for this working tree.
+- **Live n8n prompt consumption**: PENDING manual workflow changes and production smoke tests.
+
 - **TypeScript Typecheck**: PASSED (`npm run typecheck` in `backend/` — 0 errors)
-- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 112 tests: 111 passed, 1 skipped for pg-mem limitation, 0 failures)
-- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with `TEST_DATABASE_URL` — 14/14 tests passed, 0 failures)
+- **Backend Unit & Integration Tests**: PASSED (`npm test` in `backend/` — 179 tests: 178 passed, 1 documented PostgreSQL-only behavior skipped in pg-mem, 0 failures)
+- **Real PostgreSQL Integration Tests**: PASSED (`npm run test:postgres` with configured test database — 16/16 tests passed, 0 failures)
 - **Backend Build**: PASSED (`npm run build` in `backend/` — cleanly generated `backend/dist/`)
 - **Dependency Audit**: PASSED (`npm audit --omit=dev` — 0 vulnerabilities)
-- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 28/28 tests passed across 2 suites)
+- **Frontend Node Tests**: PASSED (`node --test tests/*.test.js` — 56/56 tests passed across 5 suites)
 - **Phase 1 Python Tests**: PASSED (`python tests/page-structure.test.py` — 8/8 tests passed)
 - **Phase 1 JS Syntax Check**: PASSED (`node --check` across all frontend scripts — 0 errors)
 

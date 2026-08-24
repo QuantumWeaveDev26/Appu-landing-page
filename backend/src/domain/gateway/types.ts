@@ -1,4 +1,4 @@
-import type { ChildAIContext } from '../personalisation/types.js';
+import type { MentorContext } from '../personalisation/types.js';
 
 export interface N8nMessageEnvelope {
   action: 'sendMessage';
@@ -8,7 +8,7 @@ export interface N8nMessageEnvelope {
   message: string;
   language: string;
   childId?: string;
-  context: ChildAIContext | Record<string, unknown>;
+  mentorContext: MentorContext;
 }
 
 export interface N8nMessageResponse {

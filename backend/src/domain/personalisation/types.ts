@@ -49,28 +49,26 @@ export interface UpdateChildPersonalisationInput {
   additionalContext?: Record<string, unknown>;
 }
 
-export interface ChildAIContext {
-  child: {
-    id: string;
-    preferredName: string;
-    gradeBand: string;
-  };
-  preferences: {
-    language: string;
-    learningStyle: string;
-    interests: string[];
-    favoriteSubjects: string[];
-    goals: string[];
-    responseStyle: string;
-  };
-  presentation: {
-    favoriteColor: string | null;
-    fontPreference: string;
-    themePreference: string;
-  };
-  entitlements: {
-    multilingual: boolean;
-    advancedPersonalisation: boolean;
-    longTermContext: boolean;
-  };
+export interface AuthenticatedMentorContext {
+  mode: 'authenticated';
+  learnerId: string;
+  learnerName: string;
+  grade: string;
+  primaryLanguage: string;
+  learningStyle: LearningStyle;
+  responseStyle: ResponseStyle;
+  favoriteSubjects: string[];
+  interests: string[];
+  learningGoals: string[];
+  personalizationEnabled: boolean;
+  advancedPersonalizationEnabled: boolean;
+  longTermContextEnabled: boolean;
 }
+
+export interface GuestMentorContext {
+  mode: 'guest';
+  primaryLanguage: string;
+  personalizationEnabled: false;
+}
+
+export type MentorContext = AuthenticatedMentorContext | GuestMentorContext;

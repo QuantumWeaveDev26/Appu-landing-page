@@ -9,7 +9,8 @@ import { SubscriptionRepository } from '../domain/subscription/repository.js';
 import { EntitlementEnforcementService } from '../domain/entitlements/enforcement-service.js';
 import { UsageService } from '../domain/usage/service.js';
 import { GuestSessionService } from '../domain/guest/service.js';
-import { AIContextBuilder } from '../domain/personalisation/ai-context-builder.js';
+import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
+import type { GuestMentorContext } from '../domain/personalisation/types.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import {
   BadRequestError,
@@ -217,8 +218,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         requestFingerprint
       });
 
-      // 5. Build safe server-owned child AI context
-      const aiContext = await AIContextBuilder.buildChildAIContext(
+      // 5. Build fresh, safe, server-owned MentorContext from authoritative storage
+      const mentorContext = await MentorContextBuilder.buildMentorContext(
         opts.db,
         household.id,
         child.id,
@@ -232,9 +233,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         sessionId: `appu_child_${child.id}`,
         chatInput: message,
         message,
-        language: language || aiContext.preferences.language || 'en',
+        language: language || mentorContext.primaryLanguage,
         childId: child.id,
-        context: aiContext
+        mentorContext
       };
 
       // 7. Forward to n8n via secure client with reservation rollback on failure
@@ -344,6 +345,12 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     );
 
     // 4. Construct safe server-generated guest envelope for n8n
+    const mentorContext: GuestMentorContext = {
+      mode: 'guest',
+      primaryLanguage: language || 'en',
+      personalizationEnabled: false
+    };
+
     const envelope: N8nMessageEnvelope = {
       action: 'sendMessage',
       channel: 'website',
@@ -351,10 +358,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       chatInput: message,
       message,
       language: language || 'en',
-      context: {
-        guest: true,
-        language: language || 'en'
-      }
+      mentorContext
     };
 
     // 5. Forward to n8n AI workflow with failsafe rollback on error
