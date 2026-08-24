@@ -105,7 +105,22 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       opts.guestSessionSecret
     );
 
-    return reply.status(200).send(status);
+    reply.header('x-guest-session-token', status.token);
+    return reply.status(200).send({
+      guestLimit: status.guestLimit,
+      limit: status.guestLimit,
+      used: status.used,
+      remaining: status.remaining,
+      loginRequired: status.loginRequired,
+      token: status.token,
+      guest: {
+        limit: status.guestLimit,
+        used: status.used,
+        remaining: status.remaining,
+        token: status.token,
+        loginRequired: status.loginRequired
+      }
+    });
   });
 
   /**
@@ -364,10 +379,18 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     }, opts.guestSessionSecret);
 
     // 7. Deliver response with updated guest session metadata and signed token
+    reply.header('x-guest-session-token', guestTokenResult);
     return reply.status(200).send({
       text: response.text,
       audioSource: response.audioSource || null,
       audioDurationMs: response.audioDurationMs || null,
+      guest: {
+        token: guestTokenResult,
+        limit: GuestSessionService.DEFAULT_MAX_TURNS,
+        used: reservation.used,
+        remaining: reservation.remaining,
+        loginRequired: reservation.remaining === 0
+      },
       guestSession: {
         token: guestTokenResult,
         guestLimit: GuestSessionService.DEFAULT_MAX_TURNS,

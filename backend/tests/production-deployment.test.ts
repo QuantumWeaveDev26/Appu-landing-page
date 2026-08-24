@@ -35,6 +35,9 @@ describe('Production Deployment & Environment Readiness', () => {
       assert.equal(res.headers['vary'], 'Origin');
       assert.ok(res.headers['access-control-allow-headers']?.includes('Idempotency-Key'));
       assert.ok(res.headers['access-control-allow-headers']?.includes('Authorization'));
+      assert.ok(res.headers['access-control-allow-headers']?.includes('X-Guest-Session-Token'));
+      assert.ok(res.headers['access-control-allow-headers']?.includes('X-Guest-Token'));
+      assert.ok(res.headers['access-control-expose-headers']?.includes('X-Guest-Session-Token'));
       await app.close();
     });
 

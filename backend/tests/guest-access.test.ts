@@ -508,5 +508,99 @@ describe('APPU Guest Access Control & 3-Turn Authoritative Quota', () => {
       }
     }
   });
+
+  it('16. FULL GUEST LIFECYCLE CONTRACT & SESSION CONTINUITY PROOF: multi-turn quota transitions and zero-n8n gate on request 4', async () => {
+    mockN8nClient.callCount = 0;
+
+    // Turn 1: No token
+    const res1 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { 'x-forwarded-for': '203.0.113.88' },
+      payload: { message: 'Turn 1: What is photosynthesis?' }
+    });
+    assert.equal(res1.statusCode, 200);
+    const body1 = JSON.parse(res1.body);
+    const token1 = res1.headers['x-guest-session-token'] || body1.guest?.token;
+    assert.ok(token1, 'Response 1 must return signed guest token');
+    assert.equal(body1.guest?.limit, 3);
+    assert.equal(body1.guest?.used, 1);
+    assert.equal(body1.guest?.remaining, 2);
+    assert.equal(body1.guest?.loginRequired, false);
+
+    const decoded1 = GuestSessionService.verifyGuestToken(token1);
+    assert.ok(decoded1?.id, 'Token 1 must have valid session id');
+    const sessionId = decoded1.id;
+
+    // Turn 2: Provide token 1
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'x-forwarded-for': '203.0.113.88',
+        'x-guest-session-token': token1
+      },
+      payload: { message: 'Turn 2: How does chloroplast work?' }
+    });
+    assert.equal(res2.statusCode, 200);
+    const body2 = JSON.parse(res2.body);
+    const token2 = res2.headers['x-guest-session-token'] || body2.guest?.token;
+    assert.ok(token2, 'Response 2 must return signed guest token');
+    assert.equal(body2.guest?.limit, 3);
+    assert.equal(body2.guest?.used, 2);
+    assert.equal(body2.guest?.remaining, 1);
+    assert.equal(body2.guest?.loginRequired, false);
+
+    const decoded2 = GuestSessionService.verifyGuestToken(token2);
+    assert.equal(decoded2?.id, sessionId, 'Turn 2 must reuse the EXACT same session ID');
+
+    // Turn 3: Provide token 2
+    const res3 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'x-forwarded-for': '203.0.113.88',
+        'x-guest-session-token': token2
+      },
+      payload: { message: 'Turn 3: Give me a practice question!' }
+    });
+    assert.equal(res3.statusCode, 200);
+    const body3 = JSON.parse(res3.body);
+    const token3 = res3.headers['x-guest-session-token'] || body3.guest?.token;
+    assert.ok(token3, 'Response 3 must return signed guest token');
+    assert.equal(body3.guest?.limit, 3);
+    assert.equal(body3.guest?.used, 3);
+    assert.equal(body3.guest?.remaining, 0);
+    assert.equal(body3.guest?.loginRequired, true);
+
+    const decoded3 = GuestSessionService.verifyGuestToken(token3);
+    assert.equal(decoded3?.id, sessionId, 'Turn 3 must reuse the EXACT same session ID');
+
+    assert.equal(mockN8nClient.callCount, 3, 'n8n must be called exactly 3 times for turns 1, 2, 3');
+
+    // Turn 4: Provide token 3 -> MUST FAIL CLOSED WITH 403
+    const res4 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'x-forwarded-for': '203.0.113.88',
+        'x-guest-session-token': token3
+      },
+      payload: { message: 'Turn 4: Should be blocked by server-side quota' }
+    });
+    assert.equal(res4.statusCode, 403);
+    const body4 = JSON.parse(res4.body);
+    assert.equal(body4.code, 'GUEST_LIMIT_REACHED');
+    assert.equal(body4.remaining, 0);
+    assert.equal(body4.loginRequired, true);
+
+    // PROOF: n8n call count remains 3 (ZERO additional calls)
+    assert.equal(mockN8nClient.callCount, 3, 'n8n invocation count must remain ZERO for request 4');
+
+    // PROOF: Database row reflects used_turns = 3 for this exact session
+    const dbRow = await db.query('SELECT id, used_turns, ip_hash FROM guest_sessions WHERE id = $1', [sessionId]);
+    assert.equal(dbRow.rows.length, 1);
+    assert.equal(dbRow.rows[0].used_turns, 3);
+  });
 });
 

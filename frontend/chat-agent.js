@@ -140,8 +140,8 @@ class ChatAgent {
         if (typeof window !== 'undefined' && window.app && typeof window.app.onGuestLimitReached === 'function') {
           window.app.onGuestLimitReached(result);
         }
-      } else if (result.guestSession && typeof window !== 'undefined' && window.app && typeof window.app.updateGuestBadge === 'function') {
-        window.app.updateGuestBadge(result.guestSession);
+      } else if ((result.guest || result.guestSession) && typeof window !== 'undefined' && window.app && typeof window.app.updateGuestBadge === 'function') {
+        window.app.updateGuestBadge(result.guest || result.guestSession);
       }
 
       // Clean formatted \n characters so line breaks render properly

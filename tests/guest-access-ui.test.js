@@ -110,6 +110,68 @@ describe('Guest Access UI & 3-Turn Authoritative Quota Invariants', () => {
     assert.equal(status.token, 'gst_active_token');
   });
 
+  test('AppuBackendClient: persists guest token across requests and attaches X-Guest-Session-Token header', async () => {
+    let callCount = 0;
+    let headersReceived = [];
+
+    global.fetch = async (url, options) => {
+      callCount++;
+      headersReceived.push(options.headers);
+
+      if (callCount === 1) {
+        return {
+          ok: true,
+          status: 200,
+          headers: {
+            get: (name) => name.toLowerCase() === 'x-guest-session-token' ? 'gst_persisted_token_abc' : null
+          },
+          json: async () => ({
+            text: 'Turn 1 answer',
+            guest: {
+              token: 'gst_persisted_token_abc',
+              limit: 3,
+              used: 1,
+              remaining: 2,
+              loginRequired: false
+            }
+          })
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: {
+          get: (name) => name.toLowerCase() === 'x-guest-session-token' ? 'gst_persisted_token_abc_turn2' : null
+        },
+        json: async () => ({
+          text: 'Turn 2 answer',
+          guest: {
+            token: 'gst_persisted_token_abc_turn2',
+            limit: 3,
+            used: 2,
+            remaining: 1,
+            loginRequired: false
+          }
+        })
+      };
+    };
+
+    // Request 1: No token initially
+    const res1 = await AppuBackendClient.sendAppuMessage({ message: 'First query' });
+    assert.equal(headersReceived[0]['X-Guest-Session-Token'], undefined);
+    assert.equal(res1.guest.used, 1);
+    assert.equal(res1.guest.remaining, 2);
+    assert.equal(global.localStorage.getItem('appu_guest_token'), 'gst_persisted_token_abc');
+
+    // Request 2: Must automatically include persisted token
+    const res2 = await AppuBackendClient.sendAppuMessage({ message: 'Second query' });
+    assert.equal(headersReceived[1]['X-Guest-Session-Token'], 'gst_persisted_token_abc');
+    assert.equal(res2.guest.used, 2);
+    assert.equal(res2.guest.remaining, 1);
+    assert.equal(global.localStorage.getItem('appu_guest_token'), 'gst_persisted_token_abc_turn2');
+  });
+
   test('DOM & CSS invariants: guest-limit-modal and guest-access-badge are defined and responsive', () => {
     const html = fs.readFileSync(path.resolve(__dirname, '../frontend/index.html'), 'utf8');
     const css = fs.readFileSync(path.resolve(__dirname, '../frontend/style.css'), 'utf8');

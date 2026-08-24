@@ -228,8 +228,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     guestAccessBadge.classList.remove('is-hidden');
 
-    if (guestData && typeof guestData.remaining === 'number') {
-      currentGuestRemaining = guestData.remaining;
+    if (guestData) {
+      if (typeof guestData.remaining === 'number') {
+        currentGuestRemaining = guestData.remaining;
+      } else if (guestData.guest && typeof guestData.guest.remaining === 'number') {
+        currentGuestRemaining = guestData.guest.remaining;
+      } else if (guestData.guestSession && typeof guestData.guestSession.remaining === 'number') {
+        currentGuestRemaining = guestData.guestSession.remaining;
+      }
     }
 
     guestAccessBadge.classList.remove('is-warning', 'is-exhausted');

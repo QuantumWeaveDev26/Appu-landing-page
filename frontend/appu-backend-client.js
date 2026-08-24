@@ -33,6 +33,37 @@
     return 'https://antiquewhite-elk-758047.hostingersite.com';
   }
 
+  function getStoredGuestToken() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const tok = localStorage.getItem('appu_guest_token');
+        if (tok && typeof tok === 'string' && tok.trim()) return tok.trim();
+      }
+    } catch {}
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const tok = sessionStorage.getItem('appu_guest_token');
+        if (tok && typeof tok === 'string' && tok.trim()) return tok.trim();
+      }
+    } catch {}
+    return null;
+  }
+
+  function setStoredGuestToken(token) {
+    if (!token || typeof token !== 'string' || !token.trim()) return;
+    const cleanToken = token.trim();
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('appu_guest_token', cleanToken);
+      }
+    } catch {}
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('appu_guest_token', cleanToken);
+      }
+    } catch {}
+  }
+
   /**
    * Retrieves current guest session status from server.
    */
@@ -40,9 +71,7 @@
     const apiBase = params.baseUrl ? params.baseUrl.replace(/\/+$/, '') : getApiBaseUrl();
     const endpoint = `${apiBase}/api/appu/guest-status`;
 
-    const storedToken = params.guestToken || (
-      typeof localStorage !== 'undefined' ? localStorage.getItem('appu_guest_token') : null
-    );
+    const storedToken = params.guestToken || getStoredGuestToken();
 
     const headers = { 'Content-Type': 'application/json' };
     if (storedToken) {
@@ -52,28 +81,53 @@
     try {
       const res = await fetch(endpoint, { method: 'GET', headers });
       if (res.ok) {
+        const headerToken = (res.headers && typeof res.headers.get === 'function')
+          ? res.headers.get('x-guest-session-token')
+          : null;
         const data = await res.json();
-        if (data.token && typeof localStorage !== 'undefined') {
-          localStorage.setItem('appu_guest_token', data.token);
+        const activeToken = headerToken || data.token || data.guest?.token || data.guestSession?.token || storedToken;
+
+        if (activeToken) {
+          setStoredGuestToken(activeToken);
         }
+
+        const limit = data.limit ?? data.guestLimit ?? data.guest?.limit ?? data.guestSession?.guestLimit ?? 3;
+        const used = data.used ?? data.guest?.used ?? data.guestSession?.used ?? 0;
+        const remaining = data.remaining ?? data.guest?.remaining ?? data.guestSession?.remaining ?? Math.max(0, limit - used);
+        const loginRequired = Boolean(data.loginRequired ?? data.guest?.loginRequired ?? data.guestSession?.loginRequired ?? (remaining <= 0));
+
+        const quotaInfo = {
+          limit,
+          guestLimit: limit,
+          used,
+          remaining,
+          loginRequired,
+          token: activeToken
+        };
+
         return {
-          guestLimit: data.guestLimit ?? 3,
-          used: data.used ?? 0,
-          remaining: data.remaining ?? 3,
-          loginRequired: Boolean(data.loginRequired),
-          token: data.token || storedToken
+          ...quotaInfo,
+          guest: quotaInfo,
+          guestSession: quotaInfo
         };
       }
     } catch {
       // Fallback
     }
 
-    return {
+    const defaultQuota = {
+      limit: 3,
       guestLimit: 3,
       used: 0,
       remaining: 3,
       loginRequired: false,
       token: storedToken
+    };
+
+    return {
+      ...defaultQuota,
+      guest: defaultQuota,
+      guestSession: defaultQuota
     };
   }
 
@@ -87,7 +141,7 @@
    * @param {string} [params.language='en'] - Preferred language code
    * @param {string} [params.guestToken] - Optional guest session token
    * @param {string} [params.baseUrl] - Optional override for API base URL
-   * @returns {Promise<{ text: string, audioSource: string|null, childId?: string, error?: string, code?: string, guestSession?: any }>}
+   * @returns {Promise<{ text: string, audioSource: string|null, childId?: string, error?: string, code?: string, guest?: any, guestSession?: any }>}
    */
   async function sendAppuMessage(params) {
     if (!params || typeof params !== 'object') {
@@ -117,9 +171,7 @@
       }
       payload.childId = childId.trim();
     } else {
-      const storedGuestToken = guestToken || (
-        typeof localStorage !== 'undefined' ? localStorage.getItem('appu_guest_token') : null
-      );
+      const storedGuestToken = guestToken || getStoredGuestToken();
       if (storedGuestToken) {
         payload.guestToken = storedGuestToken;
       }
@@ -167,16 +219,24 @@
 
       // Check for GUEST_LIMIT_REACHED
       const errCode = errBody?.code || errBody?.error?.code;
-      if (res.status === 403 && (errCode === 'GUEST_LIMIT_REACHED' || errBody?.loginRequired)) {
+      if (res.status === 403 && (errCode === 'GUEST_LIMIT_REACHED' || errBody?.loginRequired || errBody?.guest?.loginRequired)) {
+        const errLimit = errBody?.limit ?? errBody?.guestLimit ?? errBody?.details?.guestLimit ?? errBody?.guest?.limit ?? 3;
+        const errUsed = errBody?.used ?? errBody?.details?.used ?? errBody?.guest?.used ?? 3;
+        const quotaInfo = {
+          limit: errLimit,
+          guestLimit: errLimit,
+          used: errUsed,
+          remaining: 0,
+          loginRequired: true
+        };
         return {
           text: errBody?.message || errBody?.error?.message || "Your complimentary APPU chats are complete. Sign in to continue learning and save your progress.",
           audioSource: null,
           error: 'guest_limit_reached',
           code: 'GUEST_LIMIT_REACHED',
-          guestLimit: errBody?.guestLimit ?? errBody?.details?.guestLimit ?? 3,
-          used: errBody?.used ?? errBody?.details?.used ?? 3,
-          remaining: 0,
-          loginRequired: true
+          ...quotaInfo,
+          guest: quotaInfo,
+          guestSession: quotaInfo
         };
       }
 
@@ -251,9 +311,30 @@
       };
     }
 
-    // Save updated guest token to localStorage if returned
-    if (data.guestSession?.token && typeof localStorage !== 'undefined') {
-      localStorage.setItem('appu_guest_token', data.guestSession.token);
+    // Capture returned guest token from response header or body
+    const headerToken = (res.headers && typeof res.headers.get === 'function')
+      ? res.headers.get('x-guest-session-token')
+      : null;
+    const receivedToken = headerToken || data.guest?.token || data.guestSession?.token || data.token;
+    if (receivedToken) {
+      setStoredGuestToken(receivedToken);
+    }
+
+    let guestInfo = null;
+    if (data.guest || data.guestSession) {
+      const limit = data.guest?.limit ?? data.guestSession?.guestLimit ?? 3;
+      const used = data.guest?.used ?? data.guestSession?.used ?? 0;
+      const remaining = data.guest?.remaining ?? data.guestSession?.remaining ?? Math.max(0, limit - used);
+      const loginRequired = Boolean(data.guest?.loginRequired ?? data.guestSession?.loginRequired ?? (remaining <= 0));
+
+      guestInfo = {
+        token: receivedToken || payload.guestToken || null,
+        limit,
+        guestLimit: limit,
+        used,
+        remaining,
+        loginRequired
+      };
     }
 
     return {
@@ -261,12 +342,15 @@
       audioSource: data.audioSource || null,
       audioDurationMs: data.audioDurationMs || null,
       childId: data.childId || payload.childId,
-      guestSession: data.guestSession || null
+      guest: guestInfo,
+      guestSession: guestInfo
     };
   }
 
   return {
     getApiBaseUrl,
+    getStoredGuestToken,
+    setStoredGuestToken,
     sendAppuMessage,
     getGuestStatus
   };
