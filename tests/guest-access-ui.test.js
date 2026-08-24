@@ -192,4 +192,140 @@ describe('Guest Access UI & 3-Turn Authoritative Quota Invariants', () => {
     // Invariant 3: Touch targets >= 44px
     assert.match(css, /min-height:\s*48px/, 'CTA buttons must satisfy >= 44px touch target');
   });
+
+  test('SECURITY: frontend JS files contain ZERO n8n/webhook production URLs', () => {
+    const frontendDir = path.resolve(__dirname, '../frontend');
+    const jsFiles = fs.readdirSync(frontendDir).filter(f => f.endsWith('.js'));
+
+    const forbiddenPatterns = [
+      'n8n.srv1871828.hstgr.cloud',
+      'N8N_APPU_WEBHOOK_URL',
+      '/webhook/4a108e85',
+      'n8nWebhookUrl',
+      'defaultN8nUrl'
+    ];
+
+    const violations = [];
+    for (const file of jsFiles) {
+      const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
+      for (const pattern of forbiddenPatterns) {
+        if (content.includes(pattern)) {
+          violations.push(`${file} contains forbidden pattern: ${pattern}`);
+        }
+      }
+    }
+
+    assert.equal(violations.length, 0,
+      `Frontend JS files must not contain n8n/webhook URLs.\nViolations:\n${violations.join('\n')}`
+    );
+  });
+
+  test('sendAppuMessage routes exclusively to backend API, never to n8n', async () => {
+    const capturedUrls = [];
+
+    global.fetch = async (url, options) => {
+      capturedUrls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        headers: {
+          get: (name) => name.toLowerCase() === 'x-guest-session-token' ? 'gst_routing_test' : null
+        },
+        json: async () => ({
+          text: 'Backend-routed response',
+          guest: { token: 'gst_routing_test', limit: 3, used: 1, remaining: 2, loginRequired: false }
+        })
+      };
+    };
+
+    await AppuBackendClient.sendAppuMessage({ message: 'test routing' });
+
+    // Every captured URL must be the backend API endpoint
+    for (const url of capturedUrls) {
+      assert.ok(
+        url.includes('/api/appu/message'),
+        `Request URL must target backend API, got: ${url}`
+      );
+      assert.ok(
+        !url.includes('n8n'),
+        `Request URL must NOT contain n8n domain, got: ${url}`
+      );
+      assert.ok(
+        !url.includes('webhook'),
+        `Request URL must NOT contain webhook path, got: ${url}`
+      );
+    }
+  });
+
+  test('Full 4-turn guest lifecycle: backend-routed with n8n call count zero on rejected turn', async () => {
+    let backendCallCount = 0;
+
+    global.fetch = async (url, options) => {
+      backendCallCount++;
+      const body = JSON.parse(options.body);
+
+      assert.ok(url.includes('/api/appu/message'), `Turn ${backendCallCount}: must route to backend`);
+      assert.ok(!url.includes('n8n'), `Turn ${backendCallCount}: must NOT route to n8n`);
+
+      if (backendCallCount <= 3) {
+        return {
+          ok: true,
+          status: 200,
+          headers: {
+            get: (name) => name.toLowerCase() === 'x-guest-session-token' ? `gst_turn_${backendCallCount}` : null
+          },
+          json: async () => ({
+            text: `Response for turn ${backendCallCount}`,
+            guest: {
+              token: `gst_turn_${backendCallCount}`,
+              limit: 3,
+              used: backendCallCount,
+              remaining: 3 - backendCallCount,
+              loginRequired: backendCallCount >= 3
+            }
+          })
+        };
+      }
+
+      // Turn 4: 403 GUEST_LIMIT_REACHED
+      return {
+        ok: false,
+        status: 403,
+        headers: { get: () => null },
+        json: async () => ({
+          code: 'GUEST_LIMIT_REACHED',
+          message: 'Your complimentary APPU chats are complete.',
+          remaining: 0,
+          used: 3,
+          loginRequired: true
+        })
+      };
+    };
+
+    // Turn 1
+    const r1 = await AppuBackendClient.sendAppuMessage({ message: 'Turn 1' });
+    assert.equal(r1.guest.remaining, 2);
+    assert.equal(r1.guest.used, 1);
+
+    // Turn 2
+    const r2 = await AppuBackendClient.sendAppuMessage({ message: 'Turn 2' });
+    assert.equal(r2.guest.remaining, 1);
+    assert.equal(r2.guest.used, 2);
+
+    // Turn 3
+    const r3 = await AppuBackendClient.sendAppuMessage({ message: 'Turn 3' });
+    assert.equal(r3.guest.remaining, 0);
+    assert.equal(r3.guest.used, 3);
+    assert.equal(r3.guest.loginRequired, true);
+
+    // Turn 4: must be rejected
+    const r4 = await AppuBackendClient.sendAppuMessage({ message: 'Turn 4' });
+    assert.equal(r4.code, 'GUEST_LIMIT_REACHED');
+    assert.equal(r4.remaining, 0);
+    assert.equal(r4.loginRequired, true);
+
+    // Total backend calls: 4 (turns 1-3 succeeded, turn 4 was 403)
+    // n8n direct calls: 0 (all routed through backend API)
+    assert.equal(backendCallCount, 4, 'All 4 requests must route through backend API');
+  });
 });

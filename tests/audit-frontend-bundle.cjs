@@ -104,7 +104,10 @@ const forbiddenPatterns = [
   'postgres://',
   'postgresql://',
   'http://localhost:3000',
-  'http://127.0.0.1:3000'
+  'http://127.0.0.1:3000',
+  'N8N_APPU_WEBHOOK_URL',
+  'n8n.srv1871828.hstgr.cloud',
+  '/webhook/4a108e85'
 ];
 
 for (const f of files) {

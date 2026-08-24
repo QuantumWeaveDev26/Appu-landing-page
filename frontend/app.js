@@ -106,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // CONFIGURATION & PERSISTED PREFERENCES
   // ==========================================
-  localStorage.removeItem('appu_n8n_url');
   localStorage.removeItem('appu_mock_mode');
   const savedRate = parseFloat(localStorage.getItem('appu_voice_rate') || '0.88');
   const savedAutoSpeak = localStorage.getItem('appu_auto_speak') !== 'false';
@@ -583,24 +582,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        const payload = {
-          action: 'schedule_discovery',
-          name,
-          phone,
-          email,
-          datetime: dateVal,
-          interest,
-          sessionId: chatAgent.sessionId
-        };
+        // Route discovery scheduling through the backend API gateway, never directly to n8n.
+        const scheduleMessage = [
+          `Schedule a parent learning support call:`,
+          `Name: ${name}`,
+          `Phone: ${phone}`,
+          `Email: ${email}`,
+          `Date/Time: ${dateVal}`,
+          `Interest: ${interest}`
+        ].join('\n');
 
-        const res = await fetch(chatAgent.n8nWebhookUrl || defaultN8nUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
+        const backendClient = window.AppuBackendClient;
         let data = {};
-        try { data = await res.json(); } catch(err) {}
+        if (backendClient && typeof backendClient.sendAppuMessage === 'function') {
+          data = await backendClient.sendAppuMessage({
+            message: scheduleMessage,
+            language: currentLang || 'en'
+          });
+        } else {
+          throw new Error('AppuBackendClient unavailable for discovery scheduling');
+        }
 
         const meetLink = data.meetLink || data.googleMeetUrl || 'https://meet.google.com/new';
         const waLink = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${name}! Your IGR Academy learning support call for ${interest} has been scheduled. Google Meet: ${meetLink}`)}`;
