@@ -81,6 +81,7 @@
       clearAlert();
 
       if (stepAuth) stepAuth.style.display = step === 1 ? 'block' : 'none';
+
       if (stepPlan) stepPlan.style.display = step === 2 ? 'block' : 'none';
       if (stepChild) stepChild.style.display = step === 3 ? 'block' : 'none';
       if (stepPers) stepPers.style.display = step === 4 ? 'block' : 'none';
@@ -102,6 +103,16 @@
     }
 
     let lastFocusedElement = null;
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
     function openModal(preferredStep) {
       lastFocusedElement = document.activeElement;
@@ -132,6 +143,14 @@
         }
       } else {
         setStep(1);
+      }
+
+      // If returning with email verification confirmation on a device without automatic session:
+      if (!isAuthed && typeof window !== 'undefined' && window.location) {
+        const hash = window.location.hash || '';
+        if (hash.includes('type=signup') || hash.includes('type=email_verification')) {
+          showAlert('Email verified successfully! Sign in with your password to continue your APPU setup.', 'success');
+        }
       }
 
       // Place focus inside modal safely
@@ -186,17 +205,161 @@
     // -------------------------------------------------------------
     // Step 1: Auth Tabs & Form
     // -------------------------------------------------------------
+    function renderVerificationView(email, householdName = 'Family') {
+      clearAlert();
+      let verifyWrap = document.getElementById('pos-verify-wrap');
+      if (!verifyWrap) {
+        verifyWrap = document.createElement('div');
+        verifyWrap.id = 'pos-verify-wrap';
+        if (stepAuth) stepAuth.appendChild(verifyWrap);
+      }
+
+      const tabsWrap = stepAuth?.querySelector('.pos-tabs');
+      if (tabsWrap) tabsWrap.style.display = 'none';
+      if (authForm) authForm.style.display = 'none';
+      verifyWrap.style.display = 'block';
+
+      verifyWrap.innerHTML = `
+        <div id="pos-verify-container" class="pos-verify-card">
+          <div class="pos-verify-icon-wrap">
+            <i class="fa-solid fa-envelope-circle-check text-cyan"></i>
+          </div>
+          <h3 class="pos-verify-title">Check your email</h3>
+          <p class="pos-verify-lead">
+            We sent a verification link to <strong class="text-cyan">${escapeHtml(email)}</strong>. Open your inbox and click the link to verify your account.
+          </p>
+          <p class="pos-verify-sub">
+            After verification, we'll bring you back to APPU and continue your setup.
+          </p>
+          <div id="pos-verify-feedback" class="pos-alert" style="display:none; width: 100%;"></div>
+          <div class="pos-verify-actions">
+            <button id="pos-btn-check-verification" class="primary-modal-btn" type="button">
+              <i class="fa-solid fa-arrows-rotate"></i> I've verified my email
+            </button>
+            <button id="pos-btn-resend-verification" class="pos-secondary-btn" type="button">
+              <i class="fa-solid fa-paper-plane"></i> Resend verification email
+            </button>
+            <button id="pos-btn-back-signin" class="pos-link-btn" type="button">
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      `;
+
+      const btnCheck = document.getElementById('pos-btn-check-verification');
+      const btnResend = document.getElementById('pos-btn-resend-verification');
+      const btnBack = document.getElementById('pos-btn-back-signin');
+      const feedback = document.getElementById('pos-verify-feedback');
+
+      function showVerifyFeedback(msg, type = 'info') {
+        if (!feedback) return;
+        feedback.textContent = msg;
+        feedback.className = `pos-alert ${type}`;
+        feedback.style.display = 'block';
+      }
+
+      if (btnCheck) {
+        btnCheck.addEventListener('click', async () => {
+          btnCheck.disabled = true;
+          btnCheck.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Checking verification...`;
+          try {
+            const result = typeof window.ParentOnboardingShell?.checkEmailVerificationSession === 'function'
+              ? await window.ParentOnboardingShell.checkEmailVerificationSession({ householdName })
+              : await window.ParentOnboardingShell.restoreSession();
+
+            if (result && result.session && result.status !== 'UNAUTHENTICATED') {
+              if (verifyWrap) verifyWrap.style.display = 'none';
+              await renderPlansStep({ refresh: true });
+            } else {
+              showVerifyFeedback("We haven't detected a verified session yet. Open the verification link from your email, then return here.", 'info');
+            }
+          } catch (err) {
+            showVerifyFeedback(err.message || 'Unable to check verification status. Please try again.', 'error');
+          } finally {
+            if (btnCheck) {
+              btnCheck.disabled = false;
+              btnCheck.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> I've verified my email`;
+            }
+          }
+        });
+      }
+
+      let resendCooldownTimer = null;
+      if (btnResend) {
+        btnResend.addEventListener('click', async () => {
+          btnResend.disabled = true;
+          btnResend.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...`;
+          try {
+            if (typeof window.ParentOnboardingShell?.resendVerificationEmail === 'function') {
+              await window.ParentOnboardingShell.resendVerificationEmail(email);
+            }
+            showVerifyFeedback(`Verification email resent to ${escapeHtml(email)}. Please check your inbox and spam folder.`, 'success');
+            let cooldown = 30;
+            btnResend.innerHTML = `Resend in ${cooldown}s`;
+            resendCooldownTimer = setInterval(() => {
+              cooldown -= 1;
+              if (cooldown <= 0) {
+                clearInterval(resendCooldownTimer);
+                if (btnResend) {
+                  btnResend.disabled = false;
+                  btnResend.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Resend verification email`;
+                }
+              } else {
+                if (btnResend) {
+                  btnResend.innerHTML = `Resend in ${cooldown}s`;
+                }
+              }
+            }, 1000);
+          } catch (err) {
+            showVerifyFeedback(err.message || 'Failed to resend verification email. Please try again later.', 'error');
+            btnResend.disabled = false;
+            btnResend.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Resend verification email`;
+          }
+        });
+      }
+
+      if (btnBack) {
+        btnBack.addEventListener('click', () => {
+          restoreAuthFormToSignIn(email);
+        });
+      }
+    }
+
+    function restoreAuthFormToSignIn(prefillEmail = '') {
+      const verifyWrap = document.getElementById('pos-verify-wrap');
+      if (verifyWrap) verifyWrap.style.display = 'none';
+
+      const tabsWrap = stepAuth?.querySelector('.pos-tabs');
+      if (tabsWrap) tabsWrap.style.display = 'flex';
+      if (authForm) authForm.style.display = 'block';
+
+      isSignUpMode = false;
+      if (tabLogin) tabLogin.classList.add('active');
+      if (tabSignup) tabSignup.classList.remove('active');
+      if (authHouseholdWrap) authHouseholdWrap.style.display = 'none';
+      if (btnAuthSubmit) btnAuthSubmit.textContent = 'Sign In to Parent Zone';
+      if (prefillEmail && authEmail) {
+        authEmail.value = prefillEmail;
+      }
+      if (authPassword) {
+        authPassword.value = '';
+        authPassword.focus();
+      }
+      clearAlert();
+    }
+
     if (tabLogin && tabSignup) {
       tabLogin.addEventListener('click', () => {
-        isSignUpMode = false;
-        tabLogin.classList.add('active');
-        tabSignup.classList.remove('active');
-        if (authHouseholdWrap) authHouseholdWrap.style.display = 'none';
-        if (btnAuthSubmit) btnAuthSubmit.textContent = 'Sign In to Parent Zone';
-        clearAlert();
+        restoreAuthFormToSignIn(authEmail ? authEmail.value : '');
       });
 
       tabSignup.addEventListener('click', () => {
+        const verifyWrap = document.getElementById('pos-verify-wrap');
+        if (verifyWrap) verifyWrap.style.display = 'none';
+        const tabsWrap = stepAuth?.querySelector('.pos-tabs');
+        if (tabsWrap) tabsWrap.style.display = 'flex';
+        if (authForm) authForm.style.display = 'block';
+
         isSignUpMode = true;
         tabSignup.classList.add('active');
         tabLogin.classList.remove('active');
@@ -223,7 +386,7 @@
         try {
           if (btnAuthSubmit) {
             btnAuthSubmit.disabled = true;
-            btnAuthSubmit.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...`;
+            btnAuthSubmit.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${isSignUpMode ? 'Creating Account...' : 'Authenticating...'}`;
           }
 
           const authState = await window.ParentOnboardingShell.signInParent({
@@ -233,9 +396,14 @@
             householdName
           });
 
+          if (authState.status === 'VERIFICATION_REQUIRED' || authState.needsVerification) {
+            renderVerificationView(email, householdName);
+            return;
+          }
+
           await renderPlansStep({ refresh: !authState.synchronized });
         } catch (err) {
-          showAlert(err.message || 'Authentication failed. Please check your credentials.');
+          showAlert(err.message || 'Authentication failed. Please check your credentials.', 'error');
         } finally {
           if (btnAuthSubmit) {
             btnAuthSubmit.disabled = false;

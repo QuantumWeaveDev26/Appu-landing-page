@@ -707,10 +707,24 @@ document.addEventListener('DOMContentLoaded', () => {
     window.ParentSetupUI.init();
   }
 
-  // Restore authenticated session after page refresh
+  // Restore authenticated session after page refresh or email verification callback
   if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.restoreSession === 'function') {
-    window.ParentOnboardingShell.restoreSession().then(() => {
+    window.ParentOnboardingShell.restoreSession().then((res) => {
       updateGuestBadge();
+      const hash = typeof window !== 'undefined' && window.location ? (window.location.hash || '') : '';
+      const search = typeof window !== 'undefined' && window.location ? (window.location.search || '') : '';
+      const isAuthRedirect = hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=email_verification') || search.includes('code=');
+
+      if (isAuthRedirect) {
+        if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
+          window.ParentSetupUI.openModal();
+        }
+        try {
+          if (window.history && typeof window.history.replaceState === 'function') {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        } catch (e) {}
+      }
     }).catch((err) => {
       console.warn('[Appu] Session restoration warning:', err?.message || err);
       updateGuestBadge();

@@ -1076,4 +1076,154 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
       global.fetch = originalFetch;
     }
   });
+
+  // ============================================================================
+  // 8. EMAIL VERIFICATION & SIGNUP SUCCESS FLOW
+  // ============================================================================
+
+  test('signUp with unconfirmed email returns VERIFICATION_REQUIRED without throwing and configures emailRedirectTo', async () => {
+    let capturedSignUpOptions = null;
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async signUp({ email, password, options }) {
+            capturedSignUpOptions = { email, password, options };
+            return {
+              data: {
+                user: { id: 'usr-new-parent-456', email, confirmation_sent_at: '2026-08-25T12:00:00Z' },
+                session: null // Supabase returns null session when email confirmation is required
+              },
+              error: null
+            };
+          }
+        }
+      })
+    };
+
+    const result = await ParentOnboardingShell.signInParent({
+      email: 'newparent@example.com',
+      password: 'StrongPassword123!',
+      isSignUp: true,
+      householdName: 'Sharma Family'
+    });
+
+    assert.equal(result.status, 'VERIFICATION_REQUIRED');
+    assert.equal(result.needsVerification, true);
+    assert.equal(result.email, 'newparent@example.com');
+    assert.ok(result.message.includes('verification link'));
+    assert.equal(capturedSignUpOptions.email, 'newparent@example.com');
+    assert.equal(capturedSignUpOptions.password, 'StrongPassword123!');
+    assert.ok(capturedSignUpOptions.options?.emailRedirectTo);
+    assert.ok(capturedSignUpOptions.options.emailRedirectTo.includes('appuai.online') || capturedSignUpOptions.options.emailRedirectTo.startsWith('http'));
+  });
+
+  test('signUp failure throws real error with message for error banner display', async () => {
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async signUp() {
+            return {
+              data: { user: null, session: null },
+              error: { message: 'User already registered' }
+            };
+          }
+        }
+      })
+    };
+
+    await assert.rejects(
+      async () => {
+        await ParentOnboardingShell.signInParent({
+          email: 'existing@example.com',
+          password: 'Password123!',
+          isSignUp: true
+        });
+      },
+      (err) => {
+        assert.equal(err.message, 'User already registered');
+        return true;
+      }
+    );
+  });
+
+  test('resendVerificationEmail calls supabase.auth.resend with signup type and redirect URL', async () => {
+    let capturedResendArgs = null;
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async resend(args) {
+            capturedResendArgs = args;
+            return { error: null };
+          }
+        }
+      })
+    };
+
+    const res = await ParentOnboardingShell.resendVerificationEmail('newparent@example.com');
+    assert.equal(res.success, true);
+    assert.equal(capturedResendArgs.type, 'signup');
+    assert.equal(capturedResendArgs.email, 'newparent@example.com');
+    assert.ok(capturedResendArgs.options?.emailRedirectTo);
+  });
+
+  test('checkEmailVerificationSession synchronizes session if user is verified or returns unauthenticated', async () => {
+    const originalFetch = global.fetch;
+    let mockSession = null;
+
+    global.window = global.window || {};
+    global.window.AppuSession = AppuSession;
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async getSession() {
+            return { data: { session: mockSession }, error: null };
+          }
+        }
+      })
+    };
+
+    global.fetch = async (url) => {
+      if (url.endsWith('/api/auth/me')) {
+        return { ok: true, status: 200, async json() { return { household: { id: 'hh-verify', name: 'Verify Family' } }; } };
+      }
+      if (url.endsWith('/api/plans')) {
+        return { ok: true, status: 200, async json() { return { plans: [] }; } };
+      }
+      if (url.endsWith('/api/usage/current')) {
+        return { ok: true, status: 200, async json() { return null; } };
+      }
+      if (url.endsWith('/api/subscriptions/current')) {
+        return { ok: true, status: 200, async json() { return { subscription: { status: 'AUTHENTICATED' } }; } };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
+
+    try {
+      // 1. Not verified yet -> no session
+      mockSession = null;
+      const unverifiedResult = await ParentOnboardingShell.checkEmailVerificationSession();
+      assert.equal(unverifiedResult.status, 'UNAUTHENTICATED');
+      assert.equal(unverifiedResult.reason, 'no_session');
+
+      // 2. User clicked verification link -> session is active
+      mockSession = { access_token: 'verified-parent-jwt', user: { email: 'verified@example.com' } };
+      const verifiedResult = await ParentOnboardingShell.checkEmailVerificationSession({ householdName: 'Verify Family' });
+      assert.equal(verifiedResult.status, 'PARENT_AUTHENTICATED');
+      assert.equal(ParentOnboardingShell.state.session.access_token, 'verified-parent-jwt');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('no plaintext password or credentials leaked into AppuSession or ParentOnboardingShell state', async () => {
+    assert.equal(ParentOnboardingShell.state.password, undefined);
+    assert.equal(AppuSession.password, undefined);
+    const stored = (typeof window !== 'undefined' && window.localStorage && typeof window.localStorage.getItem === 'function')
+      ? window.localStorage.getItem('password')
+      : null;
+    assert.equal(stored, null);
+  });
 });

@@ -247,7 +247,7 @@
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: false
+          detectSessionInUrl: true
         }
       });
 
@@ -285,7 +285,14 @@
     _interactiveAuthPending = true;
     try {
       if (isSignUp) {
-        authRes = await supabase.auth.signUp({ email, password });
+        const emailRedirectTo = typeof window !== 'undefined' && window.location?.origin
+          ? window.location.origin
+          : 'https://appuai.online';
+        authRes = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo }
+        });
       } else {
         authRes = await supabase.auth.signInWithPassword({ email, password });
       }
@@ -295,7 +302,13 @@
       }
 
       if (!authRes.data || !authRes.data.session) {
-        throw new Error('Sign up successful! Please check your email to confirm your account, then sign in.');
+        return {
+          status: 'VERIFICATION_REQUIRED',
+          needsVerification: true,
+          email,
+          user: authRes.data?.user || null,
+          message: `We sent a verification link to ${email}. Open your inbox and click the link to verify your account.`
+        };
       }
 
       const result = await synchronizeAuthenticatedSession(authRes.data.session, {
@@ -312,6 +325,50 @@
     } finally {
       _interactiveAuthPending = false;
     }
+  }
+
+  /**
+   * Resends email verification for signup.
+   */
+  async function resendVerificationEmail(email) {
+    const supabase = initSupabase();
+    if (!supabase?.auth || typeof supabase.auth.resend !== 'function') {
+      throw new Error('Verification resend is not supported by auth client');
+    }
+    const emailRedirectTo = typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://appuai.online';
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: (email || '').trim(),
+      options: { emailRedirectTo }
+    });
+    if (error) {
+      throw new Error(error.message || 'Failed to resend verification email');
+    }
+    return { success: true };
+  }
+
+  /**
+   * Manually checks whether an email verification session has been established.
+   */
+  async function checkEmailVerificationSession({ householdName = 'Family' } = {}) {
+    const supabase = initSupabase();
+    if (!supabase?.auth || typeof supabase.auth.getSession !== 'function') {
+      return { status: 'UNAUTHENTICATED', reason: 'supabase_unavailable' };
+    }
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data?.session?.access_token) {
+      return { status: 'UNAUTHENTICATED', reason: 'no_session' };
+    }
+    const generation = ++_authGeneration;
+    return synchronizeAuthenticatedSession(data.session, {
+      source: 'VERIFICATION_CHECK',
+      force: true,
+      allowHouseholdOnboarding: true,
+      householdName,
+      generation
+    });
   }
 
   /**
@@ -995,6 +1052,8 @@
     savePersonalisation,
     launchAppuSession,
     updateHeaderSessionBadge,
+    resendVerificationEmail,
+    checkEmailVerificationSession,
     signOut,
     getApiBaseUrl
   };
