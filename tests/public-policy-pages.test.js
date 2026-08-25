@@ -80,6 +80,12 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     assert.ok(footerCssBlock, 'landing-footer-strip rule must exist in CSS');
     assert.ok(!footerCssBlock[1].includes('position: absolute'), 'Footer must not use position: absolute');
     assert.ok(!footerCssBlock[1].includes('position: fixed'), 'Footer must not use position: fixed');
+
+    // Ensure .app-shell does not force 100dvh pushing footer below the fold
+    const appShellCssBlock = cssContent.match(/\.app-shell\s*\{([^}]*)\}/i);
+    assert.ok(appShellCssBlock, 'app-shell rule must exist in CSS');
+    assert.ok(!appShellCssBlock[1].includes('min-height: 100dvh'), 'app-shell must not force min-height: 100dvh');
+    assert.ok(!appShellCssBlock[1].includes('height: 100dvh'), 'app-shell must not force height: 100dvh');
   });
 
   test('pricing.html reflects the canonical 5-tier APPU catalogue without price mutations', () => {
