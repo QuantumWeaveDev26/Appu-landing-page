@@ -50,14 +50,36 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     }
   });
 
-  test('landing page (index.html) contains visible public footer links to all policies', () => {
+  test('landing page (index.html) contains visible public footer links outside app-shell and response-dock', () => {
     const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
+
+    // All links present
     assert.ok(indexContent.includes('privacy-policy.html'), 'index.html must link to privacy-policy.html');
     assert.ok(indexContent.includes('terms-and-conditions.html'), 'index.html must link to terms-and-conditions.html');
     assert.ok(indexContent.includes('cancellation-refund-policy.html'), 'index.html must link to cancellation-refund-policy.html');
     assert.ok(indexContent.includes('shipping-delivery-policy.html'), 'index.html must link to shipping-delivery-policy.html');
     assert.ok(indexContent.includes('pricing.html'), 'index.html must link to pricing.html');
     assert.ok(indexContent.includes('contact-us.html'), 'index.html must link to contact-us.html');
+
+    // Footer is strictly outside the response-dock and response-card
+    const responseCardMatch = indexContent.match(/<div class="response-card">([\s\S]*?)<\/div>/i);
+    assert.ok(responseCardMatch, 'response-card must exist');
+    assert.ok(!responseCardMatch[1].includes('landing-footer-strip'), 'landing-footer-strip must NOT be inside response-card');
+
+    const responseDockMatch = indexContent.match(/<section class="response-dock"[\s\S]*?<\/section>/i);
+    assert.ok(responseDockMatch, 'response-dock must exist');
+    assert.ok(!responseDockMatch[0].includes('landing-footer-strip'), 'landing-footer-strip must NOT be inside response-dock');
+
+    // Footer is strictly outside app-shell
+    const appShellMatch = indexContent.match(/<div id="app-shell"[\s\S]*?<\/div>\s*<footer class="landing-footer-strip"/i);
+    assert.ok(appShellMatch, 'landing-footer-strip must be positioned outside and after #app-shell');
+
+    // Ensure style.css does NOT use position:absolute or position:fixed for landing-footer-strip
+    const cssContent = fs.readFileSync(path.join(frontendDir, 'style.css'), 'utf8');
+    const footerCssBlock = cssContent.match(/\.landing-footer-strip\s*\{([^}]*)\}/i);
+    assert.ok(footerCssBlock, 'landing-footer-strip rule must exist in CSS');
+    assert.ok(!footerCssBlock[1].includes('position: absolute'), 'Footer must not use position: absolute');
+    assert.ok(!footerCssBlock[1].includes('position: fixed'), 'Footer must not use position: fixed');
   });
 
   test('pricing.html reflects the canonical 5-tier APPU catalogue without price mutations', () => {
