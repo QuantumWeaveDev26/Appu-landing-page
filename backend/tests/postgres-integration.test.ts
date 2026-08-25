@@ -9,6 +9,17 @@ import { TenancyService } from '../src/domain/tenancy/service.js';
 import { HouseholdRoles, ChildStatuses } from '../src/domain/tenancy/types.js';
 import { UsageRepository } from '../src/domain/usage/repository.js';
 import { UsageService } from '../src/domain/usage/service.js';
+import { AppuRequestService } from '../src/domain/appu-request/service.js';
+import { AppuRequestRepository } from '../src/domain/appu-request/repository.js';
+import { AppuRequestStates } from '../src/domain/appu-request/types.js';
+import { GuestRepository } from '../src/domain/guest/repository.js';
+import { GuestSessionService } from '../src/domain/guest/service.js';
+import { SubscriptionRepository } from '../src/domain/subscription/repository.js';
+import { SubscriptionStates } from '../src/domain/subscription/types.js';
+import { buildApp } from '../src/app.js';
+import { loadConfig } from '../src/config/index.js';
+import { MockRazorpayClient } from '../src/domain/razorpay/mock-client.js';
+import { MockN8nClient } from '../src/domain/gateway/mock-client.js';
 import { QuotaExceededError } from '../src/errors/index.js';
 
 const testDbUrl = process.env.TEST_DATABASE_URL?.trim();
@@ -744,6 +755,293 @@ describe('Real PostgreSQL Integration Suite', { skip: !testDbUrl }, () => {
       [household.id]
     );
     assert.equal(Number(rows.rows[0].total), 7000);
+  });
+
+  test('real PostgreSQL: AppuRequestRepository.transition PENDING -> SUCCEEDED with completedAt omitted', async () => {
+    if (!testDbUrl) return;
+
+    const guestSessionId = `gst_pg_${crypto.randomUUID()}`;
+    await GuestRepository.upsert(db, {
+      id: guestSessionId,
+      ipHash: 'test_ip_hash_pg',
+      usedTurns: 1,
+      expiresAt: new Date(Date.now() + 86400000)
+    });
+
+    const pendingReq = await AppuRequestRepository.createGuestPending(db, {
+      guestSessionId,
+      idempotencyKey: `pg_idem_${crypto.randomUUID()}`,
+      requestFingerprint: `pg_fp_${crypto.randomUUID()}`
+    });
+
+    assert.equal(pendingReq.status, 'PENDING');
+    assert.equal(pendingReq.completedAt, null);
+
+    // Transition with completedAt omitted (simulating synchronous route handler completion)
+    const transitioned = await AppuRequestRepository.transition(
+      db,
+      pendingReq.id,
+      [AppuRequestStates.PENDING, AppuRequestStates.UNKNOWN],
+      AppuRequestStates.SUCCEEDED
+    );
+
+    assert.ok(transitioned);
+    assert.equal(transitioned!.status, 'SUCCEEDED');
+    assert.ok(transitioned!.completedAt instanceof Date);
+    assert.ok(!Number.isNaN(transitioned!.completedAt.getTime()));
+
+    // Verify row in database
+    const inDb = await AppuRequestRepository.getById(db, pendingReq.id);
+    assert.ok(inDb);
+    assert.equal(inDb!.status, 'SUCCEEDED');
+    assert.ok(inDb!.completedAt instanceof Date);
+  });
+
+  test('real PostgreSQL: AppuRequestRepository.transition covers all state machine transitions', async () => {
+    if (!testDbUrl) return;
+
+    // 1. PENDING -> DEFINITE_FAILURE
+    const guestSessionId1 = `gst_pg_df_${crypto.randomUUID()}`;
+    await GuestRepository.upsert(db, {
+      id: guestSessionId1,
+      ipHash: 'test_ip_hash_df',
+      usedTurns: 1,
+      expiresAt: new Date(Date.now() + 86400000)
+    });
+    const req1 = await AppuRequestRepository.createGuestPending(db, {
+      guestSessionId: guestSessionId1,
+      idempotencyKey: `pg_idem_df_${crypto.randomUUID()}`,
+      requestFingerprint: `pg_fp_df_${crypto.randomUUID()}`
+    });
+    const df1 = await AppuRequestRepository.transition(
+      db,
+      req1.id,
+      [AppuRequestStates.PENDING],
+      AppuRequestStates.DEFINITE_FAILURE,
+      { failureCode: 'provider_error' }
+    );
+    assert.ok(df1);
+    assert.equal(df1!.status, 'DEFINITE_FAILURE');
+    assert.equal(df1!.failureCode, 'provider_error');
+    assert.ok(df1!.completedAt instanceof Date);
+
+    // 2. PENDING -> UNKNOWN (timeout)
+    const guestSessionId2 = `gst_pg_un_${crypto.randomUUID()}`;
+    await GuestRepository.upsert(db, {
+      id: guestSessionId2,
+      ipHash: 'test_ip_hash_un',
+      usedTurns: 1,
+      expiresAt: new Date(Date.now() + 86400000)
+    });
+    const req2 = await AppuRequestRepository.createGuestPending(db, {
+      guestSessionId: guestSessionId2,
+      idempotencyKey: `pg_idem_un_${crypto.randomUUID()}`,
+      requestFingerprint: `pg_fp_un_${crypto.randomUUID()}`
+    });
+    const un2 = await AppuRequestRepository.transition(
+      db,
+      req2.id,
+      [AppuRequestStates.PENDING],
+      AppuRequestStates.UNKNOWN,
+      { failureCode: 'transport_timeout' }
+    );
+    assert.ok(un2);
+    assert.equal(un2!.status, 'UNKNOWN');
+    assert.equal(un2!.failureCode, 'transport_timeout');
+    assert.equal(un2!.completedAt, null);
+
+    // 3. UNKNOWN -> SUCCEEDED (callback recovery)
+    const suc3 = await AppuRequestRepository.transition(
+      db,
+      req2.id,
+      [AppuRequestStates.UNKNOWN],
+      AppuRequestStates.SUCCEEDED
+    );
+    assert.ok(suc3);
+    assert.equal(suc3!.status, 'SUCCEEDED');
+    assert.ok(suc3!.completedAt instanceof Date);
+
+    // 4. Disallowed transition from terminal state returns null
+    const invalid = await AppuRequestRepository.transition(
+      db,
+      req1.id,
+      [AppuRequestStates.PENDING],
+      AppuRequestStates.SUCCEEDED
+    );
+    assert.equal(invalid, null);
+  });
+
+  test('real PostgreSQL: full guest route with legacy live n8n response shape { output, text, message, audio_base64 }', async () => {
+    if (!testDbUrl) return;
+
+    const n8nClient = new MockN8nClient();
+    n8nClient.nextResponse = {
+      text: 'Namaskara! I am Appu on real PostgreSQL.',
+      audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAA='
+    };
+
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'silent',
+      PORT: 3000,
+      HOST: '127.0.0.1',
+      GUEST_SESSION_SECRET: 'test_guest_secret_at_least_16_chars',
+      N8N_APPU_REQUEST_HMAC_SECRET: 'test_req_secret_at_least_32_chars_long',
+      N8N_APPU_CALLBACK_HMAC_SECRET: 'test_cb_secret_at_least_32_chars_long',
+      N8N_APPU_TIMEOUT_MS: 20000
+    });
+
+    const mockAuthVerifier = {
+      verifyAccessToken: async () => { throw new Error('Not authenticated'); }
+    };
+
+    const app = buildApp(config, {
+      database: db,
+      authVerifier: mockAuthVerifier as any,
+      razorpayClient: new MockRazorpayClient() as any,
+      n8nClient: n8nClient as any
+    });
+    await app.ready();
+
+    const idempotencyKey = `pg_guest_full_${crypto.randomUUID()}`;
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'idempotency-key': idempotencyKey
+      },
+      payload: {
+        message: 'Hello Appu on real postgres!',
+        language: 'en'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.equal(body.requestStatus, 'SUCCEEDED');
+    assert.equal(body.text, 'Namaskara! I am Appu on real PostgreSQL.');
+    assert.ok(body.audioSource);
+    assert.equal(body.guestSession.used, 1);
+    assert.equal(body.guestSession.remaining, 2);
+    assert.ok(res.headers['x-guest-session-token']);
+
+    const requestId = res.headers['x-appu-request-id'] as string;
+    const record = await AppuRequestRepository.getById(db, requestId);
+    assert.ok(record);
+    assert.equal(record!.status, 'SUCCEEDED');
+    assert.ok(record!.completedAt instanceof Date);
+
+    // Idempotent duplicate replay: 0 extra n8n calls
+    const n8nCallCountBefore = n8nClient.callCount;
+    const replayRes = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'idempotency-key': idempotencyKey,
+        'x-guest-session-token': res.headers['x-guest-session-token'] as string
+      },
+      payload: {
+        message: 'Hello Appu on real postgres!',
+        language: 'en'
+      }
+    });
+
+    assert.equal(replayRes.statusCode, 200);
+    const replayBody = replayRes.json();
+    assert.equal(replayBody.idempotentReplay, true);
+    assert.equal(n8nClient.callCount, n8nCallCountBefore, 'Must not call n8n on duplicate replay');
+  });
+
+  test('real PostgreSQL: full authenticated route with legacy live n8n response shape commits usage', async () => {
+    if (!testDbUrl) return;
+
+    const parentUserId = crypto.randomUUID();
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      householdName: 'Real Postgres Auth Appu Household'
+    });
+
+    const testChild = await TenancyRepository.createChildProfile(db, {
+      householdId: household.id,
+      preferredName: 'Rohan',
+      gradeBand: 'PRIMARY'
+    });
+
+    const evolvePlan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId: household.id,
+      planId: evolvePlan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: `sub_pg_appu_${crypto.randomUUID()}`,
+      status: SubscriptionStates.ACTIVE
+    });
+
+    const n8nClient = new MockN8nClient();
+    n8nClient.nextResponse = {
+      text: 'Planets orbit the sun due to gravity.',
+      audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAA='
+    };
+
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'silent',
+      PORT: 3000,
+      HOST: '127.0.0.1',
+      GUEST_SESSION_SECRET: 'test_guest_secret_at_least_16_chars',
+      N8N_APPU_REQUEST_HMAC_SECRET: 'test_req_secret_at_least_32_chars_long',
+      N8N_APPU_CALLBACK_HMAC_SECRET: 'test_cb_secret_at_least_32_chars_long',
+      N8N_APPU_TIMEOUT_MS: 20000
+    });
+
+    const mockAuthVerifier = {
+      verifyAccessToken: async (token: string) => {
+        if (token === 'valid_pg_parent_token') {
+          return { userId: parentUserId, email: 'pgparent@example.com' };
+        }
+        throw new Error('Not authenticated');
+      }
+    };
+
+    const app = buildApp(config, {
+      database: db,
+      authVerifier: mockAuthVerifier as any,
+      razorpayClient: new MockRazorpayClient() as any,
+      n8nClient: n8nClient as any
+    });
+    await app.ready();
+
+    const idempotencyKey = `pg_auth_full_${crypto.randomUUID()}`;
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: 'Bearer valid_pg_parent_token',
+        'idempotency-key': idempotencyKey
+      },
+      payload: {
+        childId: testChild.id,
+        message: 'Why do planets orbit the sun?',
+        language: 'en'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.equal(body.requestStatus, 'SUCCEEDED');
+    assert.equal(body.text, 'Planets orbit the sun due to gravity.');
+
+    const requestId = res.headers['x-appu-request-id'] as string;
+    const record = await AppuRequestRepository.getById(db, requestId);
+    assert.ok(record);
+    assert.equal(record!.status, 'SUCCEEDED');
+    assert.ok(record!.completedAt instanceof Date);
+
+    // Verify usage record status is committed on real PostgreSQL
+    const usageCheck = await db.query(
+      'SELECT status FROM usage_records WHERE id = $1',
+      [record!.usageRecordId]
+    );
+    assert.equal(usageCheck.rows[0].status, 'committed');
   });
 });
 

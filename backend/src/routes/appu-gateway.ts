@@ -244,6 +244,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       // them on timeout/unknown error responses as well as successful responses.
       reply.header('idempotency-key', idempotencyKey);
       reply.header('x-appu-request-id', lifecycle.id);
+      (request as any).appuRequestId = lifecycle.id;
 
       // 5. Build fresh, safe, server-owned MentorContext from authoritative storage
       const mentorContext = await MentorContextBuilder.buildMentorContext(
@@ -415,6 +416,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     // Keep retry identifiers visible even when the transport outcome is UNKNOWN.
     reply.header('idempotency-key', idempotencyKey);
     reply.header('x-appu-request-id', initiation.request.id);
+    (request as any).appuRequestId = initiation.request.id;
 
     // 4. Construct safe server-generated guest envelope for n8n
     const mentorContext: GuestMentorContext = {

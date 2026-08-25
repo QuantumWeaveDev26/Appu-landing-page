@@ -229,7 +229,11 @@ export class AppuRequestService {
           failureCode: input.failureCode
         }
       );
-      if (!transitioned) throw new Error('Failed to transition APPU request');
+      if (!transitioned) {
+        throw new Error(
+          `Failed to transition APPU request ${request.id} from ${request.status} to ${input.outcome}`
+        );
+      }
       return { request: transitioned, idempotent: false };
     });
   }

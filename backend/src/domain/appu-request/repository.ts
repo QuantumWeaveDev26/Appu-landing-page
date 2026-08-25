@@ -1,5 +1,5 @@
 import type { Queryable } from '../../db/types.js';
-import type { AppuRequestRecord, AppuRequestState } from './types.js';
+import { AppuRequestStates, type AppuRequestRecord, type AppuRequestState } from './types.js';
 
 interface AppuRequestRow {
   id: string;
@@ -139,27 +139,30 @@ export class AppuRequestRepository {
       failureCode?: string | null;
     }
   ): Promise<AppuRequestRecord | null> {
+    const isTerminal =
+      toState === AppuRequestStates.SUCCEEDED || toState === AppuRequestStates.DEFINITE_FAILURE;
+    const completedAtDate = metadata?.completedAt
+      ? new Date(metadata.completedAt)
+      : (isTerminal ? new Date() : null);
+
     const result = await db.query<AppuRequestRow>(
       `UPDATE appu_requests
        SET status = $2,
            downstream_execution_id = COALESCE($3, downstream_execution_id),
            failure_code = COALESCE($4, failure_code),
-           completed_at = CASE
-             WHEN $2 IN ('SUCCEEDED', 'DEFINITE_FAILURE') THEN COALESCE($5::timestamptz, NOW())
-             ELSE completed_at
-           END,
+           completed_at = COALESCE($5, completed_at),
            updated_at = NOW()
-       WHERE id = $1 AND status = ANY($6::text[])
+       WHERE id = $1 AND status = ANY($6)
        RETURNING *`,
       [
         requestId,
         toState,
         metadata?.downstreamExecutionId ?? null,
         metadata?.failureCode ?? null,
-        metadata?.completedAt ?? null,
+        completedAtDate,
         fromStates
       ]
     );
-    return result.rows[0] ? mapRow(result.rows[0]) : this.getById(db, requestId);
+    return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 }

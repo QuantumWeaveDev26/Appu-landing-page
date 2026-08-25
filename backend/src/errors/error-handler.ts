@@ -42,7 +42,24 @@ export function fastifyErrorHandler(
   }
 
   // Unhandled / unexpected errors
-  request.log.error({ err: error }, 'Unhandled server error');
+  const reqId = request.id || (request.headers['x-request-id'] as string) || 'unknown';
+  const appuRequestId =
+    (request.headers['x-appu-request-id'] as string) ||
+    (request as any).appuRequestId ||
+    undefined;
+
+  // Safe structured log to stderr for immediate operational visibility without secret leakage
+  console.error('[APPU Backend Unhandled Error]', {
+    requestId: reqId,
+    ...(appuRequestId ? { appuRequestId } : {}),
+    method: request.method,
+    url: request.url,
+    errorName: error.name || 'Error',
+    errorMessage: error.message || 'Unknown error',
+    stack: error.stack
+  });
+
+  request.log.error({ err: error, reqId, appuRequestId }, 'Unhandled server error');
 
   return reply.status(500).send({
     error: {

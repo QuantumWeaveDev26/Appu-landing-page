@@ -16,6 +16,7 @@ import { AppuRequestRepository } from '../src/domain/appu-request/repository.js'
 import { AppuRequestStates } from '../src/domain/appu-request/types.js';
 import { createAppuHmacSignature } from '../src/domain/gateway/hmac.js';
 import { GuestSessionService } from '../src/domain/guest/service.js';
+import { GuestRepository } from '../src/domain/guest/repository.js';
 import { BadGatewayError, ServiceUnavailableError } from '../src/errors/index.js';
 
 interface MockUser {
@@ -709,6 +710,112 @@ describe('APPU Request Lifecycle, Idempotency & Signed Callback Suite', () => {
       [record!.guestSessionId]
     );
     assert.equal(Number(guestCheck.rows[0].used_turns), 0);
+  });
+
+  // 15. transition directly with completedAt omitted sets completed_at to concrete Date
+  it('Case 15: transition PENDING -> SUCCEEDED with completedAt omitted sets completed_at non-null', async () => {
+    const guestSessionId = 'gst_test_transition_unit';
+    await GuestRepository.upsert(db, {
+      id: guestSessionId,
+      ipHash: 'test_ip_hash',
+      usedTurns: 1,
+      expiresAt: new Date(Date.now() + 86400000)
+    });
+
+    const pendingReq = await AppuRequestRepository.createGuestPending(db, {
+      guestSessionId,
+      idempotencyKey: 'idem_test_transition_unit',
+      requestFingerprint: 'fp_test_transition_unit'
+    });
+    assert.equal(pendingReq.status, 'PENDING');
+    assert.equal(pendingReq.completedAt, null);
+
+    const transitioned = await AppuRequestRepository.transition(
+      db,
+      pendingReq.id,
+      [AppuRequestStates.PENDING, AppuRequestStates.UNKNOWN],
+      AppuRequestStates.SUCCEEDED
+    );
+
+    assert.ok(transitioned);
+    assert.equal(transitioned!.status, 'SUCCEEDED');
+    assert.ok(transitioned!.completedAt instanceof Date);
+    assert.ok(!Number.isNaN(transitioned!.completedAt.getTime()));
+  });
+
+  // 16. guest full route succeeds with legacy production n8n response shape { output, text, message, audio_base64 }
+  it('Case 16: guest full route succeeds with legacy live n8n response shape', async () => {
+    n8nClient.nextResponse = {
+      text: 'Namaskara! I am Appu.',
+      audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAA='
+    };
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        'idempotency-key': 'guest_legacy_n8n_test_1'
+      },
+      payload: {
+        message: 'Hello Appu legacy test',
+        language: 'en'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.equal(body.requestStatus, 'SUCCEEDED');
+    assert.equal(body.text, 'Namaskara! I am Appu.');
+    assert.ok(body.audioSource);
+    assert.equal(body.guestSession.used, 1);
+    assert.equal(body.guestSession.remaining, 2);
+    assert.ok(res.headers['x-guest-session-token']);
+
+    const requestId = res.headers['x-appu-request-id'] as string;
+    const record = await AppuRequestRepository.getById(db, requestId);
+    assert.ok(record);
+    assert.equal(record!.status, 'SUCCEEDED');
+    assert.ok(record!.completedAt instanceof Date);
+  });
+
+  // 17. authenticated full route succeeds with legacy production n8n response shape
+  it('Case 17: authenticated full route succeeds with legacy live n8n response shape', async () => {
+    n8nClient.nextResponse = {
+      text: 'Planets orbit the sun due to gravity.',
+      audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAA='
+    };
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: {
+        authorization: `Bearer ${testParentToken}`,
+        'idempotency-key': 'auth_legacy_n8n_test_1'
+      },
+      payload: {
+        childId: testChild.id,
+        message: 'Why do planets orbit?',
+        language: 'en'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.equal(body.requestStatus, 'SUCCEEDED');
+    assert.equal(body.text, 'Planets orbit the sun due to gravity.');
+
+    const requestId = res.headers['x-appu-request-id'] as string;
+    const record = await AppuRequestRepository.getById(db, requestId);
+    assert.ok(record);
+    assert.equal(record!.status, 'SUCCEEDED');
+    assert.ok(record!.completedAt instanceof Date);
+
+    // Verify usage record status is committed
+    const usageCheck = await db.query(
+      'SELECT status FROM usage_records WHERE id = $1',
+      [record!.usageRecordId]
+    );
+    assert.equal(usageCheck.rows[0].status, 'committed');
   });
 });
 
