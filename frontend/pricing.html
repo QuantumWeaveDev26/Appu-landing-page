@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06101f">
+  <meta name="description" content="Transparent, affordable learning plans for APPU AI Companion by IGR Academy. Choose from Free, Evolve, Evolve+, Genesis, and Signature plans.">
+  <title>Pricing Plans — APPU | IGR Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=20260825-1">
+  <style>
+    .billing-toggle-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 28px 0 10px;
+    }
+    .billing-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .billing-toggle-btn.active {
+      background: rgba(34, 211, 238, 0.15);
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(34, 211, 238, 0.25);
+    }
+    .billing-save-pill {
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      color: #86efac;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body class="policy-page">
+  <header class="policy-header" role="banner">
+    <a class="brand" href="index.html" aria-label="IGR Academy Home">
+      <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-sparkles"></i></span>
+      <span class="brand-copy"><strong>IGR <em>Academy</em></strong><small>Learn with Appu</small></span>
+    </a>
+    <div class="policy-header-actions">
+      <a href="index.html" class="policy-back-btn"><i class="fa-solid fa-arrow-left"></i><span>Return to Appu</span></a>
+    </div>
+  </header>
+
+  <main class="policy-container" style="width: min(1140px, calc(100% - 36px));">
+    <article class="policy-card">
+      <div style="text-align: center;">
+        <div class="policy-kicker"><i class="fa-solid fa-tags"></i> Transparent Learning Subscriptions</div>
+        <h1 class="policy-title">Simple, <span>Affordable Plans</span> for Every Learner</h1>
+        <p class="policy-lead" style="max-width: 680px; margin: 0 auto 20px;">
+          Choose the learning tier that best supports your child's academic journey. All paid plans include syllabus coverage, voice tutoring, and parent visibility.
+        </p>
+
+        <!-- Billing Interval Toggle -->
+        <div class="billing-toggle-wrap" role="radiogroup" aria-label="Billing Interval">
+          <button id="toggle-monthly" class="billing-toggle-btn active" type="button" role="radio" aria-checked="true">
+            Monthly Billing
+          </button>
+          <button id="toggle-annual" class="billing-toggle-btn" type="button" role="radio" aria-checked="false">
+            Annual Billing <span class="billing-save-pill">Save ~17%</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Public Pricing Cards Grid -->
+      <div class="public-pricing-grid">
+        <!-- 1. APPU Free -->
+        <div class="public-plan-card">
+          <h2 class="public-plan-name">APPU Free</h2>
+          <p class="public-plan-desc">Basic AI discovery and essential learning concepts for every student.</p>
+          <div class="public-plan-price">
+            <span class="amount">₹0</span>
+            <span class="period">/ forever</span>
+          </div>
+          <div class="public-plan-annual-sub">&nbsp;</div>
+          <ul class="public-plan-features">
+            <li><i class="fa-solid fa-check"></i> 20 monthly AI learning sessions</li>
+            <li><i class="fa-solid fa-check"></i> 5 monthly voice minutes</li>
+            <li><i class="fa-solid fa-check"></i> 1 Learner profile</li>
+            <li><i class="fa-solid fa-check"></i> English and Kannada tutoring</li>
+            <li><i class="fa-solid fa-check"></i> Classes 5 to 12 syllabus guidance</li>
+          </ul>
+          <a href="index.html" class="public-plan-btn secondary">Start Free Discovery</a>
+        </div>
+
+        <!-- 2. APPU Evolve -->
+        <div class="public-plan-card">
+          <h2 class="public-plan-name">APPU Evolve</h2>
+          <p class="public-plan-desc">Persistent learner profile, adaptive learning paths, storytelling, and weekly missions.</p>
+          <div class="public-plan-price">
+            <span id="price-evolve" class="amount">₹499</span>
+            <span id="period-evolve" class="period">/ month</span>
+          </div>
+          <div id="sub-evolve" class="public-plan-annual-sub">Billed monthly</div>
+          <ul class="public-plan-features">
+            <li><i class="fa-solid fa-check"></i> 150 monthly AI learning sessions</li>
+            <li><i class="fa-solid fa-check"></i> 45 monthly voice interaction minutes</li>
+            <li><i class="fa-solid fa-check"></i> Persistent learning memory & history</li>
+            <li><i class="fa-solid fa-check"></i> Adaptive practice & homework step-by-step</li>
+            <li><i class="fa-solid fa-check"></i> Weekly missions & progress tracking</li>
+          </ul>
+          <a href="index.html" class="public-plan-btn primary">Choose Evolve</a>
+        </div>
+
+        <!-- 3. APPU Evolve+ (Featured) -->
+        <div class="public-plan-card featured">
+          <div class="public-plan-badge"><i class="fa-solid fa-star"></i> Recommended</div>
+          <h2 class="public-plan-name">APPU Evolve+</h2>
+          <p class="public-plan-desc">Advanced personalisation, strength identification, gap detection, goal journeys, and parent insights.</p>
+          <div class="public-plan-price">
+            <span id="price-evolve-plus" class="amount">₹999</span>
+            <span id="period-evolve-plus" class="period">/ month</span>
+          </div>
+          <div id="sub-evolve-plus" class="public-plan-annual-sub">Billed monthly</div>
+          <ul class="public-plan-features">
+            <li><i class="fa-solid fa-check"></i> 400 monthly AI learning sessions</li>
+            <li><i class="fa-solid fa-check"></i> 120 monthly voice interaction minutes</li>
+            <li><i class="fa-solid fa-check"></i> Advanced multimodal personalisation</li>
+            <li><i class="fa-solid fa-check"></i> Cognitive strength & gap identification</li>
+            <li><i class="fa-solid fa-check"></i> Goal journeys & parent insight reports</li>
+            <li><i class="fa-solid fa-check"></i> Up to 2 learner profiles per household</li>
+          </ul>
+          <a href="index.html" class="public-plan-btn primary">Choose Evolve+</a>
+        </div>
+
+        <!-- 4. APPU Signature -->
+        <div class="public-plan-card">
+          <h2 class="public-plan-name">APPU Signature</h2>
+          <p class="public-plan-desc">Bespoke institutional learning architecture, custom curricula, and high-touch private cohorts.</p>
+          <div class="public-plan-price">
+            <span class="amount" style="font-size: 26px;">From ₹4,999</span>
+            <span class="period">/ month</span>
+          </div>
+          <div class="public-plan-annual-sub">Annual & Institutional options</div>
+          <ul class="public-plan-features">
+            <li><i class="fa-solid fa-check"></i> High-touch private cohort architecture</li>
+            <li><i class="fa-solid fa-check"></i> Custom institution-aligned curricula</li>
+            <li><i class="fa-solid fa-check"></i> Dedicated academic mentor matching</li>
+            <li><i class="fa-solid fa-check"></i> Unlimited learner profile management</li>
+          </ul>
+          <a href="index.html#discovery" class="public-plan-btn secondary">Apply for Signature</a>
+        </div>
+      </div>
+
+      <!-- Genesis Upsell Banner -->
+      <div class="policy-highlight-box" style="margin-top: 10px;">
+        <h4><i class="fa-solid fa-dna text-cyan"></i> Looking for APPU Genesis?</h4>
+        <p>
+          <strong>APPU Genesis</strong> (₹2,499/mo or ₹24,999/yr) delivers our full multimodal cognitive architecture with bespoke learning DNA, 1,000 monthly AI sessions, 300 voice minutes, and continuous coaching. Available via the Parent Zone dashboard.
+        </p>
+      </div>
+
+      <!-- Detailed Entitlements Comparison Table -->
+      <div class="policy-content" style="margin-top: 40px;">
+        <h2><i class="fa-solid fa-table-list"></i> Feature & Entitlement Comparison</h2>
+        <div class="policy-table-wrap">
+          <table class="policy-table">
+            <thead>
+              <tr>
+                <th>Feature / Entitlement</th>
+                <th>APPU Free</th>
+                <th>APPU Evolve</th>
+                <th>APPU Evolve+</th>
+                <th>APPU Genesis</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Monthly AI Sessions</strong></td>
+                <td>20 sessions</td>
+                <td>150 sessions</td>
+                <td>400 sessions</td>
+                <td>1,000 sessions</td>
+              </tr>
+              <tr>
+                <td><strong>Monthly Voice Minutes</strong></td>
+                <td>5 minutes</td>
+                <td>45 minutes</td>
+                <td>120 minutes</td>
+                <td>300 minutes</td>
+              </tr>
+              <tr>
+                <td><strong>Learner Profiles</strong></td>
+                <td>1 learner</td>
+                <td>1 learner</td>
+                <td>2 learners</td>
+                <td>Up to 4 learners</td>
+              </tr>
+              <tr>
+                <td><strong>Language Support</strong></td>
+                <td>English, Kannada</td>
+                <td>English, Kannada</td>
+                <td>English, Kannada + Regional</td>
+                <td>All Supported Languages</td>
+              </tr>
+              <tr>
+                <td><strong>Personalisation Engine</strong></td>
+                <td>Basic</td>
+                <td>Adaptive Learning</td>
+                <td>Advanced Cognitive DNA</td>
+                <td>Bespoke Cognitive Architecture</td>
+              </tr>
+              <tr>
+                <td><strong>Parent Dashboard & Insights</strong></td>
+                <td>Standard</td>
+                <td>Weekly Progress</td>
+                <td>Detailed Strength & Gap Analysis</td>
+                <td>Continuous Real-Time Coaching</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2><i class="fa-solid fa-circle-question"></i> Frequently Asked Questions</h2>
+        <h3>How do subscription renewals work?</h3>
+        <p>
+          All paid plans renew automatically at the end of each billing month or year via Razorpay. You can cancel renewals at any time from your Parent Zone dashboard with zero penalties.
+        </p>
+
+        <h3>Can I switch between monthly and annual billing?</h3>
+        <p>
+          Yes, you can upgrade, downgrade, or switch billing intervals anytime from the Parent Zone. Changes will take effect in your next billing cycle.
+        </p>
+
+        <h3>What payment methods are supported?</h3>
+        <p>
+          We accept all major payment methods across India via Razorpay, including UPI (Google Pay, PhonePe, Paytm, BHIM), Netbanking across all major Indian banks, and Credit/Debit Cards (Visa, Mastercard, RuPay).
+        </p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="public-footer" role="contentinfo">
+    <div class="public-footer-inner">
+      <div class="public-footer-top">
+        <div class="public-footer-brand">
+          <strong>IGR Academy • APPU</strong>
+          <span>AI Learning Companion for Classes 5–12</span>
+        </div>
+        <nav class="public-footer-nav" aria-label="Legal and policy navigation">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="terms-and-conditions.html">Terms & Conditions</a>
+          <a href="cancellation-refund-policy.html">Cancellation & Refunds</a>
+          <a href="shipping-delivery-policy.html">Shipping & Delivery</a>
+          <a href="pricing.html">Pricing Plans</a>
+          <a href="contact-us.html">Contact Us</a>
+        </nav>
+      </div>
+      <div class="public-footer-bottom">
+        <span>&copy; 2026 IGR Academy. All rights reserved.</span>
+        <span>Secure digital payments powered by Razorpay.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      const btnMonthly = document.getElementById('toggle-monthly');
+      const btnAnnual = document.getElementById('toggle-annual');
+      const priceEvolve = document.getElementById('price-evolve');
+      const periodEvolve = document.getElementById('period-evolve');
+      const subEvolve = document.getElementById('sub-evolve');
+      const priceEvolvePlus = document.getElementById('price-evolve-plus');
+      const periodEvolvePlus = document.getElementById('period-evolve-plus');
+      const subEvolvePlus = document.getElementById('sub-evolve-plus');
+
+      if (!btnMonthly || !btnAnnual) return;
+
+      btnMonthly.addEventListener('click', () => {
+        btnMonthly.classList.add('active');
+        btnMonthly.setAttribute('aria-checked', 'true');
+        btnAnnual.classList.remove('active');
+        btnAnnual.setAttribute('aria-checked', 'false');
+
+        if (priceEvolve) priceEvolve.textContent = '₹499';
+        if (periodEvolve) periodEvolve.textContent = '/ month';
+        if (subEvolve) subEvolve.textContent = 'Billed monthly';
+
+        if (priceEvolvePlus) priceEvolvePlus.textContent = '₹999';
+        if (periodEvolvePlus) periodEvolvePlus.textContent = '/ month';
+        if (subEvolvePlus) subEvolvePlus.textContent = 'Billed monthly';
+      });
+
+      btnAnnual.addEventListener('click', () => {
+        btnAnnual.classList.add('active');
+        btnAnnual.setAttribute('aria-checked', 'true');
+        btnMonthly.classList.remove('active');
+        btnMonthly.setAttribute('aria-checked', 'false');
+
+        if (priceEvolve) priceEvolve.textContent = '₹4,999';
+        if (periodEvolve) periodEvolve.textContent = '/ year';
+        if (subEvolve) subEvolve.textContent = '₹417/mo equivalent • Save ₹989';
+
+        if (priceEvolvePlus) priceEvolvePlus.textContent = '₹9,999';
+        if (periodEvolvePlus) periodEvolvePlus.textContent = '/ year';
+        if (subEvolvePlus) subEvolvePlus.textContent = '₹833/mo equivalent • Save ₹1,989';
+      });
+    })();
+  </script>
+</body>
+</html>
