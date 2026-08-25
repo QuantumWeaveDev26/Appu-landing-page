@@ -1,46 +1,79 @@
 # Appu — AI Learning Companion
 
-An AI-powered learning companion for students in classes 5 to 12.
+An AI-powered learning companion for students in Classes 5 to 12.
+
+* **Production URL**: [https://appuai.online](https://appuai.online)
+* **Backend API**: `https://antiquewhite-elk-758047.hostingersite.com`
+* **Brand / Operating Entity**: IGR Academy (`Learn with Appu`)
+* **Current Cache Release**: `v=20260825-4`
+
+---
+
+## Documentation
+
+* **[Developer Guide & Architecture Reference](docs/DEVELOPER.md)**: Full architecture guide, security invariants, environment setup, database schema, and test suites.
+* **[Project Context & Decisions](docs/PROJECT_CONTEXT.md)**: High-level product principles, tenancy boundaries, and system evolution.
+* **[Current Task & Roadmap](docs/CURRENT_TASK.md)**: Active work log and task status tracking.
+* **[Phase 2 Architecture Specification](docs/PHASE2_ARCHITECTURE.md)**: Deep dive into Supabase Auth, PostgreSQL schema, Razorpay billing, and n8n gateway design.
+
+---
 
 ## Repository Structure
 
 ```text
 Appu-landing-page/
-├── frontend/                 # Canonical frontend static web application (Hostinger public_html)
-│   ├── index.html            # Main application HTML shell
-│   ├── style.css             # Responsive design system & Parent Zone layouts
-│   ├── appu-config.js        # Public production environment configuration
-│   ├── appu-session.js       # In-memory authentication session manager
-│   ├── appu-backend-client.js# Secure gateway HTTP client
-│   ├── parent-onboarding-shell.js # Parent auth & Razorpay checkout orchestration
-│   ├── parent-setup-ui.js    # Parent Zone modal, pricing cards, and usage meters
-│   ├── avatar-stage.js       # Interactive stage & avatar animations
-│   ├── voice-contract.js     # Voice data telemetry schema & normalizers
-│   ├── voice-engine.js       # Audio playback & speech recording engine
-│   ├── chat-agent.js         # Interactive chat drawer and mission handling
-│   ├── app.js                # Main application bootstrap coordinator
-│   └── assets/               # Production images, videos, and stage backgrounds
-├── backend/                  # Fastify Node.js backend (deployed to Hostinger Node hosting)
-├── tests/                    # Frontend and integration test suites
-├── docs/                     # Architecture and product specifications
-└── .gitignore                # Global git ignore configuration
+├── frontend/                     # Canonical frontend static web application (Hostinger public_html)
+│   ├── index.html                # Main application interactive shell & APPU 3D stage
+│   ├── pricing.html              # Public Razorpay-compliant pricing & plan comparison
+│   ├── privacy-policy.html       # Minor learner privacy policy & parent supervision terms
+│   ├── terms-and-conditions.html # SaaS terms of service & parent obligations
+│   ├── cancellation-refund-policy.html # Digital subscription cancellation & refund policy
+│   ├── shipping-delivery-policy.html   # Instant digital SaaS fulfillment statement
+│   ├── contact-us.html           # IGR Academy support contact details
+│   ├── style.css                 # Responsive design system & dark glassmorphic tokens
+│   ├── appu-config.js            # Public production environment configuration
+│   ├── appu-session.js           # In-memory authentication session manager
+│   ├── appu-backend-client.js    # Secure backend gateway HTTP client
+│   ├── parent-onboarding-shell.js# Parent auth & Razorpay checkout orchestration
+│   ├── parent-setup-ui.js        # Parent Zone modal, pricing cards, and usage meters
+│   ├── avatar-stage.js           # Interactive stage & avatar animations
+│   ├── voice-contract.js         # Voice data telemetry schema & normalizers
+│   ├── voice-engine.js           # Audio playback & speech recording engine
+│   ├── chat-agent.js             # Interactive chat drawer and mission handling
+│   ├── app.js                    # Main application bootstrap coordinator
+│   ├── .htaccess                 # Apache rewrite rules for clean URLs & HTTPS enforcement
+│   └── assets/                   # Official IGr logo, 3D avatar cutouts, stage videos
+├── backend/                      # Fastify Node.js backend (deployed to Hostinger Node hosting)
+├── tests/                        # Frontend, DOM structure, and compliance test suites
+├── docs/                         # Architecture guides, developer specs, and runbooks
+└── .gitignore                    # Global git ignore configuration
 ```
+
+---
 
 ## Running Tests
 
 ```bash
-# Frontend Tests
+# 1. Frontend Integration & Legal Compliance Tests (81 tests)
 node --test tests/*.test.js
+
+# 2. Semantic Page Structure & Accessibility Tests (8 tests)
 python tests/page-structure.test.py
+
+# 3. Static Asset Integrity & Secret Scan Audit
 node tests/audit-frontend-bundle.cjs
+
+# 4. Canonical Single-Source Duplication Audit
 node tests/check-no-duplicates.cjs
 
-# Backend Tests
+# 5. Backend Typecheck, Multi-Tenancy & Concurrency Tests (208 tests)
 cd backend
 npm run typecheck
 npm test
 npm run build
 ```
+
+---
 
 ## Frontend Production Deployment Architecture
 

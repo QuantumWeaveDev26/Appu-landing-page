@@ -109,13 +109,58 @@ The backend—not n8n or the browser—is the authority for authentication, owne
 - Keep the existing Phase 1 frontend during the initial backend milestones.
 - Add a Node.js/TypeScript/Fastify backend.
 - Use PostgreSQL, preferably managed through Supabase pending final approval.
+
+## Phase 2 target
+
+```text
+Web UI
+  -> Appu Backend
+  -> authentication
+  -> household/child ownership
+  -> subscription
+  -> entitlement
+  -> security rate limit
+  -> atomic quota reservation
+  -> sanitised child context
+  -> n8n
+  -> Appu AI
+  -> ElevenLabs through n8n when entitled
+  -> usage reconciliation
+  -> response
+```
+
+The backend—not n8n or the browser—is the authority for authentication, ownership, subscription status, entitlements, quota, pricing, and payment activation.
+
+## Recommended provisional technology
+
+- Keep the existing Phase 1 frontend during the initial backend milestones.
+- Add a Node.js/TypeScript/Fastify backend.
+- Use PostgreSQL, preferably managed through Supabase pending final approval.
 - Use managed parent authentication with server verification.
 - Use Razorpay Subscriptions and Standard Checkout in test mode first.
 - Use database-driven plans and typed entitlements.
 - Use an append-only usage ledger plus atomic reservations.
 - Use household tenancy and per-child context isolation.
 
-Hostinger Node.js availability remains unconfirmed. If the account supports Node.js Web Apps, prefer a same-origin deployment. Otherwise keep the static site and host the API on a separate managed runtime/edge-function platform with strict origin and session controls.
+## Current validation baseline
+
+As of 2026-08-25:
+
+- 81 Node.js frontend integration, gateway adapter, guest quota, and Razorpay policy tests pass (`node --test tests/*.test.js`).
+- 8 Python structural & accessibility tests pass (`python tests/page-structure.test.py`).
+- 208 Node.js + TypeScript backend tests pass (`cd backend && npm test`), verifying multi-tenancy, HMAC signing, atomic quota locks, and Razorpay signature verification.
+- Static bundle audit passes with 0 errors (`node tests/audit-frontend-bundle.cjs`).
+- Single canonical source audit passes with 0 duplicates (`node tests/check-no-duplicates.cjs`).
+- Security status: PASS (zero secret exposure, zero high/critical vulnerabilities).
+- Active cache release version: `v=20260825-4`.
+
+## Hosted Environment Status
+
+- **Production Frontend**: `https://appuai.online` (Hostinger `public_html`, auto-deployed from `frontend-production` branch).
+- **Backend API**: `https://antiquewhite-elk-758047.hostingersite.com` (Fastify Node.js runtime).
+- **Database & Auth**: Supabase PostgreSQL with migrations `001_initial_schema.sql` through `004_billing_and_personalisation.sql`.
+- **Public Legal Pages**: Full Razorpay compliance suite live (`pricing.html`, `privacy-policy.html`, `terms-and-conditions.html`, `cancellation-refund-policy.html`, `shipping-delivery-policy.html`, `contact-us.html`).
+- **Official Branding**: Official IGr logo (`frontend/assets/igr-logo.png`) active across header and policy suites.
 
 ## Product principles
 
@@ -130,15 +175,6 @@ Hostinger Node.js availability remains unconfirmed. If the account supports Node
 - Collect the minimum child data required for a useful experience.
 - Legal wording and compliance conclusions require human review.
 - Preserve Phase 1 until each adapter/cutover is tested.
-
-## Current validation baseline
-
-As of 2026-08-20:
-
-- 8 Python structural tests pass.
-- 8 Node voice contract/safety tests pass.
-- Existing browser JavaScript passes syntax checks.
-- The repository working tree was clean before Phase 2 documentation was created.
 
 ## Next action
 
