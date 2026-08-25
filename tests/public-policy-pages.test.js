@@ -130,4 +130,78 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     assert.ok(content.includes('RewriteEngine On'), '.htaccess must enable RewriteEngine');
     assert.ok(content.includes('RewriteRule'), '.htaccess must define RewriteRules');
   });
+
+  test('UTF-8 integrity: zero mojibake corruption across all frontend source files', () => {
+    const files = fs.readdirSync(frontendDir).filter(
+      (f) => f.endsWith('.html') || f.endsWith('.js') || f.endsWith('.css')
+    );
+
+    const mojibakeRegex = /(â€|â€¢|Ã|à²|à³|à¤|à°|à®|ï¿½|\uFFFD)/;
+
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
+      assert.equal(
+        mojibakeRegex.test(content),
+        false,
+        `File ${file} contains corrupted Unicode / mojibake characters`
+      );
+    }
+  });
+
+  test('Static Indian language scripts and symbols survive UTF-8 encoding in index.html', () => {
+    const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
+
+    // Language button in header
+    assert.ok(indexContent.includes('ಕನ್ನಡ'), 'Header language switch must contain ಕನ್ನಡ');
+
+    // Primary language options
+    assert.ok(indexContent.includes('Kannada (ಕನ್ನಡ)'), 'Must contain Kannada (ಕನ್ನಡ)');
+    assert.ok(indexContent.includes('Hindi (हिंदी)'), 'Must contain Hindi (हिंदी)');
+    assert.ok(indexContent.includes('Telugu (తెలుగు)'), 'Must contain Telugu (తెలుగు)');
+    assert.ok(indexContent.includes('Tamil (தமிழ்)'), 'Must contain Tamil (தமிழ்)');
+
+    // Title and bullets
+    assert.ok(indexContent.includes('Appu — Your AI Learning Companion'), 'Title must contain clean em dash');
+    assert.ok(indexContent.includes('Dr. Puneeth Rajkumar • Tribute'), 'Tribute must contain clean bullet');
+    assert.ok(indexContent.includes('Parent Zone • Setup'), 'Kicker must contain clean bullet');
+    assert.ok(indexContent.includes('••••••••'), 'Password placeholder must contain clean dots');
+  });
+
+  test('Dark dropdown system: style.css defines dark color-scheme and glassmorphic select & option styles', () => {
+    const cssContent = fs.readFileSync(path.join(frontendDir, 'style.css'), 'utf8');
+
+    // color-scheme dark
+    assert.ok(cssContent.includes('color-scheme: dark'), 'style.css must specify color-scheme: dark');
+
+    // select styling
+    assert.match(cssContent, /select[^{]*\{[^}]*color-scheme:\s*dark/i, 'select must have color-scheme: dark');
+    assert.match(cssContent, /select\s+option[^{]*\{[^}]*color-scheme:\s*dark/i, 'select option must have color-scheme: dark');
+    assert.match(cssContent, /select\s+option[^{]*\{[^}]*background-color:/i, 'select option must have explicit dark background');
+
+    // Custom SVG arrow
+    assert.ok(cssContent.includes('appearance: none'), 'select must use appearance: none');
+    assert.ok(cssContent.includes('background-image: url'), 'select must have custom SVG chevron');
+  });
+
+  test('Personalization & Grade select option values remain strictly intact', () => {
+    const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
+
+    // Language option values
+    assert.ok(indexContent.includes('value="en"'), 'Language must include value="en"');
+    assert.ok(indexContent.includes('value="kn"'), 'Language must include value="kn"');
+    assert.ok(indexContent.includes('value="hi"'), 'Language must include value="hi"');
+    assert.ok(indexContent.includes('value="te"'), 'Language must include value="te"');
+    assert.ok(indexContent.includes('value="ta"'), 'Language must include value="ta"');
+
+    // Grade options
+    for (let g = 5; g <= 12; g++) {
+      assert.ok(indexContent.includes(`value="Grade ${g}"`), `Grade must include value="Grade ${g}"`);
+    }
+
+    // Learning style options
+    assert.ok(indexContent.includes('value="interactive"'), 'Learning style must include value="interactive"');
+    assert.ok(indexContent.includes('value="visual"'), 'Learning style must include value="visual"');
+    assert.ok(indexContent.includes('value="auditory"'), 'Learning style must include value="auditory"');
+    assert.ok(indexContent.includes('value="reading_writing"'), 'Learning style must include value="reading_writing"');
+  });
 });

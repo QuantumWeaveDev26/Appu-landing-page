@@ -1,16 +1,16 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06101f">
   <meta name="description" content="Meet Appu, IGR Academy's friendly AI learning companion for students in classes 5 to 12.">
-  <title>Appu â€” Your AI Learning Companion</title>
+  <title>Appu — Your AI Learning Companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260825-1">
+  <link rel="stylesheet" href="style.css?v=20260825-2">
 </head>
 <body>
   <div id="loader" class="entrance-loader" role="dialog" aria-modal="true" aria-labelledby="loader-title">
@@ -29,7 +29,7 @@
     </div>
 
     <div class="loader-center-content">
-      <div class="loader-tribute-badge"><i class="fa-solid fa-heart" aria-hidden="true"></i><span>Dr. Puneeth Rajkumar â€¢ Tribute</span></div>
+      <div class="loader-tribute-badge"><i class="fa-solid fa-heart" aria-hidden="true"></i><span>Dr. Puneeth Rajkumar • Tribute</span></div>
       <h2 id="loader-title" class="loader-brand-title">IGR <span>Academy</span></h2>
       <div class="loader-progress-assembly" aria-label="Loading Appu's learning stage">
         <div class="loader-bar-track" aria-hidden="true"><div id="loader-bar" class="loader-bar-fill"></div></div>
@@ -57,7 +57,7 @@
         <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
         <div class="language-switch" aria-label="Choose language">
           <button id="lang-en" class="lang-btn is-active" type="button">ENG</button>
-          <button id="lang-kn" class="lang-btn" type="button" lang="kn">à²•à²¨à³à²¨à²¡</button>
+          <button id="lang-kn" class="lang-btn" type="button" lang="kn">ಕನ್ನಡ</button>
         </div>
         <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Setup</span></button>
         <button id="btn-quick-schedule" class="icon-btn" type="button" aria-label="Schedule support call" title="Schedule Support Call"><i class="fa-solid fa-calendar-check text-cyan" aria-hidden="true"></i></button>
@@ -113,17 +113,17 @@
 
   <footer class="landing-footer-strip" role="contentinfo">
     <span>&copy; 2026 IGR Academy</span>
-    <span class="sep" aria-hidden="true">â€¢</span>
+    <span class="sep" aria-hidden="true">•</span>
     <a href="privacy-policy.html">Privacy Policy</a>
-    <span class="sep" aria-hidden="true">â€¢</span>
+    <span class="sep" aria-hidden="true">•</span>
     <a href="terms-and-conditions.html">Terms & Conditions</a>
-    <span class="sep" aria-hidden="true">â€¢</span>
+    <span class="sep" aria-hidden="true">•</span>
     <a href="cancellation-refund-policy.html">Cancellation & Refunds</a>
-    <span class="sep" aria-hidden="true">â€¢</span>
+    <span class="sep" aria-hidden="true">•</span>
     <a href="shipping-delivery-policy.html">Shipping & Delivery</a>
-    <span class="sep" aria-hidden="true">â€¢</span>
+    <span class="sep" aria-hidden="true">•</span>
     <a href="pricing.html">Pricing</a>
-    <span class="sep" aria-hidden="true">â€¢</span>
+    <span class="sep" aria-hidden="true">•</span>
     <a href="contact-us.html">Contact Us</a>
   </footer>
 
@@ -144,7 +144,7 @@
     </div>
     <form id="chat-form" class="chat-composer">
       <label class="sr-only" for="chat-input">Your question for Appu</label>
-      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homeworkâ€¦">
+      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homework…">
       <button id="btn-chat-mic" class="composer-mic" type="button" aria-label="Ask using your voice"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
       <button class="composer-send" type="submit" aria-label="Send question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
     </form>
@@ -213,7 +213,7 @@
   <section id="parent-setup-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pos-modal-title" aria-hidden="true" tabindex="-1">
     <div class="modal-sheet pos-sheet">
       <button id="btn-close-parent-setup" class="icon-btn modal-close close-btn" type="button" aria-label="Close parent setup"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-      <div class="modal-kicker"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Parent Zone â€¢ Setup</div>
+      <div class="modal-kicker"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Parent Zone • Setup</div>
       <h2 id="pos-modal-title">Personalized Appu Setup</h2>
       <p class="modal-lead">Configure your learner's companion, active learning plan, and personalized preferences.</p>
 
@@ -235,7 +235,7 @@
         </div>
         <form id="pos-auth-form" class="discovery-form">
           <label><span>Parent / Guardian Email</span><input id="pos-auth-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
-          <label><span>Password</span><input id="pos-auth-password" type="password" autocomplete="current-password" required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"></label>
+          <label><span>Password</span><input id="pos-auth-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
           <div id="pos-household-wrap" style="display:none;">
             <label><span>Household / Family Name</span><input id="pos-auth-household" type="text" autocomplete="family-name" placeholder="e.g. Verma Family"></label>
           </div>
@@ -283,10 +283,10 @@
             <label><span>Primary Language</span>
               <select id="pos-pers-lang">
                 <option value="en" selected>English</option>
-                <option value="kn">Kannada (à²•à²¨à³à²¨à²¡)</option>
-                <option value="hi">Hindi (à¤¹à¤¿à¤‚à¤¦à¥€)</option>
-                <option value="te">Telugu (à°¤à±†à°²à±à°—à±)</option>
-                <option value="ta">Tamil (à®¤à®®à®¿à®´à¯)</option>
+                <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                <option value="hi">Hindi (हिंदी)</option>
+                <option value="te">Telugu (తెలుగు)</option>
+                <option value="ta">Tamil (தமிழ்)</option>
               </select>
             </label>
             <label><span>Learning Style</span>
@@ -351,16 +351,16 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260825-1"></script>
-  <script src="appu-config.js?v=20260825-1"></script>
-  <script src="appu-session.js?v=20260825-1"></script>
-  <script src="appu-backend-client.js?v=20260825-1"></script>
-  <script src="parent-onboarding-shell.js?v=20260825-1"></script>
-  <script src="parent-setup-ui.js?v=20260825-1"></script>
-  <script src="avatar-stage.js?v=20260825-1"></script>
-  <script src="voice-engine.js?v=20260825-1"></script>
-  <script src="chat-agent.js?v=20260825-1"></script>
-  <script src="app.js?v=20260825-1"></script>
+  <script src="voice-contract.js?v=20260825-2"></script>
+  <script src="appu-config.js?v=20260825-2"></script>
+  <script src="appu-session.js?v=20260825-2"></script>
+  <script src="appu-backend-client.js?v=20260825-2"></script>
+  <script src="parent-onboarding-shell.js?v=20260825-2"></script>
+  <script src="parent-setup-ui.js?v=20260825-2"></script>
+  <script src="avatar-stage.js?v=20260825-2"></script>
+  <script src="voice-engine.js?v=20260825-2"></script>
+  <script src="chat-agent.js?v=20260825-2"></script>
+  <script src="app.js?v=20260825-2"></script>
 </body>
 </html>
 
