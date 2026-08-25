@@ -544,7 +544,7 @@
               if (isHidden && compareContainer.children.length === 0) {
                 renderPricingSection(compareContainer, {
                   currentPlanCode: vm.planCode,
-                  defaultInterval: vm.planCode?.includes('monthly') ? 'monthly' : 'yearly',
+                  defaultInterval: (vm.planCode?.includes('annual') || vm.planCode?.includes('yearly')) ? 'yearly' : 'monthly',
                   onPlanActivated: renderPlansStep
                 });
               }
@@ -588,14 +588,14 @@
               btnAct.style.display = 'none';
               renderPricingSection(gridContainer, {
                 currentPlanCode: null,
-                defaultInterval: 'yearly',
+                defaultInterval: 'monthly',
                 onPlanActivated: renderChildStep
               });
             });
           }
 
         } else {
-          // NO SUBSCRIPTION: RENDER SELECTION VIEW WITH PROMINENT ANNUAL TOGGLE
+          // NO SUBSCRIPTION: RENDER SELECTION VIEW WITH PROMINENT MONTHLY/ANNUAL TOGGLE
           const gridTitle = document.createElement('p');
           gridTitle.className = 'pos-subtitle';
           gridTitle.textContent = 'Choose an APPU AI Learning Companion Plan:';
@@ -607,7 +607,7 @@
 
           renderPricingSection(pricingContainer, {
             currentPlanCode: null,
-            defaultInterval: 'yearly',
+            defaultInterval: 'monthly',
             onPlanActivated: renderChildStep
           });
         }
@@ -623,26 +623,26 @@
      */
     function renderPricingSection(container, options = {}) {
       const currentPlanCode = options.currentPlanCode || null;
-      let currentInterval = options.defaultInterval || (currentPlanCode?.includes('monthly') ? 'monthly' : 'yearly');
+      let currentInterval = options.defaultInterval || ((currentPlanCode?.includes('annual') || currentPlanCode?.includes('yearly')) ? 'yearly' : 'monthly');
       const onPlanActivated = options.onPlanActivated || renderChildStep;
 
       container.innerHTML = '';
 
-      // 1. Prominent Frequency Toggle
+      // 1. Prominent Frequency Toggle: Monthly -> Annual
       const toggleWrap = document.createElement('div');
       toggleWrap.className = 'pos-billing-toggle-wrap';
       toggleWrap.innerHTML = `
         <div class="pos-billing-toggle" role="radiogroup" aria-label="Billing frequency">
-          <button type="button" class="pos-billing-btn ${currentInterval === 'yearly' ? 'active' : ''}" data-interval="yearly">
-            Annual <span class="pos-billing-save-badge">Save up to 17%</span>
-          </button>
-          <button type="button" class="pos-billing-btn ${currentInterval === 'monthly' ? 'active' : ''}" data-interval="monthly">
+          <button type="button" class="pos-billing-btn ${currentInterval === 'monthly' ? 'active' : ''}" data-interval="monthly" role="radio" aria-checked="${currentInterval === 'monthly'}">
             Monthly
+          </button>
+          <button type="button" class="pos-billing-btn ${currentInterval === 'yearly' ? 'active' : ''}" data-interval="yearly" role="radio" aria-checked="${currentInterval === 'yearly'}">
+            Annual <span class="pos-billing-save-badge">Save up to 17%</span>
           </button>
         </div>
         <div class="pos-billing-caption">
           <i class="fa-solid fa-sparkles text-cyan"></i>
-          <span>Pay annually. Save more. Grow longer. (Recommended)</span>
+          <span>Flexible learning plans. Save up to 17% with annual billing.</span>
         </div>
       `;
       container.appendChild(toggleWrap);

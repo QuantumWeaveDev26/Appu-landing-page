@@ -139,6 +139,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .icon-btn { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255, 255, 255, .035); cursor: pointer; transition: transform .2s, border-color .2s, background .2s; }
 .icon-btn:hover { transform: translateY(-2px); border-color: rgba(88, 233, 255, .5); background: rgba(34, 211, 238, .09); }
 .parent-zone-btn { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px; border: 1px solid rgba(251, 191, 36, .35); border-radius: 14px; color: #ffd55c; background: rgba(120, 75, 6, .18); font-size: 13px; font-weight: 800; cursor: pointer; }
+.parent-session-badge { display: none; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px 0 14px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, .35); background: rgba(8, 30, 54, .7); color: var(--cyan-bright); font: 700 12px/1.2 Space Grotesk, sans-serif; letter-spacing: .02em; white-space: nowrap; backdrop-filter: blur(12px); box-shadow: 0 4px 16px rgba(0, 0, 0, .2); }
+.parent-session-badge strong { color: #fff; font-weight: 800; }
+.badge-logout-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 4px; padding: 0; border: 1px solid rgba(255, 255, 255, .15); border-radius: 50%; background: rgba(255, 255, 255, .08); color: var(--muted); font-size: 11px; cursor: pointer; transition: transform .2s, background .2s, color .2s, border-color .2s; }
+.badge-logout-btn:hover { background: rgba(239, 68, 68, .25); border-color: rgba(239, 68, 68, .6); color: #fca5a5; transform: scale(1.1); }
 
 .mission-stage {
   position: relative;
@@ -250,7 +254,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .brand-copy small { display: none; }
   .status-pill { display: none; }
   .topbar-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-  .parent-session-badge { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; padding: 3px 6px; }
+  .parent-session-badge { max-width: 140px; font-size: 10.5px; padding: 0 6px 0 8px; min-height: 34px; gap: 4px; }
+  .parent-session-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge-logout-btn { width: 22px; height: 22px; font-size: 10px; margin-left: 2px; flex-shrink: 0; }
   .language-switch { padding: 2px; gap: 2px; }
   .lang-btn { min-height: 34px; padding: 0 7px; font-size: 10px; }
   .parent-zone-btn { width: 38px; height: 38px; min-height: 38px; padding: 0; justify-content: center; border-radius: 11px; }

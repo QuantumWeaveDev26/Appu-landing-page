@@ -1226,4 +1226,78 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
       : null;
     assert.equal(stored, null);
   });
+
+  // ============================================================================
+  // 9. AUTHENTICATED HEADER & TOPBAR SESSION STATE INVARIANTS
+  // ============================================================================
+
+  test('authenticated header immediately displays identity and logout after login without plan selection', async () => {
+    const mockBadge = { style: { display: 'none' }, innerHTML: '', querySelector: () => null };
+    const mockParentBtn = { innerHTML: '' };
+    const mockStatusLabel = { textContent: '' };
+
+    global.document = {
+      getElementById(id) {
+        if (id === 'parent-session-badge') return mockBadge;
+        if (id === 'btn-parent-setup') return mockParentBtn;
+        if (id === 'status-label') return mockStatusLabel;
+        return null;
+      }
+    };
+
+    // 1. Unauthenticated state
+    ParentOnboardingShell.state.session = null;
+    ParentOnboardingShell.state.authStatus = 'UNAUTHENTICATED';
+    ParentOnboardingShell.updateHeaderSessionBadge();
+
+    assert.equal(mockBadge.style.display, 'none');
+    assert.equal(mockParentBtn.innerHTML.includes('Parent Setup'), true);
+    assert.equal(mockStatusLabel.textContent, 'Appu is ready');
+
+    // 2. Parent logs in (PARENT_AUTHENTICATED without learner/plan selected yet)
+    ParentOnboardingShell.state.session = { access_token: 'valid-token', user: { email: 'naveen@example.com' } };
+    ParentOnboardingShell.state.household = { name: 'Reddy Household' };
+    ParentOnboardingShell.state.authStatus = 'PARENT_AUTHENTICATED';
+    ParentOnboardingShell.updateHeaderSessionBadge();
+
+    assert.equal(mockBadge.style.display, 'inline-flex');
+    assert.equal(mockBadge.innerHTML.includes('Reddy Household'), true, 'Must show authenticated household/user name');
+    assert.equal(mockBadge.innerHTML.includes('btn-session-logout'), true, 'Must show logout button immediately');
+    assert.equal(mockParentBtn.innerHTML.includes('Parent Zone'), true);
+
+    // 3. Learner selected / active session (READY)
+    ParentOnboardingShell.state.selectedChild = { id: 'c-101', preferredName: 'Aarav' };
+    ParentOnboardingShell.state.authStatus = 'READY';
+    AppuSession.setSession({ accessToken: 'valid-token', childId: 'c-101', parentContext: { childName: 'Aarav' } });
+    ParentOnboardingShell.updateHeaderSessionBadge();
+
+    assert.equal(mockBadge.style.display, 'inline-flex');
+    assert.equal(mockBadge.innerHTML.includes('Learning: <strong>Aarav</strong>'), true, 'Must show learner name');
+    assert.equal(mockBadge.innerHTML.includes('btn-session-logout'), true, 'Must show logout button with active learner');
+    assert.equal(mockStatusLabel.textContent, 'Appu ready for Aarav');
+
+    // 4. Sign out clears everything and resets header
+    let supabaseSignOutCalled = false;
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async signOut() {
+            supabaseSignOutCalled = true;
+          }
+        }
+      })
+    };
+
+    await ParentOnboardingShell.signOut();
+
+    assert.equal(ParentOnboardingShell.state.session, null);
+    assert.equal(ParentOnboardingShell.state.authStatus, 'UNAUTHENTICATED');
+    assert.equal(AppuSession.isAuthenticated(), false);
+    assert.equal(mockBadge.style.display, 'none');
+    assert.equal(mockBadge.innerHTML, '');
+    assert.equal(mockParentBtn.innerHTML.includes('Parent Setup'), true);
+    assert.equal(mockStatusLabel.textContent, 'Appu is ready');
+    assert.equal(supabaseSignOutCalled, true);
+  });
 });

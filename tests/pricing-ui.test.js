@@ -268,23 +268,41 @@ describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
 
     // 1. Free plan active
     let activePlanCode = 'free';
-    let currentInterval = 'yearly';
     let freeMatched = grouped.find((t) => t.tierCode === 'free');
     assert.equal(activePlanCode === 'free' || activePlanCode === freeMatched?.monthly?.code, true);
 
     // 2. Evolve Annual active -> initializes comparison to Annual
     activePlanCode = 'evolve_annual';
-    currentInterval = activePlanCode.includes('monthly') ? 'monthly' : 'yearly';
+    let currentInterval = (activePlanCode.includes('annual') || activePlanCode.includes('yearly')) ? 'yearly' : 'monthly';
     assert.equal(currentInterval, 'yearly', 'Annual active plan initializes comparison toggle to Annual');
 
     // 3. Evolve Monthly active -> initializes comparison to Monthly
     activePlanCode = 'evolve_monthly';
-    currentInterval = activePlanCode.includes('monthly') ? 'monthly' : 'yearly';
+    currentInterval = (activePlanCode.includes('annual') || activePlanCode.includes('yearly')) ? 'yearly' : 'monthly';
     assert.equal(currentInterval, 'monthly', 'Monthly active plan initializes comparison toggle to Monthly');
 
-    // 4. Default for new subscription selection is Annual
-    let newSelectionInterval = 'yearly';
-    assert.equal(newSelectionInterval, 'yearly', 'New selection must default to Annual');
+    // 4. Default for new subscription selection is Monthly
+    let newSelectionInterval = 'monthly';
+    assert.equal(newSelectionInterval, 'monthly', 'New selection must default to Monthly');
+  });
+
+  test('Billing selector DOM order: Monthly appears before Annual in parent-setup-ui.js and pricing.html', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const uiCode = fs.readFileSync(path.resolve(__dirname, '../frontend/parent-setup-ui.js'), 'utf-8');
+    const pricingHtml = fs.readFileSync(path.resolve(__dirname, '../frontend/pricing.html'), 'utf-8');
+
+    // 1. parent-setup-ui.js DOM order: data-interval="monthly" button precedes data-interval="yearly"
+    const monthlyPos = uiCode.indexOf('data-interval="monthly"');
+    const yearlyPos = uiCode.indexOf('data-interval="yearly"');
+    assert.ok(monthlyPos > 0 && yearlyPos > 0, 'Both monthly and yearly toggle buttons must exist in parent-setup-ui.js');
+    assert.ok(monthlyPos < yearlyPos, 'Monthly toggle button must precede Annual toggle button in DOM order in parent-setup-ui.js');
+
+    // 2. pricing.html DOM order: #toggle-monthly precedes #toggle-annual
+    const htmlMonthlyPos = pricingHtml.indexOf('id="toggle-monthly"');
+    const htmlAnnualPos = pricingHtml.indexOf('id="toggle-annual"');
+    assert.ok(htmlMonthlyPos > 0 && htmlAnnualPos > 0, 'Both monthly and annual toggle buttons must exist in pricing.html');
+    assert.ok(htmlMonthlyPos < htmlAnnualPos, 'Monthly toggle button must precede Annual toggle button in DOM order in pricing.html');
   });
 
   test('CSS rules: Desktop modal is widened to min(1180px, calc(100vw - 48px)) and has 4-column responsive grid', () => {

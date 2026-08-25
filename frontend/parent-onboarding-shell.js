@@ -927,6 +927,15 @@
     return Boolean(state.session?.access_token && state.authStatus !== 'UNAUTHENTICATED');
   }
 
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   /**
    * Updates UI header badge reflecting active authenticated session.
    */
@@ -944,6 +953,17 @@
       typeof window.AppuSession.isAuthenticated === 'function' &&
       window.AppuSession.isAuthenticated();
 
+    function wireLogout(el) {
+      if (!el) return;
+      const btn = el.querySelector('#btn-session-logout');
+      if (btn) {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          signOut();
+        };
+      }
+    }
+
     if (isChecking) {
       if (badge) {
         badge.style.display = 'inline-flex';
@@ -957,17 +977,11 @@
 
     if (isAuthed) {
       const pContext = window.AppuSession.parentContext || {};
-      const childName = pContext.childName || 'Learner';
+      const childName = state.selectedChild?.preferredName || state.selectedChild?.name || pContext.childName || 'Learner';
       if (badge) {
         badge.style.display = 'inline-flex';
-        badge.innerHTML = `<i class="fa-solid fa-graduation-cap text-cyan"></i><span>Learning: <strong>${childName}</strong></span><button id="btn-session-logout" class="badge-logout-btn" title="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>`;
-        const btnLogout = document.getElementById('btn-session-logout');
-        if (btnLogout) {
-          btnLogout.onclick = (e) => {
-            e.stopPropagation();
-            signOut();
-          };
-        }
+        badge.innerHTML = `<i class="fa-solid fa-graduation-cap text-cyan"></i><span>Learning: <strong>${escapeHtml(childName)}</strong></span><button id="btn-session-logout" class="badge-logout-btn" title="Sign out" aria-label="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>`;
+        wireLogout(badge);
       }
       if (parentSetupBtn) {
         parentSetupBtn.innerHTML = `<i class="fa-solid fa-sliders"></i><span>Parent Zone</span>`;
@@ -975,17 +989,12 @@
       if (statusLabel) {
         statusLabel.textContent = `Appu ready for ${childName}`;
       }
-    } else if (state.session && state.authStatus === 'CHILD_SELECTION_REQUIRED') {
+    } else if (state.session && (state.authStatus === 'CHILD_SELECTION_REQUIRED' || (state.children && state.children.length > 1))) {
+      const displayName = state.household?.name || (state.session.user?.email ? state.session.user.email.split('@')[0] : 'Parent');
       if (badge) {
         badge.style.display = 'inline-flex';
-        badge.innerHTML = `<i class="fa-solid fa-users text-cyan"></i><span>Select Learner</span><button id="btn-session-logout" class="badge-logout-btn" title="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>`;
-        const btnLogout = document.getElementById('btn-session-logout');
-        if (btnLogout) {
-          btnLogout.onclick = (e) => {
-            e.stopPropagation();
-            signOut();
-          };
-        }
+        badge.innerHTML = `<i class="fa-solid fa-users text-cyan"></i><span>${escapeHtml(displayName)} • <strong>Select Learner</strong></span><button id="btn-session-logout" class="badge-logout-btn" title="Sign out" aria-label="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>`;
+        wireLogout(badge);
       }
       if (parentSetupBtn) {
         parentSetupBtn.innerHTML = `<i class="fa-solid fa-sliders"></i><span>Parent Zone</span>`;
@@ -993,10 +1002,13 @@
       if (statusLabel) {
         statusLabel.textContent = 'Please select a learner';
       }
-    } else if (state.session && state.authStatus === 'PARENT_AUTHENTICATED') {
+    } else if (state.session && state.authStatus !== 'UNAUTHENTICATED') {
+      // Authenticated parent immediately after login or without active learner
+      const displayName = state.household?.name || (state.session.user?.email ? state.session.user.email.split('@')[0] : 'Parent');
       if (badge) {
-        badge.style.display = 'none';
-        badge.innerHTML = '';
+        badge.style.display = 'inline-flex';
+        badge.innerHTML = `<i class="fa-solid fa-user-check text-cyan"></i><span>Signed in: <strong>${escapeHtml(displayName)}</strong></span><button id="btn-session-logout" class="badge-logout-btn" title="Sign out" aria-label="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>`;
+        wireLogout(badge);
       }
       if (parentSetupBtn) {
         parentSetupBtn.innerHTML = `<i class="fa-solid fa-sliders"></i><span>Parent Zone</span>`;
