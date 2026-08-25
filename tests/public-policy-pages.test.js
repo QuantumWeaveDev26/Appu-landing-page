@@ -204,4 +204,58 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     assert.ok(indexContent.includes('value="auditory"'), 'Learning style must include value="auditory"');
     assert.ok(indexContent.includes('value="reading_writing"'), 'Learning style must include value="reading_writing"');
   });
+
+  test('Official IGr logo asset exists, is referenced with alt text, and replaces placeholder icons', () => {
+    const logoPng = path.join(frontendDir, 'assets/igr-logo.png');
+    assert.ok(fs.existsSync(logoPng), 'Official logo asset assets/igr-logo.png must exist');
+
+    const htmlFiles = [
+      'index.html',
+      'pricing.html',
+      'privacy-policy.html',
+      'terms-and-conditions.html',
+      'cancellation-refund-policy.html',
+      'shipping-delivery-policy.html',
+      'contact-us.html'
+    ];
+
+    for (const file of htmlFiles) {
+      const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
+      assert.ok(content.includes('assets/igr-logo.png'), `${file} must reference assets/igr-logo.png`);
+      assert.ok(content.includes('alt="IGr Academy"'), `${file} must specify alt="IGr Academy"`);
+      assert.ok(!content.includes('<span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-sparkles"></i></span>'), `${file} must NOT use placeholder sparkles inside brand-mark`);
+    }
+  });
+
+  test('Clean release version v=20260825-4 applied across all frontend assets', () => {
+    const htmlFiles = [
+      'index.html',
+      'pricing.html',
+      'privacy-policy.html',
+      'terms-and-conditions.html',
+      'cancellation-refund-policy.html',
+      'shipping-delivery-policy.html',
+      'contact-us.html'
+    ];
+
+    for (const file of htmlFiles) {
+      const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
+      assert.ok(content.includes('?v=20260825-4'), `${file} must reference assets with ?v=20260825-4`);
+      assert.ok(!content.includes('?v=20260825-3'), `${file} must NOT contain stale ?v=20260825-3`);
+      assert.ok(!content.includes('?v=20260825-2'), `${file} must NOT contain stale ?v=20260825-2`);
+    }
+  });
+
+  test('Mobile hero rules enlarge APPU avatar and optimize layout on small viewports', () => {
+    const cssContent = fs.readFileSync(path.join(frontendDir, 'style.css'), 'utf8');
+
+    // Mobile avatar enlargement
+    assert.match(cssContent, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.avatar-interactive-figure[^{]*\{[^}]*transform:\s*scale\(/i, 'Mobile rules must scale avatar figure');
+    assert.match(cssContent, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.avatar-interactive-figure[^{]*\{[^}]*transform-origin:\s*center bottom/i, 'Mobile rules must ground avatar at center bottom');
+
+    // Clean star symbol in eyebrow
+    const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
+    assert.ok(indexContent.includes('✦</span> Your learning mission starts here'), 'index.html eyebrow must contain clean ✦ star');
+    assert.ok(!indexContent.includes('âœ¦'), 'index.html must not contain mojibake star');
+  });
 });

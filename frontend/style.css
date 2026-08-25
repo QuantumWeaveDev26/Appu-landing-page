@@ -121,8 +121,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .brand { display: flex; align-items: center; gap: 11px; width: max-content; color: inherit; text-decoration: none; }
 .brand-mark {
-  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px;
-  color: #00111a; background: linear-gradient(145deg, #61f1ff, #08afd4); box-shadow: 0 8px 28px rgba(34, 211, 238, .25);
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%; overflow: hidden;
+  background: #ffffff; box-shadow: 0 4px 16px rgba(34, 211, 238, .22);
+  flex-shrink: 0;
+}
+.brand-logo-img {
+  width: 100%; height: 100%; object-fit: contain; border-radius: 50%; display: block;
 }
 .brand-copy { display: grid; gap: 2px; }
 .brand-copy strong { font: 700 18px/1 Space Grotesk, sans-serif; letter-spacing: -.03em; }
@@ -257,7 +262,7 @@ select option:checked, .discovery-form select option:checked {
 @media (min-width: 1001px) {
   .app-shell { grid-template-rows: 68px minmax(0, 1fr) 122px; gap: 10px; padding-top: 10px; padding-bottom: 8px; }
   .topbar { padding-block: 7px; border-radius: 19px; }
-  .brand-mark { width: 42px; height: 42px; border-radius: 13px; }
+  .brand-mark { width: 44px; height: 44px; border-radius: 50%; }
   .mission-intro { top: 16px; }
   .mission-intro h1 { font-size: clamp(30px, 2.55vw, 42px); }
   .mission-intro > p:last-child { margin-top: 6px; font-size: 12px; }
@@ -279,6 +284,7 @@ select option:checked, .discovery-form select option:checked {
 @media (max-width: 1000px) {
   .app-shell { grid-template-rows: 70px minmax(0, 1fr) 126px; padding: 10px 12px 12px; gap: 9px; }
   .brand-copy small, .status-pill { display: none; }
+  .brand-mark { width: 40px; height: 40px; border-radius: 50%; }
   .topbar { grid-template-columns: 1fr auto; }.topbar-actions { grid-column: 2; }
   .mission-intro { top: 18px; width: 90%; }.mission-intro h1 { font-size: clamp(28px, 5vw, 39px); }
   .avatar-stage { bottom: 1%; width: min(390px, 46vw); height: 72%; }
@@ -295,30 +301,54 @@ select option:checked, .discovery-form select option:checked {
   .loader-brand-title { font-size: 34px; }
   .loader-tribute-badge { font-size: 10px; }
   .loader-enter-cta { min-height: 44px; font-size: 12px; }
-  .app-shell { grid-template-rows: 58px minmax(0, 1fr) 116px; padding: 6px; gap: 6px; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 16px; gap: 6px; }
+  .app-shell { grid-template-rows: 52px minmax(0, 1fr) 106px; padding: 5px; gap: 5px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-radius: 14px; gap: 4px; }
   .brand { gap: 6px; flex-shrink: 0; }
-  .brand-mark { width: 36px; height: 36px; border-radius: 10px; font-size: 14px; }
-  .brand-copy strong { font-size: 13.5px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 50%; }
+  .brand-copy strong { font-size: 13px; }
   .brand-copy small { display: none; }
   .status-pill { display: none; }
-  .topbar-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-  .parent-session-badge { max-width: 140px; font-size: 10.5px; padding: 0 6px 0 8px; min-height: 34px; gap: 4px; }
+  .topbar-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .parent-session-badge { max-width: 130px; font-size: 10px; padding: 0 6px 0 8px; min-height: 32px; gap: 4px; }
   .parent-session-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .badge-logout-btn { width: 22px; height: 22px; font-size: 10px; margin-left: 2px; flex-shrink: 0; }
+  .badge-logout-btn { width: 20px; height: 20px; font-size: 9.5px; margin-left: 2px; flex-shrink: 0; }
   .language-switch { padding: 2px; gap: 2px; }
-  .lang-btn { min-height: 34px; padding: 0 7px; font-size: 10px; }
-  .parent-zone-btn { width: 38px; height: 38px; min-height: 38px; padding: 0; justify-content: center; border-radius: 11px; }
+  .lang-btn { min-height: 32px; padding: 0 6px; font-size: 10px; }
+  .parent-zone-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; border-radius: 10px; }
   .parent-zone-btn span { display: none; }
-  .icon-btn { width: 38px; height: 38px; border-radius: 11px; }
+  .icon-btn { width: 34px; height: 34px; border-radius: 10px; }
   #btn-sound-toggle { display: none; }
   #btn-quick-schedule { display: none; }
-  .mission-stage { border-radius: 18px; }.mission-intro { top: 13px; }.mission-intro .eyebrow { font-size: 8px; margin-bottom: 5px; }.mission-intro h1 { font-size: clamp(25px, 8vw, 32px); }.mission-intro > p:last-child { margin-top: 6px; font-size: 10px; }
-  .avatar-stage { bottom: 14%; width: min(300px, 77vw); height: 65%; }.appu-nameplate { bottom: 13%; padding: 6px 10px; }.appu-nameplate small { display: none; }
-  .mission-deck { bottom: 7px; gap: 7px; padding: 0 7px; }.mission-card { min-height: 55px; grid-template-columns: 35px 1fr; gap: 8px; padding: 6px 8px; border-radius: 13px; }.mission-icon { width: 35px; height: 35px; border-radius: 10px; font-size: 14px; }.mission-copy strong { font-size: 10.5px; line-height: 1.15; }.mission-copy small, .mission-arrow { display: none; }
-  .response-dock { position: relative; display: block; width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }.response-card { height: 100%; padding: 11px 12px 47px; border: 1px solid rgba(44, 211, 239, .26); border-radius: 16px; background: linear-gradient(110deg, rgba(5, 17, 34, .93), rgba(8, 18, 36, .78)); box-shadow: 0 18px 44px rgba(0, 0, 0, .27); }.response-card-head { font-size: 9px; }.response-card p { display: -webkit-box; overflow: hidden; font-size: 11px; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }.control-dock { position: absolute; right: 7px; bottom: 7px; left: 7px; display: flex; justify-content: center; gap: 9px; height: 42px; padding: 0; border: 0; background: transparent; backdrop-filter: none; }.dock-btn { min-height: 38px; padding: 0 12px; font-size: 10px; }.mic-button { width: 48px; height: 48px; font-size: 17px; }.mic-label { display: none; }
-  .modal-overlay { align-items: end; padding: 0; }.modal-sheet { width: 100%; max-height: 91dvh; padding: 24px 17px; border-radius: 23px 23px 0 0; }.field-grid { grid-template-columns: 1fr; gap: 12px; }.modal-sheet h2 { font-size: 25px; }.success-links { flex-direction: column; }
-  .chat-drawer { inset: 7px; width: auto; border-radius: 19px; }.chat-composer { grid-template-columns: 1fr 38px 40px; margin: 0 9px 9px; }
+  .mission-stage { border-radius: 16px; }
+  .mission-intro { top: 6px; width: 92%; }
+  .mission-intro .eyebrow { font-size: 8.5px; margin-bottom: 2px; letter-spacing: .12em; }
+  .mission-intro h1 { font-size: clamp(20px, 5.8vw, 25px); line-height: 1.1; margin: 0; }
+  .mission-intro > p:last-child { margin-top: 2px; font-size: 9.5px; opacity: .85; }
+  .avatar-stage { bottom: 4%; width: min(360px, 86vw); height: 79%; transform: translateX(-50%); }
+  .avatar-interactive-figure { inset: 0 4% 0; transform-origin: center bottom; transform: scale(1.22); }
+  .appu-nameplate { bottom: 16%; padding: 4px 9px; font-size: 10.5px; }
+  .appu-nameplate small { display: none; }
+  .mission-deck { bottom: 5px; gap: 5px; padding: 0 5px; grid-template-columns: 1fr 1fr; }
+  .mission-card { min-height: 46px; grid-template-columns: 30px 1fr; gap: 6px; padding: 4px 7px; border-radius: 11px; }
+  .mission-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 12px; }
+  .mission-copy strong { font-size: 9.5px; line-height: 1.15; }
+  .mission-copy small, .mission-arrow { display: none; }
+  .response-dock { position: relative; display: block; width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+  .response-card { height: 100%; padding: 8px 10px 42px; border: 1px solid rgba(44, 211, 239, .26); border-radius: 14px; background: linear-gradient(110deg, rgba(5, 17, 34, .93), rgba(8, 18, 36, .78)); box-shadow: 0 14px 36px rgba(0, 0, 0, .27); }
+  .response-card-head { font-size: 8.5px; margin-bottom: 2px; }
+  .response-card p { display: -webkit-box; overflow: hidden; font-size: 10.5px; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0; }
+  .control-dock { position: absolute; right: 5px; bottom: 5px; left: 5px; display: flex; justify-content: center; gap: 7px; height: 38px; padding: 0; border: 0; background: transparent; backdrop-filter: none; }
+  .dock-btn { min-height: 34px; padding: 0 10px; font-size: 9.5px; }
+  .mic-button { width: 44px; height: 44px; font-size: 16px; }
+  .mic-label { display: none; }
+  .landing-footer-strip { padding: 8px 10px 10px; gap: 4px 8px; font-size: 10px; }
+  .modal-overlay { align-items: end; padding: 0; }
+  .modal-sheet { width: 100%; max-height: 91dvh; padding: 24px 17px; border-radius: 23px 23px 0 0; }
+  .field-grid { grid-template-columns: 1fr; gap: 12px; }
+  .modal-sheet h2 { font-size: 25px; }
+  .success-links { flex-direction: column; }
+  .chat-drawer { inset: 7px; width: auto; border-radius: 19px; }
+  .chat-composer { grid-template-columns: 1fr 38px 40px; margin: 0 9px 9px; }
   #cursor-dot, #cursor-aura { display: none; }
 }
 

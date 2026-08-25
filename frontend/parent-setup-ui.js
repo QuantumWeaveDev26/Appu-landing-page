@@ -974,8 +974,8 @@
               <div class="pos-child-info">
                 <i class="fa-solid fa-child-reaching text-cyan"></i>
                 <div>
-                  <strong>${c.preferredName}</strong>
-                  <span>${c.gradeBand}</span>
+                  <strong>${escapeHtml(c.preferredName)}</strong>
+                  <span>${escapeHtml(c.gradeBand)}</span>
                 </div>
               </div>
               <div style="display:flex; gap: 6px;">
