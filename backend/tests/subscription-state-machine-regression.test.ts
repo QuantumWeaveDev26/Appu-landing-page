@@ -443,4 +443,342 @@ describe('Phase 2 Production Payment Bug: State Machine & Out-of-Order Webhooks 
     assert.equal(dupData.status, 'ACTIVE');
     assert.equal(dupData.providerSubscriptionId, subProviderId);
   });
+
+  // RETRY TEST A: Household has old CANCELLED subscription and new PENDING_PAYMENT subscription. verify-checkout on new provider ID succeeds.
+  test('RETRY TEST A: Old CANCELLED subscription + new PENDING_PAYMENT subscription -> verify-checkout verifies NEW row and leaves CANCELLED row unchanged', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = `token-${parentUserId}`;
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {}
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+
+    // 1. First subscription attempt fails/cancels
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    const oldSub = await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_OLD_CANCELLED_123',
+      status: SubscriptionStates.CANCELLED
+    });
+
+    // 2. Fresh subscription attempt in PENDING_PAYMENT
+    const newSub = await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_NEW_SUCCESS_456',
+      status: SubscriptionStates.PENDING_PAYMENT
+    });
+
+    // 3. Customer payment succeeds on new subscription
+    const paymentId = 'pay_test_payment_999';
+    const signature = crypto
+      .createHmac('sha256', razorpayClient.secretKey)
+      .update(`${paymentId}|sub_NEW_SUCCESS_456`)
+      .digest('hex');
+
+    const verifyRes = await app.inject({
+      method: 'POST',
+      url: '/api/subscriptions/verify-checkout',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        razorpayPaymentId: paymentId,
+        razorpaySubscriptionId: 'sub_NEW_SUCCESS_456',
+        razorpaySignature: signature
+      }
+    });
+
+    assert.equal(verifyRes.statusCode, 200, 'Verification of new subscription must succeed with 200');
+    const verifyData = JSON.parse(verifyRes.payload);
+    assert.equal(verifyData.verified, true);
+    assert.equal(verifyData.status, 'AUTHENTICATED');
+
+    // 4. Verify exact database rows
+    const updatedNewSub = await SubscriptionRepository.getSubscriptionById(db, newSub.id);
+    assert.equal(updatedNewSub?.status, 'AUTHENTICATED', 'New subscription row must be AUTHENTICATED');
+
+    const checkOldSub = await SubscriptionRepository.getSubscriptionById(db, oldSub.id);
+    assert.equal(checkOldSub?.status, 'CANCELLED', 'Old subscription row must remain CANCELLED and untouched');
+  });
+
+  // RETRY TEST B: Household has ACTIVE older subscription plus new checkout -> verification operates on exact supplied provider ID
+  test('RETRY TEST B: Older ACTIVE subscription + new checkout attempt -> verify-checkout operates strictly on exact supplied provider ID', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = `token-${parentUserId}`;
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {}
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+
+    const planEvolve = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    const planEvolvePlus = await SubscriptionRepository.getPlanByCode(db, 'evolve_plus_monthly');
+
+    // Older ACTIVE subscription
+    const activeSub = await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: planEvolve!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_ACTIVE_OLD_111',
+      status: SubscriptionStates.ACTIVE
+    });
+
+    // New checkout for upgrade in PENDING_PAYMENT
+    const newSub = await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: planEvolvePlus!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_UPGRADE_NEW_222',
+      status: SubscriptionStates.PENDING_PAYMENT
+    });
+
+    const paymentId = 'pay_upgrade_999';
+    const signature = crypto
+      .createHmac('sha256', razorpayClient.secretKey)
+      .update(`${paymentId}|sub_UPGRADE_NEW_222`)
+      .digest('hex');
+
+    const verifyRes = await app.inject({
+      method: 'POST',
+      url: '/api/subscriptions/verify-checkout',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        razorpayPaymentId: paymentId,
+        razorpaySubscriptionId: 'sub_UPGRADE_NEW_222',
+        razorpaySignature: signature
+      }
+    });
+
+    assert.equal(verifyRes.statusCode, 200);
+    const updatedNewSub = await SubscriptionRepository.getSubscriptionById(db, newSub.id);
+    assert.equal(updatedNewSub?.status, 'AUTHENTICATED', 'New upgrade subscription must become AUTHENTICATED');
+
+    const checkActiveSub = await SubscriptionRepository.getSubscriptionById(db, activeSub.id);
+    assert.equal(checkActiveSub?.status, 'ACTIVE', 'Existing active subscription must remain ACTIVE');
+  });
+
+  // RETRY TEST C: Unknown provider subscription ID -> reject with 404
+  test('RETRY TEST C: Unknown provider subscription ID -> reject with 404', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = `token-${parentUserId}`;
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {}
+    });
+
+    const paymentId = 'pay_unknown_123';
+    const signature = crypto
+      .createHmac('sha256', razorpayClient.secretKey)
+      .update(`${paymentId}|sub_UNKNOWN_999`)
+      .digest('hex');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/subscriptions/verify-checkout',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        razorpayPaymentId: paymentId,
+        razorpaySubscriptionId: 'sub_UNKNOWN_999',
+        razorpaySignature: signature
+      }
+    });
+
+    assert.equal(res.statusCode, 404);
+  });
+
+  // RETRY TEST D: Provider subscription belongs to another household -> reject with 404
+  test('RETRY TEST D: Provider subscription belongs to another household -> reject with 404', async () => {
+    // Household 1 (Victim)
+    const victimUser = crypto.randomUUID();
+    const tokenVictim = `token-${victimUser}`;
+    authVerifier.registerToken(tokenVictim, { userId: victimUser });
+
+    const ob1 = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${tokenVictim}` },
+      payload: {}
+    });
+    const household1Id = JSON.parse(ob1.payload).household.id;
+
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId: household1Id,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_HOUSEHOLD_1_SUB',
+      status: SubscriptionStates.PENDING_PAYMENT
+    });
+
+    // Household 2 (Attacker)
+    const attackerUser = crypto.randomUUID();
+    const tokenAttacker = `token-${attackerUser}`;
+    authVerifier.registerToken(tokenAttacker, { userId: attackerUser });
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${tokenAttacker}` },
+      payload: {}
+    });
+
+    const paymentId = 'pay_h2_attack';
+    const signature = crypto
+      .createHmac('sha256', razorpayClient.secretKey)
+      .update(`${paymentId}|sub_HOUSEHOLD_1_SUB`)
+      .digest('hex');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/subscriptions/verify-checkout',
+      headers: { authorization: `Bearer ${tokenAttacker}` },
+      payload: {
+        razorpayPaymentId: paymentId,
+        razorpaySubscriptionId: 'sub_HOUSEHOLD_1_SUB',
+        razorpaySignature: signature
+      }
+    });
+
+    assert.equal(res.statusCode, 404, 'Cross-household checkout verification must be rejected with 404');
+  });
+
+  // RETRY TEST E: Exact submitted subscription is CANCELLED -> verify-checkout on that exact cancelled sub returns 422
+  test('RETRY TEST E: Exact submitted subscription is CANCELLED -> verify-checkout rejects reactivation with 422', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = `token-${parentUserId}`;
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const ob = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {}
+    });
+    const householdId = JSON.parse(ob.payload).household.id;
+
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: 'sub_DIRECT_CANCELLED_SUB',
+      status: SubscriptionStates.CANCELLED
+    });
+
+    const paymentId = 'pay_cancelled_sub';
+    const signature = crypto
+      .createHmac('sha256', razorpayClient.secretKey)
+      .update(`${paymentId}|sub_DIRECT_CANCELLED_SUB`)
+      .digest('hex');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/subscriptions/verify-checkout',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        razorpayPaymentId: paymentId,
+        razorpaySubscriptionId: 'sub_DIRECT_CANCELLED_SUB',
+        razorpaySignature: signature
+      }
+    });
+
+    assert.equal(res.statusCode, 422, 'CANCELLED -> AUTHENTICATED transition must be rejected with 422');
+  });
+
+  // RETRY TEST F: Successful checkout verification + activated/charged/authenticated webhooks arriving out of order -> final state ACTIVE
+  test('RETRY TEST F: Checkout verify + out-of-order webhooks (activated -> charged -> authenticated) -> final state ACTIVE', async () => {
+    const { token, subId, subProviderId } = await setupHouseholdAndSubscription('sub_OUT_OF_ORDER_FLOW');
+
+    // 1. Browser verify-checkout
+    const paymentId = 'pay_flow_123';
+    const sig = crypto
+      .createHmac('sha256', razorpayClient.secretKey)
+      .update(`${paymentId}|${subProviderId}`)
+      .digest('hex');
+
+    const verifyRes = await app.inject({
+      method: 'POST',
+      url: '/api/subscriptions/verify-checkout',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        razorpayPaymentId: paymentId,
+        razorpaySubscriptionId: subProviderId,
+        razorpaySignature: sig
+      }
+    });
+    assert.equal(verifyRes.statusCode, 200);
+
+    // 2. Webhook: subscription.activated
+    const wh1 = createWebhookPayload('subscription.activated', subProviderId, 'active');
+    await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/razorpay',
+      headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': wh1.signature, 'x-razorpay-event-id': wh1.eventId },
+      payload: wh1.body
+    });
+
+    // 3. Webhook: subscription.charged
+    const wh2 = createWebhookPayload('subscription.charged', subProviderId, 'active');
+    await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/razorpay',
+      headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': wh2.signature, 'x-razorpay-event-id': wh2.eventId },
+      payload: wh2.body
+    });
+
+    // 4. Webhook: subscription.authenticated (late)
+    const wh3 = createWebhookPayload('subscription.authenticated', subProviderId, 'active');
+    await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/razorpay',
+      headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': wh3.signature, 'x-razorpay-event-id': wh3.eventId },
+      payload: wh3.body
+    });
+
+    const finalSub = await SubscriptionRepository.getSubscriptionById(db, subId);
+    assert.equal(finalSub?.status, SubscriptionStates.ACTIVE, 'Final state must be ACTIVE');
+  });
+
+  // RETRY TEST G: Frontend polling sees ACTIVE and returns active subscription without refresh
+  test('RETRY TEST G: GET /api/subscriptions/current returns ACTIVE with full entitlements for frontend polling', async () => {
+    const { token, subId, subProviderId } = await setupHouseholdAndSubscription('sub_POLLING_FLOW');
+
+    // Webhook activates
+    const wh = createWebhookPayload('subscription.activated', subProviderId, 'active');
+    await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/razorpay',
+      headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': wh.signature, 'x-razorpay-event-id': wh.eventId },
+      payload: wh.body
+    });
+
+    // Polling endpoint GET /api/subscriptions/current
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/subscriptions/current',
+      headers: { authorization: `Bearer ${token}` }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const data = JSON.parse(res.payload);
+    assert.equal(data.hasSubscription, true);
+    assert.equal(data.subscription.status, 'ACTIVE');
+    assert.equal(data.subscription.id, subId);
+    assert.notEqual(data.entitlements, null);
+  });
 });

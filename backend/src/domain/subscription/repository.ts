@@ -374,8 +374,37 @@ export class SubscriptionRepository {
               s.created_at, s.updated_at
        FROM subscriptions s
        JOIN plans p ON p.id = s.plan_id
-       WHERE s.provider_subscription_id = $1;`,
+       WHERE s.provider_subscription_id = $1
+       ORDER BY s.created_at DESC
+       LIMIT 1;`,
       [providerSubscriptionId.trim()]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return mapSubscriptionRow(result.rows[0]);
+  }
+
+  /**
+   * Retrieves a subscription by its Razorpay provider subscription ID scoped strictly to a household.
+   */
+  public static async getSubscriptionByProviderIdAndHousehold(
+    db: Queryable,
+    providerSubscriptionId: string,
+    householdId: string
+  ): Promise<Subscription | null> {
+    const result = await db.query<SubscriptionRow>(
+      `SELECT s.id, s.household_id, s.plan_id, p.code AS plan_code, s.provider, s.provider_subscription_id,
+              s.status, s.current_period_start, s.current_period_end, s.cancel_at_period_end,
+              s.created_at, s.updated_at
+       FROM subscriptions s
+       JOIN plans p ON p.id = s.plan_id
+       WHERE s.provider_subscription_id = $1 AND s.household_id = $2
+       ORDER BY s.created_at DESC
+       LIMIT 1;`,
+      [providerSubscriptionId.trim(), householdId]
     );
 
     if (result.rows.length === 0) {

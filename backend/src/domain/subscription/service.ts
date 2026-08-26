@@ -225,16 +225,21 @@ export class SubscriptionService {
       signature: string;
     }
   ): Promise<VerifyCheckoutResult> {
-    // Find local subscription by provider_subscription_id (or local UUID fallback) and verify household ownership
+    const providerSubId = input.subscriptionId.trim();
+    if (!providerSubId) {
+      throw new BadRequestError('subscriptionId is required');
+    }
+
     let subscription = await SubscriptionRepository.getSubscriptionByProviderId(
       db,
-      input.subscriptionId
+      providerSubId
     );
 
-    if (!subscription) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(providerSubId);
+    if (!subscription && isUuid) {
       subscription = await SubscriptionRepository.getSubscriptionById(
         db,
-        input.subscriptionId
+        providerSubId
       );
     }
 
@@ -242,12 +247,12 @@ export class SubscriptionService {
       throw new NotFoundError('Subscription not found for this household');
     }
 
-    const providerSubId = subscription.providerSubscriptionId || input.subscriptionId;
+    const signatureSubId = subscription.providerSubscriptionId || providerSubId;
 
     const isValid = razorpayClient.verifyCheckoutSignature({
-      paymentId: input.paymentId,
-      subscriptionId: providerSubId,
-      signature: input.signature
+      paymentId: input.paymentId.trim(),
+      subscriptionId: signatureSubId,
+      signature: input.signature.trim()
     });
 
     if (!isValid) {
