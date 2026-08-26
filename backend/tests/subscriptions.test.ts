@@ -1124,7 +1124,7 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
     });
     const signature = crypto.createHmac('sha256', razorpayClient.webhookSecret).update(webhookBody).digest('hex');
 
-    // Attempt webhook: Transition EXPIRED -> ACTIVE must throw and roll back transaction
+    // Attempt webhook: Transition EXPIRED -> ACTIVE is guarded; subscription remains EXPIRED without error
     const res = await app.inject({
       method: 'POST',
       url: '/api/webhooks/razorpay',
@@ -1132,10 +1132,14 @@ describe('Milestone 3: Plans, Subscription Persistence & Razorpay TEST Integrati
       payload: webhookBody
     });
 
-    assert.equal(res.statusCode, 422); // InvalidStateTransitionError maps to 422 UNPROCESSABLE_ENTITY
+    assert.equal(res.statusCode, 200);
 
-    // Verify NO row was recorded in payment_events (transaction rolled back)
+    // Verify subscription status remained EXPIRED
+    const subAfter = await SubscriptionRepository.getSubscriptionById(db, subId);
+    assert.equal(subAfter?.status, 'EXPIRED', 'Subscription in EXPIRED terminal state must NOT be resurrected to ACTIVE');
+
+    // Verify event was recorded idempotently
     const eventRow = await SubscriptionRepository.getPaymentEvent(db, 'razorpay', eventId);
-    assert.equal(eventRow, null, 'payment_events row must NOT be recorded on failure');
+    assert.notEqual(eventRow, null);
   });
 });

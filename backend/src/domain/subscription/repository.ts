@@ -317,7 +317,14 @@ export class SubscriptionRepository {
        FROM subscriptions s
        JOIN plans p ON p.id = s.plan_id
        WHERE s.household_id = $1
-       ORDER BY (CASE WHEN s.status = 'ACTIVE' THEN 1 WHEN s.status = 'AUTHENTICATED' THEN 2 ELSE 3 END) ASC,
+       ORDER BY (CASE
+                   WHEN s.status = 'ACTIVE' THEN 1
+                   WHEN s.status = 'PAST_DUE' THEN 2
+                   WHEN s.status = 'PAUSED' THEN 3
+                   WHEN s.status = 'AUTHENTICATED' THEN 4
+                   WHEN s.status = 'PENDING_PAYMENT' THEN 5
+                   ELSE 6
+                 END) ASC,
                 s.created_at DESC
        LIMIT 1;`,
       [householdId]

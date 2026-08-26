@@ -45,7 +45,20 @@ export interface ReconcileSubscriptionResult {
   planCode: string;
 }
 
-const RAZORPAY_EVENT_TO_STATE: Record<string, SubscriptionState> = {
+export const RAZORPAY_PROVIDER_STATUS_TO_STATE: Readonly<Record<string, SubscriptionState>> = {
+  'created': SubscriptionStates.PENDING_PAYMENT,
+  'authenticated': SubscriptionStates.AUTHENTICATED,
+  'active': SubscriptionStates.ACTIVE,
+  'pending': SubscriptionStates.PENDING_PAYMENT,
+  'past_due': SubscriptionStates.PAST_DUE,
+  'halted': SubscriptionStates.HALTED,
+  'paused': SubscriptionStates.PAUSED,
+  'cancelled': SubscriptionStates.CANCELLED,
+  'completed': SubscriptionStates.EXPIRED,
+  'expired': SubscriptionStates.EXPIRED
+};
+
+export const RAZORPAY_EVENT_TO_STATE: Readonly<Record<string, SubscriptionState>> = {
   'subscription.authenticated': SubscriptionStates.AUTHENTICATED,
   'subscription.activated': SubscriptionStates.ACTIVE,
   'subscription.charged': SubscriptionStates.ACTIVE,
@@ -54,7 +67,8 @@ const RAZORPAY_EVENT_TO_STATE: Record<string, SubscriptionState> = {
   'subscription.paused': SubscriptionStates.PAUSED,
   'subscription.resumed': SubscriptionStates.ACTIVE,
   'subscription.cancelled': SubscriptionStates.CANCELLED,
-  'subscription.completed': SubscriptionStates.EXPIRED
+  'subscription.completed': SubscriptionStates.EXPIRED,
+  'subscription.expired': SubscriptionStates.EXPIRED
 };
 
 export class SubscriptionService {
@@ -142,6 +156,22 @@ export class SubscriptionService {
       throw new BadRequestError(
         `Plan '${input.planCode}' has no configured provider plan ID. Please run plan synchronization.`
       );
+    }
+
+    // Prevent duplicate checkout creation if household already has an ACTIVE subscription for this exact plan
+    const existing = await SubscriptionRepository.getLatestSubscriptionForHousehold(
+      db,
+      input.householdId
+    );
+
+    if (existing && existing.status === SubscriptionStates.ACTIVE && existing.planId === plan.id) {
+      return {
+        subscription: existing,
+        plan,
+        providerSubscriptionId: existing.providerSubscriptionId || '',
+        shortUrl: undefined,
+        isFree: false
+      };
     }
 
     const providerPlanId = plan.providerPlanId.trim();
@@ -315,12 +345,19 @@ export class SubscriptionService {
         );
       }
 
-      // 3. Map event to target subscription state
-      const targetState = RAZORPAY_EVENT_TO_STATE[eventType];
+      // 3. Resolve target state:
+      // Priority 1: Authoritative Razorpay subscription entity status when present in payload
+      let targetState: SubscriptionState | undefined;
+      const entityStatus = subEntity?.status ? String(subEntity.status).toLowerCase().trim() : undefined;
+      if (entityStatus && RAZORPAY_PROVIDER_STATUS_TO_STATE[entityStatus]) {
+        targetState = RAZORPAY_PROVIDER_STATUS_TO_STATE[entityStatus];
+      } else if (eventType && RAZORPAY_EVENT_TO_STATE[eventType]) {
+        targetState = RAZORPAY_EVENT_TO_STATE[eventType];
+      }
 
       if (localSubscription && targetState) {
         // Invariant 1: If subscription is ALREADY in target state (e.g. ACTIVE -> ACTIVE on subscription.charged or duplicate webhook),
-        // handle idempotently as a successful no-op. Do not throw, do not duplicate entitlement work.
+        // handle idempotently as a successful no-op. Update billing periods if provided.
         if (localSubscription.status === targetState) {
           const currentPeriodStart = subEntity?.current_start
             ? new Date(subEntity.current_start * 1000)
@@ -336,11 +373,11 @@ export class SubscriptionService {
               currentPeriodEnd: currentPeriodEnd || localSubscription.currentPeriodEnd
             });
           }
-        } else if (
-          localSubscription.status === SubscriptionStates.ACTIVE &&
-          targetState === SubscriptionStates.AUTHENTICATED
-        ) {
-          // Invariant 2: Never downgrade an already ACTIVE subscription back to AUTHENTICATED on out-of-order webhook
+        } else if (!SubscriptionStateMachine.canTransition(localSubscription.status, targetState)) {
+          // Invariant 2: Disallowed transitions by state machine (e.g. out-of-order webhook, downgrade attempt, or terminal state)
+          // - Never downgrade ACTIVE -> AUTHENTICATED on delayed subscription.authenticated
+          // - Never resurrect CANCELLED / EXPIRED -> ACTIVE on delayed subscription.activated
+          // Keep current state, record the payment event, and acknowledge idempotently without error.
         } else {
           // Normal valid cross-state transition
           SubscriptionStateMachine.validateTransition(localSubscription.status, targetState);
@@ -358,7 +395,7 @@ export class SubscriptionService {
             currentPeriodEnd
           });
 
-          // Expire older active subscriptions for the household only when first transitioning to ACTIVE
+          // Expire older active subscriptions for the household only when transitioning to ACTIVE
           if (targetState === SubscriptionStates.ACTIVE && localSubscription.householdId) {
             await tx.query(
               `UPDATE subscriptions

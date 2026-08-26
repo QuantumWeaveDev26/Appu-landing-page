@@ -14,16 +14,20 @@ export const ALLOWED_SUBSCRIPTION_TRANSITIONS: Readonly<Record<SubscriptionState
   [SubscriptionStates.PENDING_PAYMENT]: [
     SubscriptionStates.AUTHENTICATED,
     SubscriptionStates.ACTIVE,
+    SubscriptionStates.HALTED,
     SubscriptionStates.CANCELLED,
     SubscriptionStates.EXPIRED
   ],
   [SubscriptionStates.AUTHENTICATED]: [
     SubscriptionStates.ACTIVE,
+    SubscriptionStates.PENDING_PAYMENT,
     SubscriptionStates.PAST_DUE,
+    SubscriptionStates.HALTED,
     SubscriptionStates.CANCELLED,
     SubscriptionStates.EXPIRED
   ],
   [SubscriptionStates.ACTIVE]: [
+    SubscriptionStates.PENDING_PAYMENT,
     SubscriptionStates.PAST_DUE,
     SubscriptionStates.PAUSED,
     SubscriptionStates.HALTED,
