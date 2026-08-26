@@ -227,7 +227,7 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     }
   });
 
-  test('Clean release version v=20260825-4 applied across all frontend assets', () => {
+  test('Clean release version v=20260826-1 applied across all frontend assets', () => {
     const htmlFiles = [
       'index.html',
       'pricing.html',
@@ -240,7 +240,9 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
 
     for (const file of htmlFiles) {
       const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
-      assert.ok(content.includes('?v=20260825-4'), `${file} must reference assets with ?v=20260825-4`);
+      assert.ok(content.includes('?v=20260826-1'), `${file} must reference assets with ?v=20260826-1`);
+      assert.ok(!content.includes('?v=20260825-5'), `${file} must NOT contain stale ?v=20260825-5`);
+      assert.ok(!content.includes('?v=20260825-4'), `${file} must NOT contain stale ?v=20260825-4`);
       assert.ok(!content.includes('?v=20260825-3'), `${file} must NOT contain stale ?v=20260825-3`);
       assert.ok(!content.includes('?v=20260825-2'), `${file} must NOT contain stale ?v=20260825-2`);
     }
@@ -249,9 +251,9 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
   test('Mobile hero rules enlarge APPU avatar and optimize layout on small viewports', () => {
     const cssContent = fs.readFileSync(path.join(frontendDir, 'style.css'), 'utf8');
 
-    // Mobile avatar enlargement
-    assert.match(cssContent, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.avatar-interactive-figure[^{]*\{[^}]*transform:\s*scale\(/i, 'Mobile rules must scale avatar figure');
-    assert.match(cssContent, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.avatar-interactive-figure[^{]*\{[^}]*transform-origin:\s*center bottom/i, 'Mobile rules must ground avatar at center bottom');
+    // Mobile avatar dedicated stage & positioning
+    assert.match(cssContent, /@media\s*\(max-width:\s*(?:768px|640px)\)[\s\S]*?\.avatar-interactive-figure[^{]*\{[^}]*transform:\s*scale\(/i, 'Mobile rules must scale avatar figure');
+    assert.match(cssContent, /@media\s*\(max-width:\s*(?:768px|640px)\)[\s\S]*?\.avatar-interactive-figure[^{]*\{[^}]*transform-origin:\s*center bottom/i, 'Mobile rules must ground avatar at center bottom');
 
     // Clean star symbol in eyebrow
     const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');

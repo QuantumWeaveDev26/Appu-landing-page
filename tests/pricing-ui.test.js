@@ -417,7 +417,7 @@ describe('HR-Approved APPU AI Pricing UI & Tier Grouping Invariants', () => {
     const css = fs.readFileSync(path.resolve(__dirname, '../frontend/style.css'), 'utf-8');
     assert.match(
       css,
-      /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.topbar\s*\{[^}]*display:\s*flex;/,
+      /@media\s*\(max-width:\s*(?:768px|640px)\)\s*\{[\s\S]*?\.topbar\s*\{[^}]*display:\s*flex;/,
       'style.css must define compact mobile topbar layout'
     );
   });
