@@ -40,7 +40,8 @@ const authenticatedMessageSchema = z.object({
     .string()
     .trim()
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Invalid language code format (e.g. en, kn, hi)')
-    .optional()
+    .optional(),
+  includeAudio: z.boolean().optional()
 });
 
 const guestMessageSchema = z.object({
@@ -55,7 +56,8 @@ const guestMessageSchema = z.object({
     .trim()
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Invalid language code format (e.g. en, kn, hi)')
     .optional(),
-  guestToken: z.string().optional()
+  guestToken: z.string().optional(),
+  includeAudio: z.boolean().optional()
 });
 
 /**
@@ -154,7 +156,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         });
       }
 
-      const { childId, message, language } = parseResult.data;
+      const { childId, message, language, includeAudio } = parseResult.data;
 
       // 1. Resolve and verify parent's household authorization
       const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
@@ -264,6 +266,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         message,
         language: language || mentorContext.primaryLanguage,
         childId: child.id,
+        includeAudio,
         mentorContext
       };
 
@@ -355,7 +358,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       });
     }
 
-    const { message, language, guestToken } = parseResult.data;
+    const { message, language, guestToken, includeAudio } = parseResult.data;
 
     const rawGuestToken = (
       request.headers['x-guest-session-token'] ||
@@ -433,6 +436,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       chatInput: message,
       message,
       language: language || 'en',
+      includeAudio,
       mentorContext
     };
 

@@ -918,4 +918,85 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     assert.equal(payload.error.code, 'bad_gateway');
     assert.ok(!payload.error.message.includes('secret.n8n'), 'Must not leak upstream secret URLs');
   });
+
+  test('POST /api/appu/message threads includeAudio flag through to n8n envelope', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = 'token-parent-include-audio';
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` }
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
+
+    const childRes = await app.inject({
+      method: 'POST',
+      url: '/api/children',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { preferredName: 'Kavya', gradeBand: 'Grade 7' }
+    });
+    const childId = JSON.parse(childRes.payload).child.id;
+
+    n8nClient.nextResponse = {
+      text: 'Text only reply',
+      audioSource: null,
+      audioDurationMs: null
+    };
+
+    // 1. Explicit includeAudio: false
+    const resFalse = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId,
+        message: 'Explain photosynthesis text only',
+        includeAudio: false
+      }
+    });
+    assert.equal(resFalse.statusCode, 200);
+    assert.equal(n8nClient.lastEnvelope?.includeAudio, false);
+
+    // 2. Explicit includeAudio: true
+    const resTrue = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId,
+        message: 'Explain photosynthesis with voice',
+        includeAudio: true
+      }
+    });
+    assert.equal(resTrue.statusCode, 200);
+    assert.equal(n8nClient.lastEnvelope?.includeAudio, true);
+
+    // 3. includeAudio omitted (backward compatibility)
+    const resOmitted = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId,
+        message: 'Explain photosynthesis default'
+      }
+    });
+    assert.equal(resOmitted.statusCode, 200);
+    assert.equal(n8nClient.lastEnvelope?.includeAudio, undefined);
+
+    // 4. Guest route with includeAudio: false
+    const guestResFalse = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      payload: {
+        message: 'Guest message text only',
+        includeAudio: false
+      }
+    });
+    assert.equal(guestResFalse.statusCode, 200);
+    assert.equal(n8nClient.lastEnvelope?.includeAudio, false);
+  });
 });

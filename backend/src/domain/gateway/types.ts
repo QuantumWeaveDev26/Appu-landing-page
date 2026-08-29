@@ -9,6 +9,7 @@ export interface N8nMessageEnvelope {
   message: string;
   language: string;
   childId?: string;
+  includeAudio?: boolean;
   mentorContext: MentorContext;
 }
 
