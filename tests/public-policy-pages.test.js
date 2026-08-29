@@ -227,7 +227,7 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     }
   });
 
-  test('Clean release version v=20260826-1 applied across all frontend assets', () => {
+  test('Clean release version v=20260829-1 applied across all frontend assets', () => {
     const htmlFiles = [
       'index.html',
       'pricing.html',
@@ -240,7 +240,8 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
 
     for (const file of htmlFiles) {
       const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
-      assert.ok(content.includes('?v=20260826-1'), `${file} must reference assets with ?v=20260826-1`);
+      assert.ok(content.includes('?v=20260829-1'), `${file} must reference assets with ?v=20260829-1`);
+      assert.ok(!content.includes('?v=20260826-1'), `${file} must NOT contain stale ?v=20260826-1`);
       assert.ok(!content.includes('?v=20260825-5'), `${file} must NOT contain stale ?v=20260825-5`);
       assert.ok(!content.includes('?v=20260825-4'), `${file} must NOT contain stale ?v=20260825-4`);
       assert.ok(!content.includes('?v=20260825-3'), `${file} must NOT contain stale ?v=20260825-3`);

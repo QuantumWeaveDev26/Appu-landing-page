@@ -8,6 +8,7 @@
 class ChatAgent {
   constructor(options = {}) {
     this.mockMode = false;
+    this.voiceEngine = options.voiceEngine || null;
     this.messages = [];
     this.messagesContainer = document.getElementById('chat-messages');
     this.typingIndicator = document.getElementById('chat-typing');
@@ -129,16 +130,24 @@ class ChatAgent {
         throw new Error('AppuBackendClient unavailable');
       }
 
+      // Output preference (does the user want to hear the reply), not input modality --
+      // a mic-triggered message gets the same treatment as a typed one.
+      const includeAudio = this.voiceEngine
+        ? Boolean(this.voiceEngine.autoSpeak || this.voiceEngine.liveSessionActive)
+        : true;
+
       const requestPayload = hasSecureSession
         ? {
             accessToken: window.AppuSession.accessToken,
             childId: window.AppuSession.childId,
             message: cleanInput,
-            language: this.language || 'en'
+            language: this.language || 'en',
+            includeAudio
           }
         : {
             message: cleanInput,
-            language: this.language || 'en'
+            language: this.language || 'en',
+            includeAudio
           };
 
       const result = await backendClient.sendAppuMessage(requestPayload);

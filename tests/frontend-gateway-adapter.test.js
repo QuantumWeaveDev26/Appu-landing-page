@@ -212,4 +212,50 @@ describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
       delete require.cache[require.resolve('../frontend/chat-agent.js')];
     }
   });
+
+  test('AppuBackendClient.sendAppuMessage forwards includeAudio flag when provided', async () => {
+    let capturedBody = {};
+    const originalFetch = global.fetch;
+
+    global.fetch = async (url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            text: 'Audio preference acknowledged',
+            audioSource: null
+          };
+        }
+      };
+    };
+
+    try {
+      // 1. Explicit includeAudio: false
+      await AppuBackendClient.sendAppuMessage({
+        message: 'Text only please',
+        includeAudio: false,
+        baseUrl: 'http://localhost:3000'
+      });
+      assert.equal(capturedBody.includeAudio, false);
+
+      // 2. Explicit includeAudio: true
+      await AppuBackendClient.sendAppuMessage({
+        message: 'Voice please',
+        includeAudio: true,
+        baseUrl: 'http://localhost:3000'
+      });
+      assert.equal(capturedBody.includeAudio, true);
+
+      // 3. includeAudio omitted
+      await AppuBackendClient.sendAppuMessage({
+        message: 'Default audio',
+        baseUrl: 'http://localhost:3000'
+      });
+      assert.equal(capturedBody.includeAudio, undefined);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

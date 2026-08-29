@@ -129,7 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
   voiceEngine.soundEnabled = savedSound;
 
   const chatAgent = new ChatAgent({
-    mockMode: false
+    mockMode: false,
+    voiceEngine
   });
   chatAgent.mockMode = false;
 

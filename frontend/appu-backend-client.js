@@ -141,6 +141,7 @@
    * @param {string} [params.language='en'] - Preferred language code
    * @param {string} [params.guestToken] - Optional guest session token
    * @param {string} [params.baseUrl] - Optional override for API base URL
+   * @param {boolean} [params.includeAudio] - Whether Appu should generate audio for this response (default true)
    * @returns {Promise<{ text: string, audioSource: string|null, childId?: string, error?: string, code?: string, guest?: any, guestSession?: any }>}
    */
   async function sendAppuMessage(params) {
@@ -148,7 +149,7 @@
       throw new Error('sendAppuMessage requires an options object');
     }
 
-    const { accessToken, childId, message, language = 'en', baseUrl, guestToken } = params;
+    const { accessToken, childId, message, language = 'en', baseUrl, guestToken, includeAudio } = params;
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       throw new Error('Message cannot be empty');
@@ -164,6 +165,11 @@
       message: message.trim(),
       language: typeof language === 'string' && language.trim() ? language.trim() : 'en'
     };
+
+    // Omitted entirely when undefined -- backend/n8n default to true (audio on) either way.
+    if (typeof includeAudio === 'boolean') {
+      payload.includeAudio = includeAudio;
+    }
 
     if (isAuthenticated) {
       if (!childId || typeof childId !== 'string' || !childId.trim()) {
