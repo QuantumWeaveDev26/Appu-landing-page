@@ -27,6 +27,25 @@ export class MentorContextBuilder {
       childId
     );
 
+    return this.buildFromResolved(child, personalisation, entitlements);
+  }
+
+  /**
+   * Constructs canonical MentorContext synchronously from pre-resolved domain records,
+   * completely eliminating duplicate database lookups in the request lifecycle.
+   */
+  public static buildFromResolved(
+    child: { id: string; preferredName: string; gradeBand: string },
+    personalisation: {
+      preferredLanguage?: string;
+      learningStyle?: string;
+      responseStyle?: string;
+      favoriteSubjects?: string[];
+      interests?: string[];
+      goals?: string[];
+    } | null,
+    entitlements: EntitlementsMap | null
+  ): AuthenticatedMentorContext {
     const multilingualEnabled = Boolean(entitlements?.multilingual ?? false);
 
     return {
@@ -37,8 +56,8 @@ export class MentorContextBuilder {
       primaryLanguage: multilingualEnabled
         ? (personalisation?.preferredLanguage ?? 'en')
         : 'en',
-      learningStyle: personalisation?.learningStyle ?? 'visual',
-      responseStyle: personalisation?.responseStyle ?? 'playful',
+      learningStyle: (personalisation?.learningStyle as any) ?? 'visual',
+      responseStyle: (personalisation?.responseStyle as any) ?? 'playful',
       favoriteSubjects: personalisation?.favoriteSubjects ?? [],
       interests: personalisation?.interests ?? [],
       learningGoals: personalisation?.goals ?? [],

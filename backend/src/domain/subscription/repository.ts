@@ -338,6 +338,45 @@ export class SubscriptionRepository {
   }
 
   /**
+   * Consolidated single-roundtrip query resolving latest subscription and plan entitlements together.
+   */
+  public static async getLatestSubscriptionWithEntitlementsForHousehold(
+    db: Queryable,
+    householdId: string
+  ): Promise<{ subscription: Subscription; entitlements: EntitlementsMap } | null> {
+    const subscription = await this.getLatestSubscriptionForHousehold(db, householdId);
+    if (!subscription) {
+      return null;
+    }
+
+    if (subscription.status !== 'ACTIVE') {
+      return {
+        subscription,
+        entitlements: {}
+      };
+    }
+
+    const entitlementsResult = await db.query<PlanEntitlementRow>(
+      `SELECT plan_id, entitlement_key, value_type, value
+       FROM plan_entitlements
+       WHERE plan_id = $1;`,
+      [subscription.planId]
+    );
+
+    const entitlements: EntitlementsMap = {};
+    for (const row of entitlementsResult.rows) {
+      try {
+        entitlements[row.entitlement_key] = validateEntitlementValue(row.entitlement_key, row.value);
+      } catch {}
+    }
+
+    return {
+      subscription,
+      entitlements
+    };
+  }
+
+  /**
    * Retrieves a subscription by its primary UUID.
    */
   public static async getSubscriptionById(

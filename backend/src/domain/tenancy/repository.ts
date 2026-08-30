@@ -194,6 +194,47 @@ export class TenancyRepository {
   }
 
   /**
+   * Consolidated single-roundtrip query resolving a user's primary household and active membership.
+   */
+  public static async getPrimaryHouseholdForUser(
+    db: Queryable,
+    userId: string
+  ): Promise<{ household: Household; member: HouseholdMember } | null> {
+    const result = await db.query<HouseholdMemberRow & HouseholdRow & { member_id: string; member_created_at: Date | string; member_updated_at: Date | string }>(
+      `SELECT hm.id AS member_id, hm.household_id, hm.user_id, hm.role, hm.created_at AS member_created_at, hm.updated_at AS member_updated_at,
+              h.id, h.name, h.created_at, h.updated_at
+       FROM household_members hm
+       JOIN households h ON h.id = hm.household_id
+       WHERE hm.user_id = $1
+       ORDER BY hm.created_at ASC
+       LIMIT 1;`,
+      [userId.trim()]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      household: {
+        id: row.id,
+        name: row.name,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at)
+      },
+      member: {
+        id: row.member_id,
+        householdId: row.household_id,
+        userId: row.user_id,
+        role: row.role,
+        createdAt: new Date(row.member_created_at),
+        updatedAt: new Date(row.member_updated_at)
+      }
+    };
+  }
+
+  /**
    * Creates a child profile strictly under a household.
    */
   public static async createChildProfile(

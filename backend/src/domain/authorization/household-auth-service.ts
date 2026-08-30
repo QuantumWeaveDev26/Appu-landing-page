@@ -24,23 +24,7 @@ export class HouseholdAuthorizationService {
       return null;
     }
 
-    const memberships = await TenancyRepository.findMembershipsByUserId(db, userId.trim());
-    if (memberships.length === 0) {
-      return null;
-    }
-
-    // Use primary (first active) membership
-    const primaryMembership = memberships[0];
-    const household = await TenancyRepository.getHouseholdById(db, primaryMembership.householdId);
-
-    if (!household) {
-      return null;
-    }
-
-    return {
-      household,
-      member: primaryMembership
-    };
+    return TenancyRepository.getPrimaryHouseholdForUser(db, userId.trim());
   }
 
   /**

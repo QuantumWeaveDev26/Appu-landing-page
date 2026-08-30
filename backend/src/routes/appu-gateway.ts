@@ -10,6 +10,7 @@ import { EntitlementEnforcementService } from '../domain/entitlements/enforcemen
 import { UsageService } from '../domain/usage/service.js';
 import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
+import { PersonalisationRepository } from '../domain/personalisation/repository.js';
 import type { GuestMentorContext } from '../domain/personalisation/types.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
@@ -143,7 +144,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
    *    - Failsafe: technical/upstream errors do NOT consume guest turns.
    */
   fastify.post('/api/appu/message', async (request, reply) => {
+    const tReqStart = performance.now();
     const principal = await tryResolveAuth(request, opts.authVerifier);
+    const tAuthEnd = performance.now();
 
     // =========================================================================
     // BRANCH 1: AUTHENTICATED USER PATH
@@ -158,41 +161,45 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       const { childId, message, language, includeAudio } = parseResult.data;
 
-      // 1. Resolve and verify parent's household authorization
+      // 1. Resolve and verify parent's household authorization (Single query)
+      const tHouseholdStart = performance.now();
       const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
         opts.db,
         principal.userId
       );
+      const tHouseholdEnd = performance.now();
 
-      // 2. Verify child profile ownership within this household
-      const child = await TenancyRepository.getChildProfile(opts.db, household.id, childId);
+      // 2. Parallelize independent pre-n8n domain reads in ONE round-trip batch
+      // (child profile verification, subscription with validated entitlements, voice usage, personalisation)
+      const tContextStart = performance.now();
+      const [
+        child,
+        subscriptionContext,
+        currentVoiceUsageMs,
+        personalisation
+      ] = await Promise.all([
+        TenancyRepository.getChildProfile(opts.db, household.id, childId),
+        SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(opts.db, household.id),
+        UsageService.getHouseholdVoiceUsageMs(opts.db, household.id),
+        PersonalisationRepository.getPersonalisation(opts.db, household.id, childId)
+      ]);
+      const tContextEnd = performance.now();
+
       if (!child) {
         throw new NotFoundError('Child profile not found');
       }
 
-      // 3. Require ACTIVE subscription for paid/entitled AI mentor access
-      const subscription = await SubscriptionRepository.getLatestSubscriptionForHousehold(
-        opts.db,
-        household.id
-      );
-
-      if (!subscription || subscription.status !== 'ACTIVE') {
+      if (!subscriptionContext || subscriptionContext.subscription.status !== 'ACTIVE') {
         throw new ForbiddenError(
           'An active subscription is required to access the Appu AI mentor. Please subscribe to a plan.'
         );
       }
 
-      const householdContext = await EntitlementEnforcementService.getHouseholdEntitlements(
-        opts.db,
-        household.id
-      );
+      const { subscription, entitlements } = subscriptionContext;
 
-      const aiQuotaLimit = Number(householdContext.entitlements?.monthly_ai_sessions ?? 100);
-      const voiceQuotaLimitMinutes = Number(householdContext.entitlements?.monthly_voice_minutes ?? 30);
+      const aiQuotaLimit = Number(entitlements?.monthly_ai_sessions ?? 100);
+      const voiceQuotaLimitMinutes = Number(entitlements?.monthly_voice_minutes ?? 30);
       const voiceQuotaLimitMs = voiceQuotaLimitMinutes * 60 * 1000;
-
-      // Check current voice usage against voice quota
-      const currentVoiceUsageMs = await UsageService.getHouseholdVoiceUsageMs(opts.db, household.id);
       const isVoiceQuotaExhausted = currentVoiceUsageMs >= voiceQuotaLimitMs;
 
       // Extract and validate optional client idempotency key
@@ -210,7 +217,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         .update([household.id, child.id, message.trim().toLowerCase(), language || 'en'].join('|'))
         .digest('hex');
 
-      // 4. Concurrency-safe atomic AI session quota check & reservation (prior to upstream execution)
+      // 3. Concurrency-safe atomic AI session quota check & reservation (prior to upstream execution)
+      const tUsageStart = performance.now();
       const initiation = await AppuRequestService.beginAuthenticated(opts.db, {
         householdId: household.id,
         subscriptionId: subscription.id,
@@ -219,16 +227,17 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         idempotencyKey,
         requestFingerprint
       });
+      const tUsageEnd = performance.now();
       const reservation = initiation.reservation;
 
       // A stable idempotency key may only start one downstream execution.
-      // Completed requests return a bounded replay marker; in-flight/unknown requests
-      // remain pending without invoking n8n again.
       if (initiation.isExisting) {
         const existingLifecycle = initiation.request;
         const isCompleted = reservation.status === 'committed';
         reply.header('idempotency-key', idempotencyKey);
         reply.header('x-appu-request-id', existingLifecycle.id);
+        const tTotal = performance.now() - tReqStart;
+        reply.header('Server-Timing', `total;dur=${tTotal.toFixed(1)}`);
         return reply.status(isCompleted ? 200 : 202).send({
           childId: child.id,
           text: isCompleted ? 'This request was already completed.' : null,
@@ -242,21 +251,18 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       }
 
       const lifecycle = initiation.request;
-      // Publish the stable retry identifiers before invoking n8n so Fastify keeps
-      // them on timeout/unknown error responses as well as successful responses.
       reply.header('idempotency-key', idempotencyKey);
       reply.header('x-appu-request-id', lifecycle.id);
       (request as any).appuRequestId = lifecycle.id;
 
-      // 5. Build fresh, safe, server-owned MentorContext from authoritative storage
-      const mentorContext = await MentorContextBuilder.buildMentorContext(
-        opts.db,
-        household.id,
-        child.id,
-        householdContext.entitlements
+      // 4. Construct fresh, safe, server-owned MentorContext synchronously from pre-resolved records (0 extra queries)
+      const mentorContext = MentorContextBuilder.buildFromResolved(
+        child,
+        personalisation,
+        entitlements
       );
 
-      // 6. Construct structured server-generated envelope for n8n
+      // 5. Construct structured server-generated envelope for n8n
       const envelope: N8nMessageEnvelope = {
         requestId: lifecycle.id,
         action: 'sendMessage',
@@ -270,13 +276,12 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         mentorContext
       };
 
-      // 7. Forward to n8n via secure client with reservation rollback on failure
+      // 6. Forward to n8n via secure client with reservation rollback on failure
+      const tN8nStart = performance.now();
       let response: any;
       try {
         response = await opts.n8nClient.sendMessage(envelope);
       } catch (error: any) {
-        // A transport timeout has an unknown downstream outcome: keep the reservation held.
-        // Only confirmed failures may release it.
         if (error?.code !== ErrorCodes.SERVICE_TEMPORARILY_UNAVAILABLE) {
           await AppuRequestService.reconcile(opts.db, {
             requestId: lifecycle.id,
@@ -297,14 +302,16 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         }
         throw new BadGatewayError('Could not reach AI mentor service. Please try again later.');
       }
+      const tN8nEnd = performance.now();
 
-      // 8. Commit usage and lifecycle together after successful upstream response.
+      // 7. Commit usage and lifecycle together after successful upstream response.
+      const tPostStart = performance.now();
       await AppuRequestService.reconcile(opts.db, {
         requestId: lifecycle.id,
         outcome: AppuRequestStates.SUCCEEDED
       });
 
-      // 9. Strict Voice Quota Enforcement & Atomic Voice Duration Recording
+      // 8. Strict Voice Quota Enforcement & Atomic Voice Duration Recording
       let finalAudioSource: string | null = null;
       let finalAudioDurationMs: number | null = null;
 
@@ -336,6 +343,19 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
           }
         }
       }
+      const tPostEnd = performance.now();
+      const tTotal = performance.now() - tReqStart;
+
+      // Safe performance metrics emission (no secrets or user data)
+      reply.header('Server-Timing', [
+        `auth;dur=${(tAuthEnd - tReqStart).toFixed(1)}`,
+        `household;dur=${(tHouseholdEnd - tHouseholdStart).toFixed(1)}`,
+        `context;dur=${(tContextEnd - tContextStart).toFixed(1)}`,
+        `usage;dur=${(tUsageEnd - tUsageStart).toFixed(1)}`,
+        `n8n;dur=${(tN8nEnd - tN8nStart).toFixed(1)}`,
+        `post;dur=${(tPostEnd - tPostStart).toFixed(1)}`,
+        `total;dur=${tTotal.toFixed(1)}`
+      ].join(', '));
 
       return reply.status(200).send({
         requestId: lifecycle.id,
@@ -378,12 +398,14 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     GuestSessionService.checkIpRateLimit(ipHash);
 
     // 2. Resolve guest session authoritatively from signed token or database/store
+    const tSessionStart = performance.now();
     const { session } = await GuestSessionService.resolveGuestSession(
       opts.db,
       rawGuestToken,
       clientIp,
       opts.guestSessionSecret
     );
+    const tSessionEnd = performance.now();
 
     const rawIdempotencyKey =
       request.headers['idempotency-key'] || request.headers['x-idempotency-key'];
@@ -395,17 +417,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       .digest('hex');
 
     // 3. Atomically reserve the guest turn and durable lifecycle in one transaction.
+    const tUsageStart = performance.now();
     const initiation = await AppuRequestService.beginGuest(opts.db, {
       session,
       maxTurns: GuestSessionService.DEFAULT_MAX_TURNS,
       idempotencyKey,
       requestFingerprint
     });
+    const tUsageEnd = performance.now();
 
     if (initiation.isExisting) {
       reply.header('idempotency-key', idempotencyKey);
       reply.header('x-appu-request-id', initiation.request.id);
       const completed = initiation.request.status === AppuRequestStates.SUCCEEDED;
+      const tTotal = performance.now() - tReqStart;
+      reply.header('Server-Timing', `total;dur=${tTotal.toFixed(1)}`);
       return reply.status(completed ? 200 : 202).send({
         requestId: initiation.request.id,
         requestStatus: initiation.request.status,
@@ -416,7 +442,6 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       });
     }
 
-    // Keep retry identifiers visible even when the transport outcome is UNKNOWN.
     reply.header('idempotency-key', idempotencyKey);
     reply.header('x-appu-request-id', initiation.request.id);
     (request as any).appuRequestId = initiation.request.id;
@@ -441,6 +466,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     };
 
     // 5. Forward to n8n AI workflow with failsafe rollback on error
+    const tN8nStart = performance.now();
     let response: any;
     try {
       response = await opts.n8nClient.sendMessage(envelope);
@@ -465,6 +491,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       }
       throw new BadGatewayError('Could not reach AI mentor service. Please try again later.');
     }
+    const tN8nEnd = performance.now();
 
     // 6. Generate signed token reflecting the successfully completed turn count
     const guestTokenResult = GuestSessionService.signGuestToken({
@@ -475,10 +502,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     }, opts.guestSessionSecret);
 
     // 7. Deliver response with updated guest session metadata and signed token
+    const tPostStart = performance.now();
     await AppuRequestService.reconcile(opts.db, {
       requestId: initiation.request.id,
       outcome: AppuRequestStates.SUCCEEDED
     });
+    const tPostEnd = performance.now();
+    const tTotal = performance.now() - tReqStart;
+
+    reply.header('Server-Timing', [
+      `session;dur=${(tSessionEnd - tSessionStart).toFixed(1)}`,
+      `usage;dur=${(tUsageEnd - tUsageStart).toFixed(1)}`,
+      `n8n;dur=${(tN8nEnd - tN8nStart).toFixed(1)}`,
+      `post;dur=${(tPostEnd - tPostStart).toFixed(1)}`,
+      `total;dur=${tTotal.toFixed(1)}`
+    ].join(', '));
 
     reply.header('x-guest-session-token', guestTokenResult);
     return reply.status(200).send({
