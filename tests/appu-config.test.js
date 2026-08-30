@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 describe('Frontend Public Configuration & Environment Strategy', () => {
-  it('defaults to https://antiquewhite-elk-758047.hostingersite.com', async () => {
+  it('defaults to https://api.appuai.online', async () => {
     const originalWindow = global.window;
     global.window = {
       location: { hostname: 'localhost' }
@@ -13,7 +13,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
     const configModule = await import(`../frontend/appu-config.js?t=${Date.now()}`);
     const config = configModule.default || global.APPU_CONFIG;
 
-    assert.equal(config.apiBaseUrl, 'https://antiquewhite-elk-758047.hostingersite.com');
+    assert.equal(config.apiBaseUrl, 'https://api.appuai.online');
     assert.ok(config.supabaseUrl);
     assert.ok(config.supabasePublishableKey);
 
@@ -36,7 +36,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
     global.window = originalWindow;
   });
 
-  it('resolves deployed Hostinger backend on hosted domains without explicit override', async () => {
+  it('resolves deployed backend on hosted domains without explicit override', async () => {
     const originalWindow = global.window;
     global.window = {
       location: { hostname: 'appu-staging.cloud' }
@@ -46,7 +46,7 @@ describe('Frontend Public Configuration & Environment Strategy', () => {
     const configModule = await import(`../frontend/appu-config.js?t=${Date.now()}`);
     const config = configModule.default || global.APPU_CONFIG;
 
-    assert.equal(config.apiBaseUrl, 'https://antiquewhite-elk-758047.hostingersite.com');
+    assert.equal(config.apiBaseUrl, 'https://api.appuai.online');
 
     global.window = originalWindow;
   });

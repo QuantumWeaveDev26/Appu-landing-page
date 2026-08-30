@@ -25,8 +25,8 @@
       return window.__APPU_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
 
-    // 2. Deployed Hostinger backend URL
-    return 'https://antiquewhite-elk-758047.hostingersite.com';
+    // 2. Deployed backend API URL
+    return 'https://api.appuai.online';
   }
 
   return {

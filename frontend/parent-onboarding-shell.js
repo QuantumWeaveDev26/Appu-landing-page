@@ -34,7 +34,7 @@
     ) {
       return globalThis.APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '');
     }
-    return 'https://antiquewhite-elk-758047.hostingersite.com';
+    return 'https://api.appuai.online';
   }
 
   function getSupabaseConfig() {
