@@ -344,8 +344,10 @@
     }
 
     return {
+      requestId: data.requestId || null,
       text: typeof data.text === 'string' ? data.text : '',
       audioSource: data.audioSource || null,
+      audioStreamUrl: data.audioStreamUrl || null,
       audioDurationMs: data.audioDurationMs || null,
       childId: data.childId || payload.childId,
       guest: guestInfo,

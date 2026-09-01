@@ -14,6 +14,7 @@ import { PersonalisationRepository } from '../domain/personalisation/repository.
 import type { GuestMentorContext } from '../domain/personalisation/types.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
+import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -22,6 +23,11 @@ import {
   BadGatewayError,
   ErrorCodes
 } from '../errors/index.js';
+
+function isKannadaResponseText(text: string, language?: string): boolean {
+  if (language === 'kn') return true;
+  return /[\u0C80-\u0CFF]/.test(text || '');
+}
 
 export interface AppuGatewayRouteOptions {
   db: TransactionalQueryable;
@@ -263,6 +269,12 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       );
 
       // 5. Construct structured server-generated envelope for n8n
+      // DUPLICATE TTS PREVENTION: If Kannada is requested/expected, tell n8n includeAudio=false
+      // so n8n's old "Include Audio?" node skips eleven_turbo_v2_5 Base64 synthesis entirely.
+      // Kannada audio will be served via the new decoupled v3 streaming path instead.
+      const isKnRequested = language === 'kn' || mentorContext.primaryLanguage === 'kn';
+      const n8nIncludeAudio = isKnRequested ? false : includeAudio;
+
       const envelope: N8nMessageEnvelope = {
         requestId: lifecycle.id,
         action: 'sendMessage',
@@ -272,7 +284,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         message,
         language: language || mentorContext.primaryLanguage,
         childId: child.id,
-        includeAudio,
+        includeAudio: n8nIncludeAudio,
         mentorContext
       };
 
@@ -311,7 +323,16 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         outcome: AppuRequestStates.SUCCEEDED
       });
 
-      // 8. Strict Voice Quota Enforcement & Atomic Voice Duration Recording
+      // 8. DUPLICATE TTS SAFETY: If the response text is Kannada (even from an English learner
+      //    who asked in Kannada), suppress any old n8n-generated audioSource to prevent double billing.
+      const isKnResponse = isKannadaResponseText(response.text, language || mentorContext.primaryLanguage);
+      if (isKnResponse && response.audioSource) {
+        request.log.info({ requestId: lifecycle.id }, 'Suppressing n8n-generated audio for Kannada response; routing to v3 streaming');
+        response.audioSource = null;
+        response.audioDurationMs = null;
+      }
+
+      // 9. Strict Voice Quota Enforcement & Atomic Voice Duration Recording (English path only)
       let finalAudioSource: string | null = null;
       let finalAudioDurationMs: number | null = null;
 
@@ -343,6 +364,28 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
           }
         }
       }
+
+      // 10. Kannada Decoupled Streaming Audio Authorization
+      let audioStreamUrl: string | null = null;
+
+      if (includeAudio !== false && isKnResponse && response.text && response.text.trim()) {
+        try {
+          // Piggyback cleanup: delete expired audio authorizations (short retention, no indefinite text storage)
+          AppuAudioAuthorizationRepository.deleteExpired(opts.db).catch(() => {});
+
+          await AppuAudioAuthorizationRepository.create(opts.db, {
+            requestId: lifecycle.id,
+            householdId: household.id,
+            childId: child.id,
+            approvedText: response.text,
+            language: 'kn'
+          });
+          audioStreamUrl = `/api/appu/audio/stream?requestId=${lifecycle.id}`;
+        } catch (authErr) {
+          request.log.warn({ err: authErr, requestId: lifecycle.id }, 'Failed to create audio authorization record');
+        }
+      }
+
       const tPostEnd = performance.now();
       const tTotal = performance.now() - tReqStart;
 
@@ -362,8 +405,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         requestStatus: AppuRequestStates.SUCCEEDED,
         childId: child.id,
         text: response.text,
-        audioSource: finalAudioSource,
-        audioDurationMs: finalAudioDurationMs,
+        audioSource: audioStreamUrl ? null : finalAudioSource,
+        audioStreamUrl,
+        audioDurationMs: audioStreamUrl ? null : finalAudioDurationMs,
         guestSession: null
       });
     }

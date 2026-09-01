@@ -205,7 +205,7 @@ class ChatAgent {
       }
 
       if (this.typingIndicator) this.typingIndicator.style.display = 'none';
-      if (onFinishThinking) onFinishThinking(responseText, audioSource);
+      if (onFinishThinking) onFinishThinking(responseText, audioSource, result.audioStreamUrl || null, requestPayload.accessToken || null);
 
       const appuMsg = this.addMessage('appu', responseText, actionCard);
       return appuMsg;

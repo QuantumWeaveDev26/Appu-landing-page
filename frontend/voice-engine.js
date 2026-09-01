@@ -231,7 +231,98 @@ class VoiceEngine {
         }
     }
 
-    speak(text, audioSource) {
+    /**
+     * Staging Streaming Audio Playback using fetch() with Bearer Authentication.
+     * Streams chunked MP3 from the server-authorized endpoint.
+     */
+    async playStream(streamUrl, text = '', accessToken = '') {
+        if (!streamUrl || !this.autoSpeak) {
+            if (text) this.streamSubtitles(text);
+            this.onSpeechEnd();
+            return false;
+        }
+
+        this.stopSpeaking();
+        if (text) this.streamSubtitles(text);
+
+        try {
+            const headers = {};
+            if (accessToken && typeof accessToken === 'string') {
+                headers['Authorization'] = `Bearer ${accessToken.trim()}`;
+            }
+
+            const response = await fetch(streamUrl, { method: 'GET', headers });
+            if (!response.ok) {
+                console.warn('Authenticated audio stream request failed', response.status);
+                this.handleSpeechFinish();
+                return false;
+            }
+
+            if (window.MediaSource && MediaSource.isTypeSupported('audio/mpeg')) {
+                const mediaSource = new MediaSource();
+                const objectUrl = URL.createObjectURL(mediaSource);
+                this.audioPlayer.src = objectUrl;
+                this.audioPlayer.playbackRate = this.rate;
+
+                mediaSource.addEventListener('sourceopen', async () => {
+                    let sourceBuffer;
+                    try {
+                        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+                    } catch (e) {
+                        return;
+                    }
+
+                    const reader = response.body.getReader();
+                    let isFirstChunk = true;
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            if (mediaSource.readyState === 'open' && !sourceBuffer.updating) {
+                                mediaSource.endOfStream();
+                            }
+                            break;
+                        }
+
+                        await new Promise((resolve) => {
+                            if (!sourceBuffer.updating) {
+                                sourceBuffer.appendBuffer(value);
+                                resolve();
+                            } else {
+                                sourceBuffer.addEventListener('updateend', () => {
+                                    sourceBuffer.appendBuffer(value);
+                                    resolve();
+                                }, { once: true });
+                            }
+                        });
+
+                        if (isFirstChunk) {
+                            isFirstChunk = false;
+                            this.audioPlayer.play().catch(e => console.warn('Stream play error:', e));
+                        }
+                    }
+                }, { once: true });
+
+                return true;
+            } else {
+                // Fallback for browsers without MediaSource audio/mpeg support
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                this.audioPlayer.src = blobUrl;
+                await this.audioPlayer.play();
+                return true;
+            }
+        } catch (error) {
+            console.warn('Audio stream error:', error);
+            this.handleSpeechFinish();
+            return false;
+        }
+    }
+
+    speak(text, audioSource, audioStreamUrl = null, accessToken = '') {
+        if (audioStreamUrl) {
+            return this.playStream(audioStreamUrl, text, accessToken);
+        }
         return this.playBackendAudio(audioSource, text);
     }
 

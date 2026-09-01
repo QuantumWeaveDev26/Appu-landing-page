@@ -7,6 +7,7 @@ import type { TransactionalQueryable } from './db/types.js';
 import { SupabaseAuthVerifier, type AuthVerifier } from './domain/auth/index.js';
 import { DefaultRazorpayClient, type RazorpayClient } from './domain/razorpay/index.js';
 import { DefaultN8nClient, type N8nClient } from './domain/gateway/index.js';
+import { ElevenLabsStreamService } from './domain/voice/index.js';
 import { fastifyErrorHandler, ErrorCodes } from './errors/index.js';
 import {
   healthRoutes,
@@ -18,6 +19,7 @@ import {
   webhooksRoutes,
   appuGatewayRoutes,
   appuCallbackRoutes,
+  appuAudioRoutes,
   usageRoutes
 } from './routes/index.js';
 
@@ -31,6 +33,7 @@ export interface BuildAppOptions {
   authVerifier?: AuthVerifier;
   razorpayClient?: RazorpayClient;
   n8nClient?: N8nClient;
+  elevenLabsStreamService?: ElevenLabsStreamService;
 }
 
 export function buildApp(config: AppConfig, options: BuildAppOptions = {}): FastifyInstance {
@@ -91,7 +94,7 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     reply.header(
       'Access-Control-Expose-Headers',
       'X-Guest-Session-Token, Idempotency-Key, Content-Type'
-        + ', X-Appu-Request-Id'
+        + ', X-Appu-Request-Id, X-Appu-Voice-Model'
     );
 
     if (request.method === 'OPTIONS') {
@@ -213,6 +216,19 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     });
   }
 
+  // Resolve ElevenLabsStreamService
+  let elevenLabsStreamService = options.elevenLabsStreamService;
+  if (!elevenLabsStreamService) {
+    const apiKey = config.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY || process.env.XI_API_KEY;
+    if (apiKey && apiKey.trim()) {
+      elevenLabsStreamService = new ElevenLabsStreamService({
+        apiKey: apiKey.trim(),
+        voiceId: config.ELEVENLABS_VOICE_ID || process.env.ELEVENLABS_VOICE_ID || '2vNb4zVImeugpHCemE1R',
+        modelId: 'eleven_v3'
+      });
+    }
+  }
+
   if (options.database && config.N8N_APPU_CALLBACK_HMAC_SECRET) {
     app.register(appuCallbackRoutes, {
       db: options.database,
@@ -273,6 +289,15 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         authVerifier,
         n8nClient,
         guestSessionSecret: config.GUEST_SESSION_SECRET
+      });
+    }
+
+    // Appu Audio Streaming Route (Eleven v3 Kannada)
+    if (elevenLabsStreamService) {
+      app.register(appuAudioRoutes, {
+        db: options.database,
+        authVerifier,
+        elevenLabsStreamService
       });
     }
   }

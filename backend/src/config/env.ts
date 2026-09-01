@@ -83,6 +83,12 @@ export const envSchema = z
     GUEST_SESSION_SECRET: z
       .string()
       .min(16, 'GUEST_SESSION_SECRET must be at least 16 characters')
+      .optional(),
+    ELEVENLABS_API_KEY: z
+      .string()
+      .optional(),
+    ELEVENLABS_VOICE_ID: z
+      .string()
       .optional()
   })
   .superRefine((data, ctx) => {

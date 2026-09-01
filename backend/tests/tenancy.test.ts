@@ -57,6 +57,7 @@ function createTestDatabase(): TransactionalQueryable {
         const result = await work(transactionDb);
         await client.query('COMMIT');
         return result;
+
       } catch (error) {
         await client.query('ROLLBACK');
         throw error;
@@ -85,7 +86,7 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     const migrations = await db.query<{ version: string; checksum: string; applied_at: Date }>(
       'SELECT version, checksum, applied_at FROM schema_migrations ORDER BY version;'
     );
-    assert.equal(migrations.rows.length, 11);
+    assert.equal(migrations.rows.length, 12);
     assert.equal(migrations.rows[0].version, '001_initial_tenancy.sql');
     assert.match(migrations.rows[0].checksum, /^[a-f0-9]{64}$/);
     assert.equal(migrations.rows[1].version, '002_subscription_plans.sql');
@@ -108,6 +109,8 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
     assert.match(migrations.rows[9].checksum, /^[a-f0-9]{64}$/);
     assert.equal(migrations.rows[10].version, '011_appu_request_lifecycle.sql');
     assert.match(migrations.rows[10].checksum, /^[a-f0-9]{64}$/);
+    assert.equal(migrations.rows[11].version, '012_appu_audio_authorizations.sql');
+    assert.match(migrations.rows[11].checksum, /^[a-f0-9]{64}$/);
 
     // Idempotency: running migrations a second time applies 0 new files without error
     const secondRun = await runMigrations(db);
@@ -177,7 +180,8 @@ describe('PostgreSQL Household Tenancy Foundation', () => {
       '008_voice_duration_metering.sql',
       '009_appu_student_catalogue.sql',
       '010_guest_sessions.sql',
-      '011_appu_request_lifecycle.sql'
+      '011_appu_request_lifecycle.sql',
+      '012_appu_audio_authorizations.sql'
     ]);
 
     // 3. Verify 'checksum' column exists and has valid SHA-256 value for 001

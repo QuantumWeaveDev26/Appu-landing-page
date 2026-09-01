@@ -374,9 +374,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const result = await chatAgent.sendMessage(
       text,
       () => avatarStage.setState('thinking'),
-      async (reply, audioData) => {
+      async (reply, audioData, audioStreamUrl, accessToken) => {
         avatarStage.setState('speaking');
-        await voiceEngine.speak(reply, audioData);
+        await voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
         voiceEngine.playMessage();
       }
     );
