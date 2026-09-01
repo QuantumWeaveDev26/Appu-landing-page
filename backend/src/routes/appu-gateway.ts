@@ -25,8 +25,7 @@ import {
   ErrorCodes
 } from '../errors/index.js';
 
-function isKannadaResponseText(text: string, language?: string): boolean {
-  if (language === 'kn') return true;
+function isKannadaResponseText(text: string): boolean {
   return /[\u0C80-\u0CFF]/.test(text || '');
 }
 
@@ -330,7 +329,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       // 8. DUPLICATE TTS SAFETY: If the response text is Kannada (even from an English learner
       //    who asked in Kannada or Kanglish), suppress any old n8n-generated audioSource to prevent double billing.
-      const isKnResponse = isKannadaResponseText(response.text, effectiveLanguage);
+      const isKnResponse = isKannadaResponseText(response.text);
       if (isKnResponse && response.audioSource) {
         request.log.info({ requestId: lifecycle.id }, 'Suppressing n8n-generated audio for Kannada response; routing to v3 streaming');
         response.audioSource = null;

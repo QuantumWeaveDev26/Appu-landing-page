@@ -144,13 +144,28 @@ describe('APPU Kannada Eleven v3 Decoupled Audio Streaming Suite', () => {
     const pgAdapter = memDb.adapters.createPg();
     const pool = new pgAdapter.Pool();
 
+    const cleanQuery = (text: string, params?: any[]) => {
+      let t = text;
+      if (t.includes('ENABLE ROW LEVEL SECURITY') || t.includes('enable row level security')) {
+        t = t.replace(/ALTER TABLE[^\n;]+ENABLE ROW LEVEL SECURITY;?/gi, '');
+      }
+      return pool.query(t, params);
+    };
+
     db = {
-      query: (text: string, params?: any[]) => pool.query(text, params),
+      query: cleanQuery,
       transaction: async (fn: any) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
-          const res = await fn(client);
+          const clientQuery = (text: string, params?: any[]) => {
+            let t = text;
+            if (t.includes('ENABLE ROW LEVEL SECURITY') || t.includes('enable row level security')) {
+              t = t.replace(/ALTER TABLE[^\n;]+ENABLE ROW LEVEL SECURITY;?/gi, '');
+            }
+            return client.query(t, params);
+          };
+          const res = await fn({ ...client, query: clientQuery });
           await client.query('COMMIT');
           return res;
         } catch (e) {
