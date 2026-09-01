@@ -28,6 +28,8 @@ class VoiceEngine {
         this.audioPlayer.id = 'appu-audio-player';
         this.audioPlayer.hidden = true;
         this.audioPlayer.preload = 'auto';
+        this.audioPlayer.volume = 1.0;
+        this.audioPlayer.muted = false;
         document.body.appendChild(this.audioPlayer);
 
         this.initAudioPlayerEvents();
@@ -220,6 +222,8 @@ class VoiceEngine {
         if (text) this.streamSubtitles(text);
         this.audioPlayer.src = source;
         this.audioPlayer.playbackRate = this.rate;
+        this.audioPlayer.volume = 1.0;
+        this.audioPlayer.muted = false;
         try {
             await this.audioPlayer.play();
             return true;
@@ -297,6 +301,8 @@ class VoiceEngine {
                 const objectUrl = URL.createObjectURL(mediaSource);
                 this.audioPlayer.src = objectUrl;
                 this.audioPlayer.playbackRate = this.rate;
+                this.audioPlayer.volume = 1.0;
+                this.audioPlayer.muted = false;
 
                 const MIN_STARTUP_BUFFER_SECS = 1.2; // Initial buffer cushion to eliminate mid-speech chunk jitter pauses
 
@@ -412,6 +418,9 @@ class VoiceEngine {
                 const blob = await response.blob();
                 const blobUrl = URL.createObjectURL(blob);
                 this.audioPlayer.src = blobUrl;
+                this.audioPlayer.playbackRate = this.rate;
+                this.audioPlayer.volume = 1.0;
+                this.audioPlayer.muted = false;
                 await this.audioPlayer.play();
                 return true;
             }
@@ -438,7 +447,11 @@ class VoiceEngine {
             this.currentStreamController = null;
         }
         if (this.audioPlayer && !this.audioPlayer.paused) this.audioPlayer.pause();
-        if (this.audioPlayer) this.audioPlayer.currentTime = 0;
+        if (this.audioPlayer) {
+            this.audioPlayer.currentTime = 0;
+            this.audioPlayer.volume = 1.0;
+            this.audioPlayer.muted = false;
+        }
         if (this.isSpeaking) {
             this.isSpeaking = false;
             this.updateSpeakingUI(false);

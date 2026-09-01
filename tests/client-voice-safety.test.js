@@ -49,3 +49,27 @@ test('voice-engine.js implements jitter-free streaming playback queue and initia
   assert.match(source, /currentStreamController/, 'Must track current stream controller');
   assert.match(source, /abort\(\)/, 'Must abort controller on stopSpeaking');
 });
+
+test('voice-engine.js enforces 100% volume and unmuted playback across all voice paths', () => {
+  const source = read('voice-engine.js');
+
+  // 1. Explicit volume 1.0 and muted false in constructor
+  assert.match(source, /this\.audioPlayer\.volume\s*=\s*1(?:\.0)?;/);
+  assert.match(source, /this\.audioPlayer\.muted\s*=\s*false;/);
+
+  // 2. English Base64 / playBackendAudio path maintains volume = 1.0 and muted = false
+  assert.match(source, /playBackendAudio\([^)]*\)[\s\S]*?this\.audioPlayer\.volume\s*=\s*1(?:\.0)?;/);
+  assert.match(source, /playBackendAudio\([^)]*\)[\s\S]*?this\.audioPlayer\.muted\s*=\s*false;/);
+
+  // 3. Kannada Streaming / playStream path maintains volume = 1.0 and muted = false
+  assert.match(source, /playStream\([^)]*\)[\s\S]*?this\.audioPlayer\.volume\s*=\s*1(?:\.0)?;/);
+  assert.match(source, /playStream\([^)]*\)[\s\S]*?this\.audioPlayer\.muted\s*=\s*false;/);
+
+  // 4. stopSpeaking preserves configured volume 1.0 and unmuted state
+  assert.match(source, /stopSpeaking\(\)[\s\S]*?this\.audioPlayer\.volume\s*=\s*1(?:\.0)?;/);
+  assert.match(source, /stopSpeaking\(\)[\s\S]*?this\.audioPlayer\.muted\s*=\s*false;/);
+
+  // 5. Zero code reducing voice volume below 1.0 or setting muted = true
+  assert.doesNotMatch(source, /this\.audioPlayer\.volume\s*=\s*0\./);
+  assert.doesNotMatch(source, /this\.audioPlayer\.muted\s*=\s*true/);
+});
