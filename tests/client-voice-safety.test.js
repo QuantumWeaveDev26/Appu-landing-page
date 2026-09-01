@@ -31,3 +31,21 @@ test('obsolete local voice samples are absent and unreferenced', () => {
   assert.equal(fs.existsSync(path.join(root, 'assets', 'appu_reference.wav')), false);
   assert.equal(fs.existsSync(path.join(root, 'assets', 'WhatsApp Audio 2026-08-14 at 11.10.11.mpeg')), false);
 });
+
+test('voice-engine.js implements jitter-free streaming playback queue and initial buffer threshold', () => {
+  const source = read('voice-engine.js');
+
+  // 1. Initial startup buffer threshold between 1.0 and 1.5 seconds
+  assert.match(source, /MIN_STARTUP_BUFFER_SECS\s*=\s*(1\.[0-5]|1);/, 'Must define startup buffer threshold ~1.0-1.5s');
+
+  // 2. FIFO chunk queue and updateend sequential processing
+  assert.match(source, /chunkQueue\s*=\s*\[\]/, 'Must maintain a chunk FIFO queue');
+  assert.match(source, /sourceBuffer\.addEventListener\(['"]updateend['"]/, 'Must process queue on updateend');
+
+  // 3. Clean endOfStream on complete download + empty queue
+  assert.match(source, /mediaSource\.endOfStream\(\)/, 'Must call endOfStream when download complete and queue drained');
+
+  // 4. AbortController / cancellation integration on stopSpeaking
+  assert.match(source, /currentStreamController/, 'Must track current stream controller');
+  assert.match(source, /abort\(\)/, 'Must abort controller on stopSpeaking');
+});

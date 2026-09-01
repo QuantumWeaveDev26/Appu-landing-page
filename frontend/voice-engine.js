@@ -298,6 +298,8 @@ class VoiceEngine {
                 this.audioPlayer.src = objectUrl;
                 this.audioPlayer.playbackRate = this.rate;
 
+                const MIN_STARTUP_BUFFER_SECS = 1.2; // Initial buffer cushion to eliminate mid-speech chunk jitter pauses
+
                 mediaSource.addEventListener('sourceopen', async () => {
                     let sourceBuffer;
                     try {
@@ -306,33 +308,100 @@ class VoiceEngine {
                         return;
                     }
 
-                    const reader = response.body.getReader();
-                    let isFirstChunk = true;
+                    let isDisposed = false;
+                    let hasStartedPlayback = false;
+                    let isAppending = false;
+                    let streamDone = false;
+                    const chunkQueue = [];
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) {
-                            if (mediaSource.readyState === 'open' && !sourceBuffer.updating) {
-                                mediaSource.endOfStream();
+                    if (this.currentStreamController) {
+                        this.currentStreamController.signal.addEventListener('abort', () => {
+                            isDisposed = true;
+                            chunkQueue.length = 0;
+                            try {
+                                if (mediaSource.readyState === 'open' && !sourceBuffer.updating) {
+                                    mediaSource.endOfStream();
+                                }
+                            } catch {}
+                        });
+                    }
+
+                    const checkAndStartPlayback = () => {
+                        if (hasStartedPlayback || isDisposed) return;
+                        let bufferedSecs = 0;
+                        try {
+                            if (sourceBuffer && sourceBuffer.buffered && sourceBuffer.buffered.length > 0) {
+                                bufferedSecs = sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1) - sourceBuffer.buffered.start(0);
                             }
-                            break;
+                        } catch {}
+
+                        // Start playback once initial threshold is satisfied OR stream has finished downloading
+                        if (bufferedSecs >= MIN_STARTUP_BUFFER_SECS || (streamDone && chunkQueue.length === 0)) {
+                            hasStartedPlayback = true;
+                            this.audioPlayer.play().catch(e => {
+                                if (!isDisposed) console.warn('Stream play error:', e);
+                            });
+                        }
+                    };
+
+                    const processQueue = () => {
+                        if (isDisposed || mediaSource.readyState !== 'open' || !sourceBuffer) return;
+                        if (isAppending || sourceBuffer.updating) return;
+
+                        if (chunkQueue.length > 0) {
+                            const nextChunk = chunkQueue.shift();
+                            try {
+                                isAppending = true;
+                                sourceBuffer.appendBuffer(nextChunk);
+                            } catch (err) {
+                                isAppending = false;
+                                console.warn('SourceBuffer append error:', err);
+                            }
+                            return;
                         }
 
-                        await new Promise((resolve) => {
-                            if (!sourceBuffer.updating) {
-                                sourceBuffer.appendBuffer(value);
-                                resolve();
-                            } else {
-                                sourceBuffer.addEventListener('updateend', () => {
-                                    sourceBuffer.appendBuffer(value);
-                                    resolve();
-                                }, { once: true });
-                            }
-                        });
+                        checkAndStartPlayback();
 
-                        if (isFirstChunk) {
-                            isFirstChunk = false;
-                            this.audioPlayer.play().catch(e => console.warn('Stream play error:', e));
+                        if (streamDone && !sourceBuffer.updating && mediaSource.readyState === 'open') {
+                            try {
+                                mediaSource.endOfStream();
+                            } catch {}
+                        }
+                    };
+
+                    sourceBuffer.addEventListener('updateend', () => {
+                        isAppending = false;
+                        checkAndStartPlayback();
+                        processQueue();
+                    });
+
+                    sourceBuffer.addEventListener('error', (err) => {
+                        isAppending = false;
+                        console.warn('SourceBuffer error:', err);
+                        processQueue();
+                    });
+
+                    const reader = response.body.getReader();
+
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (isDisposed) break;
+
+                            if (done) {
+                                streamDone = true;
+                                processQueue();
+                                break;
+                            }
+
+                            if (value && value.byteLength > 0) {
+                                chunkQueue.push(value);
+                                processQueue();
+                            }
+                        }
+                    } catch (readErr) {
+                        if (!isDisposed && readErr && readErr.name !== 'AbortError') {
+                            console.warn('Audio stream read error:', readErr);
                         }
                     }
                 }, { once: true });
