@@ -258,4 +258,143 @@ describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
       global.fetch = originalFetch;
     }
   });
+
+  // ============================================================================
+  // 3. AUDIO STREAM URL ORIGIN RESOLUTION & SECURITY (KANNADA V3 FIX)
+  // ============================================================================
+
+  test('resolveAudioStreamUrl: relative audioStreamUrl resolves to api.appuai.online and never appuai.online', () => {
+    const relativePath = '/api/appu/audio/stream?requestId=test-uuid-123';
+
+    // 1. Default configured API base
+    const resolvedDefault = AppuBackendClient.resolveAudioStreamUrl(relativePath);
+    assert.equal(resolvedDefault, 'https://api.appuai.online/api/appu/audio/stream?requestId=test-uuid-123');
+    assert.notEqual(resolvedDefault, 'https://appuai.online/api/appu/audio/stream?requestId=test-uuid-123');
+
+    // 2. Custom backend baseUrl
+    const resolvedCustom = AppuBackendClient.resolveAudioStreamUrl(relativePath, 'https://api-staging.appuai.online');
+    assert.equal(resolvedCustom, 'https://api-staging.appuai.online/api/appu/audio/stream?requestId=test-uuid-123');
+  });
+
+  test('resolveAudioStreamUrl: preserves trusted absolute backend URLs and rejects untrusted origins', () => {
+    // 1. Trusted backend origin
+    const trustedUrl = 'https://api.appuai.online/api/appu/audio/stream?requestId=test-uuid-456';
+    assert.equal(AppuBackendClient.resolveAudioStreamUrl(trustedUrl), trustedUrl);
+
+    // 2. Untrusted external origin (e.g. attacker domain attempting Bearer token exfiltration)
+    const evilUrl = 'https://attacker.evil.com/api/appu/audio/stream?requestId=test-uuid-456';
+    assert.equal(AppuBackendClient.resolveAudioStreamUrl(evilUrl), null, 'Must block untrusted third-party origins');
+
+    // 3. Static website domain (appuai.online) should not receive audio stream requests
+    const staticHostUrl = 'https://appuai.online/api/appu/audio/stream?requestId=test-uuid-456';
+    assert.equal(AppuBackendClient.resolveAudioStreamUrl(staticHostUrl), null, 'Must reject static frontend host origin');
+
+    // 4. Invalid or non-string inputs
+    assert.equal(AppuBackendClient.resolveAudioStreamUrl(null), null);
+    assert.equal(AppuBackendClient.resolveAudioStreamUrl(undefined), null);
+    assert.equal(AppuBackendClient.resolveAudioStreamUrl(''), null);
+  });
+
+  test('sendAppuMessage normalizes relative audioStreamUrl into absolute backend URL with Authorization', async () => {
+    let capturedUrl = '';
+    let capturedHeaders = {};
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options) => {
+      capturedUrl = url;
+      capturedHeaders = options.headers;
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            text: 'ಕನ್ನಡ ಉತ್ತರ',
+            audioSource: null,
+            audioStreamUrl: '/api/appu/audio/stream?requestId=req-kannada-789',
+            audioDurationMs: null,
+            childId: 'c123'
+          };
+        }
+      };
+    };
+
+    try {
+      const response = await AppuBackendClient.sendAppuMessage({
+        accessToken: 'valid-learner-bearer-token',
+        childId: 'c123',
+        message: 'ನಮಸ್ಕಾರ',
+        language: 'kn'
+      });
+
+      // 1. Backend message request had valid Authorization
+      assert.equal(capturedUrl, 'https://api.appuai.online/api/appu/message');
+      assert.equal(capturedHeaders['Authorization'], 'Bearer valid-learner-bearer-token');
+
+      // 2. Returned audioStreamUrl is normalized to api.appuai.online
+      assert.equal(response.audioStreamUrl, 'https://api.appuai.online/api/appu/audio/stream?requestId=req-kannada-789');
+      assert.equal(response.text, 'ಕನ್ನಡ ಉತ್ತರ');
+      assert.equal(response.audioSource, null);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('sendAppuMessage preserves English audioSource and includeAudio=false behavior unchanged', async () => {
+    const originalFetch = global.fetch;
+
+    try {
+      // Case A: English turn returns Base64 audioSource and null audioStreamUrl
+      global.fetch = async () => ({
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            text: 'Hello learner!',
+            audioSource: 'data:audio/mpeg;base64,SUQzBAAAAAAA...',
+            audioStreamUrl: null,
+            audioDurationMs: 2500
+          };
+        }
+      });
+
+      const resEnglish = await AppuBackendClient.sendAppuMessage({
+        accessToken: 'token-123',
+        childId: 'c123',
+        message: 'Hello Appu',
+        language: 'en',
+        includeAudio: true
+      });
+
+      assert.equal(resEnglish.audioSource, 'data:audio/mpeg;base64,SUQzBAAAAAAA...');
+      assert.equal(resEnglish.audioStreamUrl, null);
+      assert.equal(resEnglish.audioDurationMs, 2500);
+
+      // Case B: includeAudio=false returns text only with null audioSource and null audioStreamUrl
+      global.fetch = async () => ({
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            text: 'Text only response',
+            audioSource: null,
+            audioStreamUrl: null,
+            audioDurationMs: null
+          };
+        }
+      });
+
+      const resTextOnly = await AppuBackendClient.sendAppuMessage({
+        accessToken: 'token-123',
+        childId: 'c123',
+        message: 'No audio please',
+        includeAudio: false
+      });
+
+      assert.equal(resTextOnly.text, 'Text only response');
+      assert.equal(resTextOnly.audioSource, null);
+      assert.equal(resTextOnly.audioStreamUrl, null);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

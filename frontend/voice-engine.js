@@ -242,16 +242,50 @@ class VoiceEngine {
             return false;
         }
 
+        // Defensive resolution against configured APPU backend API origin
+        let resolvedUrl = null;
+        if (typeof AppuBackendClient !== 'undefined' && typeof AppuBackendClient.resolveAudioStreamUrl === 'function') {
+            resolvedUrl = AppuBackendClient.resolveAudioStreamUrl(streamUrl);
+        } else if (typeof streamUrl === 'string' && streamUrl.trim()) {
+            const trimmed = streamUrl.trim();
+            const base = (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.apiBaseUrl)
+                ? APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '')
+                : 'https://api.appuai.online';
+            if (trimmed.startsWith('/')) {
+                resolvedUrl = `${base}${trimmed}`;
+            } else {
+                try {
+                    const parsed = new URL(trimmed);
+                    if (parsed.origin === new URL(base).origin) {
+                        resolvedUrl = parsed.toString();
+                    }
+                } catch {}
+            }
+        }
+
+        if (!resolvedUrl) {
+            console.warn('Audio stream URL is invalid or blocked for security:', streamUrl);
+            if (text) this.streamSubtitles(text);
+            this.onSpeechEnd();
+            return false;
+        }
+
         this.stopSpeaking();
         if (text) this.streamSubtitles(text);
 
         try {
+            this.currentStreamController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
             const headers = {};
-            if (accessToken && typeof accessToken === 'string') {
+            if (accessToken && typeof accessToken === 'string' && accessToken.trim()) {
                 headers['Authorization'] = `Bearer ${accessToken.trim()}`;
             }
 
-            const response = await fetch(streamUrl, { method: 'GET', headers });
+            const fetchOpts = { method: 'GET', headers };
+            if (this.currentStreamController) {
+                fetchOpts.signal = this.currentStreamController.signal;
+            }
+
+            const response = await fetch(resolvedUrl, fetchOpts);
             if (!response.ok) {
                 console.warn('Authenticated audio stream request failed', response.status);
                 this.handleSpeechFinish();
@@ -313,6 +347,9 @@ class VoiceEngine {
                 return true;
             }
         } catch (error) {
+            if (error && error.name === 'AbortError') {
+                return false;
+            }
             console.warn('Audio stream error:', error);
             this.handleSpeechFinish();
             return false;
@@ -327,6 +364,10 @@ class VoiceEngine {
     }
 
     stopSpeaking() {
+        if (this.currentStreamController) {
+            try { this.currentStreamController.abort(); } catch {}
+            this.currentStreamController = null;
+        }
         if (this.audioPlayer && !this.audioPlayer.paused) this.audioPlayer.pause();
         if (this.audioPlayer) this.audioPlayer.currentTime = 0;
         if (this.isSpeaking) {

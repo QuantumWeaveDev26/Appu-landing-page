@@ -33,6 +33,40 @@
     return 'https://api.appuai.online';
   }
 
+  /**
+   * Resolves audioStreamUrl against configured APPU Backend API base URL.
+   * SECURITY: Rejects untrusted external origins to prevent Bearer token leakage.
+   */
+  function resolveAudioStreamUrl(rawUrl, customBaseUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return null;
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return null;
+
+    const base = (customBaseUrl && typeof customBaseUrl === 'string' && customBaseUrl.trim())
+      ? customBaseUrl.trim().replace(/\/+$/, '')
+      : getApiBaseUrl();
+
+    // Relative URL (e.g. /api/appu/audio/stream?requestId=...)
+    if (trimmed.startsWith('/')) {
+      return `${base}${trimmed}`;
+    }
+
+    // Absolute URL: verify origin matches trusted APPU backend API origin
+    try {
+      const parsed = new URL(trimmed);
+      const trustedOrigin = new URL(base).origin;
+      if (parsed.origin === trustedOrigin) {
+        return parsed.toString();
+      }
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('Blocked audio stream URL from untrusted origin:', parsed.origin);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   function getStoredGuestToken() {
     try {
       if (typeof localStorage !== 'undefined') {
@@ -347,7 +381,7 @@
       requestId: data.requestId || null,
       text: typeof data.text === 'string' ? data.text : '',
       audioSource: data.audioSource || null,
-      audioStreamUrl: data.audioStreamUrl || null,
+      audioStreamUrl: resolveAudioStreamUrl(data.audioStreamUrl, baseUrl),
       audioDurationMs: data.audioDurationMs || null,
       childId: data.childId || payload.childId,
       guest: guestInfo,
@@ -357,6 +391,7 @@
 
   return {
     getApiBaseUrl,
+    resolveAudioStreamUrl,
     getStoredGuestToken,
     setStoredGuestToken,
     sendAppuMessage,
