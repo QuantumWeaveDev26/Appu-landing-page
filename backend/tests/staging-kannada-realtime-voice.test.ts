@@ -707,4 +707,37 @@ describe('APPU Kannada Eleven v3 Decoupled Audio Streaming Suite', () => {
     const authRecord = await AppuAudioAuthorizationRepository.getById(db, body.requestId);
     assert.equal(authRecord, null, 'includeAudio=false must not create audio authorization record');
   });
+
+  // =========================================================================
+  // 6. KANGLISH SUPPORT & DYNAMIC LANGUAGE ROUTING
+  // =========================================================================
+  it('routes Romanized Kannada / Kanglish input ("nanage gothilla") to Kannada Eleven v3 streaming', async () => {
+    const kannadaResponse = 'ಚಿಂತೆ ಮಾಡಬೇಡ, ನಾನು ನಿನಗೆ ಅರ್ಥವಾಗುವಂತೆ ಹೇಳುತ್ತೇನೆ!';
+    n8nClient.nextResponse = {
+      text: kannadaResponse,
+      audioSource: null,
+      audioDurationMs: null
+    };
+
+    const msgRes = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${testParentToken}`, 'idempotency-key': 'kanglish_turn_1' },
+      payload: { childId: testChild.id, message: 'nanage gothilla', language: 'en', includeAudio: true }
+    });
+
+    assert.equal(msgRes.statusCode, 200);
+    const body = JSON.parse(msgRes.payload);
+
+    assert.equal(body.text, kannadaResponse);
+    assert.equal(body.audioSource, null, 'Old n8n audio must be suppressed');
+    assert.ok(body.audioStreamUrl, 'Must return audioStreamUrl for Kanglish input');
+    assert.match(body.audioStreamUrl, /\/api\/appu\/audio\/stream\?requestId=/);
+
+    // Verify audio authorization was created in database
+    const authRecord = await AppuAudioAuthorizationRepository.getById(db, body.requestId);
+    assert.ok(authRecord, 'Audio authorization must exist for Kanglish turn');
+    assert.equal(authRecord!.approvedText, kannadaResponse);
+    assert.equal(authRecord!.language, 'kn');
+  });
 });

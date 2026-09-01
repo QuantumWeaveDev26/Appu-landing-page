@@ -15,6 +15,7 @@ import type { GuestMentorContext } from '../domain/personalisation/types.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
+import { detectLanguageIntent } from '../domain/language/index.js';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -268,11 +269,15 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         entitlements
       );
 
+      // Determine effective language intent across explicit instructions, Kannada script, Kanglish patterns, and learner preference
+      const languageIntent = detectLanguageIntent(message, language, mentorContext.primaryLanguage);
+      const effectiveLanguage = languageIntent.language;
+
       // 5. Construct structured server-generated envelope for n8n
       // DUPLICATE TTS PREVENTION: If Kannada is requested/expected, tell n8n includeAudio=false
       // so n8n's old "Include Audio?" node skips eleven_turbo_v2_5 Base64 synthesis entirely.
       // Kannada audio will be served via the new decoupled v3 streaming path instead.
-      const isKnRequested = language === 'kn' || mentorContext.primaryLanguage === 'kn';
+      const isKnRequested = effectiveLanguage === 'kn' || language === 'kn' || mentorContext.primaryLanguage === 'kn';
       const n8nIncludeAudio = isKnRequested ? false : includeAudio;
 
       const envelope: N8nMessageEnvelope = {
@@ -282,7 +287,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         sessionId: `appu_child_${child.id}`,
         chatInput: message,
         message,
-        language: language || mentorContext.primaryLanguage,
+        language: effectiveLanguage,
         childId: child.id,
         includeAudio: n8nIncludeAudio,
         mentorContext
@@ -324,8 +329,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       });
 
       // 8. DUPLICATE TTS SAFETY: If the response text is Kannada (even from an English learner
-      //    who asked in Kannada), suppress any old n8n-generated audioSource to prevent double billing.
-      const isKnResponse = isKannadaResponseText(response.text, language || mentorContext.primaryLanguage);
+      //    who asked in Kannada or Kanglish), suppress any old n8n-generated audioSource to prevent double billing.
+      const isKnResponse = isKannadaResponseText(response.text, effectiveLanguage);
       if (isKnResponse && response.audioSource) {
         request.log.info({ requestId: lifecycle.id }, 'Suppressing n8n-generated audio for Kannada response; routing to v3 streaming');
         response.audioSource = null;
@@ -491,9 +496,15 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     (request as any).appuRequestId = initiation.request.id;
 
     // 4. Construct safe server-generated guest envelope for n8n
+    const languageIntent = detectLanguageIntent(message, language, 'en');
+    const effectiveLanguage = languageIntent.language;
+
+    const isKnRequested = effectiveLanguage === 'kn';
+    const n8nIncludeAudio = isKnRequested ? false : includeAudio;
+
     const mentorContext: GuestMentorContext = {
       mode: 'guest',
-      primaryLanguage: language || 'en',
+      primaryLanguage: effectiveLanguage,
       personalizationEnabled: false
     };
 
@@ -504,8 +515,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       sessionId: `appu_guest_${session.id}`,
       chatInput: message,
       message,
-      language: language || 'en',
-      includeAudio,
+      language: effectiveLanguage,
+      includeAudio: n8nIncludeAudio,
       mentorContext
     };
 
