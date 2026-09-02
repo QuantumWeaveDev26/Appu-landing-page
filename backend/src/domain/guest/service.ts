@@ -13,7 +13,7 @@ export interface GuestServiceConfig {
 }
 
 export class GuestSessionService {
-  public static readonly DEFAULT_MAX_TURNS = 3;
+  public static readonly DEFAULT_MAX_TURNS = 30; // BETA: raised from 3 for public beta testing
   public static readonly DEFAULT_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   public static readonly DEV_TEST_DEFAULT_SECRET = 'appu_guest_hmac_secret_key_2026_test_only_salt_9931';
   private static readonly IP_SALT = 'appu_privacy_ip_salt_7718';

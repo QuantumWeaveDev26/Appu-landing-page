@@ -13,6 +13,13 @@
   <link rel="stylesheet" href="style.css?v=20260831-1">
 </head>
 <body>
+  <div id="beta-banner" class="beta-banner" role="banner">
+    <div class="beta-banner-track">
+      <span class="beta-banner-item">🎉 APPU is in Public Beta — try it free, 30 chats included, no card required</span>
+      <span class="beta-banner-item">🎉 APPU is in Public Beta — try it free, 30 chats included, no card required</span>
+    </div>
+    <button id="beta-banner-cta" type="button" class="beta-banner-cta">Try Beta — Sign Up Free</button>
+  </div>
   <div id="loader" class="entrance-loader" role="dialog" aria-modal="true" aria-labelledby="loader-title">
     <video id="loader-video-player" class="loader-bg-fullscreen-video" autoplay muted playsinline preload="auto">
       <source src="assets/tribute-intro.mp4" type="video/mp4">
@@ -214,9 +221,9 @@
   <section id="parent-setup-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pos-modal-title" aria-hidden="true" tabindex="-1">
     <div class="modal-sheet pos-sheet">
       <button id="btn-close-parent-setup" class="icon-btn modal-close close-btn" type="button" aria-label="Close parent setup"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-      <div class="modal-kicker"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Parent Zone • Setup</div>
+      <div id="pos-modal-kicker" class="modal-kicker"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Parent Zone • Setup</div>
       <h2 id="pos-modal-title">Personalized Appu Setup</h2>
-      <p class="modal-lead">Configure your learner's companion, active learning plan, and personalized preferences.</p>
+      <p id="pos-modal-lead" class="modal-lead">Configure your learner's companion, active learning plan, and personalized preferences.</p>
 
       <div id="pos-step-tracker" class="pos-tracker" aria-label="Setup progress">
         <span class="pos-step-dot active" title="Account"></span>

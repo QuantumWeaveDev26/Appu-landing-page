@@ -6,6 +6,7 @@ import { createAuthPreHandler } from '../middleware/auth.js';
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
 import { TenancyRepository } from '../domain/tenancy/repository.js';
 import { EntitlementEnforcementService } from '../domain/entitlements/enforcement-service.js';
+import { ensureBetaSubscription } from '../domain/subscription/beta-service.js';
 import {
   PersonalisationRepository,
   FontPreferences,
@@ -18,6 +19,8 @@ import { BadRequestError, NotFoundError } from '../errors/index.js';
 export interface ChildrenRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
+  betaMode?: boolean;
+  betaChatLimit?: number;
 }
 
 const safeStringPattern = /^[^<>`$]*$/;
@@ -119,6 +122,12 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       opts.db,
       principal.userId
     );
+
+    // BETA: lazily provision a free beta subscription before the entitlement check below,
+    // so a fresh signup can create a child profile without going through Razorpay checkout.
+    if (opts.betaMode) {
+      await ensureBetaSubscription(opts.db, household.id, opts.betaChatLimit ?? 30);
+    }
 
     // 2. Enforce active subscription and max_children limit
     await EntitlementEnforcementService.enforceChildCreationLimit(opts.db, household.id);

@@ -120,6 +120,17 @@
       modal.setAttribute('aria-hidden', 'false');
       clearAlert();
 
+      // BETA: label the modal clearly as beta signup, not the normal paid-plan setup copy.
+      // Remove this block once beta ends to restore the original wording.
+      if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+        const kicker = document.getElementById('pos-modal-kicker');
+        const title = document.getElementById('pos-modal-title');
+        const lead = document.getElementById('pos-modal-lead');
+        if (kicker) kicker.innerHTML = '<i class="fa-solid fa-flask" aria-hidden="true"></i> Public Beta • Free Signup';
+        if (title) title.textContent = 'Join the APPU Beta — Free';
+        if (lead) lead.textContent = `No payment required. Sign up, verify your email, and get ${APPU_CONFIG.betaChatLimit || 30} free personalised chats.`;
+      }
+
       const shell = typeof window !== 'undefined' ? window.ParentOnboardingShell : null;
       const isAuthed = shell && shell.state.session;
 
@@ -417,6 +428,19 @@
     // Step 2: Current Plan Summary & Subscription View
     // -------------------------------------------------------------
     async function renderPlansStep({ refresh = true } = {}) {
+      // BETA: no plan selection at all -- straight to child/personalisation setup.
+      // Remove this block to restore normal plan-selection step once beta ends.
+      if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+        if (refresh) {
+          await Promise.all([
+            window.ParentOnboardingShell.fetchCurrentSubscription().catch(() => null),
+            window.ParentOnboardingShell.fetchUsageSummary().catch(() => null),
+            window.ParentOnboardingShell.fetchChildren().catch(() => [])
+          ]);
+        }
+        return renderChildStep();
+      }
+
       setStep(2);
       if (plansContainer) {
         plansContainer.innerHTML = '<div class="pos-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading subscription details...</div>';
@@ -698,8 +722,10 @@
         const genesisPlan = interval === 'yearly' ? genesisTier.annual : genesisTier.monthly;
         const targetCode = genesisPlan?.code || (interval === 'yearly' ? 'genesis_annual' : 'genesis_monthly');
         const isCurrent = activeCode === targetCode;
-        const priceText = interval === 'yearly' ? '₹24,999/year' : '₹2,499/month';
-        const equivText = interval === 'yearly' ? '₹2,083/mo billed annually • Save ₹4,989/yr' : 'Billed monthly';
+        // BETA: hide real pricing, show free-beta access instead. Remove to restore.
+        const isBeta = typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode;
+        const priceText = isBeta ? 'Free' : (interval === 'yearly' ? '₹24,999/year' : '₹2,499/month');
+        const equivText = isBeta ? 'No payment required' : (interval === 'yearly' ? '₹2,083/mo billed annually • Save ₹4,989/yr' : 'Billed monthly');
 
         box.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
@@ -807,6 +833,12 @@
               priceHtml = `<div class="pos-price">₹${priceNum.toLocaleString('en-IN')} <span>/month</span></div>`;
               subHtml = '<div class="pos-equiv-sub">Billed monthly</div>';
             }
+          }
+
+          // BETA: hide real pricing, show free-beta access instead. Remove this block to restore.
+          if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+            priceHtml = '<div class="pos-price">Free <span>during Beta</span></div>';
+            subHtml = '<div class="pos-equiv-sub"><span class="pos-save-tag">No payment required</span></div>';
           }
 
           // Quota Badges

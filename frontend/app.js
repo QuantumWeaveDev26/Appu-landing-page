@@ -196,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const guestLimitModal = document.getElementById('guest-limit-modal');
   const btnCloseGuestLimit = document.getElementById('btn-close-guest-limit');
   const btnGuestSignin = document.getElementById('btn-guest-signin');
+  const btnBetaBannerCta = document.getElementById('beta-banner-cta');
   const btnGuestRegister = document.getElementById('btn-guest-register');
   const btnGuestPlans = document.getElementById('btn-guest-plans');
   const guestAccessBadge = document.getElementById('guest-access-badge');
@@ -229,6 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // BETA: guests can't chat anonymously anymore -- point them at signup instead of a chat count.
+    if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+      guestAccessBadge.classList.remove('is-hidden', 'is-warning', 'is-exhausted');
+      if (guestAccessText) guestAccessText.textContent = 'Sign up free for 30 beta chats';
+      return;
+    }
+
     guestAccessBadge.classList.remove('is-hidden');
 
     if (guestData) {
@@ -243,16 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     guestAccessBadge.classList.remove('is-warning', 'is-exhausted');
 
-    if (currentGuestRemaining === 3) {
-      if (guestAccessText) guestAccessText.textContent = '3 complimentary chats available';
-    } else if (currentGuestRemaining === 2) {
-      if (guestAccessText) guestAccessText.textContent = '2 complimentary chats remaining';
+    if (currentGuestRemaining <= 0) {
+      if (guestAccessText) guestAccessText.textContent = '0 complimentary chats remaining';
+      guestAccessBadge.classList.add('is-exhausted');
     } else if (currentGuestRemaining === 1) {
       if (guestAccessText) guestAccessText.textContent = '1 complimentary chat remaining';
       guestAccessBadge.classList.add('is-warning');
     } else {
-      if (guestAccessText) guestAccessText.textContent = '0 complimentary chats remaining';
-      guestAccessBadge.classList.add('is-exhausted');
+      if (guestAccessText) guestAccessText.textContent = `${currentGuestRemaining} complimentary chats remaining`;
     }
   }
 
@@ -266,6 +272,14 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitlesText.textContent = 'Your complimentary APPU chats are complete. Sign in to continue learning!';
     }
     avatarStage.setState('idle');
+  }
+
+  if (btnBetaBannerCta) {
+    btnBetaBannerCta.addEventListener('click', () => {
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
   }
 
   if (btnGuestSignin) {
@@ -531,6 +545,23 @@ document.addEventListener('DOMContentLoaded', () => {
       typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
       window.ParentOnboardingShell.isParentAuthenticated();
 
+    // BETA: no anonymous chatting -- guest turns aren't personalised, and showing off
+    // personalisation is the point of the beta. Sign up first, every time.
+    if (
+      typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode &&
+      !isAuthed && !hasAuthenticatedParent
+    ) {
+      voiceEngine.playClick();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = 'Sign up free to start chatting with Appu — takes 30 seconds!';
+      }
+      return;
+    }
+
     // If unauthenticated and known guest limit reached, gate immediately
     if (!isAuthed && !hasAuthenticatedParent && currentGuestRemaining <= 0) {
       voiceEngine.playClick();
@@ -586,14 +617,37 @@ document.addEventListener('DOMContentLoaded', () => {
     btnHeroSchedule.addEventListener('click', () => openDiscoveryModal());
   }
 
+  // BETA: block mic-based chat for guests before it even starts listening, same rule as
+  // handleUserInteraction. Returns true if blocked (caller should stop).
+  function blockGuestVoiceForBeta() {
+    const isAuthed = typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated();
+    const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated();
+    if (
+      typeof APPU_CONFIG === 'undefined' || !APPU_CONFIG.betaMode ||
+      isAuthed || hasAuthenticatedParent
+    ) {
+      return false;
+    }
+    if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+      window.ParentSetupUI.openModal(1);
+    }
+    return true;
+  }
+
   if (btnHeroTalk) {
     btnHeroTalk.addEventListener('click', () => {
+      if (blockGuestVoiceForBeta()) return;
       voiceEngine.toggleLiveSession();
     });
   }
 
   if (btnMic) {
     btnMic.addEventListener('click', () => {
+      if (blockGuestVoiceForBeta()) return;
       voiceEngine.toggleLiveSession();
     });
   }
@@ -676,7 +730,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (btnToggleChat) {
-    btnToggleChat.addEventListener('click', () => toggleChatDrawer(true));
+    btnToggleChat.addEventListener('click', () => {
+      if (blockGuestVoiceForBeta()) return;
+      toggleChatDrawer(true);
+    });
   }
   if (btnCloseChat) {
     btnCloseChat.addEventListener('click', () => toggleChatDrawer(false));
@@ -705,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnChatMic) {
     btnChatMic.addEventListener('click', () => {
+      if (blockGuestVoiceForBeta()) return;
       voiceEngine.toggleLiveSession();
     });
   }

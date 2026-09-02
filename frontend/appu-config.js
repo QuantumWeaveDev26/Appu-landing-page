@@ -36,6 +36,10 @@
     },
     // Public Supabase configuration (client-safe publishable key only)
     supabaseUrl: 'https://cmulkkpinwernuzhtegp.supabase.co',
-    supabasePublishableKey: 'sb_publishable_N-I0xWkc2SXY6kga0iD0_Q_awDjKXNr'
+    supabasePublishableKey: 'sb_publishable_N-I0xWkc2SXY6kga0iD0_Q_awDjKXNr',
+    // BETA: hides plan pricing UI and unlocks the free beta signup path. Flip to false to
+    // restore normal paid-plan display once the beta period ends.
+    betaMode: true,
+    betaChatLimit: 30
   };
 });

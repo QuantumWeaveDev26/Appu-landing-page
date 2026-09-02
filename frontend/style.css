@@ -314,11 +314,11 @@ select option:checked, .discovery-form select option:checked {
     display: flex;
     flex-direction: column;
     height: auto;
-    min-height: 100dvh;
-    padding: 8px 12px 20px;
-    gap: 16px;
+    min-height: 0;
+    padding: 8px 12px 10px;
+    gap: 8px;
     box-sizing: border-box;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .topbar {
@@ -351,8 +351,8 @@ select option:checked, .discovery-form select option:checked {
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: auto;
-    min-height: auto;
+    flex: 1 1 0;
+    min-height: 0;
     overflow: hidden;
     border-radius: 20px;
     padding: 0;
@@ -366,10 +366,11 @@ select option:checked, .discovery-form select option:checked {
     transform: none;
     width: 100%;
     max-width: 100%;
-    padding: 20px 16px 0;
+    padding: 12px 16px 0;
     margin: 0;
     text-align: center;
     box-sizing: border-box;
+    flex-shrink: 0;
     z-index: 6;
   }
   .mission-intro .eyebrow {
@@ -394,13 +395,14 @@ select option:checked, .discovery-form select option:checked {
     bottom: auto;
     transform: none;
     width: min(360px, 78vw);
-    height: 285px;
-    margin: 16px auto 0;
+    flex: 1 1 0;
+    min-height: 90px;
+    margin: 8px auto 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     z-index: 5;
-    overflow: visible;
+    overflow: hidden;
   }
   .avatar-interactive-figure {
     position: relative;
@@ -418,7 +420,7 @@ select option:checked, .discovery-form select option:checked {
     display: block;
     width: auto;
     height: 100%;
-    max-height: 265px;
+    max-height: 100%;
     max-width: 100%;
     object-fit: contain;
     object-position: bottom center;
@@ -465,17 +467,18 @@ select option:checked, .discovery-form select option:checked {
     box-sizing: border-box;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding: 18px 14px 20px;
+    gap: 8px;
+    padding: 10px 14px 12px;
     margin-top: 0;
+    flex-shrink: 0;
     z-index: 7;
     pointer-events: auto;
   }
   .mission-card {
-    min-height: 56px;
+    min-height: 48px;
     grid-template-columns: 36px 1fr;
     gap: 8px;
-    padding: 8px 10px;
+    padding: 6px 10px;
     border-radius: 13px;
   }
   .mission-icon {
@@ -498,14 +501,15 @@ select option:checked, .discovery-form select option:checked {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 6px;
+    padding: 10px 14px;
     border: 1px solid rgba(44, 211, 239, 0.26);
     border-radius: 18px;
     background: linear-gradient(110deg, rgba(5, 17, 34, 0.93), rgba(8, 18, 36, 0.82));
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.27);
     backdrop-filter: blur(20px);
     z-index: 15;
+    flex-shrink: 0;
     margin-top: 0;
   }
   .response-card {
@@ -553,9 +557,9 @@ select option:checked, .discovery-form select option:checked {
   }
 
   .landing-footer-strip {
-    padding: 14px 16px 20px;
-    gap: 6px 12px;
-    font-size: 11px;
+    padding: 5px 14px;
+    gap: 6px 10px;
+    font-size: 10px;
   }
 
   .modal-overlay { align-items: end; padding: 0; }
@@ -1828,16 +1832,18 @@ body.policy-page {
   width: 100%;
   box-sizing: border-box;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: flex-start;
   align-items: center;
-  gap: 8px 18px;
-  padding: 10px 20px 14px;
+  gap: 6px 14px;
+  padding: 5px 16px;
   background: rgba(2, 6, 16, 0.95);
   border-top: 1px solid rgba(151, 184, 226, 0.12);
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
   text-align: center;
+  white-space: nowrap;
   flex: 0 0 auto;
   position: relative;
   z-index: 10;
@@ -1874,4 +1880,50 @@ body.policy-page {
     align-items: flex-start;
     gap: 10px;
   }
+}
+
+/* BETA banner (remove this whole block, plus the #beta-banner markup in index.html, once beta ends) */
+.beta-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4);
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.beta-banner-track {
+  flex: 1 1 auto;
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+}
+.beta-banner-item {
+  display: inline-block;
+  padding-right: 60px;
+  animation: beta-banner-scroll 16s linear infinite;
+}
+@keyframes beta-banner-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.beta-banner-cta {
+  flex: 0 0 auto;
+  background: #fff;
+  color: #7c3aed;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.beta-banner-cta:hover { background: #f3e8ff; }
+@media (prefers-reduced-motion: reduce) {
+  .beta-banner-item { animation: none; }
 }

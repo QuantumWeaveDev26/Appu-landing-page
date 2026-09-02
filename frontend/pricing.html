@@ -71,8 +71,15 @@
           Choose the learning tier that best supports your child's academic journey. All paid plans include syllabus coverage, voice tutoring, and parent visibility.
         </p>
 
+        <!-- BETA: shown instead of the pricing grid while APPU_CONFIG.betaMode is on. Remove once beta ends. -->
+        <div id="pricing-beta-notice" class="policy-highlight-box" style="display: none; margin: 24px auto 0; max-width: 620px; text-align: center;">
+          <h4><i class="fa-solid fa-flask text-cyan"></i> APPU is in Public Beta</h4>
+          <p>All plans and payments are on hold during the free beta. Sign up free and get 30 complimentary personalised chats — no card required.</p>
+          <a href="index.html" class="public-plan-btn primary" style="display: inline-flex; margin-top: 10px;">Try Beta — Sign Up Free</a>
+        </div>
+
         <!-- Billing Interval Toggle -->
-        <div class="billing-toggle-wrap" role="radiogroup" aria-label="Billing Interval">
+        <div id="pricing-toggle-wrap" class="billing-toggle-wrap" role="radiogroup" aria-label="Billing Interval">
           <button id="toggle-monthly" class="billing-toggle-btn active" type="button" role="radio" aria-checked="true">
             Monthly Billing
           </button>
@@ -83,7 +90,7 @@
       </div>
 
       <!-- Public Pricing Cards Grid -->
-      <div class="public-pricing-grid">
+      <div id="pricing-content"><div class="public-pricing-grid">
         <!-- 1. APPU Free -->
         <div class="public-plan-card">
           <h2 class="public-plan-name">APPU Free</h2>
@@ -247,6 +254,7 @@
           We accept all major payment methods across India via Razorpay, including UPI (Google Pay, PhonePe, Paytm, BHIM), Netbanking across all major Indian banks, and Credit/Debit Cards (Visa, Mastercard, RuPay).
         </p>
       </div>
+      </div>
     </article>
   </main>
 
@@ -273,8 +281,20 @@
     </div>
   </footer>
 
+  <script src="appu-config.js"></script>
   <script>
     (function() {
+      // BETA: hide the real pricing grid/table and show a free-beta notice instead.
+      // Remove this block once beta ends to restore normal pricing display.
+      if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+        const notice = document.getElementById('pricing-beta-notice');
+        const toggleWrap = document.getElementById('pricing-toggle-wrap');
+        const content = document.getElementById('pricing-content');
+        if (notice) notice.style.display = 'block';
+        if (toggleWrap) toggleWrap.style.display = 'none';
+        if (content) content.style.display = 'none';
+      }
+
       const btnMonthly = document.getElementById('toggle-monthly');
       const btnAnnual = document.getElementById('toggle-annual');
       const priceEvolve = document.getElementById('price-evolve');

@@ -80,6 +80,10 @@ export const envSchema = z
       .coerce.number().int().min(30).max(900).default(300),
     N8N_APPU_TIMEOUT_MS: z
       .coerce.number().int().min(1000).max(120000).default(20000),
+    // BETA: toggle to bypass the ACTIVE-subscription gate for signed-up users, capped at
+    // APPU_BETA_CHAT_LIMIT free AI sessions. Turn off (or unset) to restore normal paid gating.
+    APPU_BETA_MODE: z.coerce.boolean().default(false),
+    APPU_BETA_CHAT_LIMIT: z.coerce.number().int().min(1).max(1000).default(30),
     GUEST_SESSION_SECRET: z
       .string()
       .min(16, 'GUEST_SESSION_SECRET must be at least 16 characters')

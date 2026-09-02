@@ -6,6 +6,7 @@ import type { AuthVerifier, AuthenticatedPrincipal } from '../domain/auth/types.
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
 import { TenancyRepository } from '../domain/tenancy/repository.js';
 import { SubscriptionRepository } from '../domain/subscription/repository.js';
+import { ensureBetaSubscription } from '../domain/subscription/beta-service.js';
 import { EntitlementEnforcementService } from '../domain/entitlements/enforcement-service.js';
 import { UsageService } from '../domain/usage/service.js';
 import { GuestSessionService } from '../domain/guest/service.js';
@@ -42,6 +43,8 @@ export interface AppuGatewayRouteOptions {
   authVerifier: AuthVerifier;
   n8nClient: N8nClient;
   guestSessionSecret?: string;
+  betaMode?: boolean;
+  betaChatLimit?: number;
 }
 
 const authenticatedMessageSchema = z.object({
@@ -188,7 +191,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       const tContextStart = performance.now();
       const [
         child,
-        subscriptionContext,
+        initialSubscriptionContext,
         currentVoiceUsageMs,
         personalisation
       ] = await Promise.all([
@@ -201,6 +204,18 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       if (!child) {
         throw new NotFoundError('Child profile not found');
+      }
+
+      let subscriptionContext = initialSubscriptionContext;
+
+      // BETA: lazily provision a free beta subscription instead of requiring Razorpay checkout.
+      // Reversible -- stops firing as soon as APPU_BETA_MODE is turned off.
+      if (opts.betaMode && (!subscriptionContext || subscriptionContext.subscription.status !== 'ACTIVE')) {
+        await ensureBetaSubscription(opts.db, household.id, opts.betaChatLimit ?? 30);
+        subscriptionContext = await SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(
+          opts.db,
+          household.id
+        );
       }
 
       if (!subscriptionContext || subscriptionContext.subscription.status !== 'ACTIVE') {

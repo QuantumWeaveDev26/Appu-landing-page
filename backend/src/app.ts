@@ -258,7 +258,9 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
 
     app.register(childrenRoutes, {
       db: options.database,
-      authVerifier
+      authVerifier,
+      betaMode: config.APPU_BETA_MODE,
+      betaChatLimit: config.APPU_BETA_CHAT_LIMIT
     });
 
     // Subscriptions and webhooks require RazorpayClient
@@ -288,7 +290,9 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         db: options.database,
         authVerifier,
         n8nClient,
-        guestSessionSecret: config.GUEST_SESSION_SECRET
+        guestSessionSecret: config.GUEST_SESSION_SECRET,
+        betaMode: config.APPU_BETA_MODE,
+        betaChatLimit: config.APPU_BETA_CHAT_LIMIT
       });
     }
 
