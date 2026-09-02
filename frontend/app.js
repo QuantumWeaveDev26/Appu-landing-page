@@ -351,7 +351,38 @@ document.addEventListener('DOMContentLoaded', () => {
       chatSubtitle: 'Ask, explore, understand',
       chatPlaceholder: 'Ask about science, maths, homework…',
       guestAccessSuffix: 'complimentary chats available',
-      avatarIntroPrompt: 'Namaskara Appu! Introduce yourself as my learning companion and ask what I want to learn.'
+      avatarIntroPrompt: 'Namaskara Appu! Introduce yourself as my learning companion and ask what I want to learn.',
+      betaBannerText: '🎉 APPU is in Public Beta — try it free, 30 chats included, no card required',
+      betaBannerCta: 'Try Beta — Sign Up Free',
+      settingsKicker: 'Preferences',
+      settingsTitle: 'Make Appu comfortable for you',
+      settingsLead: 'Adjust how answers sound and how the page responds.',
+      settingRateTitle: 'Speaking speed',
+      settingRateDesc: 'Slower can make explanations easier to follow.',
+      settingAutospeakTitle: 'Play answers aloud',
+      settingAutospeakDesc: 'Appu speaks when audio is available.',
+      settingUisoundTitle: 'Sound effects',
+      settingUisoundDesc: 'Gentle feedback for taps and actions.',
+      btnSaveSettings: 'Save preferences',
+      discoveryKicker: 'Parent Zone',
+      discoveryTitle: 'Plan a learning support call',
+      discoveryLead: 'For a parent/guardian: choose a convenient time to speak with an IGR Academy mentor about your learner.',
+      leadNameLabel: 'Parent/Guardian name',
+      leadNamePlaceholder: 'Your full name',
+      leadPhoneLabel: 'WhatsApp number',
+      leadEmailLabel: 'Email for the meeting',
+      leadDateLabel: 'Preferred date and time',
+      leadInterestLabel: 'What support would help most?',
+      interestRoadmap: 'A personal learning roadmap',
+      interestHomework: 'Homework and concept support',
+      interestExam: 'Exam preparation',
+      interestAi: 'AI and coding skills',
+      discoveryPrivacyNote: 'Your details are used only to arrange this support call.',
+      btnSubmitDiscovery: 'Book parent call',
+      discoverySuccessTitle: "You're all set!",
+      successMeetLink: 'Open meeting link',
+      successWaLink: 'Open WhatsApp',
+      btnDoneDiscovery: 'Return to Appu'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -380,7 +411,38 @@ document.addEventListener('DOMContentLoaded', () => {
       chatSubtitle: 'ಕೇಳಿ, ಅನ್ವೇಷಿಸಿ, ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
       chatPlaceholder: 'ವಿಜ್ಞಾನ, ಗಣಿತ, ಮನೆಕೆಲಸದ ಬಗ್ಗೆ ಕೇಳಿ…',
       guestAccessSuffix: 'ಉಚಿತ ಸಂಭಾಷಣೆಗಳು ಲಭ್ಯವಿದೆ',
-      avatarIntroPrompt: 'ನಮಸ್ಕಾರ ಅಪ್ಪು! ನನ್ನ ಕಲಿಕೆಯ ಸಂಗಾತಿಯಾಗಿ ಪರಿಚಯಿಸಿಕೊಂಡು, ನಾನು ಏನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ ಎಂದು ಕೇಳಿ.'
+      avatarIntroPrompt: 'ನಮಸ್ಕಾರ ಅಪ್ಪು! ನನ್ನ ಕಲಿಕೆಯ ಸಂಗಾತಿಯಾಗಿ ಪರಿಚಯಿಸಿಕೊಂಡು, ನಾನು ಏನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ ಎಂದು ಕೇಳಿ.',
+      betaBannerText: '🎉 APPU ಈಗ ಸಾರ್ವಜನಿಕ ಬೀಟಾದಲ್ಲಿ ಲಭ್ಯವಿದೆ — ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ, 30 ಸಂಭಾಷಣೆಗಳು ಸೇರಿವೆ, ಕಾರ್ಡ್ ಅಗತ್ಯವಿಲ್ಲ',
+      betaBannerCta: 'ಬೀಟಾ ಪ್ರಯತ್ನಿಸಿ — ಉಚಿತವಾಗಿ ನೋಂದಾಯಿಸಿ',
+      settingsKicker: 'ಆದ್ಯತೆಗಳು',
+      settingsTitle: 'ಅಪ್ಪುವನ್ನು ನಿಮಗೆ ಅನುಕೂಲಕರವಾಗಿಸಿ',
+      settingsLead: 'ಉತ್ತರಗಳು ಹೇಗೆ ಕೇಳಿಸುತ್ತವೆ ಮತ್ತು ಪುಟ ಹೇಗೆ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತದೆ ಎಂಬುದನ್ನು ಹೊಂದಿಸಿ.',
+      settingRateTitle: 'ಮಾತಿನ ವೇಗ',
+      settingRateDesc: 'ನಿಧಾನವಾದರೆ ವಿವರಣೆಗಳನ್ನು ಅನುಸರಿಸುವುದು ಸುಲಭ.',
+      settingAutospeakTitle: 'ಉತ್ತರಗಳನ್ನು ಗಟ್ಟಿಯಾಗಿ ಓದಿ',
+      settingAutospeakDesc: 'ಆಡಿಯೋ ಲಭ್ಯವಿದ್ದಾಗ ಅಪ್ಪು ಮಾತನಾಡುತ್ತಾನೆ.',
+      settingUisoundTitle: 'ಧ್ವನಿ ಪರಿಣಾಮಗಳು',
+      settingUisoundDesc: 'ಟ್ಯಾಪ್ ಮತ್ತು ಕ್ರಿಯೆಗಳಿಗೆ ಮೃದುವಾದ ಪ್ರತಿಕ್ರಿಯೆ.',
+      btnSaveSettings: 'ಆದ್ಯತೆಗಳನ್ನು ಉಳಿಸಿ',
+      discoveryKicker: 'ಪೋಷಕರ ವಲಯ',
+      discoveryTitle: 'ಕಲಿಕಾ ಬೆಂಬಲ ಕರೆಯನ್ನು ಯೋಜಿಸಿ',
+      discoveryLead: 'ಪೋಷಕ/ಪಾಲಕರಿಗಾಗಿ: ನಿಮ್ಮ ಕಲಿಕಾರ್ಥಿಯ ಬಗ್ಗೆ IGR ಅಕಾಡೆಮಿಯ ಮಾರ್ಗದರ್ಶಕರೊಂದಿಗೆ ಮಾತನಾಡಲು ಅನುಕೂಲಕರ ಸಮಯವನ್ನು ಆರಿಸಿ.',
+      leadNameLabel: 'ಪೋಷಕ/ಪಾಲಕರ ಹೆಸರು',
+      leadNamePlaceholder: 'ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರು',
+      leadPhoneLabel: 'WhatsApp ಸಂಖ್ಯೆ',
+      leadEmailLabel: 'ಸಭೆಗಾಗಿ ಇಮೇಲ್',
+      leadDateLabel: 'ಆದ್ಯತೆಯ ದಿನಾಂಕ ಮತ್ತು ಸಮಯ',
+      leadInterestLabel: 'ಯಾವ ಬೆಂಬಲ ಹೆಚ್ಚು ಸಹಾಯಕವಾಗುತ್ತದೆ?',
+      interestRoadmap: 'ವೈಯಕ್ತಿಕ ಕಲಿಕಾ ಮಾರ್ಗಸೂಚಿ',
+      interestHomework: 'ಮನೆಕೆಲಸ ಮತ್ತು ಪರಿಕಲ್ಪನೆ ಬೆಂಬಲ',
+      interestExam: 'ಪರೀಕ್ಷಾ ತಯಾರಿ',
+      interestAi: 'ಎಐ ಮತ್ತು ಕೋಡಿಂಗ್ ಕೌಶಲ್ಯಗಳು',
+      discoveryPrivacyNote: 'ಈ ಬೆಂಬಲ ಕರೆಯನ್ನು ಏರ್ಪಡಿಸಲು ಮಾತ್ರ ನಿಮ್ಮ ವಿವರಗಳನ್ನು ಬಳಸಲಾಗುತ್ತದೆ.',
+      btnSubmitDiscovery: 'ಪೋಷಕರ ಕರೆ ಬುಕ್ ಮಾಡಿ',
+      discoverySuccessTitle: 'ನೀವು ಸಿದ್ಧರಿದ್ದೀರಿ!',
+      successMeetLink: 'ಮೀಟಿಂಗ್ ಲಿಂಕ್ ತೆರೆಯಿರಿ',
+      successWaLink: 'WhatsApp ತೆರೆಯಿರಿ',
+      btnDoneDiscovery: 'ಅಪ್ಪುಗೆ ಹಿಂತಿರುಗಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -409,7 +471,38 @@ document.addEventListener('DOMContentLoaded', () => {
       chatSubtitle: 'पूछें, सीखें, समझें',
       chatPlaceholder: 'विज्ञान, गणित, होमवर्क के बारे में पूछें…',
       guestAccessSuffix: 'निःशुल्क बातचीत उपलब्ध हैं',
-      avatarIntroPrompt: 'नमस्ते अप्पू! अपने आप को मेरे सीखने के साथी के रूप में पेश करो और पूछो कि मैं क्या सीखना चाहता हूँ।'
+      avatarIntroPrompt: 'नमस्ते अप्पू! अपने आप को मेरे सीखने के साथी के रूप में पेश करो और पूछो कि मैं क्या सीखना चाहता हूँ।',
+      betaBannerText: '🎉 APPU अभी सार्वजनिक बीटा में है — मुफ़्त में आज़माएं, 30 बातचीत शामिल, कार्ड की ज़रूरत नहीं',
+      betaBannerCta: 'बीटा आज़माएं — मुफ़्त साइन अप करें',
+      settingsKicker: 'प्राथमिकताएं',
+      settingsTitle: 'अप्पू को अपने अनुसार आरामदायक बनाएं',
+      settingsLead: 'उत्तर कैसे सुनाई दें और पेज कैसे प्रतिक्रिया दे, इसे समायोजित करें।',
+      settingRateTitle: 'बोलने की गति',
+      settingRateDesc: 'धीमी गति से समझाना आसान हो सकता है।',
+      settingAutospeakTitle: 'उत्तर ज़ोर से सुनाएं',
+      settingAutospeakDesc: 'ऑडियो उपलब्ध होने पर अप्पू बोलता है।',
+      settingUisoundTitle: 'ध्वनि प्रभाव',
+      settingUisoundDesc: 'टैप और क्रियाओं के लिए हल्की प्रतिक्रिया।',
+      btnSaveSettings: 'प्राथमिकताएं सहेजें',
+      discoveryKicker: 'पेरेंट ज़ोन',
+      discoveryTitle: 'सीखने की सहायता कॉल की योजना बनाएं',
+      discoveryLead: 'माता-पिता/अभिभावक के लिए: अपने बच्चे के बारे में IGR Academy के मेंटर से बात करने के लिए सुविधाजनक समय चुनें।',
+      leadNameLabel: 'माता-पिता/अभिभावक का नाम',
+      leadNamePlaceholder: 'आपका पूरा नाम',
+      leadPhoneLabel: 'WhatsApp नंबर',
+      leadEmailLabel: 'मीटिंग के लिए ईमेल',
+      leadDateLabel: 'पसंदीदा तारीख और समय',
+      leadInterestLabel: 'कौन सी सहायता सबसे उपयोगी होगी?',
+      interestRoadmap: 'एक व्यक्तिगत सीखने की रूपरेखा',
+      interestHomework: 'होमवर्क और अवधारणा सहायता',
+      interestExam: 'परीक्षा की तैयारी',
+      interestAi: 'एआई और कोडिंग कौशल',
+      discoveryPrivacyNote: 'आपकी जानकारी केवल इस सहायता कॉल की व्यवस्था के लिए उपयोग की जाती है।',
+      btnSubmitDiscovery: 'पेरेंट कॉल बुक करें',
+      discoverySuccessTitle: 'आप तैयार हैं!',
+      successMeetLink: 'मीटिंग लिंक खोलें',
+      successWaLink: 'WhatsApp खोलें',
+      btnDoneDiscovery: 'अप्पू पर वापस जाएं'
     }
   };
 
@@ -488,6 +581,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const chatInput = document.getElementById('chat-input');
     if (chatInput) chatInput.placeholder = t.chatPlaceholder;
+
+    // Beta banner
+    document.querySelectorAll('#beta-banner .beta-banner-item').forEach((el) => {
+      el.textContent = t.betaBannerText;
+    });
+    const betaBannerCta = document.getElementById('beta-banner-cta');
+    if (betaBannerCta) betaBannerCta.textContent = t.betaBannerCta;
+
+    // Settings modal
+    const settingsKickerText = document.getElementById('settings-kicker-text');
+    if (settingsKickerText) settingsKickerText.textContent = t.settingsKicker;
+
+    const settingsTitle = document.getElementById('settings-title');
+    if (settingsTitle) settingsTitle.textContent = t.settingsTitle;
+
+    const settingsLead = document.getElementById('settings-lead');
+    if (settingsLead) settingsLead.textContent = t.settingsLead;
+
+    const settingRateTitle = document.getElementById('setting-rate-title');
+    if (settingRateTitle) settingRateTitle.textContent = t.settingRateTitle;
+
+    const settingRateDesc = document.getElementById('setting-rate-desc');
+    if (settingRateDesc) settingRateDesc.textContent = t.settingRateDesc;
+
+    const settingAutospeakTitle = document.getElementById('setting-autospeak-title');
+    if (settingAutospeakTitle) settingAutospeakTitle.textContent = t.settingAutospeakTitle;
+
+    const settingAutospeakDesc = document.getElementById('setting-autospeak-desc');
+    if (settingAutospeakDesc) settingAutospeakDesc.textContent = t.settingAutospeakDesc;
+
+    const settingUisoundTitle = document.getElementById('setting-uisound-title');
+    if (settingUisoundTitle) settingUisoundTitle.textContent = t.settingUisoundTitle;
+
+    const settingUisoundDesc = document.getElementById('setting-uisound-desc');
+    if (settingUisoundDesc) settingUisoundDesc.textContent = t.settingUisoundDesc;
+
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    if (btnSaveSettings) btnSaveSettings.textContent = t.btnSaveSettings;
+
+    // Discovery modal
+    const discoveryKickerText = document.getElementById('discovery-kicker-text');
+    if (discoveryKickerText) discoveryKickerText.textContent = t.discoveryKicker;
+
+    const discoveryTitle = document.getElementById('parent-dialog-title');
+    if (discoveryTitle) discoveryTitle.textContent = t.discoveryTitle;
+
+    const discoveryLead = document.getElementById('discovery-lead');
+    if (discoveryLead) discoveryLead.textContent = t.discoveryLead;
+
+    const leadNameLabel = document.getElementById('lead-name-label');
+    if (leadNameLabel) leadNameLabel.textContent = t.leadNameLabel;
+
+    const leadNameInput = document.getElementById('lead-name');
+    if (leadNameInput) leadNameInput.placeholder = t.leadNamePlaceholder;
+
+    const leadPhoneLabel = document.getElementById('lead-phone-label');
+    if (leadPhoneLabel) leadPhoneLabel.textContent = t.leadPhoneLabel;
+
+    const leadEmailLabel = document.getElementById('lead-email-label');
+    if (leadEmailLabel) leadEmailLabel.textContent = t.leadEmailLabel;
+
+    const leadDateLabel = document.getElementById('lead-date-label');
+    if (leadDateLabel) leadDateLabel.textContent = t.leadDateLabel;
+
+    const leadInterestLabel = document.getElementById('lead-interest-label');
+    if (leadInterestLabel) leadInterestLabel.textContent = t.leadInterestLabel;
+
+    const optInterestRoadmap = document.getElementById('opt-interest-roadmap');
+    if (optInterestRoadmap) optInterestRoadmap.textContent = t.interestRoadmap;
+
+    const optInterestHomework = document.getElementById('opt-interest-homework');
+    if (optInterestHomework) optInterestHomework.textContent = t.interestHomework;
+
+    const optInterestExam = document.getElementById('opt-interest-exam');
+    if (optInterestExam) optInterestExam.textContent = t.interestExam;
+
+    const optInterestAi = document.getElementById('opt-interest-ai');
+    if (optInterestAi) optInterestAi.textContent = t.interestAi;
+
+    const discoveryPrivacyNoteText = document.getElementById('discovery-privacy-note-text');
+    if (discoveryPrivacyNoteText) discoveryPrivacyNoteText.textContent = t.discoveryPrivacyNote;
+
+    const btnSubmitDiscoveryText = document.getElementById('btn-submit-discovery-text');
+    if (btnSubmitDiscoveryText) btnSubmitDiscoveryText.textContent = t.btnSubmitDiscovery;
+
+    const discoverySuccessTitle = document.getElementById('discovery-success-title');
+    if (discoverySuccessTitle) discoverySuccessTitle.textContent = t.discoverySuccessTitle;
+
+    const successMeetLink = document.getElementById('success-meet-link');
+    if (successMeetLink) successMeetLink.textContent = t.successMeetLink;
+
+    const successWaLink = document.getElementById('success-wa-link');
+    if (successWaLink) successWaLink.textContent = t.successWaLink;
+
+    const btnDoneDiscovery = document.getElementById('btn-done-discovery');
+    if (btnDoneDiscovery) btnDoneDiscovery.textContent = t.btnDoneDiscovery;
+
+    // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
+    if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
+      window.ParentSetupUI.applyTranslations(lang);
+    }
   }
 
   // ==========================================

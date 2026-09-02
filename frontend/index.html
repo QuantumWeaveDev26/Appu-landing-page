@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260902-3">
+  <link rel="stylesheet" href="style.css?v=20260902-4">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -190,22 +190,22 @@
   <section id="discovery-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="parent-dialog-title" aria-hidden="true" tabindex="-1">
     <div class="modal-sheet">
       <button id="btn-close-discovery-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close Parent Zone"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-      <div class="modal-kicker"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Parent Zone</div>
+      <div class="modal-kicker"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> <span id="discovery-kicker-text">Parent Zone</span></div>
       <h2 id="parent-dialog-title">Plan a learning support call</h2>
-      <p class="modal-lead">For a parent/guardian: choose a convenient time to speak with an IGR Academy mentor about your learner.</p>
+      <p id="discovery-lead" class="modal-lead">For a parent/guardian: choose a convenient time to speak with an IGR Academy mentor about your learner.</p>
       <form id="discovery-form" class="discovery-form">
         <div class="field-grid">
-          <label><span>Parent/Guardian name</span><input id="lead-name" type="text" autocomplete="name" required placeholder="Your full name"></label>
-          <label><span>WhatsApp number</span><input id="lead-phone" type="tel" autocomplete="tel" required placeholder="+91 98765 43210"></label>
-          <label><span>Email for the meeting</span><input id="lead-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
-          <label><span>Preferred date and time</span><input id="lead-date" type="datetime-local" required></label>
+          <label><span id="lead-name-label">Parent/Guardian name</span><input id="lead-name" type="text" autocomplete="name" required placeholder="Your full name"></label>
+          <label><span id="lead-phone-label">WhatsApp number</span><input id="lead-phone" type="tel" autocomplete="tel" required placeholder="+91 98765 43210"></label>
+          <label><span id="lead-email-label">Email for the meeting</span><input id="lead-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
+          <label><span id="lead-date-label">Preferred date and time</span><input id="lead-date" type="datetime-local" required></label>
         </div>
-        <label><span>What support would help most?</span><select id="lead-interest" required><option value="Learning roadmap">A personal learning roadmap</option><option value="Homework support">Homework and concept support</option><option value="Exam preparation">Exam preparation</option><option value="AI and coding">AI and coding skills</option></select></label>
-        <p class="privacy-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> Your details are used only to arrange this support call.</p>
-        <button id="btn-submit-discovery" class="primary-modal-btn" type="submit"><span>Book parent call</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+        <label><span id="lead-interest-label">What support would help most?</span><select id="lead-interest" required><option id="opt-interest-roadmap" value="Learning roadmap">A personal learning roadmap</option><option id="opt-interest-homework" value="Homework support">Homework and concept support</option><option id="opt-interest-exam" value="Exam preparation">Exam preparation</option><option id="opt-interest-ai" value="AI and coding">AI and coding skills</option></select></label>
+        <p class="privacy-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> <span id="discovery-privacy-note-text">Your details are used only to arrange this support call.</span></p>
+        <button id="btn-submit-discovery" class="primary-modal-btn" type="submit"><span id="btn-submit-discovery-text">Book parent call</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
       </form>
       <div id="discovery-success-view" class="success-view">
-        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span><h3>You're all set!</h3><p id="success-summary">Your learning support call has been scheduled.</p>
+        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span><h3 id="discovery-success-title">You're all set!</h3><p id="success-summary">Your learning support call has been scheduled.</p>
         <div class="success-links"><a id="success-meet-link" href="#">Open meeting link</a><a id="success-wa-link" href="#">Open WhatsApp</a></div>
         <button id="btn-done-discovery" class="primary-modal-btn" type="button">Return to Appu</button>
       </div>
@@ -215,11 +215,11 @@
   <section id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" tabindex="-1">
     <div class="modal-sheet settings-sheet">
       <button id="btn-close-settings-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close voice settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-      <div class="modal-kicker"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Preferences</div>
-      <h2 id="settings-title">Make Appu comfortable for you</h2><p class="modal-lead">Adjust how answers sound and how the page responds.</p>
-      <div class="setting-row setting-range"><label for="setting-voice-rate"><strong>Speaking speed</strong><small>Slower can make explanations easier to follow.</small></label><output id="rate-val">0.88</output><input id="setting-voice-rate" type="range" min="0.75" max="1.35" value="0.88" step="0.01"></div>
-      <label class="setting-row switch-row"><span><strong>Play answers aloud</strong><small>Appu speaks when audio is available.</small></span><input id="setting-auto-speak" type="checkbox" checked></label>
-      <label class="setting-row switch-row"><span><strong>Sound effects</strong><small>Gentle feedback for taps and actions.</small></span><input id="setting-ui-sound" type="checkbox" checked></label>
+      <div class="modal-kicker"><i class="fa-solid fa-sliders" aria-hidden="true"></i> <span id="settings-kicker-text">Preferences</span></div>
+      <h2 id="settings-title">Make Appu comfortable for you</h2><p id="settings-lead" class="modal-lead">Adjust how answers sound and how the page responds.</p>
+      <div class="setting-row setting-range"><label for="setting-voice-rate"><strong id="setting-rate-title">Speaking speed</strong><small id="setting-rate-desc">Slower can make explanations easier to follow.</small></label><output id="rate-val">0.88</output><input id="setting-voice-rate" type="range" min="0.75" max="1.35" value="0.88" step="0.01"></div>
+      <label class="setting-row switch-row"><span><strong id="setting-autospeak-title">Play answers aloud</strong><small id="setting-autospeak-desc">Appu speaks when audio is available.</small></span><input id="setting-auto-speak" type="checkbox" checked></label>
+      <label class="setting-row switch-row"><span><strong id="setting-uisound-title">Sound effects</strong><small id="setting-uisound-desc">Gentle feedback for taps and actions.</small></span><input id="setting-ui-sound" type="checkbox" checked></label>
       <button id="btn-save-settings" class="primary-modal-btn" type="button">Save preferences</button>
     </div>
   </section>
@@ -249,10 +249,10 @@
           <button id="pos-tab-signup" class="pos-tab" type="button">Create Account</button>
         </div>
         <form id="pos-auth-form" class="discovery-form">
-          <label><span>Parent / Guardian Email</span><input id="pos-auth-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
-          <label><span>Password</span><input id="pos-auth-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
+          <label><span id="pos-auth-email-label">Parent / Guardian Email</span><input id="pos-auth-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
+          <label><span id="pos-auth-password-label">Password</span><input id="pos-auth-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
           <div id="pos-household-wrap" style="display:none;">
-            <label><span>Household / Family Name</span><input id="pos-auth-household" type="text" autocomplete="family-name" placeholder="e.g. Verma Family"></label>
+            <label><span id="pos-auth-household-label">Household / Family Name</span><input id="pos-auth-household" type="text" autocomplete="family-name" placeholder="e.g. Verma Family"></label>
           </div>
           <button id="pos-btn-auth-submit" class="primary-modal-btn" type="submit">Sign In to Parent Zone</button>
         </form>
@@ -268,34 +268,34 @@
       <div id="pos-step-child" class="pos-step-child-content" style="display:none;">
         <div id="pos-child-list" class="pos-child-list"></div>
         <div id="pos-child-form-wrap" class="setting-row" style="margin-top: 15px;">
-          <h4 class="pos-subtitle" style="margin-bottom: 8px;">Add New Learner Profile:</h4>
+          <h4 id="pos-child-form-title" class="pos-subtitle" style="margin-bottom: 8px;">Add New Learner Profile:</h4>
           <form id="pos-child-form" class="discovery-form">
             <div class="field-grid">
-              <label><span>Learner Preferred Name</span><input id="pos-child-name" type="text" required placeholder="e.g. Aarav"></label>
-              <label><span>Class / Grade Band</span>
+              <label><span id="pos-child-name-label">Learner Preferred Name</span><input id="pos-child-name" type="text" required placeholder="e.g. Aarav"></label>
+              <label><span id="pos-child-grade-label">Class / Grade Band</span>
                 <select id="pos-child-grade" required>
-                  <option value="Grade 5">Grade 5</option>
-                  <option value="Grade 6" selected>Grade 6</option>
-                  <option value="Grade 7">Grade 7</option>
-                  <option value="Grade 8">Grade 8</option>
-                  <option value="Grade 9">Grade 9</option>
-                  <option value="Grade 10">Grade 10</option>
-                  <option value="Grade 11">Grade 11</option>
-                  <option value="Grade 12">Grade 12</option>
+                  <option id="pos-grade-opt-5" value="Grade 5">Grade 5</option>
+                  <option id="pos-grade-opt-6" value="Grade 6" selected>Grade 6</option>
+                  <option id="pos-grade-opt-7" value="Grade 7">Grade 7</option>
+                  <option id="pos-grade-opt-8" value="Grade 8">Grade 8</option>
+                  <option id="pos-grade-opt-9" value="Grade 9">Grade 9</option>
+                  <option id="pos-grade-opt-10" value="Grade 10">Grade 10</option>
+                  <option id="pos-grade-opt-11" value="Grade 11">Grade 11</option>
+                  <option id="pos-grade-opt-12" value="Grade 12">Grade 12</option>
                 </select>
               </label>
             </div>
-            <button class="primary-modal-btn" type="submit">Save Learner & Continue</button>
+            <button id="pos-btn-child-submit" class="primary-modal-btn" type="submit">Save Learner & Continue</button>
           </form>
         </div>
       </div>
 
       <!-- STEP 4: PERSONALISATION QUESTIONNAIRE -->
       <div id="pos-step-pers" class="pos-step-pers-content" style="display:none;">
-        <p class="pos-subtitle">Personalize Appu for <strong id="pos-pers-child-name" class="text-cyan">Learner</strong>:</p>
+        <p class="pos-subtitle"><span id="pos-pers-intro-text">Personalize Appu for</span> <strong id="pos-pers-child-name" class="text-cyan">Learner</strong>:</p>
         <form id="pos-pers-form" class="discovery-form">
           <div class="field-grid">
-            <label><span>Primary Language</span>
+            <label><span id="pos-pers-lang-label">Primary Language</span>
               <select id="pos-pers-lang">
                 <option value="en" selected>English</option>
                 <option value="kn">Kannada (ಕನ್ನಡ)</option>
@@ -304,59 +304,59 @@
                 <option value="ta">Tamil (தமிழ்)</option>
               </select>
             </label>
-            <label><span>Learning Style</span>
+            <label><span id="pos-pers-style-label">Learning Style</span>
               <select id="pos-pers-style">
-                <option value="interactive" selected>Interactive (conversations & questions)</option>
-                <option value="visual">Visual (examples & diagrams)</option>
-                <option value="auditory">Auditory (spoken explanations)</option>
-                <option value="reading_writing">Reading & Writing (structured notes)</option>
+                <option id="pos-style-opt-interactive" value="interactive" selected>Interactive (conversations & questions)</option>
+                <option id="pos-style-opt-visual" value="visual">Visual (examples & diagrams)</option>
+                <option id="pos-style-opt-auditory" value="auditory">Auditory (spoken explanations)</option>
+                <option id="pos-style-opt-reading" value="reading_writing">Reading & Writing (structured notes)</option>
               </select>
             </label>
           </div>
           <div class="field-grid">
-            <label><span>Response Style</span>
+            <label><span id="pos-pers-response-label">Response Style</span>
               <select id="pos-pers-response">
-                <option value="playful" selected>Playful & Encouraging</option>
-                <option value="balanced">Balanced & Clear</option>
-                <option value="focused">Focused & Direct</option>
+                <option id="pos-response-opt-playful" value="playful" selected>Playful & Encouraging</option>
+                <option id="pos-response-opt-balanced" value="balanced">Balanced & Clear</option>
+                <option id="pos-response-opt-focused" value="focused">Focused & Direct</option>
               </select>
             </label>
-            <label><span>Reading Font Style</span>
+            <label><span id="pos-pers-font-label">Reading Font Style</span>
               <select id="pos-pers-font">
-                <option value="rounded" selected>Friendly Rounded</option>
-                <option value="friendly">Friendly Standard</option>
-                <option value="clean">Clean Minimal</option>
+                <option id="pos-font-opt-rounded" value="rounded" selected>Friendly Rounded</option>
+                <option id="pos-font-opt-friendly" value="friendly">Friendly Standard</option>
+                <option id="pos-font-opt-clean" value="clean">Clean Minimal</option>
               </select>
             </label>
           </div>
           <div class="field-grid">
-            <label><span>Theme Mode</span>
+            <label><span id="pos-pers-theme-label">Theme Mode</span>
               <select id="pos-pers-theme">
-                <option value="auto" selected>Auto</option>
-                <option value="bright">Bright & Energetic</option>
-                <option value="calm">Calm & Focused</option>
+                <option id="pos-theme-opt-auto" value="auto" selected>Auto</option>
+                <option id="pos-theme-opt-bright" value="bright">Bright & Energetic</option>
+                <option id="pos-theme-opt-calm" value="calm">Calm & Focused</option>
               </select>
             </label>
-            <label><span>Favorite Subjects</span>
+            <label><span id="pos-pers-subjects-label">Favorite Subjects</span>
               <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
             </label>
           </div>
-          <label><span>Favorite Interests & Hobbies (comma-separated)</span>
+          <label><span id="pos-pers-interests-label">Favorite Interests & Hobbies (comma-separated)</span>
             <input id="pos-pers-interests" type="text" placeholder="Space, Robotics, Astronomy, Dinosaurs">
           </label>
-          <label><span>Learning Goal for Appu</span>
+          <label><span id="pos-pers-goals-label">Learning Goal for Appu</span>
             <input id="pos-pers-goals" type="text" placeholder="Master school science and build creative curiosity">
           </label>
-          <button class="primary-modal-btn" type="submit">Save Preferences & Launch</button>
+          <button id="pos-btn-pers-submit" class="primary-modal-btn" type="submit">Save Preferences & Launch</button>
         </form>
       </div>
 
       <!-- STEP 5: SUCCESS & LAUNCH -->
       <div id="pos-step-success" class="pos-step-ready-content success-view">
         <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
-        <h3>Personalized Appu is Ready!</h3>
-        <p>Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.</p>
-        <button id="pos-btn-launch" class="primary-modal-btn" type="button" style="margin-top: 15px;"><span>Launch Appu Now</span><i class="fa-solid fa-sparkles"></i></button>
+        <h3 id="pos-success-title">Personalized Appu is Ready!</h3>
+        <p id="pos-success-desc">Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.</p>
+        <button id="pos-btn-launch" class="primary-modal-btn" type="button" style="margin-top: 15px;"><span id="pos-btn-launch-text">Launch Appu Now</span><i class="fa-solid fa-sparkles"></i></button>
       </div>
     </div>
   </section>
@@ -366,16 +366,16 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260902-3"></script>
-  <script src="appu-config.js?v=20260902-3"></script>
-  <script src="appu-session.js?v=20260902-3"></script>
-  <script src="appu-backend-client.js?v=20260902-3"></script>
-  <script src="parent-onboarding-shell.js?v=20260902-3"></script>
-  <script src="parent-setup-ui.js?v=20260902-3"></script>
-  <script src="avatar-stage.js?v=20260902-3"></script>
-  <script src="voice-engine.js?v=20260902-3"></script>
-  <script src="chat-agent.js?v=20260902-3"></script>
-  <script src="app.js?v=20260902-3"></script>
+  <script src="voice-contract.js?v=20260902-4"></script>
+  <script src="appu-config.js?v=20260902-4"></script>
+  <script src="appu-session.js?v=20260902-4"></script>
+  <script src="appu-backend-client.js?v=20260902-4"></script>
+  <script src="parent-onboarding-shell.js?v=20260902-4"></script>
+  <script src="parent-setup-ui.js?v=20260902-4"></script>
+  <script src="avatar-stage.js?v=20260902-4"></script>
+  <script src="voice-engine.js?v=20260902-4"></script>
+  <script src="chat-agent.js?v=20260902-4"></script>
+  <script src="app.js?v=20260902-4"></script>
 </body>
 </html>
 

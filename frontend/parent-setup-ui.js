@@ -12,9 +12,259 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  // ==========================================
+  // PARENT SETUP TRANSLATION LAYER (mirrors UI_TRANSLATIONS in app.js)
+  // ==========================================
+  const POS_TRANSLATIONS = {
+    en: {
+      modalKicker: 'Parent Zone • Setup',
+      modalTitle: 'Personalized Appu Setup',
+      modalLead: "Configure your learner's companion, active learning plan, and personalized preferences.",
+      betaModalKicker: 'Public Beta • Free Signup',
+      betaModalTitle: 'Join the APPU Beta — Free',
+      betaModalLead: 'No payment required. Sign up, verify your email, and get {limit} free personalised chats.',
+      tabLogin: 'Sign In',
+      tabSignup: 'Create Account',
+      authEmailLabel: 'Parent / Guardian Email',
+      authPasswordLabel: 'Password',
+      authHouseholdLabel: 'Household / Family Name',
+      btnAuthSubmitSignIn: 'Sign In to Parent Zone',
+      btnAuthSubmitSignUp: 'Create Parent Account',
+      alertEnterBoth: 'Please enter both email and password.',
+      authCreatingAccount: 'Creating Account...',
+      authenticating: 'Authenticating...',
+      authFailedDefault: 'Authentication failed. Please check your credentials.',
+      emailVerifiedSuccess: 'Email verified successfully! Sign in with your password to continue your APPU setup.',
+      verifyTitle: 'Check your email',
+      verifyLead: 'We sent a verification link to {email}. Open your inbox and click the link to verify your account.',
+      verifySub: "After verification, we'll bring you back to APPU and continue your setup.",
+      btnCheckVerification: "I've verified my email",
+      btnResendVerification: 'Resend verification email',
+      btnBackSignin: 'Back to sign in',
+      checkingVerification: 'Checking verification...',
+      notYetVerifiedMsg: "We haven't detected a verified session yet. Open the verification link from your email, then return here.",
+      checkVerificationErrorDefault: 'Unable to check verification status. Please try again.',
+      sendingResend: 'Sending...',
+      resendSuccessMsg: 'Verification email resent to {email}. Please check your inbox and spam folder.',
+      resendInSeconds: 'Resend in {s}s',
+      resendErrorDefault: 'Failed to resend verification email. Please try again later.',
+      childFormTitle: 'Add New Learner Profile:',
+      childNameLabel: 'Learner Preferred Name',
+      childGradeLabel: 'Class / Grade Band',
+      gradeOptions: ['Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
+      btnChildSubmit: 'Save Learner & Continue',
+      learnerProfileHeading: 'Learner Profile:',
+      btnSelectLearner: 'Select',
+      quotaActiveTitle: 'Learner profile active',
+      quotaActiveDesc: 'Your student companion is configured for this learner profile.',
+      btnManagePlans: 'Manage Subscription Plans',
+      childAlertEnterNameClass: 'Please enter learner name and class.',
+      childAddErrorDefault: 'Failed to add learner profile.',
+      childLoadErrorDefault: 'Failed to load learners',
+      loadingLearners: 'Loading learners...',
+      persIntroText: 'Personalize Appu for',
+      persLangLabel: 'Primary Language',
+      persStyleLabel: 'Learning Style',
+      styleOptInteractive: 'Interactive (conversations & questions)',
+      styleOptVisual: 'Visual (examples & diagrams)',
+      styleOptAuditory: 'Auditory (spoken explanations)',
+      styleOptReading: 'Reading & Writing (structured notes)',
+      persResponseLabel: 'Response Style',
+      responseOptPlayful: 'Playful & Encouraging',
+      responseOptBalanced: 'Balanced & Clear',
+      responseOptFocused: 'Focused & Direct',
+      persFontLabel: 'Reading Font Style',
+      fontOptRounded: 'Friendly Rounded',
+      fontOptFriendly: 'Friendly Standard',
+      fontOptClean: 'Clean Minimal',
+      persThemeLabel: 'Theme Mode',
+      themeOptAuto: 'Auto',
+      themeOptBright: 'Bright & Energetic',
+      themeOptCalm: 'Calm & Focused',
+      persSubjectsLabel: 'Favorite Subjects',
+      persSubjectsPlaceholder: 'Science, Mathematics, Coding',
+      persInterestsLabel: 'Favorite Interests & Hobbies (comma-separated)',
+      persInterestsPlaceholder: 'Space, Robotics, Astronomy, Dinosaurs',
+      persGoalsLabel: 'Learning Goal for Appu',
+      persGoalsPlaceholder: 'Master school science and build creative curiosity',
+      btnPersSubmit: 'Save Preferences & Launch',
+      alertNoChildSelected: 'No child selected',
+      persSaveErrorDefault: 'Failed to save personalisation.',
+      successTitle: 'Personalized Appu is Ready!',
+      successDesc: 'Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.',
+      btnLaunchText: 'Launch Appu Now'
+    },
+    kn: {
+      modalKicker: 'ಪೋಷಕರ ವಲಯ • ಸೆಟಪ್',
+      modalTitle: 'ವೈಯಕ್ತೀಕರಿಸಿದ ಅಪ್ಪು ಸೆಟಪ್',
+      modalLead: 'ನಿಮ್ಮ ಕಲಿಕಾರ್ಥಿಯ ಸಂಗಾತಿ, ಸಕ್ರಿಯ ಕಲಿಕಾ ಯೋಜನೆ ಮತ್ತು ವೈಯಕ್ತಿಕ ಆದ್ಯತೆಗಳನ್ನು ಹೊಂದಿಸಿ.',
+      betaModalKicker: 'ಸಾರ್ವಜನಿಕ ಬೀಟಾ • ಉಚಿತ ನೋಂದಣಿ',
+      betaModalTitle: 'APPU ಬೀಟಾಗೆ ಸೇರಿ — ಉಚಿತ',
+      betaModalLead: 'ಪಾವತಿ ಅಗತ್ಯವಿಲ್ಲ. ನೋಂದಾಯಿಸಿ, ನಿಮ್ಮ ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ, ಮತ್ತು {limit} ಉಚಿತ ವೈಯಕ್ತೀಕರಿಸಿದ ಸಂಭಾಷಣೆಗಳನ್ನು ಪಡೆಯಿರಿ.',
+      tabLogin: 'ಸೈನ್ ಇನ್',
+      tabSignup: 'ಖಾತೆ ರಚಿಸಿ',
+      authEmailLabel: 'ಪೋಷಕ / ಪಾಲಕರ ಇಮೇಲ್',
+      authPasswordLabel: 'ಪಾಸ್‌ವರ್ಡ್',
+      authHouseholdLabel: 'ಕುಟುಂಬದ ಹೆಸರು',
+      btnAuthSubmitSignIn: 'ಪೋಷಕರ ವಲಯಕ್ಕೆ ಸೈನ್ ಇನ್ ಮಾಡಿ',
+      btnAuthSubmitSignUp: 'ಪೋಷಕರ ಖಾತೆ ರಚಿಸಿ',
+      alertEnterBoth: 'ದಯವಿಟ್ಟು ಇಮೇಲ್ ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ಎರಡನ್ನೂ ನಮೂದಿಸಿ.',
+      authCreatingAccount: 'ಖಾತೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...',
+      authenticating: 'ಪ್ರಮಾಣೀಕರಿಸಲಾಗುತ್ತಿದೆ...',
+      authFailedDefault: 'ಪ್ರಮಾಣೀಕರಣ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ರುಜುವಾತುಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.',
+      emailVerifiedSuccess: 'ಇಮೇಲ್ ಯಶಸ್ವಿಯಾಗಿ ಪರಿಶೀಲಿಸಲಾಗಿದೆ! ನಿಮ್ಮ APPU ಸೆಟಪ್ ಮುಂದುವರಿಸಲು ಪಾಸ್‌ವರ್ಡ್‌ನೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+      verifyTitle: 'ನಿಮ್ಮ ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ',
+      verifyLead: 'ನಾವು {email} ಗೆ ಪರಿಶೀಲನಾ ಲಿಂಕ್ ಕಳುಹಿಸಿದ್ದೇವೆ. ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಪರಿಶೀಲಿಸಲು ನಿಮ್ಮ ಇನ್‌ಬಾಕ್ಸ್ ತೆರೆದು ಲಿಂಕ್ ಕ್ಲಿಕ್ ಮಾಡಿ.',
+      verifySub: 'ಪರಿಶೀಲನೆಯ ನಂತರ, ನಾವು ನಿಮ್ಮನ್ನು APPU ಗೆ ಹಿಂತಿರುಗಿಸಿ ನಿಮ್ಮ ಸೆಟಪ್ ಮುಂದುವರಿಸುತ್ತೇವೆ.',
+      btnCheckVerification: 'ನಾನು ನನ್ನ ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿದ್ದೇನೆ',
+      btnResendVerification: 'ಪರಿಶೀಲನಾ ಇಮೇಲ್ ಮರುಕಳುಹಿಸಿ',
+      btnBackSignin: 'ಸೈನ್ ಇನ್‌ಗೆ ಹಿಂತಿರುಗಿ',
+      checkingVerification: 'ಪರಿಶೀಲನೆ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...',
+      notYetVerifiedMsg: 'ನಾವು ಇನ್ನೂ ಪರಿಶೀಲಿಸಿದ ಸೆಷನ್ ಪತ್ತೆ ಮಾಡಿಲ್ಲ. ನಿಮ್ಮ ಇಮೇಲ್‌ನಿಂದ ಪರಿಶೀಲನಾ ಲಿಂಕ್ ತೆರೆದು, ನಂತರ ಇಲ್ಲಿಗೆ ಹಿಂತಿರುಗಿ.',
+      checkVerificationErrorDefault: 'ಪರಿಶೀಲನಾ ಸ್ಥಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+      sendingResend: 'ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...',
+      resendSuccessMsg: 'ಪರಿಶೀಲನಾ ಇಮೇಲ್ ಅನ್ನು {email} ಗೆ ಮರುಕಳುಹಿಸಲಾಗಿದೆ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಇನ್‌ಬಾಕ್ಸ್ ಮತ್ತು ಸ್ಪ್ಯಾಮ್ ಫೋಲ್ಡರ್ ಪರಿಶೀಲಿಸಿ.',
+      resendInSeconds: '{s} ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಮರುಕಳುಹಿಸಿ',
+      resendErrorDefault: 'ಪರಿಶೀಲನಾ ಇಮೇಲ್ ಮರುಕಳುಹಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+      childFormTitle: 'ಹೊಸ ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಸೇರಿಸಿ:',
+      childNameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಆದ್ಯತೆಯ ಹೆಸರು',
+      childGradeLabel: 'ತರಗತಿ / ಗ್ರೇಡ್ ಬ್ಯಾಂಡ್',
+      gradeOptions: ['5ನೇ ತರಗತಿ', '6ನೇ ತರಗತಿ', '7ನೇ ತರಗತಿ', '8ನೇ ತರಗತಿ', '9ನೇ ತರಗತಿ', '10ನೇ ತರಗತಿ', '11ನೇ ತರಗತಿ', '12ನೇ ತರಗತಿ'],
+      btnChildSubmit: 'ಕಲಿಕಾರ್ಥಿಯನ್ನು ಉಳಿಸಿ ಮತ್ತು ಮುಂದುವರಿಸಿ',
+      learnerProfileHeading: 'ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್:',
+      btnSelectLearner: 'ಆಯ್ಕೆಮಾಡಿ',
+      quotaActiveTitle: 'ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಸಕ್ರಿಯವಾಗಿದೆ',
+      quotaActiveDesc: 'ಈ ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್‌ಗಾಗಿ ನಿಮ್ಮ ವಿದ್ಯಾರ್ಥಿ ಸಂಗಾತಿಯನ್ನು ಸಂರಚಿಸಲಾಗಿದೆ.',
+      btnManagePlans: 'ಚಂದಾದಾರಿಕೆ ಯೋಜನೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ',
+      childAlertEnterNameClass: 'ದಯವಿಟ್ಟು ಕಲಿಕಾರ್ಥಿಯ ಹೆಸರು ಮತ್ತು ತರಗತಿಯನ್ನು ನಮೂದಿಸಿ.',
+      childAddErrorDefault: 'ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಸೇರಿಸಲು ವಿಫಲವಾಗಿದೆ.',
+      childLoadErrorDefault: 'ಕಲಿಕಾರ್ಥಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ',
+      loadingLearners: 'ಕಲಿಕಾರ್ಥಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...',
+      persIntroText: 'ಇವರಿಗಾಗಿ ಅಪ್ಪುವನ್ನು ವೈಯಕ್ತೀಕರಿಸಿ',
+      persLangLabel: 'ಪ್ರಾಥಮಿಕ ಭಾಷೆ',
+      persStyleLabel: 'ಕಲಿಕಾ ಶೈಲಿ',
+      styleOptInteractive: 'ಸಂವಾದಾತ್ಮಕ (ಸಂಭಾಷಣೆ ಮತ್ತು ಪ್ರಶ್ನೆಗಳು)',
+      styleOptVisual: 'ದೃಶ್ಯ (ಉದಾಹರಣೆಗಳು ಮತ್ತು ರೇಖಾಚಿತ್ರಗಳು)',
+      styleOptAuditory: 'ಶ್ರವಣ (ಮಾತಿನ ವಿವರಣೆಗಳು)',
+      styleOptReading: 'ಓದುವಿಕೆ ಮತ್ತು ಬರವಣಿಗೆ (ರಚನಾತ್ಮಕ ಟಿಪ್ಪಣಿಗಳು)',
+      persResponseLabel: 'ಪ್ರತಿಕ್ರಿಯೆ ಶೈಲಿ',
+      responseOptPlayful: 'ಆಟಿಕೆ ಮತ್ತು ಪ್ರೋತ್ಸಾಹದಾಯಕ',
+      responseOptBalanced: 'ಸಮತೋಲಿತ ಮತ್ತು ಸ್ಪಷ್ಟ',
+      responseOptFocused: 'ಕೇಂದ್ರೀಕೃತ ಮತ್ತು ನೇರ',
+      persFontLabel: 'ಓದುವ ಫಾಂಟ್ ಶೈಲಿ',
+      fontOptRounded: 'ಸ್ನೇಹಪರ ಸುತ್ತಿನ',
+      fontOptFriendly: 'ಸ್ನೇಹಪರ ಪ್ರಮಾಣಿತ',
+      fontOptClean: 'ಸ್ವಚ್ಛ ಮಿನಿಮಲ್',
+      persThemeLabel: 'ಥೀಮ್ ಮೋಡ್',
+      themeOptAuto: 'ಸ್ವಯಂಚಾಲಿತ',
+      themeOptBright: 'ಪ್ರಕಾಶಮಾನ ಮತ್ತು ಚೈತನ್ಯಶೀಲ',
+      themeOptCalm: 'ಶಾಂತ ಮತ್ತು ಕೇಂದ್ರೀಕೃತ',
+      persSubjectsLabel: 'ಮೆಚ್ಚಿನ ವಿಷಯಗಳು',
+      persSubjectsPlaceholder: 'ವಿಜ್ಞಾನ, ಗಣಿತ, ಕೋಡಿಂಗ್',
+      persInterestsLabel: 'ಮೆಚ್ಚಿನ ಆಸಕ್ತಿಗಳು ಮತ್ತು ಹವ್ಯಾಸಗಳು (ಅಲ್ಪವಿರಾಮದಿಂದ ಬೇರ್ಪಡಿಸಿ)',
+      persInterestsPlaceholder: 'ಬಾಹ್ಯಾಕಾಶ, ರೊಬೊಟಿಕ್ಸ್, ಖಗೋಳಶಾಸ್ತ್ರ, ಡೈನೋಸಾರ್‌ಗಳು',
+      persGoalsLabel: 'ಅಪ್ಪುಗಾಗಿ ಕಲಿಕಾ ಗುರಿ',
+      persGoalsPlaceholder: 'ಶಾಲಾ ವಿಜ್ಞಾನವನ್ನು ಕರಗತ ಮಾಡಿಕೊಂಡು ಸೃಜನಶೀಲ ಕುತೂಹಲ ಬೆಳೆಸಿಕೊಳ್ಳಿ',
+      btnPersSubmit: 'ಆದ್ಯತೆಗಳನ್ನು ಉಳಿಸಿ ಮತ್ತು ಪ್ರಾರಂಭಿಸಿ',
+      alertNoChildSelected: 'ಯಾವುದೇ ಮಗುವನ್ನು ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ',
+      persSaveErrorDefault: 'ವೈಯಕ್ತೀಕರಣ ಉಳಿಸಲು ವಿಫಲವಾಗಿದೆ.',
+      successTitle: 'ವೈಯಕ್ತೀಕರಿಸಿದ ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದೆ!',
+      successDesc: 'ನಿಮ್ಮ ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಮತ್ತು ಸಕ್ರಿಯ ಚಂದಾದಾರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ. ಅಪ್ಪು ಈಗ ನಿಮ್ಮ ಮಗುವಿಗಾಗಿ ನಿರ್ದಿಷ್ಟವಾಗಿ ಪ್ರತಿಕ್ರಿಯೆಗಳು ಮತ್ತು ಧ್ವನಿ ವಿವರಣೆಗಳನ್ನು ಹೊಂದಿಸುತ್ತಾನೆ.',
+      btnLaunchText: 'ಈಗ ಅಪ್ಪುವನ್ನು ಪ್ರಾರಂಭಿಸಿ'
+    },
+    hi: {
+      modalKicker: 'पेरेंट ज़ोन • सेटअप',
+      modalTitle: 'व्यक्तिगत अप्पू सेटअप',
+      modalLead: 'अपने बच्चे के साथी, सक्रिय लर्निंग प्लान और व्यक्तिगत प्राथमिकताओं को कॉन्फ़िगर करें।',
+      betaModalKicker: 'सार्वजनिक बीटा • मुफ़्त साइनअप',
+      betaModalTitle: 'APPU बीटा में शामिल हों — मुफ़्त',
+      betaModalLead: 'कोई भुगतान आवश्यक नहीं। साइन अप करें, अपना ईमेल सत्यापित करें, और {limit} मुफ़्त व्यक्तिगत बातचीत पाएं।',
+      tabLogin: 'साइन इन',
+      tabSignup: 'खाता बनाएं',
+      authEmailLabel: 'माता-पिता / अभिभावक ईमेल',
+      authPasswordLabel: 'पासवर्ड',
+      authHouseholdLabel: 'परिवार का नाम',
+      btnAuthSubmitSignIn: 'पेरेंट ज़ोन में साइन इन करें',
+      btnAuthSubmitSignUp: 'पेरेंट खाता बनाएं',
+      alertEnterBoth: 'कृपया ईमेल और पासवर्ड दोनों दर्ज करें।',
+      authCreatingAccount: 'खाता बनाया जा रहा है...',
+      authenticating: 'प्रमाणीकरण हो रहा है...',
+      authFailedDefault: 'प्रमाणीकरण विफल हुआ। कृपया अपनी जानकारी जांचें।',
+      emailVerifiedSuccess: 'ईमेल सफलतापूर्वक सत्यापित हुआ! अपना APPU सेटअप जारी रखने के लिए पासवर्ड से साइन इन करें।',
+      verifyTitle: 'अपना ईमेल जांचें',
+      verifyLead: 'हमने {email} पर एक सत्यापन लिंक भेजा है। अपना खाता सत्यापित करने के लिए अपना इनबॉक्स खोलें और लिंक पर क्लिक करें।',
+      verifySub: 'सत्यापन के बाद, हम आपको वापस APPU पर लाएंगे और आपका सेटअप जारी रखेंगे।',
+      btnCheckVerification: 'मैंने अपना ईमेल सत्यापित कर लिया है',
+      btnResendVerification: 'सत्यापन ईमेल फिर से भेजें',
+      btnBackSignin: 'साइन इन पर वापस जाएं',
+      checkingVerification: 'सत्यापन जांचा जा रहा है...',
+      notYetVerifiedMsg: 'हमें अभी तक सत्यापित सत्र नहीं मिला है। अपने ईमेल से सत्यापन लिंक खोलें, फिर यहां वापस आएं।',
+      checkVerificationErrorDefault: 'सत्यापन स्थिति जांचने में असमर्थ। कृपया फिर से प्रयास करें।',
+      sendingResend: 'भेजा जा रहा है...',
+      resendSuccessMsg: 'सत्यापन ईमेल {email} पर फिर से भेजा गया। कृपया अपना इनबॉक्स और स्पैम फ़ोल्डर जांचें।',
+      resendInSeconds: '{s}s में फिर से भेजें',
+      resendErrorDefault: 'सत्यापन ईमेल फिर से भेजने में विफल। कृपया बाद में फिर से प्रयास करें।',
+      childFormTitle: 'नई शिक्षार्थी प्रोफ़ाइल जोड़ें:',
+      childNameLabel: 'शिक्षार्थी का पसंदीदा नाम',
+      childGradeLabel: 'कक्षा / ग्रेड बैंड',
+      gradeOptions: ['कक्षा 5', 'कक्षा 6', 'कक्षा 7', 'कक्षा 8', 'कक्षा 9', 'कक्षा 10', 'कक्षा 11', 'कक्षा 12'],
+      btnChildSubmit: 'शिक्षार्थी सहेजें और जारी रखें',
+      learnerProfileHeading: 'शिक्षार्थी प्रोफ़ाइल:',
+      btnSelectLearner: 'चुनें',
+      quotaActiveTitle: 'शिक्षार्थी प्रोफ़ाइल सक्रिय है',
+      quotaActiveDesc: 'आपका स्टूडेंट साथी इस शिक्षार्थी प्रोफ़ाइल के लिए कॉन्फ़िगर किया गया है।',
+      btnManagePlans: 'सब्सक्रिप्शन प्लान प्रबंधित करें',
+      childAlertEnterNameClass: 'कृपया शिक्षार्थी का नाम और कक्षा दर्ज करें।',
+      childAddErrorDefault: 'शिक्षार्थी प्रोफ़ाइल जोड़ने में विफल।',
+      childLoadErrorDefault: 'शिक्षार्थी लोड करने में विफल',
+      loadingLearners: 'शिक्षार्थी लोड हो रहे हैं...',
+      persIntroText: 'इनके लिए अप्पू को व्यक्तिगत बनाएं',
+      persLangLabel: 'मुख्य भाषा',
+      persStyleLabel: 'सीखने की शैली',
+      styleOptInteractive: 'इंटरैक्टिव (बातचीत और सवाल)',
+      styleOptVisual: 'दृश्य (उदाहरण और चित्र)',
+      styleOptAuditory: 'श्रवण (बोले गए स्पष्टीकरण)',
+      styleOptReading: 'पढ़ना और लिखना (संरचित नोट्स)',
+      persResponseLabel: 'प्रतिक्रिया शैली',
+      responseOptPlayful: 'चंचल और उत्साहवर्धक',
+      responseOptBalanced: 'संतुलित और स्पष्ट',
+      responseOptFocused: 'केंद्रित और सीधा',
+      persFontLabel: 'पठन फ़ॉन्ट शैली',
+      fontOptRounded: 'फ्रेंडली राउंडेड',
+      fontOptFriendly: 'फ्रेंडली स्टैंडर्ड',
+      fontOptClean: 'क्लीन मिनिमल',
+      persThemeLabel: 'थीम मोड',
+      themeOptAuto: 'ऑटो',
+      themeOptBright: 'उज्ज्वल और ऊर्जावान',
+      themeOptCalm: 'शांत और केंद्रित',
+      persSubjectsLabel: 'पसंदीदा विषय',
+      persSubjectsPlaceholder: 'विज्ञान, गणित, कोडिंग',
+      persInterestsLabel: 'पसंदीदा रुचियां और शौक (अल्पविराम से अलग करें)',
+      persInterestsPlaceholder: 'अंतरिक्ष, रोबोटिक्स, खगोल विज्ञान, डायनासोर',
+      persGoalsLabel: 'अप्पू के लिए सीखने का लक्ष्य',
+      persGoalsPlaceholder: 'स्कूल विज्ञान में महारत हासिल करें और रचनात्मक जिज्ञासा बढ़ाएं',
+      btnPersSubmit: 'प्राथमिकताएं सहेजें और शुरू करें',
+      alertNoChildSelected: 'कोई बच्चा चयनित नहीं है',
+      persSaveErrorDefault: 'वैयक्तिकरण सहेजने में विफल।',
+      successTitle: 'व्यक्तिगत अप्पू तैयार है!',
+      successDesc: 'आपकी शिक्षार्थी प्रोफ़ाइल और सक्रिय सब्सक्रिप्शन सेट हो चुके हैं। अब अप्पू आपके बच्चे के लिए विशेष रूप से प्रतिक्रियाएं और आवाज़ स्पष्टीकरण तैयार करेगा।',
+      btnLaunchText: 'अभी अप्पू शुरू करें'
+    }
+  };
+
+  let currentPosLang = 'en';
+
+  function t(key) {
+    const dict = POS_TRANSLATIONS[currentPosLang] || POS_TRANSLATIONS.en;
+    return (key in dict) ? dict[key] : POS_TRANSLATIONS.en[key];
+  }
+
   function init() {
     const modal = document.getElementById('parent-setup-modal');
     if (!modal) return;
+
+    currentPosLang = (typeof localStorage !== 'undefined' && localStorage.getItem('appu_lang')) || 'en';
+    if (currentPosLang !== 'kn' && currentPosLang !== 'hi') currentPosLang = 'en';
 
     const btnOpen = document.getElementById('btn-parent-setup');
     const btnClose = document.getElementById('btn-close-parent-setup');
@@ -62,6 +312,8 @@
 
     let isSignUpMode = false;
     let currentStep = 1;
+    let lastVerifyEmail = '';
+    let lastVerifyHousehold = 'Family';
 
     function showAlert(message, type = 'error') {
       if (!alertBox) return;
@@ -74,6 +326,126 @@
       if (!alertBox) return;
       alertBox.textContent = '';
       alertBox.style.display = 'none';
+    }
+
+    // ==========================================
+    // TRANSLATION APPLICATION (Parent Setup modal: steps 1, 3, 4, 5)
+    // ==========================================
+    function applyStaticPosLabels() {
+      const kickerEl = document.getElementById('pos-modal-kicker');
+      const titleEl = document.getElementById('pos-modal-title');
+      const leadEl = document.getElementById('pos-modal-lead');
+      if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+        if (kickerEl) kickerEl.innerHTML = `<i class="fa-solid fa-flask" aria-hidden="true"></i> ${t('betaModalKicker')}`;
+        if (titleEl) titleEl.textContent = t('betaModalTitle');
+        if (leadEl) leadEl.textContent = t('betaModalLead').replace('{limit}', APPU_CONFIG.betaChatLimit || 30);
+      } else {
+        if (kickerEl) kickerEl.innerHTML = `<i class="fa-solid fa-user-gear" aria-hidden="true"></i> ${t('modalKicker')}`;
+        if (titleEl) titleEl.textContent = t('modalTitle');
+        if (leadEl) leadEl.textContent = t('modalLead');
+      }
+
+      // Step 1: Auth
+      if (tabLogin) tabLogin.textContent = t('tabLogin');
+      if (tabSignup) tabSignup.textContent = t('tabSignup');
+      const authEmailLabel = document.getElementById('pos-auth-email-label');
+      if (authEmailLabel) authEmailLabel.textContent = t('authEmailLabel');
+      const authPasswordLabel = document.getElementById('pos-auth-password-label');
+      if (authPasswordLabel) authPasswordLabel.textContent = t('authPasswordLabel');
+      const authHouseholdLabel = document.getElementById('pos-auth-household-label');
+      if (authHouseholdLabel) authHouseholdLabel.textContent = t('authHouseholdLabel');
+      if (btnAuthSubmit && !btnAuthSubmit.disabled) {
+        btnAuthSubmit.textContent = isSignUpMode ? t('btnAuthSubmitSignUp') : t('btnAuthSubmitSignIn');
+      }
+
+      // Step 3: Child
+      const childFormTitle = document.getElementById('pos-child-form-title');
+      if (childFormTitle) childFormTitle.textContent = t('childFormTitle');
+      const childNameLabel = document.getElementById('pos-child-name-label');
+      if (childNameLabel) childNameLabel.textContent = t('childNameLabel');
+      const childGradeLabel = document.getElementById('pos-child-grade-label');
+      if (childGradeLabel) childGradeLabel.textContent = t('childGradeLabel');
+      const gradeOptions = t('gradeOptions') || [];
+      ['5', '6', '7', '8', '9', '10', '11', '12'].forEach((grade, idx) => {
+        const opt = document.getElementById(`pos-grade-opt-${grade}`);
+        if (opt && gradeOptions[idx]) opt.textContent = gradeOptions[idx];
+      });
+      const btnChildSubmit = document.getElementById('pos-btn-child-submit');
+      if (btnChildSubmit) btnChildSubmit.textContent = t('btnChildSubmit');
+
+      // Step 4: Personalisation
+      const persIntroText = document.getElementById('pos-pers-intro-text');
+      if (persIntroText) persIntroText.textContent = t('persIntroText');
+      const persLangLabel = document.getElementById('pos-pers-lang-label');
+      if (persLangLabel) persLangLabel.textContent = t('persLangLabel');
+      const persStyleLabel = document.getElementById('pos-pers-style-label');
+      if (persStyleLabel) persStyleLabel.textContent = t('persStyleLabel');
+      const styleOptInteractive = document.getElementById('pos-style-opt-interactive');
+      if (styleOptInteractive) styleOptInteractive.textContent = t('styleOptInteractive');
+      const styleOptVisual = document.getElementById('pos-style-opt-visual');
+      if (styleOptVisual) styleOptVisual.textContent = t('styleOptVisual');
+      const styleOptAuditory = document.getElementById('pos-style-opt-auditory');
+      if (styleOptAuditory) styleOptAuditory.textContent = t('styleOptAuditory');
+      const styleOptReading = document.getElementById('pos-style-opt-reading');
+      if (styleOptReading) styleOptReading.textContent = t('styleOptReading');
+      const persResponseLabel = document.getElementById('pos-pers-response-label');
+      if (persResponseLabel) persResponseLabel.textContent = t('persResponseLabel');
+      const responseOptPlayful = document.getElementById('pos-response-opt-playful');
+      if (responseOptPlayful) responseOptPlayful.textContent = t('responseOptPlayful');
+      const responseOptBalanced = document.getElementById('pos-response-opt-balanced');
+      if (responseOptBalanced) responseOptBalanced.textContent = t('responseOptBalanced');
+      const responseOptFocused = document.getElementById('pos-response-opt-focused');
+      if (responseOptFocused) responseOptFocused.textContent = t('responseOptFocused');
+      const persFontLabel = document.getElementById('pos-pers-font-label');
+      if (persFontLabel) persFontLabel.textContent = t('persFontLabel');
+      const fontOptRounded = document.getElementById('pos-font-opt-rounded');
+      if (fontOptRounded) fontOptRounded.textContent = t('fontOptRounded');
+      const fontOptFriendly = document.getElementById('pos-font-opt-friendly');
+      if (fontOptFriendly) fontOptFriendly.textContent = t('fontOptFriendly');
+      const fontOptClean = document.getElementById('pos-font-opt-clean');
+      if (fontOptClean) fontOptClean.textContent = t('fontOptClean');
+      const persThemeLabel = document.getElementById('pos-pers-theme-label');
+      if (persThemeLabel) persThemeLabel.textContent = t('persThemeLabel');
+      const themeOptAuto = document.getElementById('pos-theme-opt-auto');
+      if (themeOptAuto) themeOptAuto.textContent = t('themeOptAuto');
+      const themeOptBright = document.getElementById('pos-theme-opt-bright');
+      if (themeOptBright) themeOptBright.textContent = t('themeOptBright');
+      const themeOptCalm = document.getElementById('pos-theme-opt-calm');
+      if (themeOptCalm) themeOptCalm.textContent = t('themeOptCalm');
+      const persSubjectsLabel = document.getElementById('pos-pers-subjects-label');
+      if (persSubjectsLabel) persSubjectsLabel.textContent = t('persSubjectsLabel');
+      if (persSubjects) persSubjects.placeholder = t('persSubjectsPlaceholder');
+      const persInterestsLabel = document.getElementById('pos-pers-interests-label');
+      if (persInterestsLabel) persInterestsLabel.textContent = t('persInterestsLabel');
+      if (persInterests) persInterests.placeholder = t('persInterestsPlaceholder');
+      const persGoalsLabel = document.getElementById('pos-pers-goals-label');
+      if (persGoalsLabel) persGoalsLabel.textContent = t('persGoalsLabel');
+      if (persGoals) persGoals.placeholder = t('persGoalsPlaceholder');
+      const btnPersSubmit = document.getElementById('pos-btn-pers-submit');
+      if (btnPersSubmit) btnPersSubmit.textContent = t('btnPersSubmit');
+
+      // Step 5: Success
+      const successTitleEl = document.getElementById('pos-success-title');
+      if (successTitleEl) successTitleEl.textContent = t('successTitle');
+      const successDescEl = document.getElementById('pos-success-desc');
+      if (successDescEl) successDescEl.textContent = t('successDesc');
+      const btnLaunchTextEl = document.getElementById('pos-btn-launch-text');
+      if (btnLaunchTextEl) btnLaunchTextEl.textContent = t('btnLaunchText');
+    }
+
+    function applyTranslations(lang) {
+      currentPosLang = (lang === 'kn' || lang === 'hi') ? lang : 'en';
+      applyStaticPosLabels();
+
+      if (!modal.classList.contains('is-visible')) return;
+
+      // Re-render whatever dynamic content is currently showing so it picks up the new language.
+      const verifyWrap = document.getElementById('pos-verify-wrap');
+      if (verifyWrap && verifyWrap.style.display === 'block') {
+        renderVerificationView(lastVerifyEmail, lastVerifyHousehold);
+      } else if (currentStep === 3) {
+        renderChildStep();
+      }
     }
 
     function setStep(step) {
@@ -121,15 +493,9 @@
       clearAlert();
 
       // BETA: label the modal clearly as beta signup, not the normal paid-plan setup copy.
-      // Remove this block once beta ends to restore the original wording.
-      if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
-        const kicker = document.getElementById('pos-modal-kicker');
-        const title = document.getElementById('pos-modal-title');
-        const lead = document.getElementById('pos-modal-lead');
-        if (kicker) kicker.innerHTML = '<i class="fa-solid fa-flask" aria-hidden="true"></i> Public Beta • Free Signup';
-        if (title) title.textContent = 'Join the APPU Beta — Free';
-        if (lead) lead.textContent = `No payment required. Sign up, verify your email, and get ${APPU_CONFIG.betaChatLimit || 30} free personalised chats.`;
-      }
+      // (applyStaticPosLabels() already applies the correct kicker/title/lead for beta vs.
+      // normal mode, in the current language, so just re-apply it here on open.)
+      applyStaticPosLabels();
 
       const shell = typeof window !== 'undefined' ? window.ParentOnboardingShell : null;
       const isAuthed = shell && shell.state.session;
@@ -139,13 +505,13 @@
       } else if (preferredStep === 2) {
         renderPlansStep();
       } else if (preferredStep === 3) {
-        renderChildrenStep();
+        renderChildStep();
       } else if (isAuthed) {
         const sub = shell.state.subscription;
         if (sub && sub.status === 'ACTIVE') {
           // If child selection required or multiple learners, route to step 3
           if (shell.state.authStatus === 'CHILD_SELECTION_REQUIRED' || !shell.state.selectedChild) {
-            renderChildrenStep();
+            renderChildStep();
           } else {
             renderPlansStep();
           }
@@ -160,7 +526,7 @@
       if (!isAuthed && typeof window !== 'undefined' && window.location) {
         const hash = window.location.hash || '';
         if (hash.includes('type=signup') || hash.includes('type=email_verification')) {
-          showAlert('Email verified successfully! Sign in with your password to continue your APPU setup.', 'success');
+          showAlert(t('emailVerifiedSuccess'), 'success');
         }
       }
 
@@ -218,6 +584,8 @@
     // -------------------------------------------------------------
     function renderVerificationView(email, householdName = 'Family') {
       clearAlert();
+      lastVerifyEmail = email;
+      lastVerifyHousehold = householdName;
       let verifyWrap = document.getElementById('pos-verify-wrap');
       if (!verifyWrap) {
         verifyWrap = document.createElement('div');
@@ -235,23 +603,23 @@
           <div class="pos-verify-icon-wrap">
             <i class="fa-solid fa-envelope-circle-check text-cyan"></i>
           </div>
-          <h3 class="pos-verify-title">Check your email</h3>
+          <h3 class="pos-verify-title">${t('verifyTitle')}</h3>
           <p class="pos-verify-lead">
-            We sent a verification link to <strong class="text-cyan">${escapeHtml(email)}</strong>. Open your inbox and click the link to verify your account.
+            ${t('verifyLead').replace('{email}', `<strong class="text-cyan">${escapeHtml(email)}</strong>`)}
           </p>
           <p class="pos-verify-sub">
-            After verification, we'll bring you back to APPU and continue your setup.
+            ${t('verifySub')}
           </p>
           <div id="pos-verify-feedback" class="pos-alert" style="display:none; width: 100%;"></div>
           <div class="pos-verify-actions">
             <button id="pos-btn-check-verification" class="primary-modal-btn" type="button">
-              <i class="fa-solid fa-arrows-rotate"></i> I've verified my email
+              <i class="fa-solid fa-arrows-rotate"></i> ${t('btnCheckVerification')}
             </button>
             <button id="pos-btn-resend-verification" class="pos-secondary-btn" type="button">
-              <i class="fa-solid fa-paper-plane"></i> Resend verification email
+              <i class="fa-solid fa-paper-plane"></i> ${t('btnResendVerification')}
             </button>
             <button id="pos-btn-back-signin" class="pos-link-btn" type="button">
-              Back to sign in
+              ${t('btnBackSignin')}
             </button>
           </div>
         </div>
@@ -272,7 +640,7 @@
       if (btnCheck) {
         btnCheck.addEventListener('click', async () => {
           btnCheck.disabled = true;
-          btnCheck.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Checking verification...`;
+          btnCheck.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${t('checkingVerification')}`;
           try {
             const result = typeof window.ParentOnboardingShell?.checkEmailVerificationSession === 'function'
               ? await window.ParentOnboardingShell.checkEmailVerificationSession({ householdName })
@@ -282,14 +650,14 @@
               if (verifyWrap) verifyWrap.style.display = 'none';
               await renderPlansStep({ refresh: true });
             } else {
-              showVerifyFeedback("We haven't detected a verified session yet. Open the verification link from your email, then return here.", 'info');
+              showVerifyFeedback(t('notYetVerifiedMsg'), 'info');
             }
           } catch (err) {
-            showVerifyFeedback(err.message || 'Unable to check verification status. Please try again.', 'error');
+            showVerifyFeedback(err.message || t('checkVerificationErrorDefault'), 'error');
           } finally {
             if (btnCheck) {
               btnCheck.disabled = false;
-              btnCheck.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> I've verified my email`;
+              btnCheck.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> ${t('btnCheckVerification')}`;
             }
           }
         });
@@ -299,32 +667,32 @@
       if (btnResend) {
         btnResend.addEventListener('click', async () => {
           btnResend.disabled = true;
-          btnResend.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...`;
+          btnResend.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${t('sendingResend')}`;
           try {
             if (typeof window.ParentOnboardingShell?.resendVerificationEmail === 'function') {
               await window.ParentOnboardingShell.resendVerificationEmail(email);
             }
-            showVerifyFeedback(`Verification email resent to ${escapeHtml(email)}. Please check your inbox and spam folder.`, 'success');
+            showVerifyFeedback(t('resendSuccessMsg').replace('{email}', email), 'success');
             let cooldown = 30;
-            btnResend.innerHTML = `Resend in ${cooldown}s`;
+            btnResend.innerHTML = t('resendInSeconds').replace('{s}', cooldown);
             resendCooldownTimer = setInterval(() => {
               cooldown -= 1;
               if (cooldown <= 0) {
                 clearInterval(resendCooldownTimer);
                 if (btnResend) {
                   btnResend.disabled = false;
-                  btnResend.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Resend verification email`;
+                  btnResend.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${t('btnResendVerification')}`;
                 }
               } else {
                 if (btnResend) {
-                  btnResend.innerHTML = `Resend in ${cooldown}s`;
+                  btnResend.innerHTML = t('resendInSeconds').replace('{s}', cooldown);
                 }
               }
             }, 1000);
           } catch (err) {
-            showVerifyFeedback(err.message || 'Failed to resend verification email. Please try again later.', 'error');
+            showVerifyFeedback(err.message || t('resendErrorDefault'), 'error');
             btnResend.disabled = false;
-            btnResend.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Resend verification email`;
+            btnResend.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${t('btnResendVerification')}`;
           }
         });
       }
@@ -348,7 +716,7 @@
       if (tabLogin) tabLogin.classList.add('active');
       if (tabSignup) tabSignup.classList.remove('active');
       if (authHouseholdWrap) authHouseholdWrap.style.display = 'none';
-      if (btnAuthSubmit) btnAuthSubmit.textContent = 'Sign In to Parent Zone';
+      if (btnAuthSubmit) btnAuthSubmit.textContent = t('btnAuthSubmitSignIn');
       if (prefillEmail && authEmail) {
         authEmail.value = prefillEmail;
       }
@@ -375,7 +743,7 @@
         tabSignup.classList.add('active');
         tabLogin.classList.remove('active');
         if (authHouseholdWrap) authHouseholdWrap.style.display = 'grid';
-        if (btnAuthSubmit) btnAuthSubmit.textContent = 'Create Parent Account';
+        if (btnAuthSubmit) btnAuthSubmit.textContent = t('btnAuthSubmitSignUp');
         clearAlert();
       });
     }
@@ -390,14 +758,14 @@
         const householdName = authHousehold?.value?.trim() || 'Family';
 
         if (!email || !password) {
-          showAlert('Please enter both email and password.');
+          showAlert(t('alertEnterBoth'));
           return;
         }
 
         try {
           if (btnAuthSubmit) {
             btnAuthSubmit.disabled = true;
-            btnAuthSubmit.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${isSignUpMode ? 'Creating Account...' : 'Authenticating...'}`;
+            btnAuthSubmit.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${isSignUpMode ? t('authCreatingAccount') : t('authenticating')}`;
           }
 
           const authState = await window.ParentOnboardingShell.signInParent({
@@ -414,11 +782,11 @@
 
           await renderPlansStep({ refresh: !authState.synchronized });
         } catch (err) {
-          showAlert(err.message || 'Authentication failed. Please check your credentials.', 'error');
+          showAlert(err.message || t('authFailedDefault'), 'error');
         } finally {
           if (btnAuthSubmit) {
             btnAuthSubmit.disabled = false;
-            btnAuthSubmit.textContent = isSignUpMode ? 'Create Parent Account' : 'Sign In to Parent Zone';
+            btnAuthSubmit.textContent = isSignUpMode ? t('btnAuthSubmitSignUp') : t('btnAuthSubmitSignIn');
           }
         }
       });
@@ -971,7 +1339,7 @@
     async function renderChildStep() {
       setStep(3);
       if (childListContainer) {
-        childListContainer.innerHTML = '<div class="pos-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading learners...</div>';
+        childListContainer.innerHTML = `<div class="pos-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> ${t('loadingLearners')}</div>`;
       }
 
       try {
@@ -996,7 +1364,7 @@
         if (vm.children.length > 0) {
           const listTitle = document.createElement('h4');
           listTitle.className = 'pos-subtitle';
-          listTitle.textContent = 'Learner Profile:';
+          listTitle.textContent = t('learnerProfileHeading');
           childListContainer.appendChild(listTitle);
 
           vm.children.forEach((c) => {
@@ -1014,7 +1382,7 @@
                 <button class="pos-secondary-btn pos-btn-edit-pers" style="min-height: 32px; padding: 0 10px; font-size: 11px;" type="button" title="Edit Personalisation">
                   <i class="fa-solid fa-sliders"></i>
                 </button>
-                <button class="pos-child-select-btn" type="button">Select <i class="fa-solid fa-arrow-right"></i></button>
+                <button class="pos-child-select-btn" type="button">${t('btnSelectLearner')} <i class="fa-solid fa-arrow-right"></i></button>
               </div>
             `;
 
@@ -1046,10 +1414,10 @@
           quotaNotice.innerHTML = `
             <i class="fa-solid fa-circle-check text-cyan"></i>
             <div>
-              <strong>Learner profile active</strong>
-              <p>Your student companion is configured for this learner profile.</p>
+              <strong>${t('quotaActiveTitle')}</strong>
+              <p>${t('quotaActiveDesc')}</p>
               <button id="pos-btn-view-upgrade-from-quota" class="pos-link-btn" type="button">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Manage Subscription Plans
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> ${t('btnManagePlans')}
               </button>
             </div>
           `;
@@ -1065,7 +1433,7 @@
         }
 
       } catch (err) {
-        showAlert(err.message || 'Failed to load learners');
+        showAlert(err.message || t('childLoadErrorDefault'));
       }
     }
 
@@ -1078,7 +1446,7 @@
         const gradeBand = childGradeSelect.value;
 
         if (!preferredName || !gradeBand) {
-          showAlert('Please enter learner name and class.');
+          showAlert(t('childAlertEnterNameClass'));
           return;
         }
 
@@ -1087,7 +1455,7 @@
           childNameInput.value = '';
           renderPersonalisationStep(child);
         } catch (err) {
-          showAlert(err.message || 'Failed to add learner profile.');
+          showAlert(err.message || t('childAddErrorDefault'));
         }
       });
     }
@@ -1124,7 +1492,7 @@
 
         const child = window.ParentOnboardingShell.state.selectedChild;
         if (!child) {
-          showAlert('No child selected');
+          showAlert(t('alertNoChildSelected'));
           return;
         }
 
@@ -1150,7 +1518,7 @@
           await window.ParentOnboardingShell.savePersonalisation(child.id, personalisationData);
           setStep(5);
         } catch (err) {
-          showAlert(err.message || 'Failed to save personalisation.');
+          showAlert(err.message || t('persSaveErrorDefault'));
         }
       });
     }
@@ -1164,28 +1532,38 @@
         window.ParentOnboardingShell.launchAppuSession(child);
         closeModal();
 
-        // Trigger welcome voice greeting in Appu
+        // Trigger welcome voice greeting in Appu (uses the learner's chosen personalisation
+        // language from Step 4, which may differ from the parent's UI language above).
         if (typeof window.app !== 'undefined' && typeof window.app.handleUserInteraction === 'function') {
           const lang = persLang?.value || 'en';
-          if (lang === 'kn') {
-            window.app.handleUserInteraction(`ನಮಸ್ಕಾರ ${child.preferredName}! ನಾನು ಅಪ್ಪು, ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಕಲಿಕೆಯ ಸ್ನೇಹಿತ. ಇಂದು ನಾವು ಏನು ಕಲಿಯೋಣ?`);
-          } else {
-            window.app.handleUserInteraction(`Hi ${child.preferredName}! I'm Appu, your personal AI learning companion. What would you like to explore today?`);
-          }
+          const LAUNCH_GREETINGS = {
+            en: (name) => `Hi ${name}! I'm Appu, your personal AI learning companion. What would you like to explore today?`,
+            kn: (name) => `ನಮಸ್ಕಾರ ${name}! ನಾನು ಅಪ್ಪು, ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಕಲಿಕೆಯ ಸ್ನೇಹಿತ. ಇಂದು ನಾವು ಏನು ಕಲಿಯೋಣ?`,
+            hi: (name) => `नमस्ते ${name}! मैं अप्पू हूं, आपका व्यक्तिगत एआई लर्निंग साथी। आज हम क्या सीखना चाहेंगे?`
+          };
+          const greet = LAUNCH_GREETINGS[lang] || LAUNCH_GREETINGS.en;
+          window.app.handleUserInteraction(greet(child.preferredName));
         }
       });
     }
 
+    // Apply the current language to the modal's static labels right away, so it's correct
+    // the first time it's opened (independent of when app.js's setLanguage() runs).
+    applyStaticPosLabels();
+
     activeOpenModal = openModal;
     activeCloseModal = closeModal;
+    activeApplyTranslations = applyTranslations;
   }
 
   let activeOpenModal = null;
   let activeCloseModal = null;
+  let activeApplyTranslations = null;
 
   return {
     init,
     openModal: (step) => { if (activeOpenModal) activeOpenModal(step); },
-    closeModal: () => { if (activeCloseModal) activeCloseModal(); }
+    closeModal: () => { if (activeCloseModal) activeCloseModal(); },
+    applyTranslations: (lang) => { if (activeApplyTranslations) activeApplyTranslations(lang); }
   };
 });
