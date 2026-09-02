@@ -20,7 +20,8 @@ import {
   appuGatewayRoutes,
   appuCallbackRoutes,
   appuAudioRoutes,
-  usageRoutes
+  usageRoutes,
+  igrLeadRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -236,6 +237,11 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
     });
   }
+
+  // Register IGR Lead capture route
+  app.register(igrLeadRoutes, {
+    leadWebhookUrl: config.IGR_LEAD_WEBHOOK_URL
+  });
 
   // Register public plans route if database is available
   if (options.database) {

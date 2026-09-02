@@ -80,6 +80,10 @@ export const envSchema = z
       .coerce.number().int().min(30).max(900).default(300),
     N8N_APPU_TIMEOUT_MS: z
       .coerce.number().int().min(1000).max(120000).default(20000),
+    IGR_LEAD_WEBHOOK_URL: z
+      .string()
+      .url('IGR_LEAD_WEBHOOK_URL must be a valid URL')
+      .optional(),
     GUEST_SESSION_SECRET: z
       .string()
       .min(16, 'GUEST_SESSION_SECRET must be at least 16 characters')
