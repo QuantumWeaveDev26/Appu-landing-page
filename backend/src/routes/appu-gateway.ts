@@ -29,6 +29,14 @@ function isKannadaResponseText(text: string): boolean {
   return /[\u0C80-\u0CFF]/.test(text || '');
 }
 
+function isHindiResponseText(text: string): boolean {
+  return /[\u0900-\u097F]/.test(text || '');
+}
+
+function isRegionalResponseText(text: string): boolean {
+  return isKannadaResponseText(text) || isHindiResponseText(text);
+}
+
 export interface AppuGatewayRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
@@ -268,16 +276,22 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         entitlements
       );
 
-      // Determine effective language intent across explicit instructions, Kannada script, Kanglish patterns, and learner preference
+      // Determine effective language intent across explicit instructions, script detection, Kanglish/Hinglish patterns, and learner preference
       const languageIntent = detectLanguageIntent(message, language, mentorContext.primaryLanguage);
       const effectiveLanguage = languageIntent.language;
 
       // 5. Construct structured server-generated envelope for n8n
-      // DUPLICATE TTS PREVENTION: If Kannada is requested/expected, tell n8n includeAudio=false
+      // DUPLICATE TTS PREVENTION: If Kannada or Hindi is requested/expected, tell n8n includeAudio=false
       // so n8n's old "Include Audio?" node skips eleven_turbo_v2_5 Base64 synthesis entirely.
-      // Kannada audio will be served via the new decoupled v3 streaming path instead.
-      const isKnRequested = effectiveLanguage === 'kn' || language === 'kn' || mentorContext.primaryLanguage === 'kn';
-      const n8nIncludeAudio = isKnRequested ? false : includeAudio;
+      // Regional audio (Kannada and Hindi) will be served via the decoupled Eleven v3 streaming path instead.
+      const isRegionalRequested =
+        effectiveLanguage === 'kn' ||
+        effectiveLanguage === 'hi' ||
+        language === 'kn' ||
+        language === 'hi' ||
+        mentorContext.primaryLanguage === 'kn' ||
+        mentorContext.primaryLanguage === 'hi';
+      const n8nIncludeAudio = isRegionalRequested ? false : includeAudio;
 
       const envelope: N8nMessageEnvelope = {
         requestId: lifecycle.id,
@@ -327,11 +341,14 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         outcome: AppuRequestStates.SUCCEEDED
       });
 
-      // 8. DUPLICATE TTS SAFETY: If the response text is Kannada (even from an English learner
-      //    who asked in Kannada or Kanglish), suppress any old n8n-generated audioSource to prevent double billing.
+      // 8. DUPLICATE TTS SAFETY: If the response text is Kannada or Hindi (even from an English learner
+      //    who asked in regional languages or Kanglish/Hinglish), suppress any old n8n-generated audioSource to prevent double billing.
       const isKnResponse = isKannadaResponseText(response.text);
-      if (isKnResponse && response.audioSource) {
-        request.log.info({ requestId: lifecycle.id }, 'Suppressing n8n-generated audio for Kannada response; routing to v3 streaming');
+      const isHiResponse = isHindiResponseText(response.text);
+      const isRegionalResponse = isKnResponse || isHiResponse;
+
+      if (isRegionalResponse && response.audioSource) {
+        request.log.info({ requestId: lifecycle.id }, 'Suppressing n8n-generated audio for regional response; routing to v3 streaming');
         response.audioSource = null;
         response.audioDurationMs = null;
       }
@@ -369,20 +386,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         }
       }
 
-      // 10. Kannada Decoupled Streaming Audio Authorization
+      // 10. Regional Decoupled Streaming Audio Authorization (Kannada & Hindi)
       let audioStreamUrl: string | null = null;
 
-      if (includeAudio !== false && isKnResponse && response.text && response.text.trim()) {
+      if (includeAudio !== false && isRegionalResponse && response.text && response.text.trim()) {
         try {
           // Piggyback cleanup: delete expired audio authorizations (short retention, no indefinite text storage)
           AppuAudioAuthorizationRepository.deleteExpired(opts.db).catch(() => {});
 
+          const streamLanguage = isKnResponse ? 'kn' : 'hi';
           await AppuAudioAuthorizationRepository.create(opts.db, {
             requestId: lifecycle.id,
             householdId: household.id,
             childId: child.id,
             approvedText: response.text,
-            language: 'kn'
+            language: streamLanguage
           });
           audioStreamUrl = `/api/appu/audio/stream?requestId=${lifecycle.id}`;
         } catch (authErr) {
@@ -498,8 +516,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     const languageIntent = detectLanguageIntent(message, language, 'en');
     const effectiveLanguage = languageIntent.language;
 
-    const isKnRequested = effectiveLanguage === 'kn';
-    const n8nIncludeAudio = isKnRequested ? false : includeAudio;
+    const isRegionalRequested = effectiveLanguage === 'kn' || effectiveLanguage === 'hi';
+    const n8nIncludeAudio = isRegionalRequested ? false : includeAudio;
 
     const mentorContext: GuestMentorContext = {
       mode: 'guest',

@@ -307,36 +307,216 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // LANGUAGE TOGGLE HANDLER (ENG / KANNADA)
+  // CENTRALIZED UI TRANSLATION LAYER
+  // ==========================================
+  const UI_TRANSLATIONS = {
+    en: {
+      statusLabel: 'Appu is ready',
+      missionEyebrow: '✦ Your learning mission starts here',
+      missionTitleHtml: 'What will we <span>discover today?</span>',
+      missionSubtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
+      companionTag: 'AI learning companion',
+      chipExplainTitle: 'Explain My Topic',
+      chipExplainDesc: 'Make a tricky idea feel simple',
+      chipExplainPrompt: 'Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.',
+      chipQuizTitle: 'Play a Quick Quiz',
+      chipQuizDesc: 'Five fun questions, one at a time',
+      chipQuizPrompt: 'Play a quick five-question quiz with me. Start by asking my class and favorite subject.',
+      chipHomeworkTitle: 'Homework Helper',
+      chipHomeworkDesc: 'Get hints and learn each step',
+      chipHomeworkPrompt: 'Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.',
+      chipExamTitle: 'Exam Practice',
+      chipExamDesc: 'Revise smarter and build confidence',
+      chipExamPrompt: 'Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.',
+      appuSaysLabel: 'Appu says',
+      subtitlesGreeting: 'English selected. Ask Appu anything!',
+      typeInstead: 'Type instead',
+      askAppu: 'Ask Appu',
+      parentSetup: 'Parent Setup',
+      chatTitle: 'Chat with Appu',
+      chatSubtitle: 'Ask, explore, understand',
+      chatPlaceholder: 'Ask about science, maths, homework…',
+      guestAccessSuffix: 'complimentary chats available',
+      avatarIntroPrompt: 'Namaskara Appu! Introduce yourself as my learning companion and ask what I want to learn.'
+    },
+    kn: {
+      statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
+      missionEyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
+      missionTitleHtml: 'ಇಂದು ನಾವು ಏನು <span>ಕಲಿಯೋಣ?</span>',
+      missionSubtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
+      companionTag: 'ಎಐ ಕಲಿಕಾ ಸಂಗಾತಿ',
+      chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
+      chipExplainDesc: 'ಕಷ್ಟಕರ ವಿಷಯವನ್ನು ಸುಲಭವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
+      chipExplainPrompt: 'ನನ್ನ ಶಾಲಾ ವಿಷಯವನ್ನು ಸರಳ ಹಾಗೂ ಆಸಕ್ತಿದಾಯಕವಾಗಿ ವಿವರಿಸಿ. ನಾನು ಯಾವ ತರಗತಿ ಮತ್ತು ಯಾವ ವಿಷಯ ಕಲಿಯಬೇಕೆಂದು ಕೇಳಿ ಪ್ರಾರಂಭಿಸಿ.',
+      chipQuizTitle: 'ರಸಪ್ರಶ್ನೆ ಆಡಿ',
+      chipQuizDesc: 'ಐದು ಮೋಜಿನ ಪ್ರಶ್ನೆಗಳು, ಒಂದೊಂದಾಗಿ',
+      chipQuizPrompt: 'ನನ್ನೊಂದಿಗೆ 5 ಪ್ರಶ್ನೆಗಳ ಒಂದು ಸಣ್ಣ ರಸಪ್ರಶ್ನೆ ಆಡಿ. ನನ್ನ ತರಗತಿ ಮತ್ತು ಮೆಚ್ಚಿನ ವಿಷಯವನ್ನು ಕೇಳಿ ಪ್ರಾರಂಭಿಸಿ.',
+      chipHomeworkTitle: 'ಮನೆಕೆಲಸದ ಸಹಾಯಕ',
+      chipHomeworkDesc: 'ಸುಳಿವು ಪಡೆಯಿರಿ ಮತ್ತು ಹಂತ-ಹಂತವಾಗಿ ಕಲಿಯಿರಿ',
+      chipHomeworkPrompt: 'ಕೇವಲ ಉತ್ತರ ನೀಡದೆ, ನನ್ನ ಮನೆಕೆಲಸದಲ್ಲಿ ನನಗೆ ಸಹಾಯ ಮಾಡಿ. ಪ್ರಶ್ನೆಯನ್ನು ಕೇಳಿ ಹಂತ-ಹಂತವಾಗಿ ಮಾರ್ಗದರ್ಶನ ನೀಡಿ.',
+      chipExamTitle: 'ಪರೀಕ್ಷಾ ತಯಾರಿ',
+      chipExamDesc: 'ಉತ್ತಮವಾಗಿ ಪುನರಾವರ್ತಿಸಿ ಮತ್ತು ಆತ್ಮವಿಶ್ವಾಸ ಹೆಚ್ಚಿಸಿಕೊಳ್ಳಿ',
+      chipExamPrompt: 'ನನ್ನ ಪರೀಕ್ಷೆಗೆ ಸಿದ್ಧತೆ ನಡೆಸಲು ಸಹಾಯ ಮಾಡಿ. ನನ್ನ ತರಗತಿ, ವಿಷಯ, ಅಧ್ಯಾಯ ಮತ್ತು ಪರೀಕ್ಷೆಯ ದಿನಾಂಕವನ್ನು ಕೇಳಿ ಪ್ರಾರಂಭಿಸಿ.',
+      appuSaysLabel: 'ಅಪ್ಪು ಹೇಳುತ್ತಾನೆ',
+      subtitlesGreeting: 'ಕನ್ನಡ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ. ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳಿ!',
+      typeInstead: 'ಬರೆಯಿರಿ',
+      askAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      parentSetup: 'ಪೋಷಕರ ವಲಯ',
+      chatTitle: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಸಂಭಾಷಣೆ',
+      chatSubtitle: 'ಕೇಳಿ, ಅನ್ವೇಷಿಸಿ, ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
+      chatPlaceholder: 'ವಿಜ್ಞಾನ, ಗಣಿತ, ಮನೆಕೆಲಸದ ಬಗ್ಗೆ ಕೇಳಿ…',
+      guestAccessSuffix: 'ಉಚಿತ ಸಂಭಾಷಣೆಗಳು ಲಭ್ಯವಿದೆ',
+      avatarIntroPrompt: 'ನಮಸ್ಕಾರ ಅಪ್ಪು! ನನ್ನ ಕಲಿಕೆಯ ಸಂಗಾತಿಯಾಗಿ ಪರಿಚಯಿಸಿಕೊಂಡು, ನಾನು ಏನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ ಎಂದು ಕೇಳಿ.'
+    },
+    hi: {
+      statusLabel: 'अप्पू तैयार है',
+      missionEyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
+      missionTitleHtml: 'आज हम क्या नया <span>सीखेंगे?</span>',
+      missionSubtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
+      companionTag: 'एआई लर्निंग साथी',
+      chipExplainTitle: 'विषय समझाओ',
+      chipExplainDesc: 'कठिन विषय को आसान बनाएं',
+      chipExplainPrompt: 'मेरे स्कूल के विषय को आसान और मज़ेदार तरीके से समझाओ। मुझसे पूछो कि मैं कौन सी कक्षा में हूँ और क्या पढ़ना चाहता हूँ।',
+      chipQuizTitle: 'क्विज़ खेलें',
+      chipQuizDesc: 'पांच मज़ेदार सवाल, एक-एक करके',
+      chipQuizPrompt: 'मेरे साथ 5 सवालों की एक छोटी क्विज़ खेलो। मेरी कक्षा और पसंदीदा विषय पूछकर शुरू करो।',
+      chipHomeworkTitle: 'होमवर्क हेल्पर',
+      chipHomeworkDesc: 'संकेत पाएं और हर कदम सीखें',
+      chipHomeworkPrompt: 'सीधे उत्तर दिए बिना मेरे होमवर्क में मदद करो। मुझसे सवाल पूछो और कदम-दर-कदम मार्गदर्शन करो।',
+      chipExamTitle: 'परीक्षा अभ्यास',
+      chipExamDesc: 'स्मार्ट रिवीजन करें और आत्मविश्वास बढ़ाएं',
+      chipExamPrompt: 'मेरी परीक्षा की तैयारी में मदद करो। मेरी कक्षा, विषय, अध्याय और परीक्षा की तारीख पूछकर शुरू करो।',
+      appuSaysLabel: 'अप्पू कहता है',
+      subtitlesGreeting: 'हिंदी चुनी गई। अप्पू से कुछ भी पूछें!',
+      typeInstead: 'टाइप करें',
+      askAppu: 'अप्पू से पूछें',
+      parentSetup: 'पेरेंट सेटअप',
+      chatTitle: 'अप्पू से बातचीत',
+      chatSubtitle: 'पूछें, सीखें, समझें',
+      chatPlaceholder: 'विज्ञान, गणित, होमवर्क के बारे में पूछें…',
+      guestAccessSuffix: 'निःशुल्क बातचीत उपलब्ध हैं',
+      avatarIntroPrompt: 'नमस्ते अप्पू! अपने आप को मेरे सीखने के साथी के रूप में पेश करो और पूछो कि मैं क्या सीखना चाहता हूँ।'
+    }
+  };
+
+  function applyUiTranslations(lang) {
+    const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
+    document.documentElement.lang = lang;
+
+    const statusLabel = document.getElementById('status-label');
+    if (statusLabel) statusLabel.textContent = t.statusLabel;
+
+    const missionEyebrow = document.getElementById('mission-eyebrow');
+    if (missionEyebrow) missionEyebrow.innerHTML = `<span aria-hidden="true">✦</span> ${t.missionEyebrow.replace(/^[✦\s]+/, '')}`;
+
+    const missionTitle = document.getElementById('mission-title');
+    if (missionTitle) missionTitle.innerHTML = t.missionTitleHtml;
+
+    const missionSubtitle = document.getElementById('mission-subtitle');
+    if (missionSubtitle) missionSubtitle.textContent = t.missionSubtitle;
+
+    const companionTag = document.getElementById('appu-companion-tag');
+    if (companionTag) companionTag.textContent = t.companionTag;
+
+    const chipExplain = document.getElementById('chip-explain');
+    if (chipExplain) {
+      const title = chipExplain.querySelector('.chip-title');
+      const desc = chipExplain.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExplainTitle;
+      if (desc) desc.textContent = t.chipExplainDesc;
+      chipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
+    }
+
+    const chipQuiz = document.getElementById('chip-quiz');
+    if (chipQuiz) {
+      const title = chipQuiz.querySelector('.chip-title');
+      const desc = chipQuiz.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipQuizTitle;
+      if (desc) desc.textContent = t.chipQuizDesc;
+      chipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
+    }
+
+    const chipHomework = document.getElementById('chip-homework');
+    if (chipHomework) {
+      const title = chipHomework.querySelector('.chip-title');
+      const desc = chipHomework.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipHomeworkTitle;
+      if (desc) desc.textContent = t.chipHomeworkDesc;
+      chipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
+    }
+
+    const chipExam = document.getElementById('chip-exam');
+    if (chipExam) {
+      const title = chipExam.querySelector('.chip-title');
+      const desc = chipExam.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExamTitle;
+      if (desc) desc.textContent = t.chipExamDesc;
+      chipExam.setAttribute('data-prompt', t.chipExamPrompt);
+    }
+
+    const appuSaysLabel = document.getElementById('appu-says-label');
+    if (appuSaysLabel) appuSaysLabel.textContent = t.appuSaysLabel;
+
+    const typeBtnSpan = document.querySelector('#btn-toggle-chat span');
+    if (typeBtnSpan) typeBtnSpan.textContent = t.typeInstead;
+
+    const micLabel = document.querySelector('.mic-label');
+    if (micLabel) micLabel.textContent = t.askAppu;
+
+    const parentBtnSpan = document.querySelector('#btn-parent-setup span');
+    if (parentBtnSpan) parentBtnSpan.textContent = t.parentSetup;
+
+    const chatTitle = document.getElementById('chat-title');
+    if (chatTitle) chatTitle.textContent = t.chatTitle;
+
+    const chatSubtitle = document.getElementById('chat-subtitle');
+    if (chatSubtitle) chatSubtitle.textContent = t.chatSubtitle;
+
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) chatInput.placeholder = t.chatPlaceholder;
+  }
+
+  // ==========================================
+  // LANGUAGE TOGGLE HANDLER (ENG / KANNADA / HINDI)
   // ==========================================
   const langEnBtn = document.getElementById('lang-en');
   const langKnBtn = document.getElementById('lang-kn');
-  voiceEngine.setLanguage(currentLang);
-  if (langEnBtn && langKnBtn) {
-    langEnBtn.classList.toggle('is-active', currentLang === 'en');
-    langKnBtn.classList.toggle('is-active', currentLang === 'kn');
-  }
+  const langHiBtn = document.getElementById('lang-hi');
 
-  function setLanguage(lang) {
+  function setLanguage(lang, announce = true) {
+    if (lang !== 'en' && lang !== 'kn' && lang !== 'hi') lang = 'en';
     currentLang = lang;
     localStorage.setItem('appu_lang', lang);
     voiceEngine.setLanguage(lang);
+    if (chatAgent) chatAgent.language = lang;
 
-    if (langEnBtn && langKnBtn) {
-      if (lang === 'kn') {
-        langKnBtn.classList.add('is-active');
-        langEnBtn.classList.remove('is-active');
-        voiceEngine.streamSubtitles('ಕನ್ನಡ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ. ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳಿ!');
-      } else {
-        langEnBtn.classList.add('is-active');
-        langKnBtn.classList.remove('is-active');
-        voiceEngine.streamSubtitles('English selected. Ask Appu anything!');
-      }
+    if (langEnBtn) {
+      langEnBtn.classList.toggle('is-active', lang === 'en');
+      langEnBtn.setAttribute('aria-checked', lang === 'en' ? 'true' : 'false');
+    }
+    if (langKnBtn) {
+      langKnBtn.classList.toggle('is-active', lang === 'kn');
+      langKnBtn.setAttribute('aria-checked', lang === 'kn' ? 'true' : 'false');
+    }
+    if (langHiBtn) {
+      langHiBtn.classList.toggle('is-active', lang === 'hi');
+      langHiBtn.setAttribute('aria-checked', lang === 'hi' ? 'true' : 'false');
+    }
+
+    applyUiTranslations(lang);
+
+    if (announce && voiceEngine) {
+      const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
+      voiceEngine.streamSubtitles(t.subtitlesGreeting);
     }
   }
 
+  // Initialize UI language state on load
+  setLanguage(currentLang, false);
+
   if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
   if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
+  if (langHiBtn) langHiBtn.addEventListener('click', () => setLanguage('hi'));
 
   // ==========================================
   // CORE INTERACTION HANDLER
@@ -421,11 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (avatarFigure) {
     avatarFigure.addEventListener('click', () => {
       voiceEngine.playClick();
-      if (currentLang === 'kn') {
-        handleUserInteraction('ನಮಸ್ಕಾರ ಅಪ್ಪು! ನನ್ನ ಕಲಿಕೆಯ ಸಂಗಾತಿಯಾಗಿ ಪರಿಚಯಿಸಿಕೊಂಡು, ನಾನು ಏನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ ಎಂದು ಕೇಳಿ.');
-      } else {
-        handleUserInteraction('Namaskara Appu! Introduce yourself as my learning companion and ask what I want to learn.');
-      }
+      const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+      handleUserInteraction(t.avatarIntroPrompt);
     });
   }
 

@@ -755,4 +755,45 @@ describe('APPU Kannada Eleven v3 Decoupled Audio Streaming Suite', () => {
     assert.equal(authRecord!.approvedText, kannadaResponse);
     assert.equal(authRecord!.language, 'kn');
   });
+
+  it('routes Hinglish / Hindi input ("photosynthesis kya hai?") to Hindi Eleven v3 streaming', async () => {
+    const hindiResponse = 'प्रकाश संश्लेषण वह प्रक्रिया है जिसमें पौधे सूर्य के प्रकाश की मदद से अपना भोजन बनाते हैं।';
+    n8nClient.nextResponse = {
+      text: hindiResponse,
+      audioSource: null,
+      audioDurationMs: null
+    };
+
+    const msgRes = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${testParentToken}`, 'idempotency-key': 'hinglish_turn_1' },
+      payload: { childId: testChild.id, message: 'photosynthesis kya hai?', language: 'hi', includeAudio: true }
+    });
+
+    assert.equal(msgRes.statusCode, 200);
+    const body = JSON.parse(msgRes.payload);
+
+    assert.equal(body.text, hindiResponse);
+    assert.equal(body.audioSource, null, 'Old n8n audio must be suppressed for Hindi response');
+    assert.ok(body.audioStreamUrl, 'Must return audioStreamUrl for Hindi turn');
+    assert.match(body.audioStreamUrl, /\/api\/appu\/audio\/stream\?requestId=/);
+
+    // Verify audio authorization was created in database with language 'hi'
+    const authRecord = await AppuAudioAuthorizationRepository.getById(db, body.requestId);
+    assert.ok(authRecord, 'Audio authorization must exist for Hindi turn');
+    assert.equal(authRecord!.approvedText, hindiResponse);
+    assert.equal(authRecord!.language, 'hi');
+
+    // Stream the audio via GET /api/appu/audio/stream
+    const streamRes = await app.inject({
+      method: 'GET',
+      url: `/api/appu/audio/stream?requestId=${body.requestId}`,
+      headers: { authorization: `Bearer ${testParentToken}` }
+    });
+
+    assert.equal(streamRes.statusCode, 200);
+    assert.equal(streamRes.headers['content-type'], 'audio/mpeg');
+    assert.equal(streamRes.headers['transfer-encoding'], 'chunked');
+  });
 });

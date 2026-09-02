@@ -55,9 +55,10 @@
       </div>
       <div class="topbar-actions">
         <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
-        <div class="language-switch" aria-label="Choose language">
-          <button id="lang-en" class="lang-btn is-active" type="button">ENG</button>
-          <button id="lang-kn" class="lang-btn" type="button" lang="kn">ಕನ್ನಡ</button>
+        <div class="language-switch" aria-label="Choose language" role="radiogroup">
+          <button id="lang-en" class="lang-btn is-active" type="button" role="radio" aria-checked="true">ENG</button>
+          <button id="lang-kn" class="lang-btn" type="button" lang="kn" role="radio" aria-checked="false">ಕನ್ನಡ</button>
+          <button id="lang-hi" class="lang-btn" type="button" lang="hi" role="radio" aria-checked="false">हिंदी</button>
         </div>
         <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Setup</span></button>
         <button id="btn-quick-schedule" class="icon-btn" type="button" aria-label="Schedule support call" title="Schedule Support Call"><i class="fa-solid fa-calendar-check text-cyan" aria-hidden="true"></i></button>
@@ -69,9 +70,9 @@
     <main class="mission-stage" aria-labelledby="mission-title">
       <div class="stage-backdrop" aria-hidden="true"></div><div class="stage-grid" aria-hidden="true"></div>
       <section class="mission-intro">
-        <p class="eyebrow"><span aria-hidden="true">✦</span> Your learning mission starts here</p>
+        <p id="mission-eyebrow" class="eyebrow"><span aria-hidden="true">✦</span> Your learning mission starts here</p>
         <h1 id="mission-title">What will we <span>discover today?</span></h1>
-        <p>Choose a mission or ask Appu anything from class 5 to 12.</p>
+        <p id="mission-subtitle">Choose a mission or ask Appu anything from class 5 to 12.</p>
       </section>
 
       <div id="avatar-3d-wrapper" class="avatar-stage state-idle">
@@ -79,28 +80,28 @@
         <button id="avatar-figure-container" class="avatar-interactive-figure" type="button" aria-label="Ask Appu to introduce himself">
           <span class="avatar-glow" aria-hidden="true"></span><img src="assets/appu_cutout_new.png" alt="Appu, your friendly AI learning companion">
         </button>
-        <div class="appu-nameplate"><span class="online-dot" aria-hidden="true"></span><strong>APPU</strong><small>AI learning companion</small></div>
+        <div class="appu-nameplate"><span class="online-dot" aria-hidden="true"></span><strong>APPU</strong><small id="appu-companion-tag">AI learning companion</small></div>
       </div>
 
       <div class="mission-deck" aria-label="Choose a learning mission">
-        <button class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong>Explain My Topic</strong><small>Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        <button id="chip-explain" class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
-        <button class="mission-card chip-action-btn mission-violet" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong>Play a Quick Quiz</strong><small>Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        <button id="chip-quiz" class="mission-card chip-action-btn mission-violet" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
-        <button class="mission-card chip-action-btn mission-green" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong>Homework Helper</strong><small>Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        <button id="chip-homework" class="mission-card chip-action-btn mission-green" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
-        <button class="mission-card chip-action-btn mission-amber" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong>Exam Practice</strong><small>Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        <button id="chip-exam" class="mission-card chip-action-btn mission-amber" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
       </div>
     </main>
 
     <section class="response-dock" aria-label="Talk to Appu">
       <div class="response-card">
-        <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong>Appu says</strong><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong id="appu-says-label">Appu says</strong><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
         <p id="subtitles-text">Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.</p>
       </div>
       <div class="control-dock">
@@ -130,7 +131,7 @@
   <div id="chat-scrim" class="drawer-scrim" aria-hidden="true"></div>
   <aside id="chat-drawer" class="chat-drawer" role="dialog" aria-modal="true" aria-labelledby="chat-title" aria-hidden="true">
     <header class="drawer-header">
-      <div><span class="online-dot" aria-hidden="true"></span><div><h2 id="chat-title">Chat with Appu</h2><p>Ask, explore, understand</p></div></div>
+      <div><span class="online-dot" aria-hidden="true"></span><div><h2 id="chat-title">Chat with Appu</h2><p id="chat-subtitle">Ask, explore, understand</p></div></div>
       <div class="drawer-actions">
         <button id="btn-clear-chat" class="icon-btn" type="button" aria-label="Clear chat"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
         <button id="btn-close-chat" class="icon-btn close-btn" type="button" aria-label="Close chat"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
@@ -351,16 +352,16 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260901-3"></script>
-  <script src="appu-config.js?v=20260901-3"></script>
-  <script src="appu-session.js?v=20260901-3"></script>
-  <script src="appu-backend-client.js?v=20260901-3"></script>
-  <script src="parent-onboarding-shell.js?v=20260901-3"></script>
-  <script src="parent-setup-ui.js?v=20260901-3"></script>
-  <script src="avatar-stage.js?v=20260901-3"></script>
-  <script src="voice-engine.js?v=20260901-3"></script>
-  <script src="chat-agent.js?v=20260901-3"></script>
-  <script src="app.js?v=20260901-3"></script>
+  <script src="voice-contract.js?v=20260901-4"></script>
+  <script src="appu-config.js?v=20260901-4"></script>
+  <script src="appu-session.js?v=20260901-4"></script>
+  <script src="appu-backend-client.js?v=20260901-4"></script>
+  <script src="parent-onboarding-shell.js?v=20260901-4"></script>
+  <script src="parent-setup-ui.js?v=20260901-4"></script>
+  <script src="avatar-stage.js?v=20260901-4"></script>
+  <script src="voice-engine.js?v=20260901-4"></script>
+  <script src="chat-agent.js?v=20260901-4"></script>
+  <script src="app.js?v=20260901-4"></script>
 </body>
 </html>
 

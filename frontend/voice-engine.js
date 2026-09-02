@@ -155,8 +155,16 @@ class VoiceEngine {
     }
 
     setLanguage(language) {
-        this.currentLanguage = language === 'kn' ? 'kn' : 'en';
-        if (this.recognition) this.recognition.lang = this.currentLanguage === 'kn' ? 'kn-IN' : 'en-IN';
+        if (language === 'kn') {
+            this.currentLanguage = 'kn';
+            if (this.recognition) this.recognition.lang = 'kn-IN';
+        } else if (language === 'hi') {
+            this.currentLanguage = 'hi';
+            if (this.recognition) this.recognition.lang = 'hi-IN';
+        } else {
+            this.currentLanguage = 'en';
+            if (this.recognition) this.recognition.lang = 'en-IN';
+        }
     }
 
     toggleLiveSession() {

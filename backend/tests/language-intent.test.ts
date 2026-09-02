@@ -97,4 +97,83 @@ describe('APPU Language Intent Detection & Kanglish Routing', () => {
   it('handles explicit client requested language kn', () => {
     assert.equal(detectLanguageIntent('What is gravity?', 'kn', 'en').language, 'kn');
   });
+
+  // =========================================================================
+  // HINDI & HINGLISH VERIFICATION SUITE
+  // =========================================================================
+
+  it('handles Devanagari Unicode script input', () => {
+    assert.equal(detectLanguageIntent('मुझे समझ नहीं आया', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('प्रकाश संश्लेषण क्या है?', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('हिंदी में समझाओ', 'en', 'en').language, 'hi');
+  });
+
+  it('handles Romanized Hindi / Hinglish functional phrases and keywords', () => {
+    assert.equal(detectLanguageIntent('photosynthesis kya hai?', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('mujhe samajh nahi aaya', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('ye kaise hota hai?', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('hindi mein batao', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('hindi me samjhao', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('mujhe batao', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('kyun hota hai?', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('ye kya hai', 'en', 'en').language, 'hi');
+  });
+
+  it('handles explicit Hindi instructions across scripts', () => {
+    assert.equal(detectLanguageIntent('explain in hindi', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('reply in hindi please', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('हिंदी में बताओ', 'en', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('ಹಿಂದಿಯಲ್ಲಿ ಹೇಳಿ', 'en', 'en').language, 'hi');
+  });
+
+  it('handles explicit requestedLanguage hi', () => {
+    assert.equal(detectLanguageIntent('hello', 'hi', 'en').language, 'hi');
+    assert.equal(detectLanguageIntent('how does gravity work?', 'hi', 'en').language, 'hi');
+  });
+
+  it('handles learner preferred language hi for ambiguous greetings', () => {
+    assert.equal(detectLanguageIntent('namaste', 'en', 'hi').language, 'hi');
+    assert.equal(detectLanguageIntent('hello', 'en', 'hi').language, 'hi');
+    assert.equal(detectLanguageIntent('hi', 'en', 'hi').language, 'hi');
+  });
+
+  // =========================================================================
+  // TEST MATRIX: CASES A THROUGH J (CROSS-LANGUAGE OVERRIDES)
+  // =========================================================================
+
+  it('Case A: Toggle ENG + "how does gravity work?" -> en', () => {
+    assert.equal(detectLanguageIntent('how does gravity work?', 'en', 'en').language, 'en');
+  });
+
+  it('Case B: Toggle ಕನ್ನಡ + "hello" -> kn', () => {
+    assert.equal(detectLanguageIntent('hello', 'kn', 'en').language, 'kn');
+  });
+
+  it('Case C: Toggle हिंदी + "hello" -> hi', () => {
+    assert.equal(detectLanguageIntent('hello', 'hi', 'en').language, 'hi');
+  });
+
+  it('Case D: Hindi toggle + "photosynthesis kya hai?" -> hi', () => {
+    assert.equal(detectLanguageIntent('photosynthesis kya hai?', 'hi', 'en').language, 'hi');
+  });
+
+  it('Case E: Hindi toggle + "मुझे समझ नहीं आया" -> hi', () => {
+    assert.equal(detectLanguageIntent('मुझे समझ नहीं आया', 'hi', 'en').language, 'hi');
+  });
+
+  it('Case F: English toggle + "hindi mein batao" -> hi (explicit instruction override)', () => {
+    assert.equal(detectLanguageIntent('hindi mein batao', 'en', 'en').language, 'hi');
+  });
+
+  it('Case G: Hindi toggle + "explain this in English" -> en (explicit instruction override)', () => {
+    assert.equal(detectLanguageIntent('explain this in English', 'hi', 'hi').language, 'en');
+  });
+
+  it('Case H: Hindi toggle + "kannadadalli heli" -> kn (explicit instruction override)', () => {
+    assert.equal(detectLanguageIntent('kannadadalli heli', 'hi', 'hi').language, 'kn');
+  });
+
+  it('Case I: Kannada toggle + "photosynthesis andre enu?" -> kn', () => {
+    assert.equal(detectLanguageIntent('photosynthesis andre enu?', 'kn', 'kn').language, 'kn');
+  });
 });

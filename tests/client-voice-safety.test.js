@@ -73,3 +73,31 @@ test('voice-engine.js enforces 100% volume and unmuted playback across all voice
   assert.doesNotMatch(source, /this\.audioPlayer\.volume\s*=\s*0\./);
   assert.doesNotMatch(source, /this\.audioPlayer\.muted\s*=\s*true/);
 });
+
+test('frontend implements 3-way language switch (ENG | ಕನ್ನಡ | हिंदी) with full UI localization', () => {
+  const html = read('index.html');
+  const appJs = read('app.js');
+  const voiceJs = read('voice-engine.js');
+
+  // 1. HTML defines all 3 language buttons
+  assert.match(html, /id="lang-en"/, 'Must contain ENG button');
+  assert.match(html, /id="lang-kn"/, 'Must contain Kannada button');
+  assert.match(html, /id="lang-hi"/, 'Must contain Hindi button');
+  assert.match(html, /class="language-switch"[^>]*role="radiogroup"/, 'Language switch must have role=radiogroup');
+
+  // 2. voice-engine.js configures speech recognition for en-IN, kn-IN, hi-IN
+  assert.match(voiceJs, /kn-IN/, 'Must support kn-IN speech recognition');
+  assert.match(voiceJs, /hi-IN/, 'Must support hi-IN speech recognition');
+  assert.match(voiceJs, /en-IN/, 'Must support en-IN speech recognition');
+
+  // 3. app.js contains centralized UI_TRANSLATIONS dictionary for en, kn, hi
+  assert.match(appJs, /UI_TRANSLATIONS\s*=\s*\{/, 'Must define UI_TRANSLATIONS');
+  assert.match(appJs, /en:\s*\{/, 'Must have en translations');
+  assert.match(appJs, /kn:\s*\{/, 'Must have kn translations');
+  assert.match(appJs, /hi:\s*\{/, 'Must have hi translations');
+
+  // 4. app.js synchronizes document.documentElement.lang and localStorage
+  assert.match(appJs, /document\.documentElement\.lang\s*=\s*lang/, 'Must synchronize html lang attribute');
+  assert.match(appJs, /localStorage\.setItem\(['"]appu_lang['"]/, 'Must persist selected language');
+  assert.match(appJs, /applyUiTranslations\(/, 'Must apply UI translations dynamically');
+});
