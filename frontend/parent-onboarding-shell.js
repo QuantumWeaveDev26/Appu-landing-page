@@ -911,7 +911,11 @@
         finishAuthTransition('UNAUTHENTICATED');
         return { status: 'UNAUTHENTICATED', reason: 'no_session' };
       }
-      return synchronizeAuthenticatedSession(data.session, { source: 'INITIAL_SESSION', force: true, transitionStarted: true, generation });
+      // allowHouseholdOnboarding: a household is 1:1 with a verified account in this app --
+      // there is no separate "create household" UI, so any authenticated session missing
+      // one (fresh signup, or a session restored before onboarding completed) should get
+      // one lazily here rather than surfacing "no active household" downstream.
+      return synchronizeAuthenticatedSession(data.session, { source: 'INITIAL_SESSION', force: true, transitionStarted: true, allowHouseholdOnboarding: true, generation });
     } catch (err) {
       clearAuthenticatedRuntimeState();
       finishAuthTransition('UNAUTHENTICATED');
