@@ -38,7 +38,9 @@ export class ElevenLabsStreamService {
     contentType: string;
     modelId: string;
   }> {
-    const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream`;
+    // output_format pinned explicitly (constant-bitrate MP3) so downstream byte-count-based
+    // duration estimation for voice-quota accounting stays accurate regardless of API defaults.
+    const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream?output_format=mp3_44100_128`;
 
     const response = await fetch(endpoint, {
       method: 'POST',

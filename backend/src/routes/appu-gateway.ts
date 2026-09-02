@@ -34,10 +34,6 @@ function isHindiResponseText(text: string): boolean {
   return /[\u0900-\u097F]/.test(text || '');
 }
 
-function isRegionalResponseText(text: string): boolean {
-  return isKannadaResponseText(text) || isHindiResponseText(text);
-}
-
 export interface AppuGatewayRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
@@ -296,17 +292,11 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       const effectiveLanguage = languageIntent.language;
 
       // 5. Construct structured server-generated envelope for n8n
-      // DUPLICATE TTS PREVENTION: If Kannada or Hindi is requested/expected, tell n8n includeAudio=false
-      // so n8n's old "Include Audio?" node skips eleven_turbo_v2_5 Base64 synthesis entirely.
-      // Regional audio (Kannada and Hindi) will be served via the decoupled Eleven v3 streaming path instead.
-      const isRegionalRequested =
-        effectiveLanguage === 'kn' ||
-        effectiveLanguage === 'hi' ||
-        language === 'kn' ||
-        language === 'hi' ||
-        mentorContext.primaryLanguage === 'kn' ||
-        mentorContext.primaryLanguage === 'hi';
-      const n8nIncludeAudio = isRegionalRequested ? false : includeAudio;
+      // n8n never generates audio itself for the website channel: every language is served via
+      // the decoupled Eleven v3 streaming path below (was Kannada/Hindi-only; English previously
+      // used n8n's synchronous eleven_turbo_v2_5 Base64 path, which added generation latency to
+      // every message and used a different, quieter model than the streaming path).
+      const n8nIncludeAudio = false;
 
       const envelope: N8nMessageEnvelope = {
         requestId: lifecycle.id,
@@ -401,15 +391,18 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         }
       }
 
-      // 10. Regional Decoupled Streaming Audio Authorization (Kannada & Hindi)
+      // 10. Decoupled Streaming Audio Authorization (all languages).
+      // Pre-gated on !isVoiceQuotaExhausted: voice-minute quota is enforced here (before any
+      // ElevenLabs generation cost is spent) and again, based on actual bytes streamed, in
+      // appu-audio.ts's GET handler once the stream completes.
       let audioStreamUrl: string | null = null;
 
-      if (includeAudio !== false && isRegionalResponse && response.text && response.text.trim()) {
+      if (includeAudio !== false && !isVoiceQuotaExhausted && response.text && response.text.trim()) {
         try {
           // Piggyback cleanup: delete expired audio authorizations (short retention, no indefinite text storage)
           AppuAudioAuthorizationRepository.deleteExpired(opts.db).catch(() => {});
 
-          const streamLanguage = isKnResponse ? 'kn' : 'hi';
+          const streamLanguage = isKnResponse ? 'kn' : isHiResponse ? 'hi' : 'en';
           await AppuAudioAuthorizationRepository.create(opts.db, {
             requestId: lifecycle.id,
             householdId: household.id,
@@ -531,8 +524,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     const languageIntent = detectLanguageIntent(message, language, 'en');
     const effectiveLanguage = languageIntent.language;
 
-    const isRegionalRequested = effectiveLanguage === 'kn' || effectiveLanguage === 'hi';
-    const n8nIncludeAudio = isRegionalRequested ? false : includeAudio;
+    // n8n never generates audio itself; all languages route through the decoupled stream below.
+    const n8nIncludeAudio = false;
 
     const mentorContext: GuestMentorContext = {
       mode: 'guest',
@@ -588,16 +581,17 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       ipHash: session.ipHash
     }, opts.guestSessionSecret);
 
-    // 7. Guest Regional Decoupled Streaming Audio Authorization (Kannada & Hindi)
-    const isRegionalResponse = isRegionalResponseText(response.text || '');
+    // 7. Guest Decoupled Streaming Audio Authorization (all languages).
+    // No voice-minute quota here -- guests are limited by turn count only, unchanged.
     const isKnResponse = isKannadaResponseText(response.text || '');
+    const isHiResponse = isHindiResponseText(response.text || '');
     let guestAudioStreamUrl: string | null = null;
 
-    if (includeAudio !== false && isRegionalResponse && response.text && response.text.trim()) {
+    if (includeAudio !== false && response.text && response.text.trim()) {
       try {
         AppuAudioAuthorizationRepository.deleteExpired(opts.db).catch(() => {});
 
-        const streamLanguage = isKnResponse ? 'kn' : 'hi';
+        const streamLanguage = isKnResponse ? 'kn' : isHiResponse ? 'hi' : 'en';
         await AppuAudioAuthorizationRepository.createForGuest(opts.db, {
           requestId: initiation.request.id,
           guestSessionId: session.id,

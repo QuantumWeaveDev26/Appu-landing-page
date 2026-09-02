@@ -7,6 +7,8 @@ import { HouseholdAuthorizationService } from '../domain/authorization/household
 import { GuestSessionService } from '../domain/guest/service.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/repository.js';
 import { ElevenLabsStreamService } from '../domain/voice/service.js';
+import { SubscriptionRepository } from '../domain/subscription/repository.js';
+import { UsageService } from '../domain/usage/service.js';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -140,6 +142,29 @@ export const appuAudioRoutes: FastifyPluginAsync<AppuAudioRouteOptions> = async 
       });
     }
 
+    // 3b. Voice-minute quota pre-check (household-authenticated requests only -- guests are
+    // limited by turn count, not voice minutes, unchanged). Blocks BEFORE spending any
+    // ElevenLabs generation cost if the household is already over its monthly allowance.
+    let voiceQuotaLimitMs = 0;
+    let subscriptionId: string | null = null;
+    if (record.householdId) {
+      const [subscriptionContext, currentVoiceUsageMs] = await Promise.all([
+        SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(opts.db, record.householdId),
+        UsageService.getHouseholdVoiceUsageMs(opts.db, record.householdId)
+      ]);
+      if (subscriptionContext) {
+        subscriptionId = subscriptionContext.subscription.id;
+        const voiceQuotaLimitMinutes = Number(subscriptionContext.entitlements?.monthly_voice_minutes ?? 30);
+        voiceQuotaLimitMs = voiceQuotaLimitMinutes * 60 * 1000;
+        if (currentVoiceUsageMs >= voiceQuotaLimitMs) {
+          return reply.status(403).send({
+            code: 'VOICE_QUOTA_EXHAUSTED',
+            error: 'Monthly voice minutes exhausted. Text responses remain available.'
+          });
+        }
+      }
+    }
+
     // 4. Connect to ElevenLabs HTTP Chunked Stream and pipe directly to client
     try {
       const { stream, contentType, modelId } = await opts.elevenLabsStreamService.getAudioStream(
@@ -165,8 +190,33 @@ export const appuAudioRoutes: FastifyPluginAsync<AppuAudioRouteOptions> = async 
 
       stream.pipe(reply.raw);
 
+      // Byte-count-only duration estimate for usage accounting -- chunks are counted as they
+      // pass through, never retained, preserving the no-server-side-accumulation streaming
+      // invariant. Assumes the constant-bitrate mp3_44100_128 output_format pinned in
+      // ElevenLabsStreamService (128 kbps = 16 bytes/ms).
+      let totalBytes = 0;
+      if (record.householdId && subscriptionId) {
+        stream.on('data', (chunk: Buffer) => {
+          totalBytes += chunk.length;
+        });
+      }
+
       stream.on('end', () => {
         AppuAudioAuthorizationRepository.recordStreamComplete(opts.db, requestId).catch(() => {});
+
+        if (record.householdId && subscriptionId && totalBytes > 0) {
+          const durationMs = Math.round(totalBytes / 16);
+          UsageService.recordVoiceUsageAtomic(opts.db, {
+            householdId: record.householdId,
+            subscriptionId,
+            childId: record.childId,
+            durationMs,
+            quotaLimitMs: voiceQuotaLimitMs,
+            idempotencyKey: `voice_stream_${requestId}`
+          }).catch((err) => {
+            request.log.warn({ err, requestId }, 'Failed to record streamed voice usage');
+          });
+        }
       });
 
       stream.on('error', (streamErr) => {
