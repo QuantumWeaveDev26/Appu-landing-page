@@ -143,14 +143,17 @@
       if (session.access_token === _lastSynchronizedAccessToken && state.authStatus !== 'AUTH_CHECKING') return;
       const generation = ++_authGeneration;
       beginAuthTransition();
-      void enqueueAuthSynchronization(session, { source: 'SIGNED_IN', transitionStarted: true, generation }).catch(() => {});
+      // allowHouseholdOnboarding: this fires whenever Supabase itself detects a session in the
+      // URL (e.g. the email verification link landing in a fresh tab) -- a separate path from
+      // restoreSession() that can win the race and needs the same auto-onboarding.
+      void enqueueAuthSynchronization(session, { source: 'SIGNED_IN', transitionStarted: true, allowHouseholdOnboarding: true, generation }).catch(() => {});
       return;
     }
 
     if (event === 'TOKEN_REFRESHED' && session?.access_token) {
       const generation = ++_authGeneration;
       beginAuthTransition();
-      void enqueueAuthSynchronization(session, { source: 'TOKEN_REFRESHED', force: true, transitionStarted: true, generation }).catch(() => {});
+      void enqueueAuthSynchronization(session, { source: 'TOKEN_REFRESHED', force: true, transitionStarted: true, allowHouseholdOnboarding: true, generation }).catch(() => {});
     }
   }
 

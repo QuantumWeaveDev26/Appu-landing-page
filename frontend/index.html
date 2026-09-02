@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>
+    // Capture the email-verification redirect signal before the Supabase SDK loads and
+    // consumes/strips the URL hash (it strips it as part of establishing the session), so
+    // later code can still tell this page load came from an auth redirect.
+    window.__APPU_AUTH_REDIRECT__ = /access_token|type=signup|type=email_verification/.test(window.location.hash)
+      || /code=/.test(window.location.search);
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06101f">
@@ -10,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260902-2">
+  <link rel="stylesheet" href="style.css?v=20260902-3">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -359,16 +366,16 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260902-2"></script>
-  <script src="appu-config.js?v=20260902-2"></script>
-  <script src="appu-session.js?v=20260902-2"></script>
-  <script src="appu-backend-client.js?v=20260902-2"></script>
-  <script src="parent-onboarding-shell.js?v=20260902-2"></script>
-  <script src="parent-setup-ui.js?v=20260902-2"></script>
-  <script src="avatar-stage.js?v=20260902-2"></script>
-  <script src="voice-engine.js?v=20260902-2"></script>
-  <script src="chat-agent.js?v=20260902-2"></script>
-  <script src="app.js?v=20260902-2"></script>
+  <script src="voice-contract.js?v=20260902-3"></script>
+  <script src="appu-config.js?v=20260902-3"></script>
+  <script src="appu-session.js?v=20260902-3"></script>
+  <script src="appu-backend-client.js?v=20260902-3"></script>
+  <script src="parent-onboarding-shell.js?v=20260902-3"></script>
+  <script src="parent-setup-ui.js?v=20260902-3"></script>
+  <script src="avatar-stage.js?v=20260902-3"></script>
+  <script src="voice-engine.js?v=20260902-3"></script>
+  <script src="chat-agent.js?v=20260902-3"></script>
+  <script src="app.js?v=20260902-3"></script>
 </body>
 </html>
 

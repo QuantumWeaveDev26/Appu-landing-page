@@ -949,7 +949,10 @@ document.addEventListener('DOMContentLoaded', () => {
       updateGuestBadge();
       const hash = typeof window !== 'undefined' && window.location ? (window.location.hash || '') : '';
       const search = typeof window !== 'undefined' && window.location ? (window.location.search || '') : '';
-      const isAuthRedirect = hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=email_verification') || search.includes('code=');
+      // Prefer the flag captured before Supabase strips the hash from the URL; fall back to a
+      // live check in case that early capture script didn't run for some reason.
+      const isAuthRedirect = window.__APPU_AUTH_REDIRECT__
+        || hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=email_verification') || search.includes('code=');
 
       if (isAuthRedirect) {
         if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
