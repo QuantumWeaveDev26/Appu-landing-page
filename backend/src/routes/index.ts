@@ -9,4 +9,3 @@ export * from './appu-gateway.js';
 export * from './appu-callback.js';
 export * from './appu-audio.js';
 export * from './usage.js';
-export * from './igr-lead.js';
