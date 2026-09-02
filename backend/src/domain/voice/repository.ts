@@ -3,8 +3,9 @@ import { AppuAudioStatuses, type AppuAudioAuthorizationRecord, type AppuAudioSta
 
 interface AppuAudioAuthorizationRow {
   request_id: string;
-  household_id: string;
+  household_id: string | null;
   child_id: string | null;
+  guest_session_id: string | null;
   approved_text: string;
   language: string;
   audio_status: AppuAudioStatus;
@@ -18,6 +19,7 @@ function mapRow(row: AppuAudioAuthorizationRow): AppuAudioAuthorizationRecord {
     requestId: row.request_id,
     householdId: row.household_id,
     childId: row.child_id,
+    guestSessionId: row.guest_session_id || null,
     approvedText: row.approved_text,
     language: row.language,
     audioStatus: row.audio_status,
@@ -66,6 +68,41 @@ export class AppuAudioAuthorizationRepository {
   }
 
   /**
+   * Creates a durable server-authorized audio record for a guest session.
+   */
+  public static async createForGuest(
+    db: Queryable,
+    input: {
+      requestId: string;
+      guestSessionId: string;
+      approvedText: string;
+      language?: string;
+      expiresAt?: Date;
+    }
+  ): Promise<AppuAudioAuthorizationRecord> {
+    const expiresAt = input.expiresAt || new Date(Date.now() + 10 * 60 * 1000);
+    const result = await db.query<AppuAudioAuthorizationRow>(
+      `INSERT INTO appu_audio_authorizations (
+         request_id, guest_session_id, approved_text, language, audio_status, expires_at
+       ) VALUES ($1, $2, $3, $4, 'PENDING', $5)
+       ON CONFLICT (request_id) DO UPDATE SET
+         approved_text = EXCLUDED.approved_text,
+         language = EXCLUDED.language,
+         expires_at = EXCLUDED.expires_at,
+         audio_status = 'PENDING'
+       RETURNING *`,
+      [
+        input.requestId,
+        input.guestSessionId,
+        input.approvedText,
+        input.language || 'kn',
+        expiresAt
+      ]
+    );
+    return mapRow(result.rows[0]);
+  }
+
+  /**
    * Finds an authorized audio record by requestId.
    */
   public static async getById(
@@ -97,6 +134,12 @@ export class AppuAudioAuthorizationRepository {
     }
 
     const row = raw.rows[0];
+
+    // Guest authorization accessed with household token → wrong principal
+    if (row.guest_session_id && !row.household_id) {
+      return { record: null, isExpired: false, isWrongHousehold: true };
+    }
+
     if (row.household_id !== householdId) {
       return { record: null, isExpired: false, isWrongHousehold: true };
     }
@@ -109,6 +152,44 @@ export class AppuAudioAuthorizationRepository {
     }
 
     return { record, isExpired: false, isWrongHousehold: false };
+  }
+
+  /**
+   * Finds an authorized audio record strictly scoped to the requesting guest session and verifies not expired.
+   */
+  public static async findValidByGuestAndRequestId(
+    db: Queryable,
+    guestSessionId: string,
+    requestId: string
+  ): Promise<{ record: AppuAudioAuthorizationRecord | null; isExpired: boolean; isWrongGuest: boolean }> {
+    const raw = await db.query<AppuAudioAuthorizationRow>(
+      `SELECT * FROM appu_audio_authorizations WHERE request_id = $1`,
+      [requestId]
+    );
+
+    if (!raw.rows[0]) {
+      return { record: null, isExpired: false, isWrongGuest: false };
+    }
+
+    const row = raw.rows[0];
+
+    // Household authorization accessed with guest token → wrong principal
+    if (row.household_id && !row.guest_session_id) {
+      return { record: null, isExpired: false, isWrongGuest: true };
+    }
+
+    if (row.guest_session_id !== guestSessionId) {
+      return { record: null, isExpired: false, isWrongGuest: true };
+    }
+
+    const record = mapRow(row);
+    const isExpired = record.expiresAt.getTime() <= Date.now();
+
+    if (isExpired) {
+      return { record, isExpired: true, isWrongGuest: false };
+    }
+
+    return { record, isExpired: false, isWrongGuest: false };
   }
 
   /**

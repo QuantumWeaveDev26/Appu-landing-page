@@ -573,7 +573,29 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       ipHash: session.ipHash
     }, opts.guestSessionSecret);
 
-    // 7. Deliver response with updated guest session metadata and signed token
+    // 7. Guest Regional Decoupled Streaming Audio Authorization (Kannada & Hindi)
+    const isRegionalResponse = isRegionalResponseText(response.text || '');
+    const isKnResponse = isKannadaResponseText(response.text || '');
+    let guestAudioStreamUrl: string | null = null;
+
+    if (includeAudio !== false && isRegionalResponse && response.text && response.text.trim()) {
+      try {
+        AppuAudioAuthorizationRepository.deleteExpired(opts.db).catch(() => {});
+
+        const streamLanguage = isKnResponse ? 'kn' : 'hi';
+        await AppuAudioAuthorizationRepository.createForGuest(opts.db, {
+          requestId: initiation.request.id,
+          guestSessionId: session.id,
+          approvedText: response.text,
+          language: streamLanguage
+        });
+        guestAudioStreamUrl = `/api/appu/audio/stream?requestId=${initiation.request.id}`;
+      } catch (authErr) {
+        request.log.warn({ err: authErr, requestId: initiation.request.id }, 'Failed to create guest audio authorization record');
+      }
+    }
+
+    // 8. Deliver response with updated guest session metadata and signed token
     const tPostStart = performance.now();
     await AppuRequestService.reconcile(opts.db, {
       requestId: initiation.request.id,
@@ -595,8 +617,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       requestId: initiation.request.id,
       requestStatus: AppuRequestStates.SUCCEEDED,
       text: response.text,
-      audioSource: response.audioSource || null,
-      audioDurationMs: response.audioDurationMs || null,
+      audioSource: guestAudioStreamUrl ? null : (response.audioSource || null),
+      audioStreamUrl: guestAudioStreamUrl,
+      audioDurationMs: guestAudioStreamUrl ? null : (response.audioDurationMs || null),
       guest: {
         token: guestTokenResult,
         limit: GuestSessionService.DEFAULT_MAX_TURNS,

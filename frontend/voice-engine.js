@@ -290,6 +290,11 @@ class VoiceEngine {
             const headers = {};
             if (accessToken && typeof accessToken === 'string' && accessToken.trim()) {
                 headers['Authorization'] = `Bearer ${accessToken.trim()}`;
+            } else if (typeof AppuBackendClient !== 'undefined' && typeof AppuBackendClient.getStoredGuestToken === 'function') {
+                const guestToken = AppuBackendClient.getStoredGuestToken();
+                if (guestToken) {
+                    headers['X-Guest-Session-Token'] = guestToken;
+                }
             }
 
             const fetchOpts = { method: 'GET', headers };

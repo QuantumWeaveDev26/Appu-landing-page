@@ -292,12 +292,13 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       });
     }
 
-    // Appu Audio Streaming Route (Eleven v3 Kannada)
+    // Appu Audio Streaming Route (Eleven v3 Regional Kannada/Hindi)
     if (elevenLabsStreamService) {
       app.register(appuAudioRoutes, {
         db: options.database,
         authVerifier,
-        elevenLabsStreamService
+        elevenLabsStreamService,
+        guestSessionSecret: config.GUEST_SESSION_SECRET
       });
     }
   }

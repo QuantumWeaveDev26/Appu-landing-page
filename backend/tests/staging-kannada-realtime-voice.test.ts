@@ -796,4 +796,202 @@ describe('APPU Kannada Eleven v3 Decoupled Audio Streaming Suite', () => {
     assert.equal(streamRes.headers['content-type'], 'audio/mpeg');
     assert.equal(streamRes.headers['transfer-encoding'], 'chunked');
   });
+
+  // =========================================================================
+  // GUEST REGIONAL VOICE STREAMING & PRINCIPAL ISOLATION
+  // =========================================================================
+  describe('Guest Regional Voice Streaming & Principal Isolation', () => {
+    const guestSecret = 'test_guest_secret_1234567890';
+
+    async function sendGuestMessage(payload: any, guestToken?: string) {
+      const headers: any = { 'idempotency-key': `guest_idem_${crypto.randomUUID()}` };
+      if (guestToken) headers['x-guest-session-token'] = guestToken;
+      return app.inject({
+        method: 'POST',
+        url: '/api/appu/message',
+        headers,
+        payload
+      });
+    }
+
+    it('guest + kn + includeAudio true returns audioStreamUrl and creates guest authorization', async () => {
+      const kannadaText = 'ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು. ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ನಾನು ಇಲ್ಲಿದ್ದೇನೆ.';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      const res = await sendGuestMessage({ message: 'hey appu hedidiya?', language: 'kn', includeAudio: true });
+      assert.equal(res.statusCode, 200);
+      const body = JSON.parse(res.payload);
+
+      assert.ok(body.audioStreamUrl, 'Must return audioStreamUrl for guest Kannada');
+      assert.equal(body.audioSource, null, 'audioSource must be null when audioStreamUrl is set');
+      assert.match(body.audioStreamUrl, /\/api\/appu\/audio\/stream\?requestId=/);
+
+      const authRecord = await AppuAudioAuthorizationRepository.getById(db, body.requestId);
+      assert.ok(authRecord, 'Guest audio authorization must exist');
+      assert.equal(authRecord!.language, 'kn');
+      assert.ok(authRecord!.guestSessionId, 'guestSessionId must be set');
+      assert.equal(authRecord!.householdId, null, 'householdId must be null for guest');
+    });
+
+    it('guest + hi + includeAudio true returns audioStreamUrl and creates guest authorization', async () => {
+      const hindiText = 'नमस्ते! मैं अप्पू हूँ. आज हम विज्ञान सीखेंगे.';
+      n8nClient.nextResponse = { text: hindiText, audioSource: null, audioDurationMs: null };
+
+      const res = await sendGuestMessage({ message: 'photosynthesis kya hai?', language: 'hi', includeAudio: true });
+      assert.equal(res.statusCode, 200);
+      const body = JSON.parse(res.payload);
+
+      assert.ok(body.audioStreamUrl, 'Must return audioStreamUrl for guest Hindi');
+      assert.equal(body.audioSource, null);
+
+      const authRecord = await AppuAudioAuthorizationRepository.getById(db, body.requestId);
+      assert.ok(authRecord);
+      assert.equal(authRecord!.language, 'hi');
+      assert.ok(authRecord!.guestSessionId);
+      assert.equal(authRecord!.householdId, null);
+    });
+
+    it('guest + en returns inline audioSource with audioStreamUrl null', async () => {
+      n8nClient.nextResponse = { text: 'Hello! I am Appu.', audioSource: 'data:audio/mp3;base64,AAAA', audioDurationMs: 2000 };
+
+      const res = await sendGuestMessage({ message: 'hello appu', language: 'en', includeAudio: true });
+      assert.equal(res.statusCode, 200);
+      const body = JSON.parse(res.payload);
+
+      assert.equal(body.audioStreamUrl, null, 'English guest must not use audioStreamUrl');
+      assert.ok(body.audioSource, 'English guest must get inline audioSource');
+    });
+
+    it('guest + includeAudio false returns audioStreamUrl null and creates NO authorization', async () => {
+      const kannadaText = 'ನಮಸ್ಕಾರ! ಇಂದು ನಾವು ಏನು ಕಲಿಯೋಣ?';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      const res = await sendGuestMessage({ message: 'nanage gothilla', language: 'kn', includeAudio: false });
+      assert.equal(res.statusCode, 200);
+      const body = JSON.parse(res.payload);
+
+      const noAudioStreamUrl = body.audioStreamUrl === null || body.audioStreamUrl === undefined;
+      assert.ok(noAudioStreamUrl, 'audioStreamUrl must be null when includeAudio=false');
+    });
+
+    it('cross-guest isolation: Guest A token cannot stream Guest B request (403)', async () => {
+      const kannadaText = 'ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು.';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      // Guest A creates a request
+      const resA = await sendGuestMessage({ message: 'hello appu', language: 'kn', includeAudio: true });
+      const bodyA = JSON.parse(resA.payload);
+      assert.ok(bodyA.audioStreamUrl);
+
+      // Guest B creates a different session
+      n8nClient.nextResponse = { text: 'ಹಾಯ್!', audioSource: null, audioDurationMs: null };
+      const resB = await sendGuestMessage({ message: 'hi appu', language: 'kn', includeAudio: true });
+      const bodyB = JSON.parse(resB.payload);
+      const guestBToken = bodyB.guest?.token || bodyB.guestSession?.token;
+
+      // Guest B tries to stream Guest A's audio
+      const streamRes = await app.inject({
+        method: 'GET',
+        url: bodyA.audioStreamUrl,
+        headers: { 'x-guest-session-token': guestBToken }
+      });
+
+      assert.equal(streamRes.statusCode, 403);
+    });
+
+    it('cross-principal isolation: Guest token cannot stream authenticated request (403)', async () => {
+      // Create an authenticated Kannada request
+      const kannadaText = 'ನಮಸ್ಕಾರ Aarav! ಇಂದು ಗಣಿತ ಕಲಿಯೋಣ.';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      const authRes = await app.inject({
+        method: 'POST',
+        url: '/api/appu/message',
+        headers: { authorization: `Bearer ${testParentToken}`, 'idempotency-key': 'cross_auth_001' },
+        payload: { childId: testChild.id, message: 'ganitha kalisu', language: 'kn', includeAudio: true }
+      });
+      const authBody = JSON.parse(authRes.payload);
+      assert.ok(authBody.audioStreamUrl);
+
+      // Now get a guest token
+      n8nClient.nextResponse = { text: 'ಹಲೋ!', audioSource: null, audioDurationMs: null };
+      const guestRes = await sendGuestMessage({ message: 'hello', language: 'kn', includeAudio: true });
+      const guestBody = JSON.parse(guestRes.payload);
+      const guestToken = guestBody.guest?.token || guestBody.guestSession?.token;
+
+      // Guest tries to stream authenticated request
+      const streamRes = await app.inject({
+        method: 'GET',
+        url: authBody.audioStreamUrl,
+        headers: { 'x-guest-session-token': guestToken }
+      });
+      assert.equal(streamRes.statusCode, 403);
+    });
+
+    it('cross-principal isolation: Authenticated token cannot stream guest request (403)', async () => {
+      const kannadaText = 'ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು.';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      const guestRes = await sendGuestMessage({ message: 'hey appu', language: 'kn', includeAudio: true });
+      const guestBody = JSON.parse(guestRes.payload);
+      assert.ok(guestBody.audioStreamUrl);
+
+      // Authenticated user tries to stream guest's audio
+      const streamRes = await app.inject({
+        method: 'GET',
+        url: guestBody.audioStreamUrl,
+        headers: { authorization: `Bearer ${testParentToken}` }
+      });
+      assert.equal(streamRes.statusCode, 403);
+    });
+
+    it('returns 410 when guest audio stream authorization has expired', async () => {
+      const kannadaText = 'ನಮಸ್ಕಾರ!';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      const res = await sendGuestMessage({ message: 'hello', language: 'kn', includeAudio: true });
+      const body = JSON.parse(res.payload);
+      const guestToken = body.guest?.token || body.guestSession?.token;
+
+      // Force expiry
+      await db.query(
+        `UPDATE appu_audio_authorizations SET expires_at = NOW() - INTERVAL '1 minute' WHERE request_id = $1`,
+        [body.requestId]
+      );
+
+      const streamRes = await app.inject({
+        method: 'GET',
+        url: body.audioStreamUrl,
+        headers: { 'x-guest-session-token': guestToken }
+      });
+      assert.equal(streamRes.statusCode, 410);
+    });
+
+    it('enforces replay limit on guest audio streams (rejects 4th stream with 429)', async () => {
+      const kannadaText = 'ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕೇಳಿ.';
+      n8nClient.nextResponse = { text: kannadaText, audioSource: null, audioDurationMs: null };
+
+      const res = await sendGuestMessage({ message: 'hello appu replay', language: 'kn', includeAudio: true });
+      const body = JSON.parse(res.payload);
+      const guestToken = body.guest?.token || body.guestSession?.token;
+
+      // Stream 3 times (allowed)
+      for (let i = 0; i < 3; i++) {
+        const s = await app.inject({
+          method: 'GET',
+          url: body.audioStreamUrl,
+          headers: { 'x-guest-session-token': guestToken }
+        });
+        assert.equal(s.statusCode, 200, `Stream ${i + 1} must succeed`);
+      }
+
+      // 4th stream must be rejected
+      const s4 = await app.inject({
+        method: 'GET',
+        url: body.audioStreamUrl,
+        headers: { 'x-guest-session-token': guestToken }
+      });
+      assert.equal(s4.statusCode, 429);
+    });
+  });
 });

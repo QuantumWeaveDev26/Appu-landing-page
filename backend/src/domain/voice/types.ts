@@ -9,8 +9,9 @@ export type AppuAudioStatus = (typeof AppuAudioStatuses)[keyof typeof AppuAudioS
 
 export interface AppuAudioAuthorizationRecord {
   requestId: string;
-  householdId: string;
+  householdId: string | null;
   childId: string | null;
+  guestSessionId: string | null;
   approvedText: string;
   language: string;
   audioStatus: AppuAudioStatus;

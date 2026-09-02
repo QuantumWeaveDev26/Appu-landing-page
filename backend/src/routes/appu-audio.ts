@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import type { TransactionalQueryable } from '../db/types.js';
 import type { AuthVerifier } from '../domain/auth/types.js';
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
+import { GuestSessionService } from '../domain/guest/service.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/repository.js';
 import { ElevenLabsStreamService } from '../domain/voice/service.js';
 import {
@@ -17,6 +19,7 @@ export interface AppuAudioRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
   elevenLabsStreamService: ElevenLabsStreamService;
+  guestSessionSecret?: string;
 }
 
 const audioStreamQuerySchema = z.object({
@@ -30,15 +33,16 @@ export const appuAudioRoutes: FastifyPluginAsync<AppuAudioRouteOptions> = async 
   /**
    * GET /api/appu/audio/stream
    * 
-   * Streams server-authorized Eleven v3 Kannada audio chunks for an authenticated request.
+   * Streams server-authorized Eleven v3 regional audio chunks for an authenticated or guest request.
    * 
    * Security & Anti-Abuse Invariants:
-   * 1. Requires valid Bearer authorization token from authenticated parent/learner.
-   * 2. Scoped strictly to the authenticated user's household.
+   * 1. Requires valid Bearer token (authenticated) OR X-Guest-Session-Token (guest).
+   * 2. Scoped strictly to the authenticated user's household OR the guest session.
    * 3. Requires an existing durable server-authorized record in appu_audio_authorizations.
    * 4. Synthesizes ONLY the exact server-approved response text (arbitrary client text is rejected).
    * 5. Enforces short-lived authorization expiry (10 minutes).
    * 6. Streams binary audio/mpeg chunks incrementally without server-side memory accumulation.
+   * 7. Cross-principal isolation: guest cannot stream household audio; household cannot stream guest audio.
    */
   fastify.get('/api/appu/audio/stream', async (request, reply) => {
     // 1. Validate query parameters
@@ -50,47 +54,79 @@ export const appuAudioRoutes: FastifyPluginAsync<AppuAudioRouteOptions> = async 
     }
     const { requestId } = parseResult.data;
 
-    // 2. Authenticate requesting principal via Bearer token
+    // 2. Determine authentication mode: Bearer (household) or X-Guest-Session-Token (guest)
     const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Authentication required: Bearer token missing');
-    }
-    const token = authHeader.slice(7).trim();
-    const principal = await opts.authVerifier.verifyAccessToken(token);
-    if (!principal) {
-      throw new UnauthorizedError('Invalid or expired authentication token');
-    }
+    const guestToken = request.headers['x-guest-session-token'] as string | undefined;
 
-    // 3. Verify household tenancy and authorization
-    const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
-      opts.db,
-      principal.userId
-    );
+    let record: any = null;
 
-    // 4. Retrieve durable authorization record and check expiry & ownership
-    const { record, isExpired, isWrongHousehold } =
-      await AppuAudioAuthorizationRepository.findValidByHouseholdAndRequestId(
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // ===== AUTHENTICATED HOUSEHOLD PATH =====
+      const token = authHeader.slice(7).trim();
+      const principal = await opts.authVerifier.verifyAccessToken(token);
+      if (!principal) {
+        throw new UnauthorizedError('Invalid or expired authentication token');
+      }
+
+      const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
+        opts.db,
+        principal.userId
+      );
+
+      const result = await AppuAudioAuthorizationRepository.findValidByHouseholdAndRequestId(
         opts.db,
         household.id,
         requestId
       );
 
-    if (isWrongHousehold) {
-      throw new ForbiddenError('Unauthorized access to audio stream for this request');
+      if (result.isWrongHousehold) {
+        throw new ForbiddenError('Unauthorized access to audio stream for this request');
+      }
+      if (result.isExpired) {
+        return reply.status(410).send({
+          code: 'AUDIO_STREAM_EXPIRED',
+          error: 'Audio stream authorization has expired. Please ask your question again.'
+        });
+      }
+      if (!result.record) {
+        throw new NotFoundError('Audio stream authorization record not found for this requestId');
+      }
+
+      record = result.record;
+
+    } else if (guestToken && typeof guestToken === 'string' && guestToken.trim()) {
+      // ===== GUEST SESSION PATH =====
+      const decoded = GuestSessionService.verifyGuestToken(guestToken.trim(), opts.guestSessionSecret);
+      if (!decoded || !decoded.id) {
+        throw new UnauthorizedError('Invalid or expired guest session token');
+      }
+
+      const result = await AppuAudioAuthorizationRepository.findValidByGuestAndRequestId(
+        opts.db,
+        decoded.id,
+        requestId
+      );
+
+      if (result.isWrongGuest) {
+        throw new ForbiddenError('Unauthorized access to audio stream for this request');
+      }
+      if (result.isExpired) {
+        return reply.status(410).send({
+          code: 'AUDIO_STREAM_EXPIRED',
+          error: 'Audio stream authorization has expired. Please ask your question again.'
+        });
+      }
+      if (!result.record) {
+        throw new NotFoundError('Audio stream authorization record not found for this requestId');
+      }
+
+      record = result.record;
+
+    } else {
+      throw new UnauthorizedError('Authentication required: Bearer token or X-Guest-Session-Token missing');
     }
 
-    if (isExpired) {
-      return reply.status(410).send({
-        code: 'AUDIO_STREAM_EXPIRED',
-        error: 'Audio stream authorization has expired. Please ask your question again.'
-      });
-    }
-
-    if (!record) {
-      throw new NotFoundError('Audio stream authorization record not found for this requestId');
-    }
-
-    // 5. Update status to STREAMING and enforce atomic replay limit (max 3 streams per turn)
+    // 3. Enforce atomic replay limit (max 3 streams per turn)
     const streamStartResult = await AppuAudioAuthorizationRepository.recordStreamStart(
       opts.db,
       requestId,
@@ -104,7 +140,7 @@ export const appuAudioRoutes: FastifyPluginAsync<AppuAudioRouteOptions> = async 
       });
     }
 
-    // 6. Connect to ElevenLabs HTTP Chunked Stream and pipe directly to client
+    // 4. Connect to ElevenLabs HTTP Chunked Stream and pipe directly to client
     try {
       const { stream, contentType, modelId } = await opts.elevenLabsStreamService.getAudioStream(
         record.approvedText
