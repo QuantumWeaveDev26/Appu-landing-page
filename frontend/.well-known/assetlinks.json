@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "online.appuai.appu",
       "sha256_cert_fingerprints": [
-        "F9:67:6D:F4:C7:D4:0D:EF:A0:A1:10:BE:07:01:DB:A6:D5:9E:77:0F:70:33:1E:E6:3B:57:BC:1D:51:27:71:6E"
+        "F9:67:6D:F4:C7:D4:0D:EF:A0:A1:10:BE:07:01:DB:A6:D5:9E:77:0F:70:33:1E:E6:3B:57:BC:1D:51:27:71:6E",
+        "3E:00:2C:53:34:4B:96:AF:6B:8C:11:DB:E9:F5:A8:F9:9A:A4:72:38:D5:64:16:9F:69:B0:42:7C:21:EE:8B:CA"
       ]
     }
   }
