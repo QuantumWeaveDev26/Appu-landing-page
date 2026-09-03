@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">APPU</string>
+    <string name="title_activity_main">APPU</string>
+    <string name="package_name">online.appuai.appu</string>
+    <string name="custom_url_scheme">online.appuai.appu</string>
+</resources>

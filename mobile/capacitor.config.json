@@ -1,0 +1,18 @@
+{
+  "appId": "online.appuai.appu",
+  "appName": "APPU",
+  "webDir": "../frontend",
+  "backgroundColor": "#030a16",
+  "plugins": {
+    "SplashScreen": {
+      "backgroundColor": "#030a16",
+      "launchAutoHide": true,
+      "launchShowDuration": 800
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#030a16",
+      "overlaysWebView": false
+    }
+  }
+}
