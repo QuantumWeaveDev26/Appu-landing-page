@@ -1188,6 +1188,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     }
+
+    // Native back button: close whatever's open (modal/drawer) instead of exiting the
+    // app unexpectedly. On the bare main screen, require a second press within 2s
+    // ("press back again to exit") -- standard Android pattern, avoids accidental exits.
+    let lastBackPressAt = 0;
+    if (CapApp && typeof CapApp.addListener === 'function') {
+      CapApp.addListener('backButton', () => {
+        const openModal = document.getElementById('parent-setup-modal');
+        if (openModal && openModal.classList.contains('is-visible')) {
+          if (window.ParentSetupUI && typeof window.ParentSetupUI.closeModal === 'function') {
+            window.ParentSetupUI.closeModal();
+          }
+          return;
+        }
+        if (settingsModal && settingsModal.classList.contains('is-visible')) {
+          closeSettingsModal();
+          return;
+        }
+        if (discoveryModal && discoveryModal.classList.contains('is-visible')) {
+          closeDiscoveryModal();
+          return;
+        }
+        if (guestLimitModal && guestLimitModal.classList.contains('is-visible')) {
+          closeGuestGateModal();
+          return;
+        }
+        if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+          toggleChatDrawer(false);
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastBackPressAt < 2000) {
+          CapApp.exitApp();
+          return;
+        }
+        lastBackPressAt = now;
+        const subtitlesText = document.getElementById('subtitles-text');
+        if (subtitlesText) {
+          const previousText = subtitlesText.textContent;
+          subtitlesText.textContent = 'Press back again to exit';
+          setTimeout(() => {
+            if (subtitlesText.textContent === 'Press back again to exit') {
+              subtitlesText.textContent = previousText;
+            }
+          }, 2000);
+        }
+      });
+    }
   }
 
   const parentSetupModal = document.getElementById('parent-setup-modal');
