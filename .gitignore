@@ -30,3 +30,14 @@ Thumbs.db
 # Deployment artifacts & archives
 deploy/
 *.zip
+
+# Mobile (Capacitor / Android)
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/captures/
+mobile/android/app/release/
+mobile/android/app/debug/
+*.keystore
+*.jks

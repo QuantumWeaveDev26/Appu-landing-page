@@ -335,15 +335,25 @@ select option:checked, .discovery-form select option:checked {
   .brand-mark { width: 36px; height: 36px; border-radius: 50%; }
   .brand-copy strong { font-size: 13.5px; }
   .brand-copy small, .status-pill { display: none; }
-  .topbar-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-  .parent-session-badge { max-width: 130px; font-size: 10.5px; padding: 0 8px; min-height: 32px; gap: 4px; }
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .topbar-actions::-webkit-scrollbar { display: none; }
+  .parent-session-badge { max-width: 92px; font-size: 10.5px; padding: 0 8px; min-height: 32px; gap: 4px; flex-shrink: 0; }
   .parent-session-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .badge-logout-btn { width: 20px; height: 20px; font-size: 9.5px; margin-left: 2px; flex-shrink: 0; }
-  .language-switch { padding: 2px; gap: 2px; }
+  .language-switch { padding: 2px; gap: 2px; flex-shrink: 0; }
   .lang-btn { min-height: 32px; padding: 0 8px; font-size: 10.5px; }
-  .parent-zone-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; border-radius: 10px; }
+  .parent-zone-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; border-radius: 10px; flex-shrink: 0; }
   .parent-zone-btn span { display: none; }
-  .icon-btn { width: 34px; height: 34px; border-radius: 10px; }
+  .icon-btn { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; }
   #btn-sound-toggle, #btn-quick-schedule { display: none; }
 
   .mission-stage {
