@@ -288,9 +288,7 @@
     _interactiveAuthPending = true;
     try {
       if (isSignUp) {
-        const emailRedirectTo = typeof window !== 'undefined' && window.location?.origin
-          ? window.location.origin
-          : 'https://appuai.online';
+        const emailRedirectTo = resolveEmailRedirectOrigin();
         authRes = await supabase.auth.signUp({
           email,
           password,
@@ -333,14 +331,25 @@
   /**
    * Resends email verification for signup.
    */
+  /**
+   * Always the real public website origin -- inside the native app,
+   * window.location.origin resolves to the internal https://localhost WebView origin,
+   * which would be useless in an email link. https://appuai.online links open directly
+   * in the app instead of a browser via Android App Links (see AndroidManifest.xml).
+   */
+  function resolveEmailRedirectOrigin() {
+    if (typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+      return 'https://appuai.online';
+    }
+    return (typeof window !== 'undefined' && window.location?.origin) || 'https://appuai.online';
+  }
+
   async function resendVerificationEmail(email) {
     const supabase = initSupabase();
     if (!supabase?.auth || typeof supabase.auth.resend !== 'function') {
       throw new Error('Verification resend is not supported by auth client');
     }
-    const emailRedirectTo = typeof window !== 'undefined' && window.location?.origin
-      ? window.location.origin
-      : 'https://appuai.online';
+    const emailRedirectTo = resolveEmailRedirectOrigin();
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: (email || '').trim(),
@@ -372,6 +381,58 @@
       householdName,
       generation
     });
+  }
+
+  /**
+   * Native app only: handles an incoming Android App Link (e.g. the email verification
+   * link, opened directly in-app instead of a browser via appUrlOpen). The Supabase SDK's
+   * automatic detectSessionInUrl only runs once at client construction against the page's
+   * own URL, so a link arriving later while the app is already running has to be applied
+   * manually: pull the tokens out of the deep-linked URL and hand them to setSession.
+   */
+  async function handleDeepLinkAuth(url, { householdName = 'Family' } = {}) {
+    const supabase = initSupabase();
+    if (!supabase?.auth || typeof url !== 'string') {
+      return { status: 'UNAUTHENTICATED', reason: 'supabase_unavailable' };
+    }
+
+    let hash = '';
+    let search = '';
+    try {
+      const parsed = new URL(url);
+      hash = parsed.hash || '';
+      search = parsed.search || '';
+    } catch {
+      const hashIdx = url.indexOf('#');
+      if (hashIdx !== -1) hash = url.slice(hashIdx);
+    }
+
+    const params = new URLSearchParams(hash.replace(/^#/, ''));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (!accessToken || !refreshToken) {
+      // Not an auth link (or already consumed) -- nothing to do.
+      return { status: 'UNAUTHENTICATED', reason: 'no_tokens_in_url' };
+    }
+
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    if (error || !data?.session) {
+      return { status: 'UNAUTHENTICATED', reason: 'invalid_or_expired_link' };
+    }
+
+    const generation = ++_authGeneration;
+    const result = await synchronizeAuthenticatedSession(data.session, {
+      source: 'DEEP_LINK',
+      force: true,
+      allowHouseholdOnboarding: true,
+      householdName,
+      generation
+    });
+    return { ...result, isAuthRedirect: true, isSignup: /type=signup/.test(hash) || /type=signup/.test(search) };
   }
 
   /**
@@ -1073,6 +1134,7 @@
     updateHeaderSessionBadge,
     resendVerificationEmail,
     checkEmailVerificationSession,
+    handleDeepLinkAuth,
     signOut,
     getApiBaseUrl
   };

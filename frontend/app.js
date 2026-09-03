@@ -1167,6 +1167,29 @@ document.addEventListener('DOMContentLoaded', () => {
     updateGuestBadge();
   }
 
+  // Native app only: the email verification link opens as an Android App Link (see
+  // AndroidManifest.xml) straight into this already-running app instead of a browser.
+  // Supabase's own detectSessionInUrl only runs once at client construction against the
+  // page's own URL, so a link arriving later has to be applied manually.
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+    const CapApp = window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (CapApp && typeof CapApp.addListener === 'function') {
+      CapApp.addListener('appUrlOpen', ({ url }) => {
+        if (typeof window.ParentOnboardingShell?.handleDeepLinkAuth !== 'function') return;
+        window.ParentOnboardingShell.handleDeepLinkAuth(url).then((result) => {
+          updateGuestBadge();
+          if (result && result.isAuthRedirect && result.status !== 'UNAUTHENTICATED') {
+            if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
+              window.ParentSetupUI.openModal();
+            }
+          }
+        }).catch((err) => {
+          console.warn('[Appu] Deep link auth warning:', err?.message || err);
+        });
+      });
+    }
+  }
+
   const parentSetupModal = document.getElementById('parent-setup-modal');
 
   // Close modals on outside click (scrim)

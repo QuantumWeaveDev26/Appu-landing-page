@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "online.appuai.appu",
+      "sha256_cert_fingerprints": [
+        "F9:67:6D:F4:C7:D4:0D:EF:A0:A1:10:BE:07:01:DB:A6:D5:9E:77:0F:70:33:1E:E6:3B:57:BC:1D:51:27:71:6E"
+      ]
+    }
+  }
+]

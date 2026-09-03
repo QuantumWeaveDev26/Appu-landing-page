@@ -115,7 +115,7 @@ const forbiddenPatterns = [
 ];
 
 for (const f of files) {
-  if (f === 'assets') continue;
+  if (fs.statSync(path.join(baseDir, f)).isDirectory()) continue;
   const content = fs.readFileSync(path.join(baseDir, f), 'utf8');
   for (const fp of forbiddenPatterns) {
     if (content.includes(fp)) {

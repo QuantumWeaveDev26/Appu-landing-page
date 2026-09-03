@@ -227,7 +227,7 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     }
   });
 
-  test('Clean release version v=20260903-1 on CSS and runtime scripts', () => {
+  test('Clean release version v=20260903-2 on CSS and runtime scripts', () => {
     const htmlFiles = [
       'index.html',
       'pricing.html',
@@ -240,7 +240,7 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
 
     for (const file of htmlFiles) {
       const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
-      assert.ok(content.includes('?v=20260903-1'), `${file} must reference assets with active release version`);
+      assert.ok(content.includes('?v=20260903-2'), `${file} must reference assets with active release version`);
       assert.ok(!content.includes('?v=20260902-1'), `${file} must NOT contain stale ?v=20260902-1`);
       assert.ok(!content.includes('?v=20260901-4'), `${file} must NOT contain stale ?v=20260901-4`);
       assert.ok(!content.includes('?v=20260901-3'), `${file} must NOT contain stale ?v=20260901-3`);
@@ -256,8 +256,8 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     }
 
     const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
-    assert.ok(indexContent.includes('voice-engine.js?v=20260903-1'), 'index.html must reference voice-engine.js?v=20260903-1');
-    assert.ok(indexContent.includes('appu-backend-client.js?v=20260903-1'), 'index.html must reference appu-backend-client.js?v=20260903-1');
+    assert.ok(indexContent.includes('voice-engine.js?v=20260903-2'), 'index.html must reference voice-engine.js?v=20260903-2');
+    assert.ok(indexContent.includes('appu-backend-client.js?v=20260903-2'), 'index.html must reference appu-backend-client.js?v=20260903-2');
   });
 
   test('Mobile hero rules enlarge APPU avatar and optimize layout on small viewports', () => {
