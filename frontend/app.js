@@ -31,6 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let isLoaderDismissed = false;
 
+  // Native app only: once the loader has visually finished AND we know whether a
+  // session already exists, show the sign-in/sign-up gate for guests instead of
+  // leaving auth tucked inside the topbar/drawer. Two async signals (loader fade,
+  // session restore) converge here rather than racing on an arbitrary timeout.
+  let loaderVisualsDone = false;
+  let sessionCheckDone = false;
+  let sessionIsAuthenticated = false;
+
+  function maybeShowNativeWelcomeGate() {
+    if (!loaderVisualsDone || !sessionCheckDone) return;
+    if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) return;
+    if (sessionIsAuthenticated || window.__APPU_AUTH_REDIRECT__) return;
+    openWelcomeGate();
+  }
+
   function dismissLoader() {
     if (isLoaderDismissed || !loader) return;
     isLoaderDismissed = true;
@@ -40,6 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (loaderVideoPlayer) {
         try { loaderVideoPlayer.pause(); } catch(e) {}
       }
+      loaderVisualsDone = true;
+      maybeShowNativeWelcomeGate();
     }, 800);
   }
 
@@ -729,7 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // CORE INTERACTION HANDLER
   // ==========================================
-  async function handleUserInteraction(text) {
+  async function handleUserInteraction(text, image = null) {
     if (!text || !text.trim()) return;
 
     const isAuthed = typeof window.AppuSession !== 'undefined' &&
@@ -783,7 +800,8 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarStage.setState('speaking');
         await voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
         voiceEngine.playMessage();
-      }
+      },
+      image
     );
 
     if (!result) {
@@ -905,6 +923,80 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatForm = document.getElementById('chat-form');
   const chatInput = document.getElementById('chat-input');
   const btnChatMic = document.getElementById('btn-chat-mic');
+  const btnChatAttach = document.getElementById('btn-chat-attach');
+  const chatImageInput = document.getElementById('chat-image-input');
+  const chatImagePreview = document.getElementById('chat-image-preview');
+  const chatImagePreviewThumb = document.getElementById('chat-image-preview-thumb');
+  const btnRemoveChatImage = document.getElementById('btn-remove-chat-image');
+  let pendingImage = null; // { dataUrl, mimeType }
+
+  const IMAGE_MAX_RAW_BYTES = 15 * 1024 * 1024; // pre-downscale sanity ceiling
+  const IMAGE_ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  const IMAGE_MAX_DIMENSION = 1600;
+
+  function downscaleImageFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!IMAGE_ALLOWED_TYPES.includes(file.type)) {
+        return reject(new Error('Please attach a PNG, JPEG, or WEBP photo.'));
+      }
+      if (file.size > IMAGE_MAX_RAW_BYTES) {
+        return reject(new Error('That photo is too large. Please use a smaller file.'));
+      }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
+          const scale = IMAGE_MAX_DIMENSION / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(objectUrl);
+        let quality = 0.8;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length > 5_400_000 && quality > 0.4) { // ~4MB decoded ceiling, base64 inflation
+          quality -= 0.15;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        if (dataUrl.length > 5_400_000) {
+          return reject(new Error('Could not compress this photo enough. Please try a smaller image.'));
+        }
+        resolve({ dataUrl, mimeType: 'image/jpeg' });
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Could not read that image file.')); };
+      img.src = objectUrl;
+    });
+  }
+
+  function clearPendingImage() {
+    pendingImage = null;
+    if (chatImagePreview) chatImagePreview.hidden = true;
+    if (chatImageInput) chatImageInput.value = '';
+  }
+
+  if (btnChatAttach && chatImageInput) {
+    btnChatAttach.addEventListener('click', () => chatImageInput.click());
+    chatImageInput.addEventListener('change', async () => {
+      const file = chatImageInput.files && chatImageInput.files[0];
+      if (!file) return;
+      try {
+        pendingImage = await downscaleImageFile(file);
+        if (chatImagePreviewThumb) chatImagePreviewThumb.src = pendingImage.dataUrl;
+        if (chatImagePreview) chatImagePreview.hidden = false;
+      } catch (err) {
+        clearPendingImage();
+        const subtitlesText = document.getElementById('subtitles-text');
+        if (subtitlesText) subtitlesText.textContent = err.message || 'Could not attach that photo.';
+      }
+    });
+  }
+  if (btnRemoveChatImage) {
+    btnRemoveChatImage.addEventListener('click', () => clearPendingImage());
+  }
 
   function toggleChatDrawer(forceOpen = null) {
     if (!chatDrawer) return;
@@ -936,6 +1028,114 @@ document.addEventListener('DOMContentLoaded', () => {
     chatScrim.addEventListener('click', () => toggleChatDrawer(false));
   }
 
+  // ==========================================
+  // NATIVE APP SHELL: LEFT NAV DRAWER (hamburger menu)
+  // ==========================================
+  const navDrawer = document.getElementById('nav-drawer');
+  const navDrawerScrim = document.getElementById('nav-drawer-scrim');
+  const btnNavMenu = document.getElementById('btn-nav-menu');
+  const btnCloseNavDrawer = document.getElementById('btn-close-nav-drawer');
+
+  function openNavDrawer() {
+    if (!navDrawer) return;
+    navDrawer.classList.add('is-open');
+    if (navDrawerScrim) navDrawerScrim.classList.add('is-visible');
+    if (btnNavMenu) btnNavMenu.setAttribute('aria-expanded', 'true');
+    activateDialog(navDrawer, btnCloseNavDrawer);
+    voiceEngine.playClick();
+  }
+
+  function closeNavDrawer() {
+    if (!navDrawer) return;
+    navDrawer.classList.remove('is-open');
+    if (navDrawerScrim) navDrawerScrim.classList.remove('is-visible');
+    if (btnNavMenu) btnNavMenu.setAttribute('aria-expanded', 'false');
+    deactivateDialog(navDrawer);
+  }
+
+  if (btnNavMenu) btnNavMenu.addEventListener('click', () => openNavDrawer());
+  if (btnCloseNavDrawer) btnCloseNavDrawer.addEventListener('click', () => closeNavDrawer());
+  if (navDrawerScrim) navDrawerScrim.addEventListener('click', () => closeNavDrawer());
+
+  // ==========================================
+  // NATIVE APP SHELL: WELCOME GATE (post-loader sign-in screen)
+  // ==========================================
+  const welcomeGate = document.getElementById('welcome-gate');
+  const btnWelcomeGoogle = document.getElementById('btn-welcome-google');
+  const btnWelcomeLogin = document.getElementById('btn-welcome-login');
+  const btnWelcomeSkip = document.getElementById('btn-welcome-skip');
+
+  function openWelcomeGate() {
+    if (!welcomeGate) return;
+    welcomeGate.classList.add('is-open');
+    activateDialog(welcomeGate, btnWelcomeGoogle);
+  }
+
+  function closeWelcomeGate() {
+    if (!welcomeGate) return;
+    welcomeGate.classList.remove('is-open');
+    deactivateDialog(welcomeGate);
+  }
+
+  if (btnWelcomeSkip) btnWelcomeSkip.addEventListener('click', () => closeWelcomeGate());
+  if (btnWelcomeLogin) {
+    btnWelcomeLogin.addEventListener('click', () => {
+      closeWelcomeGate();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+  if (btnWelcomeGoogle) {
+    btnWelcomeGoogle.addEventListener('click', () => {
+      if (btnWelcomeGoogle.disabled) return;
+      btnWelcomeGoogle.disabled = true;
+      const restore = () => { btnWelcomeGoogle.disabled = false; };
+      if (window.ParentOnboardingShell && typeof window.ParentOnboardingShell.signInWithGoogle === 'function') {
+        window.ParentOnboardingShell.signInWithGoogle().then(restore).catch((err) => {
+          console.warn('[Appu] Google sign-in warning:', err?.message || err);
+          restore();
+        });
+      } else {
+        restore();
+      }
+    });
+  }
+
+  // ==========================================
+  // NATIVE APP SHELL: LEGAL PAGE VIEWER (in-app, no browser chrome)
+  // ==========================================
+  const legalViewer = document.getElementById('legal-viewer');
+  const legalViewerTitle = document.getElementById('legal-viewer-title');
+  const legalViewerFrame = document.getElementById('legal-viewer-frame');
+  const btnCloseLegalViewer = document.getElementById('btn-close-legal-viewer');
+
+  function openLegalViewer(href, title) {
+    if (!legalViewer || !legalViewerFrame) return;
+    legalViewerFrame.onload = () => {
+      // These pages carry their own "Return to Appu" header for when they're opened
+      // standalone in a real browser. Hide it here so the viewer's own header (with its
+      // own close button) isn't duplicated. Same-origin local page, so this is safe.
+      try {
+        const innerHeader = legalViewerFrame.contentDocument?.querySelector('.policy-header');
+        if (innerHeader) innerHeader.style.display = 'none';
+      } catch (e) {}
+    };
+    legalViewerFrame.src = href;
+    if (legalViewerTitle) legalViewerTitle.textContent = title || 'Legal';
+    legalViewer.classList.add('is-open');
+    activateDialog(legalViewer, btnCloseLegalViewer);
+  }
+
+  function closeLegalViewer() {
+    if (!legalViewer) return;
+    legalViewer.classList.remove('is-open');
+    deactivateDialog(legalViewer);
+    legalViewerFrame.src = 'about:blank';
+  }
+
+  if (btnCloseLegalViewer) btnCloseLegalViewer.addEventListener('click', () => closeLegalViewer());
+
   if (btnClearChat) {
     btnClearChat.addEventListener('click', () => {
       voiceEngine.playClick();
@@ -946,11 +1146,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (chatForm && chatInput) {
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const text = chatInput.value.trim();
-      if (!text) return;
+      let text = chatInput.value.trim();
+      if (!text && !pendingImage) return;
+      if (!text && pendingImage) text = 'Please help me understand this.';
 
       chatInput.value = '';
-      handleUserInteraction(text);
+      const imageToSend = pendingImage;
+      clearPendingImage();
+      handleUserInteraction(text, imageToSend);
     });
   }
 
@@ -1158,13 +1361,25 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (e) {}
       }
+
+      sessionCheckDone = true;
+      sessionIsAuthenticated = !!(res && res.status && res.status !== 'UNAUTHENTICATED');
+      maybeShowNativeWelcomeGate();
     }).catch((err) => {
       console.warn('[Appu] Session restoration warning:', err?.message || err);
       updateGuestBadge();
+      sessionCheckDone = true;
+      sessionIsAuthenticated = false;
+      maybeShowNativeWelcomeGate();
     });
-  } else if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
-    window.ParentOnboardingShell.updateHeaderSessionBadge();
+  } else {
+    if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
+      window.ParentOnboardingShell.updateHeaderSessionBadge();
+    }
     updateGuestBadge();
+    sessionCheckDone = true;
+    sessionIsAuthenticated = false;
+    maybeShowNativeWelcomeGate();
   }
 
   // Native app only: the email verification link opens as an Android App Link (see
@@ -1172,13 +1387,60 @@ document.addEventListener('DOMContentLoaded', () => {
   // Supabase's own detectSessionInUrl only runs once at client construction against the
   // page's own URL, so a link arriving later has to be applied manually.
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+    document.body.classList.add('is-native');
+
+    // Legal/marketing page links (Privacy Policy, Terms, etc.) point at separate local
+    // HTML files. Letting the WebView navigate to them would leave the running app (and
+    // its whole boot sequence -- loader video, welcome gate) and force a full reload with
+    // no way back except re-running that boot sequence. Render them in the in-app legal
+    // viewer (an iframe over the same local bundled page) instead, so the running app
+    // stays untouched underneath and nothing ever leaves the app.
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('.nav-drawer-legal a, .welcome-gate-fineprint a');
+      if (!link) return;
+      e.preventDefault();
+      const href = link.getAttribute('href');
+      if (!href) return;
+      closeNavDrawer();
+      openLegalViewer(href, link.textContent.trim());
+    });
+
+    // Relocate topbar controls that don't fit a minimal native chrome into the new
+    // left nav drawer. IDs and their existing listeners are untouched — appendChild
+    // moves a live node without detaching listeners already bound to it above.
+    const navLangSlot = document.getElementById('nav-drawer-lang-slot');
+    const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
+    const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
+    const navAccountSlot = document.getElementById('nav-drawer-account-slot');
+    const languageSwitchEl = document.querySelector('.language-switch');
+    const parentSessionBadgeEl = document.getElementById('parent-session-badge');
+    const btnParentSetupEl = document.getElementById('btn-parent-setup');
+    const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
+    const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
+
+    if (navLangSlot && languageSwitchEl) navLangSlot.appendChild(languageSwitchEl);
+    if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
+    if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
+    if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
+
+    // Auto-close the drawer only for rows that navigate to another screen/modal;
+    // sound toggle and language buttons stay open so users can adjust and re-check.
+    if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
+    if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
+
     const CapApp = window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if (CapApp && typeof CapApp.addListener === 'function') {
       CapApp.addListener('appUrlOpen', ({ url }) => {
+        const CapBrowser = window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+        if (CapBrowser && typeof CapBrowser.close === 'function') {
+          CapBrowser.close().catch(() => {});
+        }
         if (typeof window.ParentOnboardingShell?.handleDeepLinkAuth !== 'function') return;
         window.ParentOnboardingShell.handleDeepLinkAuth(url).then((result) => {
           updateGuestBadge();
           if (result && result.isAuthRedirect && result.status !== 'UNAUTHENTICATED') {
+            closeWelcomeGate();
             if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
               window.ParentSetupUI.openModal();
             }
@@ -1195,6 +1457,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastBackPressAt = 0;
     if (CapApp && typeof CapApp.addListener === 'function') {
       CapApp.addListener('backButton', () => {
+        if (legalViewer && legalViewer.classList.contains('is-open')) {
+          closeLegalViewer();
+          return;
+        }
+        if (welcomeGate && welcomeGate.classList.contains('is-open')) {
+          closeWelcomeGate();
+          return;
+        }
         const openModal = document.getElementById('parent-setup-modal');
         if (openModal && openModal.classList.contains('is-visible')) {
           if (window.ParentSetupUI && typeof window.ParentSetupUI.closeModal === 'function') {
@@ -1212,6 +1482,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (guestLimitModal && guestLimitModal.classList.contains('is-visible')) {
           closeGuestGateModal();
+          return;
+        }
+        if (navDrawer && navDrawer.classList.contains('is-open')) {
+          closeNavDrawer();
           return;
         }
         if (chatDrawer && chatDrawer.classList.contains('is-open')) {
@@ -1294,6 +1568,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       toggleChatDrawer(false);
+      closeNavDrawer();
+      closeWelcomeGate();
+      closeLegalViewer();
     }
   });
 });

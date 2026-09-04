@@ -329,6 +329,38 @@
   }
 
   /**
+   * Starts Google sign-in. On native, opens the OAuth URL in an external system browser
+   * (Capacitor Browser plugin) rather than Google's own webview -- Google blocks embedded
+   * WebViews. The redirect back to https://appuai.online is caught by the existing App
+   * Links handler (handleDeepLinkAuth), same path already used for email verification.
+   * On web it's a normal full-page redirect via Supabase's default OAuth flow.
+   */
+  async function signInWithGoogle() {
+    const supabase = initSupabase();
+    if (!supabase) {
+      throw new Error('Supabase client is not available in the browser');
+    }
+    const isNative = typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+    const redirectTo = resolveEmailRedirectOrigin();
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo, skipBrowserRedirect: isNative }
+    });
+    if (error) {
+      throw new Error(error.message || 'Google sign-in failed to start');
+    }
+
+    if (isNative && data?.url) {
+      const CapBrowser = window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+      if (CapBrowser && typeof CapBrowser.open === 'function') {
+        await CapBrowser.open({ url: data.url });
+      }
+    }
+    // On web, Supabase already performed window.location redirect to Google.
+  }
+
+  /**
    * Resends email verification for signup.
    */
   /**
@@ -1115,6 +1147,7 @@
     state,
     initSupabase,
     signInParent,
+    signInWithGoogle,
     synchronizeAuthenticatedSession,
     restoreSession,
     whenReady,

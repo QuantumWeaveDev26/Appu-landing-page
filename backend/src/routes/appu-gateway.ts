@@ -34,6 +34,18 @@ function isHindiResponseText(text: string): boolean {
   return /[\u0900-\u097F]/.test(text || '');
 }
 
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MiB decoded ceiling
+const IMAGE_DATA_URL_PATTERN = /^data:(image\/(?:png|jpe?g|webp));base64,([A-Za-z0-9+/]+=*)$/i;
+
+function parseImageDataUrl(raw: string): { mimeType: string; base64: string } | null {
+  const match = raw.match(IMAGE_DATA_URL_PATTERN);
+  if (!match) return null;
+  const base64 = match[2];
+  const approxBytes = Math.floor((base64.length * 3) / 4);
+  if (approxBytes === 0 || approxBytes > MAX_IMAGE_BYTES) return null;
+  return { mimeType: match[1].toLowerCase(), base64 };
+}
+
 export interface AppuGatewayRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
@@ -55,7 +67,8 @@ const authenticatedMessageSchema = z.object({
     .trim()
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Invalid language code format (e.g. en, kn, hi)')
     .optional(),
-  includeAudio: z.boolean().optional()
+  includeAudio: z.boolean().optional(),
+  imageBase64: z.string().trim().max(6_000_000, 'Image payload too large').optional()
 });
 
 const guestMessageSchema = z.object({
@@ -71,7 +84,8 @@ const guestMessageSchema = z.object({
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Invalid language code format (e.g. en, kn, hi)')
     .optional(),
   guestToken: z.string().optional(),
-  includeAudio: z.boolean().optional()
+  includeAudio: z.boolean().optional(),
+  imageBase64: z.string().trim().max(6_000_000, 'Image payload too large').optional()
 });
 
 /**
@@ -156,7 +170,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
    *    - Rejects turn #4 with HTTP 403 (GUEST_LIMIT_REACHED).
    *    - Failsafe: technical/upstream errors do NOT consume guest turns.
    */
-  fastify.post('/api/appu/message', async (request, reply) => {
+  fastify.post('/api/appu/message', { bodyLimit: 8 * 1024 * 1024 }, async (request, reply) => {
     const tReqStart = performance.now();
     const principal = await tryResolveAuth(request, opts.authVerifier);
     const tAuthEnd = performance.now();
@@ -172,7 +186,17 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         });
       }
 
-      const { childId, message, language, includeAudio } = parseResult.data;
+      const { childId, message, language, includeAudio, imageBase64 } = parseResult.data;
+
+      let imagePayload: { mimeType: string; base64: string } | null = null;
+      if (imageBase64) {
+        imagePayload = parseImageDataUrl(imageBase64);
+        if (!imagePayload) {
+          throw new BadRequestError('Invalid image attachment. Must be a PNG, JPEG, or WEBP image under 4MB.', {
+            errors: { imageBase64: ['Invalid or oversized image data'] }
+          });
+        }
+      }
 
       // 1. Resolve and verify parent's household authorization (Single query)
       const tHouseholdStart = performance.now();
@@ -308,6 +332,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         language: effectiveLanguage,
         childId: child.id,
         includeAudio: n8nIncludeAudio,
+        ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
         mentorContext
       };
 
@@ -452,7 +477,17 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       });
     }
 
-    const { message, language, guestToken, includeAudio } = parseResult.data;
+    const { message, language, guestToken, includeAudio, imageBase64 } = parseResult.data;
+
+    let imagePayload: { mimeType: string; base64: string } | null = null;
+    if (imageBase64) {
+      imagePayload = parseImageDataUrl(imageBase64);
+      if (!imagePayload) {
+        throw new BadRequestError('Invalid image attachment. Must be a PNG, JPEG, or WEBP image under 4MB.', {
+          errors: { imageBase64: ['Invalid or oversized image data'] }
+        });
+      }
+    }
 
     const rawGuestToken = (
       request.headers['x-guest-session-token'] ||
@@ -542,6 +577,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       message,
       language: effectiveLanguage,
       includeAudio: n8nIncludeAudio,
+      ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
       mentorContext
     };
 

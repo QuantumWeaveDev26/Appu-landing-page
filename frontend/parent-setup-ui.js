@@ -269,6 +269,7 @@
     const btnOpen = document.getElementById('btn-parent-setup');
     const btnClose = document.getElementById('btn-close-parent-setup');
     const btnHeroGetStarted = document.getElementById('btn-hero-primary-schedule');
+    const btnSkip = document.getElementById('pos-btn-skip');
 
     // Steps containers
     const stepAuth = document.getElementById('pos-step-auth');
@@ -560,6 +561,7 @@
 
     if (btnOpen) btnOpen.addEventListener('click', openModal);
     if (btnClose) btnClose.addEventListener('click', closeModal);
+    if (btnSkip) btnSkip.addEventListener('click', closeModal);
     if (btnHeroGetStarted) {
       btnHeroGetStarted.addEventListener('click', (e) => {
         e.preventDefault();

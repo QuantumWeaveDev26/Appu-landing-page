@@ -20,9 +20,9 @@ class ChatAgent {
     this.addMessage('appu', 'Namaskara! 🙏 I am Appu, your learning companion. Tell me your class and what you want to understand today!');
   }
 
-  addMessage(sender, text, actionCard = null) {
+  addMessage(sender, text, actionCard = null, imageDataUrl = null) {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const msgObj = { sender, text, time: timeStr, actionCard };
+    const msgObj = { sender, text, time: timeStr, actionCard, imageDataUrl };
     this.messages.push(msgObj);
     this.renderMessage(msgObj);
     return msgObj;
@@ -36,7 +36,18 @@ class ChatAgent {
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    bubble.textContent = msg.text;
+
+    if (msg.imageDataUrl) {
+      const img = document.createElement('img');
+      img.className = 'msg-image-thumb';
+      img.src = msg.imageDataUrl;
+      img.alt = 'Attached photo';
+      bubble.appendChild(img);
+    }
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = msg.text;
+    bubble.appendChild(textSpan);
 
     // Optional interactive card inside bubble
     if (msg.actionCard) {
@@ -71,12 +82,12 @@ class ChatAgent {
   /**
    * Sends user message to backend gateway and returns response
    */
-  async sendMessage(userText, onStartThinking, onFinishThinking) {
-    if (!userText || !userText.trim()) return null;
+  async sendMessage(userText, onStartThinking, onFinishThinking, image = null) {
+    if ((!userText || !userText.trim()) && !image) return null;
 
-    const cleanInput = userText.trim();
+    const cleanInput = (userText && userText.trim()) || (image ? 'Please help me understand this.' : '');
     // Render User Message in Chat Drawer
-    this.addMessage('user', cleanInput);
+    this.addMessage('user', cleanInput, null, image ? image.dataUrl : null);
 
     if (onStartThinking) onStartThinking();
     if (this.typingIndicator) this.typingIndicator.style.display = 'flex';
@@ -149,6 +160,10 @@ class ChatAgent {
             language: this.language || 'en',
             includeAudio
           };
+
+      if (image && image.dataUrl) {
+        requestPayload.imageBase64 = image.dataUrl;
+      }
 
       const result = await backendClient.sendAppuMessage(requestPayload);
 

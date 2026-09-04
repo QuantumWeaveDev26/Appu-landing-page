@@ -176,6 +176,7 @@
    * @param {string} [params.guestToken] - Optional guest session token
    * @param {string} [params.baseUrl] - Optional override for API base URL
    * @param {boolean} [params.includeAudio] - Whether Appu should generate audio for this response (default true)
+   * @param {string} [params.imageBase64] - Optional data URL (data:image/...;base64,...) of an attached homework photo
    * @returns {Promise<{ text: string, audioSource: string|null, childId?: string, error?: string, code?: string, guest?: any, guestSession?: any }>}
    */
   async function sendAppuMessage(params) {
@@ -183,7 +184,7 @@
       throw new Error('sendAppuMessage requires an options object');
     }
 
-    const { accessToken, childId, message, language = 'en', baseUrl, guestToken, includeAudio } = params;
+    const { accessToken, childId, message, language = 'en', baseUrl, guestToken, includeAudio, imageBase64 } = params;
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       throw new Error('Message cannot be empty');
@@ -203,6 +204,10 @@
     // Omitted entirely when undefined -- backend/n8n default to true (audio on) either way.
     if (typeof includeAudio === 'boolean') {
       payload.includeAudio = includeAudio;
+    }
+
+    if (typeof imageBase64 === 'string' && imageBase64.trim()) {
+      payload.imageBase64 = imageBase64.trim();
     }
 
     if (isAuthenticated) {
@@ -280,6 +285,14 @@
         };
       }
 
+      if (res.status === 400) {
+        return {
+          text: errBody?.message || errBody?.error?.message || "That didn't look like a valid message or photo. Please check the file and try again.",
+          audioSource: null,
+          childId: payload.childId,
+          error: 'invalid_request'
+        };
+      }
       if (res.status === 401) {
         return {
           text: "Your session has expired. Please sign in again from the Parent Zone.",

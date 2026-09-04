@@ -10,6 +10,8 @@ export interface N8nMessageEnvelope {
   language: string;
   childId?: string;
   includeAudio?: boolean;
+  imageBase64?: string;
+  imageMimeType?: string;
   mentorContext: MentorContext;
 }
 

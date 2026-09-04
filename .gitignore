@@ -41,3 +41,4 @@ mobile/android/app/release/
 mobile/android/app/debug/
 *.keystore
 *.jks
+mobile/android/keystore.properties

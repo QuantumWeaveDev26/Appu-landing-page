@@ -123,6 +123,7 @@ class VoiceEngine {
 
         this.recognition.onstart = () => {
             this.isListening = true;
+            this.lastErrorFatal = false;
             this.updateLiveSessionUI();
             this.playListenStart();
             this.streamSubtitles('Listening — tell me what you want to learn.');
@@ -142,8 +143,13 @@ class VoiceEngine {
 
         this.recognition.onerror = event => {
             this.isListening = false;
+            // 'no-speech' just means the engine timed out waiting for the user to start
+            // talking (expected during natural pauses in a live session) -- not fatal.
+            // 'aborted' happens when we stop it ourselves. Anything else (permission
+            // denied, no mic, network) means retrying immediately would just loop forever.
+            this.lastErrorFatal = event.error !== 'no-speech' && event.error !== 'aborted';
             this.updateLiveSessionUI();
-            if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            if (this.lastErrorFatal) {
                 this.streamSubtitles('I missed that. Tap the microphone and try again.');
             }
         };
@@ -151,6 +157,12 @@ class VoiceEngine {
         this.recognition.onend = () => {
             this.isListening = false;
             this.updateLiveSessionUI();
+            // Browsers stop listening after every pause even in a "live session" (there is
+            // no true continuous mode cross-browser) -- restart automatically so the user
+            // doesn't have to re-tap the mic between sentences, like a live conversation.
+            if (this.liveSessionActive && !this.isSpeaking && !this.lastErrorFatal) {
+                window.setTimeout(() => this.startListening(), 250);
+            }
         };
     }
 
