@@ -215,6 +215,9 @@
         throw new Error('Child context required: missing childId');
       }
       payload.childId = childId.trim();
+      if (typeof params.conversationId === 'string' && params.conversationId.trim()) {
+        payload.conversationId = params.conversationId.trim();
+      }
     } else {
       const storedGuestToken = guestToken || getStoredGuestToken();
       if (storedGuestToken) {
@@ -397,9 +400,159 @@
       audioStreamUrl: resolveAudioStreamUrl(data.audioStreamUrl, baseUrl),
       audioDurationMs: data.audioDurationMs || null,
       childId: data.childId || payload.childId,
+      conversationId: data.conversationId || null,
       guest: guestInfo,
       guestSession: guestInfo
     };
+  }
+
+  /**
+   * Helper for authenticated conversation REST requests.
+   */
+  async function authenticatedConversationRequest(params = {}) {
+    const { accessToken, path, method = 'GET', body, baseUrl } = params;
+
+    if (!accessToken || typeof accessToken !== 'string' || !accessToken.trim()) {
+      return {
+        error: 'unauthorized',
+        message: 'Valid parent access token required.'
+      };
+    }
+
+    const apiBase = baseUrl ? baseUrl.replace(/\/+$/, '') : getApiBaseUrl();
+    const endpoint = `${apiBase}${path.startsWith('/') ? path : '/' + path}`;
+
+    const headers = {
+      'Authorization': `Bearer ${accessToken.trim()}`,
+      'Content-Type': 'application/json'
+    };
+
+    const fetchOptions = {
+      method,
+      headers
+    };
+
+    if (body !== undefined && body !== null) {
+      fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+
+    let res;
+    try {
+      res = await fetch(endpoint, fetchOptions);
+    } catch {
+      return {
+        error: 'network_error',
+        message: 'Network connection failed.'
+      };
+    }
+
+    if (res.status === 204) {
+      return { success: true };
+    }
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        return {
+          error: 'unauthorized',
+          message: data?.message || data?.error?.message || 'Unauthorized session.'
+        };
+      }
+      if (res.status === 404) {
+        return {
+          error: 'not_found',
+          message: data?.message || data?.error?.message || 'Resource not found.'
+        };
+      }
+      return {
+        error: data?.code || data?.error?.code || 'server_error',
+        message: data?.message || data?.error?.message || 'Request failed.'
+      };
+    }
+
+    return data || {};
+  }
+
+  async function createConversation(params = {}) {
+    const { accessToken, childId, firstMessage, baseUrl } = params;
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    const body = { childId: childId.trim() };
+    if (typeof firstMessage === 'string' && firstMessage.trim()) {
+      body.firstMessage = firstMessage.trim();
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: '/api/appu/conversations',
+      method: 'POST',
+      body,
+      baseUrl
+    });
+  }
+
+  async function listConversations(params = {}) {
+    const { accessToken, childId, baseUrl } = params;
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/conversations?childId=${encodeURIComponent(childId.trim())}`,
+      method: 'GET',
+      baseUrl
+    });
+  }
+
+  async function getConversationMessages(params = {}) {
+    const { accessToken, childId, conversationId, baseUrl } = params;
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      return { error: 'invalid_request', message: 'Missing conversationId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/conversations/${encodeURIComponent(conversationId.trim())}/messages?childId=${encodeURIComponent(childId.trim())}`,
+      method: 'GET',
+      baseUrl
+    });
+  }
+
+  async function deleteConversation(params = {}) {
+    const { accessToken, childId, conversationId, baseUrl } = params;
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      return { error: 'invalid_request', message: 'Missing conversationId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/conversations/${encodeURIComponent(conversationId.trim())}?childId=${encodeURIComponent(childId.trim())}`,
+      method: 'DELETE',
+      baseUrl
+    });
+  }
+
+  async function clearConversations(params = {}) {
+    const { accessToken, childId, baseUrl } = params;
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/conversations?childId=${encodeURIComponent(childId.trim())}`,
+      method: 'DELETE',
+      baseUrl
+    });
   }
 
   return {
@@ -408,6 +561,11 @@
     getStoredGuestToken,
     setStoredGuestToken,
     sendAppuMessage,
-    getGuestStatus
+    getGuestStatus,
+    createConversation,
+    listConversations,
+    getConversationMessages,
+    deleteConversation,
+    clearConversations
   };
 });

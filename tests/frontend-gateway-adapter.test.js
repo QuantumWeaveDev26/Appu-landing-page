@@ -397,4 +397,70 @@ describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
       global.fetch = originalFetch;
     }
   });
+
+  test('conversation client methods use bearer auth and child-scoped URLs', async () => {
+    const originalFetch = global.fetch;
+    const calls = [];
+    global.fetch = async (url, options) => {
+      calls.push({ url, options });
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { conversations: [], messages: [] };
+        }
+      };
+    };
+
+    try {
+      await AppuBackendClient.listConversations({
+        accessToken: 'token',
+        childId: 'child-id',
+        baseUrl: 'http://localhost:3000'
+      });
+      await AppuBackendClient.getConversationMessages({
+        accessToken: 'token',
+        childId: 'child-id',
+        conversationId: 'conversation-id',
+        baseUrl: 'http://localhost:3000'
+      });
+
+      assert.equal(calls[0].url, 'http://localhost:3000/api/appu/conversations?childId=child-id');
+      assert.equal(calls[1].options.headers.Authorization, 'Bearer token');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('sendAppuMessage forwards authenticated conversationId and returns it', async () => {
+    const originalFetch = global.fetch;
+    let capturedBody;
+    global.fetch = async (_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            text: 'Reply',
+            conversationId: 'conversation-id'
+          };
+        }
+      };
+    };
+
+    try {
+      const result = await AppuBackendClient.sendAppuMessage({
+        accessToken: 'token',
+        childId: 'child-id',
+        conversationId: 'conversation-id',
+        message: 'Hello with conversation'
+      });
+
+      assert.equal(capturedBody.conversationId, 'conversation-id');
+      assert.equal(result.conversationId, 'conversation-id');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });
