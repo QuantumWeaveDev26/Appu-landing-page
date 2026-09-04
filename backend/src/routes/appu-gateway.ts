@@ -17,6 +17,7 @@ import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
 import { detectLanguageIntent } from '../domain/language/index.js';
+import { ConversationRepository, ConversationService } from '../domain/conversation/index.js';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -57,6 +58,7 @@ export interface AppuGatewayRouteOptions {
 
 const authenticatedMessageSchema = z.object({
   childId: z.string().uuid('Invalid childId format. Must be a valid UUID'),
+  conversationId: z.string().uuid().optional(),
   message: z
     .string()
     .trim()
@@ -186,7 +188,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         });
       }
 
-      const { childId, message, language, includeAudio, imageBase64 } = parseResult.data;
+      const { childId, conversationId, message, language, includeAudio, imageBase64 } = parseResult.data;
 
       let imagePayload: { mimeType: string; base64: string } | null = null;
       if (imageBase64) {
@@ -246,6 +248,14 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       const { subscription, entitlements } = subscriptionContext;
 
+      let conversation;
+      if (conversationId) {
+        conversation = await ConversationRepository.getOwned(opts.db, household.id, child.id, conversationId);
+        if (!conversation) throw new NotFoundError('Conversation not found');
+      } else {
+        conversation = await ConversationService.resolveOwnedOrLatest(opts.db, household.id, child.id);
+      }
+
       const aiQuotaLimit = Number(entitlements?.monthly_ai_sessions ?? 100);
       const voiceQuotaLimitMinutes = Number(entitlements?.monthly_voice_minutes ?? 30);
       const voiceQuotaLimitMs = voiceQuotaLimitMinutes * 60 * 1000;
@@ -263,7 +273,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       // Compute deterministic request fingerprint for idempotency binding
       const requestFingerprint = crypto.createHash('sha256')
-        .update([household.id, child.id, message.trim().toLowerCase(), language || 'en'].join('|'))
+        .update([household.id, child.id, conversation.id, message.trim().toLowerCase(), language || 'en'].join('|'))
         .digest('hex');
 
       // 3. Concurrency-safe atomic AI session quota check & reservation (prior to upstream execution)
@@ -289,6 +299,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         reply.header('Server-Timing', `total;dur=${tTotal.toFixed(1)}`);
         return reply.status(isCompleted ? 200 : 202).send({
           childId: child.id,
+          conversationId: conversation.id,
           text: isCompleted ? 'This request was already completed.' : null,
           audioSource: null,
           audioDurationMs: null,
@@ -315,6 +326,14 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       const languageIntent = detectLanguageIntent(message, language, mentorContext.primaryLanguage);
       const effectiveLanguage = languageIntent.language;
 
+      const conversationHistory = await ConversationRepository.listContext(
+        opts.db,
+        household.id,
+        child.id,
+        conversation.id,
+        8
+      );
+
       // 5. Construct structured server-generated envelope for n8n
       // n8n never generates audio itself for the website channel: every language is served via
       // the decoupled Eleven v3 streaming path below (was Kannada/Hindi-only; English previously
@@ -326,11 +345,13 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         requestId: lifecycle.id,
         action: 'sendMessage',
         channel: 'website',
-        sessionId: `appu_child_${child.id}`,
+        sessionId: `appu_request_${lifecycle.id}`,
         chatInput: message,
         message,
         language: effectiveLanguage,
         childId: child.id,
+        conversationId: conversation.id,
+        conversationHistory,
         includeAudio: n8nIncludeAudio,
         ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
         mentorContext
@@ -369,6 +390,16 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       await AppuRequestService.reconcile(opts.db, {
         requestId: lifecycle.id,
         outcome: AppuRequestStates.SUCCEEDED
+      });
+
+      await ConversationService.appendSuccessfulExchange(opts.db, {
+        householdId: household.id,
+        childId: child.id,
+        conversationId: conversation.id,
+        requestId: lifecycle.id,
+        userText: message,
+        assistantText: response.text,
+        hasImageAttachment: Boolean(imagePayload)
       });
 
       // 8. DUPLICATE TTS SAFETY: If the response text is Kannada or Hindi (even from an English learner
@@ -459,6 +490,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         requestId: lifecycle.id,
         requestStatus: AppuRequestStates.SUCCEEDED,
         childId: child.id,
+        conversationId: conversation.id,
         text: response.text,
         audioSource: audioStreamUrl ? null : finalAudioSource,
         audioStreamUrl,

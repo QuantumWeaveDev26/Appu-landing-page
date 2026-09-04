@@ -9,6 +9,8 @@ export interface N8nMessageEnvelope {
   message: string;
   language: string;
   childId?: string;
+  conversationId?: string;
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; text: string }>;
   includeAudio?: boolean;
   imageBase64?: string;
   imageMimeType?: string;

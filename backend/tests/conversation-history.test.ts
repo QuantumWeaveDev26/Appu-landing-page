@@ -8,6 +8,9 @@ import { TenancyService } from '../src/domain/tenancy/service.js';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config/index.js';
 import type { AuthVerifier } from '../src/domain/auth/types.js';
+import { MockN8nClient } from '../src/domain/gateway/index.js';
+import { SubscriptionService } from '../src/domain/subscription/service.js';
+import { SubscriptionRepository } from '../src/domain/subscription/repository.js';
 import {
   ConversationRepository,
   ConversationService,
@@ -489,5 +492,160 @@ describe('APPU Conversation REST API Suite', () => {
       headers: authA
     });
     assert.equal(response2.statusCode, 404);
+  });
+});
+
+describe('APPU Conversation Gateway Suite', () => {
+  let db: TransactionalQueryable;
+  let authVerifier: TestAuthVerifier;
+  let n8nClient: MockN8nClient;
+  let app: any;
+  let householdId: string;
+  let childId: string;
+  const parentToken = 'Bearer token_gateway_parent';
+  const authHeaders = { authorization: parentToken };
+
+  beforeEach(async () => {
+    db = createTestDatabase();
+    await runMigrations(db);
+
+    await SubscriptionService.syncPlans(db, {
+      evolve_monthly: 'plan_evolve_mo_test',
+      evolve_annual: 'plan_evolve_yr_test',
+      evolve_plus_monthly: 'plan_evolve_plus_mo_test',
+      evolve_plus_annual: 'plan_evolve_plus_yr_test',
+      genesis_monthly: 'plan_genesis_mo_test',
+      genesis_annual: 'plan_genesis_yr_test'
+    });
+
+    authVerifier = new TestAuthVerifier();
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token_gateway_parent', { userId: parentUserId, email: 'gateway_parent@test.com' });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'gateway_parent@test.com',
+      householdName: 'Gateway Household'
+    });
+    householdId = household.id;
+
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_plus_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: `sub_rzp_${crypto.randomUUID()}`,
+      status: 'ACTIVE',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: new Date(Date.now() + 30 * 86400000)
+    });
+
+    const cRes = await db.query(
+      `INSERT INTO child_profiles (household_id, preferred_name, grade_band)
+       VALUES ($1, $2, $3) RETURNING id`,
+      [householdId, 'Aarav', 'Grade 5']
+    );
+    childId = cRes.rows[0].id;
+
+    n8nClient = new MockN8nClient();
+    n8nClient.nextResponse = {
+      text: 'Hello from APPU mentor!',
+      audioSource: null,
+      audioDurationMs: null
+    };
+
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'silent',
+      N8N_APPU_WEBHOOK_URL: 'https://n8n.example.com/webhook/test'
+    });
+
+    app = buildApp(config, {
+      database: db as any,
+      authVerifier,
+      n8nClient
+    });
+  });
+
+  test('authenticated message sends conversation context and persists user/assistant turn', async () => {
+    const session = await ConversationRepository.create(db, householdId, childId, 'Seeded conversation');
+    for (let i = 1; i <= 10; i++) {
+      const dummyReqId = crypto.randomUUID();
+      await createTestAppuRequest(db, dummyReqId);
+      await ConversationService.appendSuccessfulExchange(db, {
+        householdId,
+        childId,
+        conversationId: session.id,
+        requestId: dummyReqId,
+        userText: `Turn ${i} user`,
+        assistantText: `Turn ${i} assistant`,
+        hasImageAttachment: false
+      });
+    }
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: authHeaders,
+      payload: {
+        childId,
+        conversationId: session.id,
+        message: 'What is photosynthesis?'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.equal(body.conversationId, session.id);
+    assert.ok(body.requestId);
+
+    assert.ok(n8nClient.lastEnvelope);
+    assert.equal(n8nClient.lastEnvelope.sessionId, `appu_request_${body.requestId}`);
+    assert.equal(n8nClient.lastEnvelope.conversationId, session.id);
+    assert.ok(Array.isArray(n8nClient.lastEnvelope.conversationHistory));
+    assert.equal(n8nClient.lastEnvelope.conversationHistory.length, 16);
+
+    const messages = await ConversationRepository.listMessages(db, householdId, childId, session.id, 100);
+    assert.equal(messages.length, 22);
+    const lastTwo = messages.slice(-2);
+    assert.equal(lastTwo[0].role, 'user');
+    assert.equal(lastTwo[0].text, 'What is photosynthesis?');
+    assert.equal(lastTwo[1].role, 'assistant');
+    assert.equal(lastTwo[1].text, 'Hello from APPU mentor!');
+  });
+
+  test('failed n8n request persists no message pair in conversation history', async () => {
+    const session = await ConversationRepository.create(db, householdId, childId, 'Fail test conversation');
+    n8nClient.nextError = new Error('n8n network failure');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: authHeaders,
+      payload: {
+        childId,
+        conversationId: session.id,
+        message: 'This will fail'
+      }
+    });
+
+    assert.equal(res.statusCode, 502);
+
+    const messages = await ConversationRepository.listMessages(db, householdId, childId, session.id, 100);
+    assert.equal(messages.length, 0);
+  });
+
+  test('guest message keeps conversation_sessions count at 0', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      payload: {
+        message: 'Hello guest!'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const countRes = await db.query('SELECT count(*)::int AS count FROM conversation_sessions');
+    assert.equal(countRes.rows[0].count, 0);
   });
 });

@@ -50,9 +50,17 @@ function createTestDatabase(): TransactionalQueryable {
   const { Pool } = memDb.adapters.createPg();
   const pool = new Pool();
 
+  const cleanQuery = (text: string, params?: any[]) => {
+    let t = text;
+    if (t.includes('ENABLE ROW LEVEL SECURITY') || t.includes('enable row level security')) {
+      t = t.replace(/ALTER TABLE[^\n;]+ENABLE ROW LEVEL SECURITY;?/gi, '');
+    }
+    return pool.query(t, params);
+  };
+
   const db: TransactionalQueryable = {
     async query<T = any>(sql: string, params: any[] = []) {
-      const res = await pool.query<T>(sql, params);
+      const res = await cleanQuery(sql, params);
       return {
         rows: res.rows as T[],
         rowCount: res.rowCount
@@ -63,7 +71,11 @@ function createTestDatabase(): TransactionalQueryable {
       const client = await pool.connect();
       const transactionDb: Queryable = {
         async query<TResult = any>(queryText: string, values: any[] = []) {
-          const result = await client.query<TResult>(queryText, values);
+          let t = queryText;
+          if (t.includes('ENABLE ROW LEVEL SECURITY') || t.includes('enable row level security')) {
+            t = t.replace(/ALTER TABLE[^\n;]+ENABLE ROW LEVEL SECURITY;?/gi, '');
+          }
+          const result = await client.query<TResult>(t, values);
           return {
             rows: result.rows as TResult[],
             rowCount: result.rowCount
@@ -609,14 +621,15 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     const payload = JSON.parse(res.payload);
     assert.equal(payload.childId, childId);
     assert.equal(payload.text, 'Namaskara Vihaan! How can I help you today?');
-    assert.equal(payload.audioSource, 'data:audio/mpeg;base64,SUQzBAAAAAAA...');
+    assert.equal(payload.audioSource, null);
+    assert.ok(payload.audioStreamUrl && payload.audioStreamUrl.includes('/api/appu/audio/stream?requestId='));
 
     // Verify server-constructed envelope passed to n8n
     assert.ok(n8nClient.lastEnvelope);
     assert.equal(n8nClient.lastEnvelope.action, 'sendMessage');
     assert.equal(n8nClient.lastEnvelope.channel, 'website');
     assert.equal(n8nClient.lastEnvelope.childId, childId);
-    assert.equal(n8nClient.lastEnvelope.sessionId, `appu_child_${childId}`);
+    assert.equal(n8nClient.lastEnvelope.sessionId, `appu_request_${payload.requestId}`);
     assert.equal(n8nClient.lastEnvelope.message, 'Can you teach me about the solar system?');
     assert.equal(n8nClient.lastEnvelope.mentorContext.mode, 'authenticated');
     assert.equal(n8nClient.lastEnvelope.mentorContext.learnerId, childId);
@@ -960,7 +973,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     assert.equal(resFalse.statusCode, 200);
     assert.equal(n8nClient.lastEnvelope?.includeAudio, false);
 
-    // 2. Explicit includeAudio: true
+    // 2. Explicit includeAudio: true (website channel forces includeAudio: false for streaming TTS)
     const resTrue = await app.inject({
       method: 'POST',
       url: '/api/appu/message',
@@ -972,9 +985,9 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       }
     });
     assert.equal(resTrue.statusCode, 200);
-    assert.equal(n8nClient.lastEnvelope?.includeAudio, true);
+    assert.equal(n8nClient.lastEnvelope?.includeAudio, false);
 
-    // 3. includeAudio omitted (backward compatibility)
+    // 3. includeAudio omitted (website channel forces includeAudio: false for streaming TTS)
     const resOmitted = await app.inject({
       method: 'POST',
       url: '/api/appu/message',
@@ -985,7 +998,7 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
       }
     });
     assert.equal(resOmitted.statusCode, 200);
-    assert.equal(n8nClient.lastEnvelope?.includeAudio, undefined);
+    assert.equal(n8nClient.lastEnvelope?.includeAudio, false);
 
     // 4. Guest route with includeAudio: false
     const guestResFalse = await app.inject({
