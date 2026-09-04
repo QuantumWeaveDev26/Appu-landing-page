@@ -20,7 +20,8 @@ import {
   appuGatewayRoutes,
   appuCallbackRoutes,
   appuAudioRoutes,
-  usageRoutes
+  usageRoutes,
+  conversationRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -261,6 +262,11 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       authVerifier,
       betaMode: config.APPU_BETA_MODE,
       betaChatLimit: config.APPU_BETA_CHAT_LIMIT
+    });
+
+    app.register(conversationRoutes, {
+      db: options.database,
+      authVerifier
     });
 
     // Subscriptions and webhooks require RazorpayClient

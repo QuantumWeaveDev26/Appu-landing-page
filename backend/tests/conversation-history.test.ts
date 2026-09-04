@@ -5,6 +5,9 @@ import { newDb } from 'pg-mem';
 import { runMigrations } from '../src/db/migrator.js';
 import type { Queryable, TransactionalQueryable } from '../src/db/types.js';
 import { TenancyService } from '../src/domain/tenancy/service.js';
+import { buildApp } from '../src/app.js';
+import { loadConfig } from '../src/config/index.js';
+import type { AuthVerifier } from '../src/domain/auth/types.js';
 import {
   ConversationRepository,
   ConversationService,
@@ -327,5 +330,164 @@ describe('APPU Conversation History Domain & Repository Suite', () => {
     assert.equal(ConversationService.normalizeTitle(undefined, false), 'New conversation');
     const longText = 'a'.repeat(200);
     assert.equal(ConversationService.normalizeTitle(longText).length, 120);
+  });
+});
+
+class TestAuthVerifier implements AuthVerifier {
+  private users = new Map<string, { userId: string; email: string }>();
+
+  public registerUser(token: string, user: { userId: string; email: string }) {
+    this.users.set(token, user);
+  }
+
+  public async verifyAccessToken(token: string) {
+    const user = this.users.get(token);
+    if (!user) throw new Error('Invalid token');
+    return {
+      userId: user.userId,
+      email: user.email
+    };
+  }
+}
+
+describe('APPU Conversation REST API Suite', () => {
+  let db: TransactionalQueryable;
+  let authVerifier: TestAuthVerifier;
+  let app: any;
+  let householdA: string;
+  let householdB: string;
+  let childA: string;
+  let childB: string;
+  const parentAToken = 'Bearer token_parent_a';
+  const parentBToken = 'Bearer token_parent_b';
+  const authA = { authorization: parentAToken };
+  const authB = { authorization: parentBToken };
+
+  beforeEach(async () => {
+    db = createTestDatabase();
+    await runMigrations(db);
+
+    authVerifier = new TestAuthVerifier();
+    const parentAId = crypto.randomUUID();
+    const parentBId = crypto.randomUUID();
+
+    authVerifier.registerUser('token_parent_a', { userId: parentAId, email: 'parent_a@test.com' });
+    authVerifier.registerUser('token_parent_b', { userId: parentBId, email: 'parent_b@test.com' });
+
+    const { household: hA } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentAId,
+      email: 'parent_a@test.com',
+      householdName: 'Household A'
+    });
+    householdA = hA.id;
+
+    const { household: hB } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentBId,
+      email: 'parent_b@test.com',
+      householdName: 'Household B'
+    });
+    householdB = hB.id;
+
+    const cARes = await db.query(
+      `INSERT INTO child_profiles (household_id, preferred_name, grade_band)
+       VALUES ($1, $2, $3) RETURNING id`,
+      [householdA, 'Child A', 'Grade 5']
+    );
+    childA = cARes.rows[0].id;
+
+    const cBRes = await db.query(
+      `INSERT INTO child_profiles (household_id, preferred_name, grade_band)
+       VALUES ($1, $2, $3) RETURNING id`,
+      [householdB, 'Child B', 'Grade 6']
+    );
+    childB = cBRes.rows[0].id;
+
+    app = buildApp(loadConfig(), { database: db as any, authVerifier });
+  });
+
+  test('conversation API creates, lists, reopens, deletes, and clears owned chats', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/appu/conversations',
+      headers: authA,
+      payload: { childId: childA, firstMessage: 'Explain gravity' }
+    });
+    assert.equal(created.statusCode, 201);
+    const id = created.json().conversation.id;
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations?childId=${childA}`,
+      headers: authA
+    });
+    assert.equal(listed.statusCode, 200);
+    assert.equal(listed.json().conversations[0].id, id);
+
+    const opened = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations/${id}/messages?childId=${childA}`,
+      headers: authA
+    });
+    assert.equal(opened.statusCode, 200);
+    assert.deepEqual(opened.json().messages, []);
+
+    assert.equal(
+      (
+        await app.inject({
+          method: 'DELETE',
+          url: `/api/appu/conversations/${id}?childId=${childA}`,
+          headers: authA
+        })
+      ).statusCode,
+      204
+    );
+
+    const created2 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/conversations',
+      headers: authA,
+      payload: { childId: childA, firstMessage: 'Second chat' }
+    });
+    assert.equal(created2.statusCode, 201);
+
+    const clearAll = await app.inject({
+      method: 'DELETE',
+      url: `/api/appu/conversations?childId=${childA}`,
+      headers: authA
+    });
+    assert.equal(clearAll.statusCode, 204);
+
+    const afterClear = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations?childId=${childA}`,
+      headers: authA
+    });
+    assert.equal(afterClear.statusCode, 200);
+    assert.equal(afterClear.json().conversations.length, 0);
+  });
+
+  test('conversation API returns 404 for another child or household', async () => {
+    const foreignCreated = await app.inject({
+      method: 'POST',
+      url: '/api/appu/conversations',
+      headers: authB,
+      payload: { childId: childB, firstMessage: 'Child B chat' }
+    });
+    assert.equal(foreignCreated.statusCode, 201);
+    const foreignConversationId = foreignCreated.json().conversation.id;
+
+    const response1 = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations/${foreignConversationId}/messages?childId=${childA}`,
+      headers: authA
+    });
+    assert.equal(response1.statusCode, 404);
+
+    const response2 = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations?childId=${childB}`,
+      headers: authA
+    });
+    assert.equal(response2.statusCode, 404);
   });
 });
