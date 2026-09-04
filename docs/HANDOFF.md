@@ -1,42 +1,118 @@
-# Handoff — APPU session state (2026-09-04)
+# APPU handoff — 2026-09-04
 
-Written for continuing this work in a different tool (e.g. Codex) that has no memory of the prior conversation. Everything below reflects the actual repo/production state, not assumptions.
+Read this file before making changes. It records verified repository, deployment, and n8n state for continuation in Claude, Antigravity, OmniRouter, Codex, or another agent.
 
-## Done and committed (pushed to `main`, commit `74a13b4`)
+## Repository
 
-1. **Voice mic fix** (`frontend/voice-engine.js`) — browser speech recognition auto-stopped after every pause (`continuous: false`, no true continuous mode exists cross-browser). `onend` now auto-restarts listening while a live session is still active, so it behaves like a continuous conversation instead of requiring a re-tap after every pause. Applies to both web and the native app (not gated).
+- Workspace: `D:\office\Appu-landing-page`
+- Remote: `https://github.com/QuantumWeaveDev26/Appu-landing-page`
+- Branch: `main`
+- Frontend: shared vanilla JS/HTML/CSS in `frontend/`; same source powers website and Capacitor Android app.
+- Backend: Fastify/TypeScript in `backend/`; Hostinger application root is `backend`.
+- Website deployment: `.github/workflows/deploy-frontend.yml` publishes `frontend/` to orphan branch `frontend-production`; Hostinger serves `https://appuai.online` from that branch.
+- Backend deployment: Hostinger git integration follows `main` and redeploys automatically after pushes.
+- n8n workflow: `drr7AUOcj1VrU0j8` at `https://n8n.srv1871828.hstgr.cloud`.
 
-2. **Native Android app chrome redesign** — gated entirely behind a `document.body.classList.add('is-native')` hook (set in `frontend/app.js` inside the existing `window.Capacitor.isNativePlatform()` guard), so the **public website is untouched**. Deliberately NOT extended to web (confirmed with user — keep website as-is with its banner/footer for conversion/SEO).
-   - Minimal topbar + hamburger → left slide-in nav drawer (`#nav-drawer` in `index.html`, relocates language switch / schedule / sound / session badge / Parent Setup out of the topbar via `appendChild`, not duplicated ids).
-   - Post-loader "Welcome to APPU" gate (`#welcome-gate`) — shown once per cold start when native + no session: Google sign-in, "Log in or sign up" (opens existing parent-setup-modal), "Skip". Waits for BOTH the loader animation and `restoreSession()` to resolve before deciding whether to show it (no race/arbitrary timeout).
-   - Google sign-in (`ParentOnboardingShell.signInWithGoogle()` in `parent-onboarding-shell.js`) uses `@capacitor/browser` (external Custom Tab) + the existing App Links deep-link handler for the redirect back — reuses the same plumbing built for email verification. **Requires Google OAuth to be enabled in Supabase (Authentication → Providers → Google) with a Google Cloud OAuth client — user completed this setup already.**
-   - In-app legal page viewer (`#legal-viewer`, an iframe over the same local bundled page with the page's own duplicate header hidden via same-origin DOM access) — replaces navigating away or opening an external browser for Privacy Policy/Terms/etc links, since those are local pages, not external.
-   - Edge-to-edge chat drawer under `.is-native` (was a floating rounded card even on mobile web).
+## Verified completed work
 
-3. **Homework photo attachment** (chat, both web + app — same shared frontend code, not gated):
-   - **Frontend**: paperclip button in the chat composer (`#btn-chat-attach`), client-side downscale to max 1600px/JPEG quality-stepped under ~4MB decoded (`downscaleImageFile()` in `app.js`), preview strip with remove option, thumbnail rendered in the sent message bubble. Wired through `handleUserInteraction` → `ChatAgent.sendMessage` → `AppuBackendClient.sendAppuMessage` (`imageBase64` field, explicit whitelist).
-   - **Backend** (`backend/src/routes/appu-gateway.ts`): new optional `imageBase64` field on both `authenticatedMessageSchema` and `guestMessageSchema`, server-side validation independent of client (`parseImageDataUrl()`: regex-checks `data:image/(png|jpe?g|webp);base64,...` prefix + 4MB decoded ceiling), per-route body limit raised to 8MB (Fastify default is 1MB, left untouched for every other route). Both guest and authenticated flows support it (guest gating is pure turn-count, not content-type). Envelope type extended in `backend/src/domain/gateway/types.ts` (`imageBase64?`, `imageMimeType?`).
-   - **n8n** (workflow `drr7AUOcj1VrU0j8` on `https://n8n.srv1871828.hstgr.cloud`, name "APPU Mentor - LATENCY STAGING - 2026-08-29"): new Code node "Attach Homework Image Binary" inserted between `Validate APPU Conversation Envelope` and `APPU Mentor`, converts `imageBase64`/`imageMimeType` → n8n binary via `prepareBinaryData`. `APPU Mentor.options.passthroughBinaryImages` explicitly set `true`. System prompt (on the `APPU Mentor` node) extended with a "HOMEWORK PHOTO INPUT" section (text-only answers, same Socratic/never-hand-over-the-answer rules apply, admit if the photo is unreadable rather than guessing). **Model is `gpt-4.1-mini`, already vision-capable — no model change needed.**
-   - **Verified working**: isolated n8n pinned-data test with a real (if synthetic — a solid-red 40×40 PNG) image correctly got "Red" back from the model, proving the binary pipeline works. Frontend flow verified end-to-end via simulated file attach in a headless browser (correct payload built, preview/bubble render correctly).
-   - **NOT yet confirmed working against the live production backend** — see "Open/blocking" below.
+### Voice, native shell, and homework photo pipeline
 
-## Open / blocking
+Commit `74a13b4` added:
 
-1. **Backend deploy status unconfirmed.** The live backend at `https://api.appuai.online` was still running old code as of the last real-device test (a live chat execution showed no `imageBase64` field ever reached n8n — Zod silently strips unknown fields on unmatched schemas). Pushed commit `74a13b4` to `main`; Hostinger's hPanel showed an auto-deploy building (Deployments → `api.appuai.online`, root dir `backend`, Framework Fastify, Node 24.x) at the time we stopped. **Next step: check Hostinger hPanel for that deployment's final state (Success/Failed).** If Failed, get the build log and fix. If Success, retest a real photo attach on-device to confirm Appu actually describes the photo instead of saying "I can't view pictures directly."
-   - `/health` on the backend returns 200, but that doesn't prove the new code is live — only a real image-attach test does.
-   - No backend deploy automation exists in this repo (`.github/workflows/` only has `deploy-frontend.yml`) — the backend deploy is via Hostinger's own git integration (configured in their panel, not visible in-repo).
+- Continuous-feeling browser speech recognition restart in `frontend/voice-engine.js`.
+- Native-only Android shell redesign guarded by `body.is-native`.
+- Homework photo attachment across shared frontend, backend, and n8n.
+- Frontend accepts PNG/JPEG/WEBP, downscales to at most 1600px, compresses under the backend ceiling, previews/removes the attachment, renders a sent thumbnail, and sends only whitelisted `imageBase64`.
+- Backend validates image Data URLs and decoded size independently, allows 8MiB only on message routes, and forwards `imageBase64` plus `imageMimeType`.
+- n8n node `Attach Homework Image Binary` converts Base64 to binary before `APPU Mentor`; `passthroughBinaryImages=true`; `gpt-4.1-mini` handles vision.
 
-2. **NCERT real curriculum data — explicitly stopped, not started.** User wants the "Class 6-12 NCERT Textbook Knowledge Engine" n8n tool node (currently a small hardcoded placeholder JS object with rough topic summaries, no real per-chapter data) replaced with the REAL official CBSE/NCERT chapter-by-chapter syllabus for **Class 5 through 12**, core subjects (Maths, Science/Physics/Chemistry/Biology, Social Science). Three parallel research agents were mid-flight (pulling from ncert.nic.in) when the user said to stop due to running low on credits — **killed before producing any usable output, nothing was salvaged.** This needs to be redone from scratch.
-   - The tool node itself: `@n8n/n8n-nodes-langchain.toolCode` named "Class 6-12 NCERT Textbook Knowledge Engine" in workflow `drr7AUOcj1VrU0j8`. Current code does `knowledgeBank[grade] || knowledgeBank["Class 9-10"]` where `grade` comes from `$fromAI('class_level', 'Class 10')` — note it returns the WHOLE subject-map for a grade band, not a single subject's chapters, and silently falls back to "Class 9-10" data for anything that doesn't match a top-level key exactly. This always "succeeds" (no network call, can't literally fail) — the "Oops I couldn't fetch..." message users sometimes see is the AI's own phrasing choice, not a tool error.
-   - When rebuilding: source real chapter lists from NCERT's official site (ncert.nic.in textbook pages / syllabus PDFs), verify against the CURRENT rationalized edition (NCERT periodically drops/merges chapters), cite sources, and flag anything unverifiable rather than guessing — this app's system prompt explicitly forbids the AI from asserting fake chapter numbers, so wrong data here would be worse than the current honest-but-vague placeholder.
-   - Consider restructuring the lookup to be keyed by exact `"Class 5"`..`"Class 12"` (not bands) with subject as a second-level key, to fix the current band/fallback imprecision too.
+The website initially missed this commit because GitHub Actions run `33839403874` failed at `tests/page-structure.test.py`: the native welcome gate introduced a second `<h1>`. Commit `38232eb` fixed the gate title to `<h2>`, replaced an exact-version change-detector test with a cache-busting format/consistency test, and bumped website assets to `v=20260904-1`.
 
-3. **On-device verification not yet done for**: Android native camera/gallery file picker (`<input type="file">` inside the Capacitor WebView) — expected to work out of the box, never explicitly confirmed on the physical device.
+Verified evidence:
 
-## Key facts for whoever continues this
+- GitHub Actions frontend deployment `33848595886`: success.
+- `frontend-production` deployment commit: `9a0a0c4`, built from `main@38232eb4be574b75289108051b43a23ff20f17a3`.
+- Live `https://appuai.online` contains `btn-chat-attach` and `v=20260904-1` assets.
+- Live public backend image request ID `e32e13f3-ea6c-4467-aa2c-e75b910301c9` returned HTTP 200 and accurately described the supplied screenshot. It did not claim images were unavailable.
+- Frontend suite at that commit: 89 JavaScript tests passed; 8 Python page-structure tests passed; bundle and duplicate audits passed.
 
-- Repo: `D:\office\Appu-landing-page` (git remote: `github.com/QuantumWeaveDev26/Appu-landing-page`, branch `main`).
-- Frontend is vanilla JS/HTML/CSS, no bundler/framework, shared identically by the public website and the Capacitor Android app (`mobile/`, `webDir: "../frontend"`). Any frontend change needs `npx cap sync android` (from `mobile/`) + rebuild in Android Studio to reach the app; website picks it up via the `deploy-frontend.yml` GitHub Actions workflow on push to `main`.
-- Backend: Fastify + TypeScript, `backend/`, deployed to Hostinger (`api.appuai.online`), deploy is manual/Hostinger-git-integration, not GitHub Actions.
-- n8n workflow `drr7AUOcj1VrU0j8` holds the actual AI agent/system prompt — edited via n8n MCP tools (`mcp__n8n-mcp__*`) or directly in the n8n web editor at `https://n8n.srv1871828.hstgr.cloud`. Not in this git repo at all.
-- Android app: package `online.appuai.appu`, signed release keystore exists locally (gitignored) at `mobile/android/appu-release.keystore` — Play Store submission still pending Google Play Developer account setup (user's own action, last known status unconfirmed).
+Remaining physical-device check: attach a fresh camera/gallery photo in the installed Android build after syncing/rebuilding and confirm the live reply describes it. Web and backend paths are proven; native picker on a physical device has not been rechecked after the live backend deployment.
+
+### Official NCERT/CBSE syllabus engine
+
+The n8n tool node `Class 6-12 NCERT Textbook Knowledge Engine` was rebuilt with official 2026–27 data for Classes 5–12. Despite the legacy canvas label, the tool supports Class 5.
+
+- Active workflow version: `a9475f1b-0f25-4cef-9f3c-8da35dd4f36c`.
+- Sources: official `ncert.nic.in` textbook PDFs for Classes 5–9 and official `cbseacademic.nic.in` 2026–27 curriculum PDFs for secondary/senior-secondary subjects.
+- Subjects: Mathematics; integrated Science/Social/EVS where applicable; Science; Physics; Chemistry; Biology; Social Science; History; Geography; Political Science; Economics.
+- No silent class/edition fallback exists.
+- Class 9 Social Science returns official themes with `numberingConfirmed:false` because CBSE says detailed course structure is pending. It never invents chapter numbers.
+- Live regression executions `8579`, `8580`, `8581`, `8582`, `8583`, `8584`, `8585`, and `8586` succeeded across Classes 5, 7, 8, 9, 10, 11, and 12.
+- Verified examples: Class 7 Science begins `The Ever-Evolving World of Science`; Class 12 Chemistry has 10 current chapters and excludes `Polymers`; Class 10 Science excludes old `Management of Natural Resources`; Class 11 Biology excludes old `Digestion and Absorption`.
+
+Do not replace this map from memory. Future-year updates must be reverified against official NCERT/CBSE PDFs.
+
+## Next feature: persistent recent conversations
+
+User requested ChatGPT-style recent chat history shared between website and Android app. Product decisions are approved:
+
+- Signed-in child profiles only.
+- Guests keep current temporary in-memory chat only.
+- Latest 30 conversation threads per child.
+- 90-day retention after last successful activity.
+- Per-child and per-household isolation.
+- New chat, reopen, delete one, and clear all.
+- Reopening restores up to 100 text messages and supplies latest eight prior turns to APPU.
+- Uploaded image bytes are never retained; history stores only `has_image_attachment=true`.
+
+Architecture design and implementation plan are complete:
+
+- Design: `docs/superpowers/specs/2026-09-04-conversation-history-design.md`
+- Plan: `docs/superpowers/plans/2026-09-04-conversation-history.md`
+- Design commit: `7dfbb32`
+- Plan commit: `f2637c2`
+
+No production code, migration, API, frontend history UI, or n8n history normalization has been implemented. Start with Task 1 of the plan and follow its RED/GREEN test sequence.
+
+Important technical decision: n8n's attached `Learner Memory` is `memoryBufferWindow` with context length 8. Website history must come from backend PostgreSQL as sole durable source. Website n8n requests use request-scoped memory keys (`appu_request_<requestId>`) to avoid duplicated restored turns. WhatsApp keeps its existing memory key and behavior.
+
+Rollout order matters:
+
+1. Implement database/domain, authenticated APIs, and message gateway.
+2. Push backend-compatible commits while frontend controls are absent.
+3. Apply migration `014_conversation_history.sql` through Hostinger hPanel terminal using `npm run migrate` from backend root.
+4. Update and publish n8n website-history normalization; verify WhatsApp remains unchanged.
+5. Implement and deploy shared frontend history UI.
+6. Sync Capacitor Android, rebuild, and prove cross-device continuation under the same child.
+
+## Git and workspace safety
+
+At handoff creation, local `main` contained two unpushed documentation commits (`7dfbb32`, `f2637c2`). This handoff is committed and pushed with them so remote agents can read all three documents.
+
+Untracked paths belong to the user and were intentionally untouched:
+
+- `.claude/`
+- `backend/scratch/`
+- `mobile/android/.idea/runConfigurations.xml`
+
+Do not delete, reset, stage, or overwrite them.
+
+## Verification commands
+
+```powershell
+cd D:\office\Appu-landing-page\backend
+npm run typecheck
+npm test
+npm run build
+
+cd D:\office\Appu-landing-page
+node tests/audit-frontend-bundle.cjs
+node tests/check-no-duplicates.cjs
+node --test tests/*.test.js
+python tests/page-structure.test.py
+
+cd D:\office\Appu-landing-page\mobile
+npx cap sync android
+```
+
+Never claim deployment completion from `/health` alone. Verify exact behavior through live website/API and record deployment or n8n execution IDs.
