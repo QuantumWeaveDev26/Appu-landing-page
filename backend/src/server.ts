@@ -1,6 +1,7 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config/index.js';
 import { createDatabase, type PostgresDatabase } from './db/client.js';
+import { ConversationRepository } from './domain/conversation/index.js';
 
 async function startServer() {
   const port = Number(process.env.PORT || 3000);
@@ -26,6 +27,12 @@ async function startServer() {
     const address = await app.listen({ port, host });
     console.log(`[AppuBackend] Server listening successfully at ${address} in ${config.NODE_ENV} mode`);
     app.log.info(`[AppuBackend] Server listening at ${address} in ${config.NODE_ENV} mode`);
+
+    if (database) {
+      void ConversationRepository.deleteExpired(database, 500).catch((err) => {
+        console.error('[AppuBackend] Conversation expiry cleanup failed:', err?.message || err);
+      });
+    }
   } catch (err: any) {
     console.error('[AppuBackend] Failed to start server:', err?.message || err);
     if (database) {
