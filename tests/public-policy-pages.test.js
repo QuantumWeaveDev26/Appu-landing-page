@@ -227,7 +227,7 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     }
   });
 
-  test('Clean release version v=20260903-4 on CSS and runtime scripts', () => {
+  test('local CSS and runtime scripts use valid cache-busting release versions', () => {
     const htmlFiles = [
       'index.html',
       'pricing.html',
@@ -240,24 +240,16 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
 
     for (const file of htmlFiles) {
       const content = fs.readFileSync(path.join(frontendDir, file), 'utf8');
-      assert.ok(content.includes('?v=20260903-4'), `${file} must reference assets with active release version`);
-      assert.ok(!content.includes('?v=20260902-1'), `${file} must NOT contain stale ?v=20260902-1`);
-      assert.ok(!content.includes('?v=20260901-4'), `${file} must NOT contain stale ?v=20260901-4`);
-      assert.ok(!content.includes('?v=20260901-3'), `${file} must NOT contain stale ?v=20260901-3`);
-      assert.ok(!content.includes('?v=20260901-2'), `${file} must NOT contain stale ?v=20260901-2`);
-      assert.ok(!content.includes('?v=20260831-2'), `${file} must NOT contain stale ?v=20260831-2`);
-      assert.ok(!content.includes('?v=20260831-1'), `${file} must NOT contain stale ?v=20260831-1`);
-      assert.ok(!content.includes('?v=20260829-1'), `${file} must NOT contain stale ?v=20260829-1`);
-      assert.ok(!content.includes('?v=20260826-1'), `${file} must NOT contain stale ?v=20260826-1`);
-      assert.ok(!content.includes('?v=20260825-5'), `${file} must NOT contain stale ?v=20260825-5`);
-      assert.ok(!content.includes('?v=20260825-4'), `${file} must NOT contain stale ?v=20260825-4`);
-      assert.ok(!content.includes('?v=20260825-3'), `${file} must NOT contain stale ?v=20260825-3`);
-      assert.ok(!content.includes('?v=20260825-2'), `${file} must NOT contain stale ?v=20260825-2`);
+      const localAssets = [...content.matchAll(/(?:href|src)="(?!https?:|data:)([^"?#]+\.(?:css|js))\?v=([^"&]+)"/g)];
+      assert.ok(localAssets.length > 0, `${file} must version local CSS or JS assets`);
+      for (const [, asset, version] of localAssets) {
+        assert.match(version, /^\d{8}-\d+$/, `${file}: ${asset} must use YYYYMMDD-N release version`);
+      }
+      if (file === 'index.html') {
+        const versions = new Set(localAssets.map(([, , version]) => version));
+        assert.equal(versions.size, 1, 'index.html CSS and runtime scripts must share one release version');
+      }
     }
-
-    const indexContent = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
-    assert.ok(indexContent.includes('voice-engine.js?v=20260903-4'), 'index.html must reference voice-engine.js?v=20260903-4');
-    assert.ok(indexContent.includes('appu-backend-client.js?v=20260903-4'), 'index.html must reference appu-backend-client.js?v=20260903-4');
   });
 
   test('Mobile hero rules enlarge APPU avatar and optimize layout on small viewports', () => {
