@@ -648,4 +648,56 @@ describe('APPU Conversation Gateway Suite', () => {
     const countRes = await db.query('SELECT count(*)::int AS count FROM conversation_sessions');
     assert.equal(countRes.rows[0].count, 0);
   });
+
+  test('authenticated chat still succeeds when conversation_sessions table is missing (resolution fail-open)', async () => {
+    await db.query('DROP TABLE conversation_sessions CASCADE');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: authHeaders,
+      payload: {
+        childId,
+        message: 'Hello when tables dropped'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.ok(body.text);
+    assert.equal(body.conversationId, null);
+  });
+
+  test('authenticated chat still succeeds when conversation_messages write fails (append/context fail-open)', async () => {
+    const session = await ConversationRepository.create(db, householdId, childId, 'Drop messages test');
+    await db.query('DROP TABLE conversation_messages CASCADE');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: authHeaders,
+      payload: {
+        childId,
+        conversationId: session.id,
+        message: 'Hello when messages table dropped'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.ok(body.text);
+  });
+
+  test('explicit unknown conversationId still returns 404 (fail-open does not swallow real 404)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: authHeaders,
+      payload: {
+        childId,
+        conversationId: crypto.randomUUID(),
+        message: 'Hello unknown conversation'
+      }
+    });
+
+    assert.equal(res.statusCode, 404);
+  });
 });

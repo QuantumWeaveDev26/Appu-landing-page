@@ -248,12 +248,18 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       const { subscription, entitlements } = subscriptionContext;
 
-      let conversation;
-      if (conversationId) {
-        conversation = await ConversationRepository.getOwned(opts.db, household.id, child.id, conversationId);
-        if (!conversation) throw new NotFoundError('Conversation not found');
-      } else {
-        conversation = await ConversationService.resolveOwnedOrLatest(opts.db, household.id, child.id);
+      let conversation: any = null;
+      try {
+        if (conversationId) {
+          conversation = await ConversationRepository.getOwned(opts.db, household.id, child.id, conversationId);
+          if (!conversation) throw new NotFoundError('Conversation not found');
+        } else {
+          conversation = await ConversationService.resolveOwnedOrLatest(opts.db, household.id, child.id);
+        }
+      } catch (err: any) {
+        if (err instanceof NotFoundError) throw err;   // explicit foreign id => real 404, do NOT swallow
+        request.log.warn({ err, requestId: 'pre-lifecycle' }, 'Conversation resolution failed; continuing without history');
+        conversation = null;
       }
 
       const aiQuotaLimit = Number(entitlements?.monthly_ai_sessions ?? 100);
@@ -273,7 +279,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       // Compute deterministic request fingerprint for idempotency binding
       const requestFingerprint = crypto.createHash('sha256')
-        .update([household.id, child.id, conversation.id, message.trim().toLowerCase(), language || 'en'].join('|'))
+        .update([household.id, child.id, conversation?.id ?? 'no-conversation', message.trim().toLowerCase(), language || 'en'].join('|'))
         .digest('hex');
 
       // 3. Concurrency-safe atomic AI session quota check & reservation (prior to upstream execution)
@@ -299,7 +305,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         reply.header('Server-Timing', `total;dur=${tTotal.toFixed(1)}`);
         return reply.status(isCompleted ? 200 : 202).send({
           childId: child.id,
-          conversationId: conversation.id,
+          conversationId: conversation?.id ?? null,
           text: isCompleted ? 'This request was already completed.' : null,
           audioSource: null,
           audioDurationMs: null,
@@ -326,13 +332,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       const languageIntent = detectLanguageIntent(message, language, mentorContext.primaryLanguage);
       const effectiveLanguage = languageIntent.language;
 
-      const conversationHistory = await ConversationRepository.listContext(
-        opts.db,
-        household.id,
-        child.id,
-        conversation.id,
-        8
-      );
+      let conversationHistory: Array<{ role: 'user' | 'assistant'; text: string }> = [];
+      if (conversation) {
+        try {
+          conversationHistory = await ConversationRepository.listContext(
+            opts.db,
+            household.id,
+            child.id,
+            conversation.id,
+            8
+          );
+        } catch (err) {
+          request.log.warn({ err, requestId: lifecycle.id }, 'Loading conversation context failed; sending empty history');
+          conversationHistory = [];
+        }
+      }
 
       // 5. Construct structured server-generated envelope for n8n
       // n8n never generates audio itself for the website channel: every language is served via
@@ -350,7 +364,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         message,
         language: effectiveLanguage,
         childId: child.id,
-        conversationId: conversation.id,
+        conversationId: conversation?.id,
         conversationHistory,
         includeAudio: n8nIncludeAudio,
         ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
@@ -392,15 +406,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         outcome: AppuRequestStates.SUCCEEDED
       });
 
-      await ConversationService.appendSuccessfulExchange(opts.db, {
-        householdId: household.id,
-        childId: child.id,
-        conversationId: conversation.id,
-        requestId: lifecycle.id,
-        userText: message,
-        assistantText: response.text,
-        hasImageAttachment: Boolean(imagePayload)
-      });
+      if (conversation) {
+        try {
+          await ConversationService.appendSuccessfulExchange(opts.db, {
+            householdId: household.id,
+            childId: child.id,
+            conversationId: conversation.id,
+            requestId: lifecycle.id,
+            userText: message,
+            assistantText: response.text,
+            hasImageAttachment: Boolean(imagePayload)
+          });
+        } catch (err) {
+          request.log.error({ err, requestId: lifecycle.id }, 'Failed to persist conversation exchange; returning success anyway');
+        }
+      }
 
       // 8. DUPLICATE TTS SAFETY: If the response text is Kannada or Hindi (even from an English learner
       //    who asked in regional languages or Kanglish/Hinglish), suppress any old n8n-generated audioSource to prevent double billing.
@@ -490,7 +510,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         requestId: lifecycle.id,
         requestStatus: AppuRequestStates.SUCCEEDED,
         childId: child.id,
-        conversationId: conversation.id,
+        conversationId: conversation?.id ?? null,
         text: response.text,
         audioSource: audioStreamUrl ? null : finalAudioSource,
         audioStreamUrl,
