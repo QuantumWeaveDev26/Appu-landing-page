@@ -19,12 +19,12 @@ class ChatAgent {
   }
 
   initDefaultWelcome() {
-    this.addMessage('appu', 'Namaskara! 🙏 I am Appu, your learning companion. Tell me your class and what you want to understand today!');
+    this.addMessage('appu', 'Namaskara! 🙏 I am Appu, your learning companion. Tell me your class and what you want to understand today!', null, null, { isWelcome: true });
   }
 
-  addMessage(sender, text, actionCard = null, imageDataUrl = null) {
+  addMessage(sender, text, actionCard = null, imageDataUrl = null, options = {}) {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const msgObj = { sender, text, time: timeStr, actionCard, imageDataUrl };
+    const msgObj = { sender, text, time: timeStr, actionCard, imageDataUrl, ...options };
     this.messages.push(msgObj);
     this.renderMessage(msgObj);
     return msgObj;
@@ -72,6 +72,68 @@ class ChatAgent {
       card.appendChild(btn);
 
       bubble.appendChild(card);
+    }
+
+    // In-chat affordance: Share study note to parent's WhatsApp (opens user's WhatsApp to send TO parent)
+    if (msg.sender === 'appu' && !msg.isWelcome && !msg.isSystem && msg.text && msg.text.trim()) {
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'msg-actions-bar';
+
+      const shareBtn = document.createElement('button');
+      shareBtn.className = 'btn-share-whatsapp';
+      shareBtn.type = 'button';
+      shareBtn.setAttribute('title', "Opens your WhatsApp on this device to send this study note to your parent");
+      shareBtn.setAttribute('aria-label', "Share study note to parent's WhatsApp");
+      shareBtn.innerHTML = '<i class="fa-brands fa-whatsapp" aria-hidden="true"></i> <span>Share note to parent\'s WhatsApp</span>';
+
+      shareBtn.onclick = async (e) => {
+        if (e && typeof e.stopPropagation === 'function') {
+          e.stopPropagation();
+        }
+
+        const session = (typeof window !== 'undefined' && window.AppuSession) ? window.AppuSession : null;
+        const parentContext = session ? session.parentContext : null;
+
+        let parentPhone = parentContext?.parentPhone;
+        let consent = Boolean(parentContext?.whatsappConsent);
+
+        // Fallback: check ParentOnboardingShell state or fetch preferences
+        if (!parentPhone && typeof window !== 'undefined' && window.ParentOnboardingShell) {
+          const p = window.ParentOnboardingShell.state?.personalisation || window.ParentOnboardingShell.state?.personalization;
+          if (p?.parent_phone || p?.parentPhone) {
+            parentPhone = p.parent_phone || p.parentPhone;
+            consent = Boolean(p.whatsapp_consent ?? p.whatsappConsent);
+          } else if (typeof window.ParentOnboardingShell.fetchNotificationPreferences === 'function') {
+            try {
+              const prefs = await window.ParentOnboardingShell.fetchNotificationPreferences();
+              if (prefs && (prefs.parent_phone || prefs.parentPhone)) {
+                parentPhone = prefs.parent_phone || prefs.parentPhone;
+                consent = Boolean(prefs.whatsapp_consent ?? prefs.whatsappConsent);
+              }
+            } catch {}
+          }
+        }
+
+        if (consent && parentPhone) {
+          const childName = parentContext?.childName || (typeof window !== 'undefined' && (window.ParentOnboardingShell?.state?.personalisation?.child_name || window.ParentOnboardingShell?.state?.personalization?.child_name)) || '';
+          const client = (typeof window !== 'undefined' && window.AppuBackendClient) || (typeof AppuBackendClient !== 'undefined' ? AppuBackendClient : null);
+          if (client && typeof client.buildWhatsAppShareUrl === 'function') {
+            const url = client.buildWhatsAppShareUrl(parentPhone, msg.text, childName);
+            if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
+              window.open(url, '_blank');
+            }
+          }
+        } else {
+          if (typeof window !== 'undefined' && window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+            window.ParentSetupUI.openModal(4);
+          } else if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+            window.alert("To share study notes with your parent's WhatsApp, ask them to enable WhatsApp updates in Parent Zone settings.");
+          }
+        }
+      };
+
+      actionsDiv.appendChild(shareBtn);
+      bubble.appendChild(actionsDiv);
     }
 
     const time = document.createElement('span');
@@ -141,7 +203,7 @@ class ChatAgent {
         };
         if (this.typingIndicator) this.typingIndicator.style.display = 'none';
         if (onFinishThinking) onFinishThinking(responseText, null);
-        return this.addMessage('appu', responseText, actionCard);
+        return this.addMessage('appu', responseText, actionCard, null, { isSystem: true });
       }
 
       if (!backendClient || typeof backendClient.sendAppuMessage !== 'function') {
@@ -238,7 +300,8 @@ class ChatAgent {
       if (this.typingIndicator) this.typingIndicator.style.display = 'none';
       if (onFinishThinking) onFinishThinking(responseText, audioSource, result.audioStreamUrl || null, requestPayload.accessToken || null);
 
-      const appuMsg = this.addMessage('appu', responseText, actionCard);
+      const isSystemNotice = Boolean(result.error || result.code);
+      const appuMsg = this.addMessage('appu', responseText, actionCard, null, { isSystem: isSystemNotice });
       return appuMsg;
 
     } catch (error) {
@@ -247,7 +310,7 @@ class ChatAgent {
 
       const errorDisplay = 'I could not reach my answer service just now. Please check your connection and try again.';
       if (onFinishThinking) onFinishThinking(errorDisplay, null);
-      return this.addMessage('appu', errorDisplay);
+      return this.addMessage('appu', errorDisplay, null, null, { isSystem: true });
     }
   }
 

@@ -555,6 +555,69 @@
     });
   }
 
+  /**
+   * Sanitizes and formats an educational study note for WhatsApp sharing.
+   * Strips reasoning tokens (<think>), actions, HTML tags, and image/data URLs.
+   * Trims strictly under 500 characters.
+   */
+  function formatWhatsAppStudyNote(text, childName = '') {
+    if (!text || typeof text !== 'string') return '';
+
+    let sanitized = text;
+
+    // Strip thinking and action tags and their contents
+    sanitized = sanitized.replace(/<think\b[^>]*>[\s\S]*?<\/think>/gi, '');
+    sanitized = sanitized.replace(/<action\b[^>]*>[\s\S]*?<\/action>/gi, '');
+
+    // Strip base64 and data image URLs
+    sanitized = sanitized.replace(/data:image\/[a-zA-Z0-9.+]+;base64,[a-zA-Z0-9+/=]+/gi, '');
+    sanitized = sanitized.replace(/data:[^;\s]+;base64,[a-zA-Z0-9+/=]+/gi, '');
+    sanitized = sanitized.replace(/base64,[a-zA-Z0-9+/=]+/gi, '');
+    sanitized = sanitized.replace(/[A-Za-z0-9+/]{40,}={0,2}/g, '');
+
+    // Strip HTML tags
+    sanitized = sanitized.replace(/<[^>]+>/g, '');
+
+    // Strip code fences
+    sanitized = sanitized.replace(/```[\s\S]*?```/g, '');
+
+    // Normalize whitespace
+    sanitized = sanitized.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    sanitized = sanitized.replace(/[ \t]+/g, ' ');
+    sanitized = sanitized.replace(/\n\s*\n+/g, '\n\n').trim();
+
+    const cleanChild = (typeof childName === 'string' && childName.trim()) ? childName.trim() : null;
+    const header = cleanChild
+      ? `*Study note from ${cleanChild} (via APPU):*\n`
+      : `*Study note from APPU:*\n`;
+    const footer = '\n\n_Shared via APPU Learning Companion_';
+
+    const maxBudget = 490 - header.length - footer.length;
+    if (sanitized.length > maxBudget) {
+      sanitized = sanitized.slice(0, Math.max(0, maxBudget - 3)).trim() + '...';
+    }
+
+    const note = `${header}${sanitized}${footer}`;
+    if (note.length >= 500) {
+      return note.slice(0, 496) + '...';
+    }
+    return note;
+  }
+
+  /**
+   * Constructs a wa.me sharing URL directed TO the parent.
+   */
+  function buildWhatsAppShareUrl(parentPhone, text, childName = '') {
+    if (!parentPhone || typeof parentPhone !== 'string') return null;
+    const cleanPhone = parentPhone.replace(/\D/g, '');
+    if (!cleanPhone) return null;
+
+    const formattedNote = formatWhatsAppStudyNote(text, childName);
+    if (!formattedNote) return null;
+
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(formattedNote)}`;
+  }
+
   return {
     getApiBaseUrl,
     resolveAudioStreamUrl,
@@ -566,6 +629,8 @@
     listConversations,
     getConversationMessages,
     deleteConversation,
-    clearConversations
+    clearConversations,
+    formatWhatsAppStudyNote,
+    buildWhatsAppShareUrl
   };
 });
