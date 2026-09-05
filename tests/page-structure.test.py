@@ -13,6 +13,8 @@ class PageParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.h1_count = 0
+        self.h3_headings = []
+        self.current_h3 = None
         self.mission_cards = []
         self.dialogs = {}
         self.close_buttons = []
@@ -33,6 +35,8 @@ class PageParser(HTMLParser):
             self.video_sources.append((self.active_video_id, values))
         if tag == "h1":
             self.h1_count += 1
+        if tag == "h3":
+            self.current_h3 = []
         classes = set(values.get("class", "").split())
         if "mission-card" in classes:
             self.mission_cards.append(values)
@@ -46,10 +50,15 @@ class PageParser(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "video":
             self.active_video_id = None
+        if tag == "h3" and self.current_h3 is not None:
+            self.h3_headings.append(" ".join(self.current_h3).strip())
+            self.current_h3 = None
         if tag in {"script", "style"} and self.hidden_depth:
             self.hidden_depth -= 1
 
     def handle_data(self, data):
+        if self.current_h3 is not None and data.strip():
+            self.current_h3.append(data.strip())
         if not self.hidden_depth and data.strip():
             self.visible_text.append(data.strip())
 
@@ -119,6 +128,41 @@ class LandingPageStructureTests(unittest.TestCase):
         text = " ".join(self.parser.visible_text).lower()
         for term in ("n8n", "webhook", "cloned voice"):
             self.assertNotIn(term, text)
+
+    def test_recent_chats_heading_is_level_three(self):
+        self.assertIn("Recent chats", self.parser.h3_headings)
+
+    def test_conversation_history_controls_present(self):
+        required_history_ids = {
+            "btn-chat-history",
+            "chat-history-panel",
+            "btn-close-chat-history",
+            "btn-new-chat",
+            "chat-history-empty",
+            "chat-history-error",
+            "chat-history-list",
+            "btn-clear-all-history",
+        }
+        self.assertTrue(required_history_ids.issubset(self.parser.elements_by_id))
+        panel_tag, panel_attrs = self.parser.elements_by_id["chat-history-panel"]
+        self.assertEqual(panel_tag, "section")
+        self.assertEqual(panel_attrs.get("aria-labelledby"), "chat-history-title")
+
+    def test_attachment_controls_remain_intact(self):
+        required_attachment_ids = {
+            "btn-chat-attach",
+            "chat-image-input",
+            "chat-image-preview",
+            "chat-image-preview-thumb",
+            "btn-remove-chat-image",
+        }
+        self.assertTrue(required_attachment_ids.issubset(self.parser.elements_by_id))
+
+    def test_release_version_query_strings_bumped(self):
+        version_matches = re.findall(r'(?:href|src)=["\'][^"\']+\?v=([^"\']+)["\']', HTML)
+        self.assertGreater(len(version_matches), 0)
+        for v in version_matches:
+            self.assertEqual(v, "20260904-2")
 
 
 if __name__ == "__main__":

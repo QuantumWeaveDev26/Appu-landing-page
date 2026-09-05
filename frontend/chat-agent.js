@@ -9,6 +9,8 @@ class ChatAgent {
   constructor(options = {}) {
     this.mockMode = false;
     this.voiceEngine = options.voiceEngine || null;
+    this.getConversationId = options.getConversationId || (() => null);
+    this.onConversationAssigned = options.onConversationAssigned || (() => {});
     this.messages = [];
     this.messagesContainer = document.getElementById('chat-messages');
     this.typingIndicator = document.getElementById('chat-typing');
@@ -43,6 +45,11 @@ class ChatAgent {
       img.src = msg.imageDataUrl;
       img.alt = 'Attached photo';
       bubble.appendChild(img);
+    } else if (msg.attachmentLabel) {
+      const label = document.createElement('div');
+      label.className = 'msg-attachment-label';
+      label.innerHTML = `<i class="fa-solid fa-paperclip" aria-hidden="true"></i> <span>${msg.attachmentLabel}</span>`;
+      bubble.appendChild(label);
     }
 
     const textSpan = document.createElement('span');
@@ -147,10 +154,15 @@ class ChatAgent {
         ? Boolean(this.voiceEngine.autoSpeak || this.voiceEngine.liveSessionActive)
         : true;
 
+      const activeConvId = (hasSecureSession && typeof this.getConversationId === 'function')
+        ? this.getConversationId()
+        : null;
+
       const requestPayload = hasSecureSession
         ? {
             accessToken: window.AppuSession.accessToken,
             childId: window.AppuSession.childId,
+            ...(activeConvId ? { conversationId: activeConvId } : {}),
             message: cleanInput,
             language: this.language || 'en',
             includeAudio
@@ -166,6 +178,10 @@ class ChatAgent {
       }
 
       const result = await backendClient.sendAppuMessage(requestPayload);
+
+      if (result && result.conversationId && typeof this.onConversationAssigned === 'function') {
+        this.onConversationAssigned(result.conversationId);
+      }
 
       responseText = result.text;
       audioSource = result.audioSource || null;
@@ -235,6 +251,35 @@ class ChatAgent {
     }
   }
 
+  replaceMessages(messages = []) {
+    this.messages = [];
+    if (this.messagesContainer) {
+      this.messagesContainer.innerHTML = '';
+    }
+    if (!messages || messages.length === 0) {
+      this.initDefaultWelcome();
+      return;
+    }
+    for (const m of messages) {
+      const sender = m.role === 'user' ? 'user' : 'appu';
+      const timeStr = m.createdAt
+        ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const msgObj = {
+        id: m.id,
+        sender,
+        text: m.text,
+        time: timeStr,
+        hasImageAttachment: Boolean(m.hasImageAttachment),
+        attachmentLabel: m.hasImageAttachment ? 'Photo attached' : null,
+        imageDataUrl: null,
+        actionCard: null
+      };
+      this.messages.push(msgObj);
+      this.renderMessage(msgObj);
+    }
+  }
+
   clearHistory() {
     this.messages = [];
     if (this.messagesContainer) {
@@ -244,4 +289,9 @@ class ChatAgent {
   }
 }
 
-window.ChatAgent = ChatAgent;
+if (typeof window !== 'undefined') {
+  window.ChatAgent = ChatAgent;
+}
+if (typeof module === 'object' && module.exports) {
+  module.exports = { ChatAgent };
+}

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260904-1">
+  <link rel="stylesheet" href="style.css?v=20260904-2">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -202,10 +202,22 @@
     <header class="drawer-header">
       <div><span class="online-dot" aria-hidden="true"></span><div><h2 id="chat-title">Chat with Appu</h2><p id="chat-subtitle">Ask, explore, understand</p></div></div>
       <div class="drawer-actions">
+        <button id="btn-chat-history" class="icon-btn drawer-btn" type="button" aria-label="Recent chats" title="Recent chats"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></button>
         <button id="btn-clear-chat" class="icon-btn" type="button" aria-label="Clear chat"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
         <button id="btn-close-chat" class="icon-btn close-btn" type="button" aria-label="Close chat"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </div>
     </header>
+    <section id="chat-history-panel" class="chat-history-panel" aria-labelledby="chat-history-title" hidden>
+      <header class="chat-history-header">
+        <h3 id="chat-history-title">Recent chats</h3>
+        <button id="btn-close-chat-history" type="button" aria-label="Close recent chats"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </header>
+      <button id="btn-new-chat" class="history-new-chat" type="button"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>New chat</span></button>
+      <p id="chat-history-empty" hidden>No saved conversations yet.</p>
+      <p id="chat-history-error" role="alert" hidden>Could not load recent chats. Try again.</p>
+      <div id="chat-history-list" class="chat-history-list"></div>
+      <button id="btn-clear-all-history" class="history-clear-all" type="button">Clear all history</button>
+    </section>
     <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
     <div id="chat-typing" class="chat-typing" aria-label="Appu is thinking"><span></span><span></span><span></span></div>
     <div id="guest-access-badge" class="guest-access-badge" aria-live="polite">
@@ -428,15 +440,16 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260904-1"></script>
-  <script src="appu-config.js?v=20260904-1"></script>
-  <script src="appu-session.js?v=20260904-1"></script>
-  <script src="appu-backend-client.js?v=20260904-1"></script>
-  <script src="parent-onboarding-shell.js?v=20260904-1"></script>
-  <script src="parent-setup-ui.js?v=20260904-1"></script>
-  <script src="avatar-stage.js?v=20260904-1"></script>
-  <script src="voice-engine.js?v=20260904-1"></script>
-  <script src="chat-agent.js?v=20260904-1"></script>
-  <script src="app.js?v=20260904-1"></script>
+  <script src="voice-contract.js?v=20260904-2"></script>
+  <script src="appu-config.js?v=20260904-2"></script>
+  <script src="appu-session.js?v=20260904-2"></script>
+  <script src="appu-backend-client.js?v=20260904-2"></script>
+  <script src="parent-onboarding-shell.js?v=20260904-2"></script>
+  <script src="parent-setup-ui.js?v=20260904-2"></script>
+  <script src="avatar-stage.js?v=20260904-2"></script>
+  <script src="voice-engine.js?v=20260904-2"></script>
+  <script src="chat-history.js?v=20260904-2"></script>
+  <script src="chat-agent.js?v=20260904-2"></script>
+  <script src="app.js?v=20260904-2"></script>
 </body>
 </html>

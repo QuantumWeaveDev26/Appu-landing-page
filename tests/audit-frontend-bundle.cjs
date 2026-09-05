@@ -16,18 +16,42 @@ let totalErrors = 0;
 const htmlContent = fs.readFileSync(path.join(baseDir, 'index.html'), 'utf8');
 
 // Match scripts
+const expectedScripts = [
+  'voice-contract.js',
+  'appu-config.js',
+  'appu-session.js',
+  'appu-backend-client.js',
+  'parent-onboarding-shell.js',
+  'parent-setup-ui.js',
+  'avatar-stage.js',
+  'voice-engine.js',
+  'chat-history.js',
+  'chat-agent.js',
+  'app.js'
+];
+const foundScripts = [];
 const scriptRegex = /<script\s+[^>]*src=["']([^"']+)["']/gi;
 let match;
 while ((match = scriptRegex.exec(htmlContent)) !== null) {
   const s = match[1];
   if (s.startsWith('http://') || s.startsWith('https://')) continue;
   const cleanPath = s.split('?')[0];
+  foundScripts.push(cleanPath);
   const fullPath = path.join(baseDir, cleanPath);
   if (!fs.existsSync(fullPath)) {
     console.error('ERROR: Missing script file referenced in index.html:', cleanPath);
     totalErrors++;
   } else {
     console.log('  [OK] Script found:', cleanPath);
+  }
+}
+
+for (const exp of expectedScripts) {
+  if (!foundScripts.includes(exp)) {
+    console.error('ERROR: Required script missing from index.html:', exp);
+    totalErrors++;
+  } else {
+    console.log('  [OK] Verified required script in index.html:', exp);
   }
 }
 

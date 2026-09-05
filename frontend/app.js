@@ -145,17 +145,48 @@ document.addEventListener('DOMContentLoaded', () => {
   voiceEngine.autoSpeak = savedAutoSpeak;
   voiceEngine.soundEnabled = savedSound;
 
+  let chatHistoryController = null;
+
   const chatAgent = new ChatAgent({
     mockMode: false,
-    voiceEngine
+    voiceEngine,
+    getConversationId: () => chatHistoryController ? chatHistoryController.getActiveConversationId() : null,
+    onConversationAssigned: (id) => {
+      if (chatHistoryController) chatHistoryController.adoptConversationId(id);
+    }
   });
   chatAgent.mockMode = false;
+
+  const chatHistoryPanel = document.getElementById('chat-history-panel');
+  const btnChatHistory = document.getElementById('btn-chat-history');
+
+  if (typeof ChatHistoryController !== 'undefined') {
+    chatHistoryController = new ChatHistoryController({
+      backendClient: window.AppuBackendClient,
+      chatAgent,
+      getSession: () => ({
+        accessToken: (typeof window.AppuSession !== 'undefined' && window.AppuSession) ? window.AppuSession.accessToken : null,
+        childId: (typeof window.AppuSession !== 'undefined' && window.AppuSession) ? window.AppuSession.childId : null
+      }),
+      elements: {
+        panel: chatHistoryPanel,
+        list: document.getElementById('chat-history-list'),
+        empty: document.getElementById('chat-history-empty'),
+        error: document.getElementById('chat-history-error'),
+        btnOpen: btnChatHistory,
+        btnClose: document.getElementById('btn-close-chat-history'),
+        btnNew: document.getElementById('btn-new-chat'),
+        btnClearAll: document.getElementById('btn-clear-all-history')
+      }
+    });
+  }
 
   // Global App Namespace
   window.app = {
     avatarStage,
     voiceEngine,
     chatAgent,
+    chatHistoryController,
     openDiscoveryModal,
     closeDiscoveryModal,
     openSettingsModal,
@@ -234,7 +265,25 @@ document.addEventListener('DOMContentLoaded', () => {
     deactivateDialog(guestLimitModal);
   }
 
+  function syncHistorySession() {
+    if (!chatHistoryController) return;
+    const isLearnerAuthed = typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated();
+
+    if (btnChatHistory) {
+      btnChatHistory.hidden = !isLearnerAuthed;
+    }
+
+    chatHistoryController.syncSession({
+      accessToken: isLearnerAuthed ? window.AppuSession.accessToken : null,
+      childId: isLearnerAuthed ? window.AppuSession.childId : null
+    }).catch(() => {});
+  }
+
   function updateGuestBadge(guestData) {
+    syncHistorySession();
+
     const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
       typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
       window.ParentOnboardingShell.isParentAuthenticated();
@@ -1137,9 +1186,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseLegalViewer) btnCloseLegalViewer.addEventListener('click', () => closeLegalViewer());
 
   if (btnClearChat) {
-    btnClearChat.addEventListener('click', () => {
+    btnClearChat.addEventListener('click', async () => {
       voiceEngine.playClick();
-      chatAgent.clearHistory();
+      const isAuthed = typeof window.AppuSession !== 'undefined' &&
+        typeof window.AppuSession.isAuthenticated === 'function' &&
+        window.AppuSession.isAuthenticated();
+      const activeConvId = chatHistoryController ? chatHistoryController.getActiveConversationId() : null;
+
+      if (isAuthed && activeConvId) {
+        const ok = (typeof window !== 'undefined' && typeof window.confirm === 'function')
+          ? window.confirm('Delete the active conversation for this learner?')
+          : true;
+        if (ok && chatHistoryController) {
+          await chatHistoryController.deleteConversation(activeConvId);
+        }
+      } else {
+        chatAgent.clearHistory();
+      }
     });
   }
 
