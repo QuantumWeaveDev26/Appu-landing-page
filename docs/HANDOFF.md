@@ -126,12 +126,14 @@ Architecture and design:
 - **Task 5 (In-Chat Study Note Sharing Affordance)**: `frontend/appu-backend-client.js` sanitized note formatter (`<think>`, `<action>`, HTML tags, base64, data URLs stripped; `< 500` chars limit) and `wa.me` URL builder; `frontend/chat-agent.js` `.btn-share-whatsapp` affordance with explicit user-to-parent sender semantics, consent check, and setup modal fallback; `frontend/style.css` glassmorphic styling. Committed in `fb563b4`.
 - **Task 6 (Privacy Disclosures, Audits & Mobile Sync)**: `frontend/privacy-policy.html` updated with disclosures covering optional collection, explicit consent, anytime opt-out, and third-party protection. Verified 110/110 JS tests, 12/12 Python tests, bundle audit 0 errors, 0 duplicates, backend typecheck & build clean, and mobile sync completed via `npx cap sync android`.
 
-### Deployment & Production Status (PENDING / HUMAN-GATED)
-The following operational deployment steps have NOT been executed and require coordinator / maintainer review:
-1. **Database Migration 015**: `PENDING` — `015_household_whatsapp_preferences.sql` has NOT been applied to production Supabase/PostgreSQL.
-2. **Backend & Frontend Git Push**: `PENDING` — Commits have NOT been pushed to `origin/main` or deployed to production.
-3. **n8n Workflow Updates**: `PENDING` — Live n8n workflow has NOT been mutated.
-4. **Production Verification & Cross-Device Test**: `PENDING` — Production verification on `https://appuai.online` and physical Android APK testing will occur after authorized deployment.
+### Deployment & Production Status (2026-09-05)
+1. **Database Migration 015**: `DONE` — `015_household_whatsapp_preferences.sql` applied to production Supabase at 2026-09-05T06:56:02Z; `db:migrate` reports up-to-date, zero checksum mismatches; `parent_phone`, `whatsapp_consent`, `whatsapp_consent_at` confirmed on `households`.
+2. **Git Push & Deploy**: `DONE` — commits `c50adfa..1a9eb8b` pushed to `origin/main`. Backend redeployed (Hostinger): new route `GET /api/household/notifications` returns 401 (exists) not 404. Frontend published to `frontend-production` (`e74ce4d`); live `https://appuai.online` serves `?v=20260905-1` and the new WhatsApp privacy disclosure.
+3. **n8n Workflow Updates**: `DEFERRED to Phase 2` — Phase 1 has no live n8n consumer; workflow intentionally unchanged.
+4. **Physical Android cross-device test**: `PENDING (maintainer)` — verify on installed APK: personalization phone+consent saves; guest sees no share button; "Share to parent's WhatsApp" opens WhatsApp addressed to the parent.
+
+### Phase 2 (blocked on external dependency)
+Calendar event creation + scheduled proactive sends (daily tip, weekly digest) + send-node `$fromAI`→`$json.parent_phone` rebinding. BLOCKED on Meta-approved WhatsApp templates (maintainer to create: `appu_daily_tip`, `appu_weekly_digest`, `appu_study_reminder`, `appu_study_note`).
 
 
 
