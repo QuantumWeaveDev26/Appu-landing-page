@@ -112,6 +112,28 @@ Rollout order status:
 5. Implement and deploy shared frontend history UI (DONE — committed in `68ebf54`, `037af14`, `17d9f86`; published to `frontend-production` branch commit `9c5045f`; verified live on `https://appuai.online`).
 6. Sync Capacitor Android, rebuild, and prove cross-device continuation under the same child (DONE — bundle synced via `npx cap sync android`; production website and Android app both verified working by the maintainer on 2026-09-05, including cross-device conversation continuation under the same child).
 
+## Phase 1: WhatsApp Parent Automations (Consent, Preferences & In-Chat Study Notes)
+
+Architecture and design:
+- Spec: `docs/superpowers/specs/2026-09-05-whatsapp-automation-design.md` (committed in `c50adfa`)
+- Plan: `docs/superpowers/plans/2026-09-05-whatsapp-automation.md` (committed in `c50adfa`)
+
+### Implementation Tasks (Code Phase 1 — Complete)
+- **Task 1 (Database Migration & Tenancy Domain)**: Additive migration `015_household_whatsapp_preferences.sql` (`parent_phone`, `whatsapp_consent`, `whatsapp_consent_at` on `households`). Domain logic in `backend/src/domain/tenancy/repository.ts` and `backend/src/domain/tenancy/types.ts` with E.164 / Indian normalization and consent timestamp grant/revocation. Committed in `15048be`.
+- **Task 2 (REST Endpoints & Envelope Plumbing)**: `GET` and `PATCH /api/household/notifications` endpoints, transactional personalization handoff, and consent-gated envelope forwarding in `backend/src/routes/appu-gateway.ts` (with `backend/src/routes/household.ts`, `backend/src/routes/children.ts`, and `backend/src/domain/gateway/types.ts`; strictly null phone if unconsented). Committed in `9beac6e`.
+- **Task 3 (n8n Normalize Passthrough)**: Explicitly deferred by coordinator for Phase 1 (outbound envelope already carries consent-gated phone and consent flag).
+- **Task 4 (Personalization UI & Validation)**: Step 4 personalization in `frontend/index.html` and `frontend/parent-setup-ui.js` with optional parent phone, unchecked opt-in consent checkbox, client normalization, validation barriers, and cache-busting version `20260905-1`. Committed in `6c89adc`.
+- **Task 5 (In-Chat Study Note Sharing Affordance)**: `frontend/appu-backend-client.js` sanitized note formatter (`<think>`, `<action>`, HTML tags, base64, data URLs stripped; `< 500` chars limit) and `wa.me` URL builder; `frontend/chat-agent.js` `.btn-share-whatsapp` affordance with explicit user-to-parent sender semantics, consent check, and setup modal fallback; `frontend/style.css` glassmorphic styling. Committed in `fb563b4`.
+- **Task 6 (Privacy Disclosures, Audits & Mobile Sync)**: `frontend/privacy-policy.html` updated with disclosures covering optional collection, explicit consent, anytime opt-out, and third-party protection. Verified 110/110 JS tests, 12/12 Python tests, bundle audit 0 errors, 0 duplicates, backend typecheck & build clean, and mobile sync completed via `npx cap sync android`.
+
+### Deployment & Production Status (PENDING / HUMAN-GATED)
+The following operational deployment steps have NOT been executed and require coordinator / maintainer review:
+1. **Database Migration 015**: `PENDING` — `015_household_whatsapp_preferences.sql` has NOT been applied to production Supabase/PostgreSQL.
+2. **Backend & Frontend Git Push**: `PENDING` — Commits have NOT been pushed to `origin/main` or deployed to production.
+3. **n8n Workflow Updates**: `PENDING` — Live n8n workflow has NOT been mutated.
+4. **Production Verification & Cross-Device Test**: `PENDING` — Production verification on `https://appuai.online` and physical Android APK testing will occur after authorized deployment.
+
+
 
 ## Git and workspace safety
 

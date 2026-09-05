@@ -139,6 +139,28 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     );
   });
 
+  test('privacy policy discloses optional parent phone collection for WhatsApp updates, consent, and third-party protection', () => {
+    const privacyContent = fs.readFileSync(path.join(frontendDir, 'privacy-policy.html'), 'utf8');
+    // (a) optional parent phone collection for WhatsApp updates
+    assert.ok(
+      privacyContent.toLowerCase().includes('optional') &&
+      privacyContent.toLowerCase().includes('phone') &&
+      privacyContent.toLowerCase().includes('whatsapp'),
+      'Privacy policy must disclose optional parent phone collection for WhatsApp updates'
+    );
+    // (b) explicit consent + opt-out anytime
+    assert.ok(
+      privacyContent.toLowerCase().includes('consent') &&
+      (privacyContent.toLowerCase().includes('opt-out') || privacyContent.toLowerCase().includes('opt out') || privacyContent.toLowerCase().includes('revoke')),
+      'Privacy policy must disclose explicit consent and ability to opt-out anytime'
+    );
+    // (c) phone numbers not shared with third parties
+    assert.ok(
+      privacyContent.toLowerCase().includes('not shared') || privacyContent.toLowerCase().includes('never shared'),
+      'Privacy policy must disclose that phone numbers are not shared with third parties'
+    );
+  });
+
   test('clean URL rewrite configuration exists in .htaccess', () => {
     const htaccessPath = path.join(frontendDir, '.htaccess');
     assert.ok(fs.existsSync(htaccessPath), '.htaccess must exist');
