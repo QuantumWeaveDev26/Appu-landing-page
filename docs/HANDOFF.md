@@ -103,14 +103,15 @@ Tasks 1–4 are complete:
 
 Important technical decision: n8n's attached `Learner Memory` is `memoryBufferWindow` with context length 8. Website history must come from backend PostgreSQL as sole durable source. Website n8n requests use request-scoped memory keys (`appu_request_<requestId>`) to avoid duplicated restored turns. WhatsApp keeps its existing memory key and behavior.
 
-Rollout order matters:
+Rollout order status:
 
-1. Implement database/domain, authenticated APIs, and message gateway (DONE — pushed).
+1. Implement database/domain, authenticated APIs, and message gateway (DONE — pushed in `dff7bb3`, `5b0dcfe`, `8e78b1f`, `3f49a0f`).
 2. Push backend-compatible commits while frontend controls are absent (DONE — pushed).
-3. Apply migration `014_conversation_history.sql` through Hostinger hPanel terminal using `npm run migrate` from backend root.
-4. Update and publish n8n website-history normalization; verify WhatsApp remains unchanged (DONE — version `8004ef93`).
-5. Implement and deploy shared frontend history UI.
-6. Sync Capacitor Android, rebuild, and prove cross-device continuation under the same child.
+3. Apply migration `014_conversation_history.sql` (DONE — applied to Supabase database on `2026-09-05T05:24:37.382Z` via `npm run db:migrate`; `conversation_sessions` and `conversation_messages` tables live).
+4. Update and publish n8n website-history normalization; verify WhatsApp remains unchanged (DONE — published version `8004ef93`, executions `8601` & `8603`).
+5. Implement and deploy shared frontend history UI (DONE — committed in `68ebf54`, `037af14`, `17d9f86`; published to `frontend-production` branch commit `9c5045f`; verified live on `https://appuai.online`).
+6. Sync Capacitor Android, rebuild, and prove cross-device continuation under the same child (DONE — synced via `npx cap sync android`).
+
 
 ## Git and workspace safety
 
