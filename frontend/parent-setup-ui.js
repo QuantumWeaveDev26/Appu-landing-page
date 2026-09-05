@@ -87,6 +87,13 @@
       persInterestsPlaceholder: 'Space, Robotics, Astronomy, Dinosaurs',
       persGoalsLabel: 'Learning Goal for Appu',
       persGoalsPlaceholder: 'Master school science and build creative curiosity',
+      posWhatsappTitle: 'Parent WhatsApp Learning Updates',
+      posParentPhoneLabel: 'Parent WhatsApp Number',
+      posParentPhonePlaceholder: '+91 98765 43210',
+      posWhatsappConsentLabel: 'Send me occasional learning milestones, daily study summaries, and study notes for my child on WhatsApp.',
+      posWhatsappRationale: 'Why we ask: We use your number exclusively to share study summaries and learning milestones. We never share phone numbers with third parties or send promotional spam. You can opt out anytime.',
+      phoneInvalidAlert: 'Please enter a valid phone number (e.g., 9876543210 or +919876543210).',
+      phoneRequiredForConsentAlert: 'Please enter your phone number to receive WhatsApp updates, or uncheck the box.',
       btnPersSubmit: 'Save Preferences & Launch',
       alertNoChildSelected: 'No child selected',
       persSaveErrorDefault: 'Failed to save personalisation.',
@@ -165,6 +172,13 @@
       persInterestsPlaceholder: 'ಬಾಹ್ಯಾಕಾಶ, ರೊಬೊಟಿಕ್ಸ್, ಖಗೋಳಶಾಸ್ತ್ರ, ಡೈನೋಸಾರ್‌ಗಳು',
       persGoalsLabel: 'ಅಪ್ಪುಗಾಗಿ ಕಲಿಕಾ ಗುರಿ',
       persGoalsPlaceholder: 'ಶಾಲಾ ವಿಜ್ಞಾನವನ್ನು ಕರಗತ ಮಾಡಿಕೊಂಡು ಸೃಜನಶೀಲ ಕುತೂಹಲ ಬೆಳೆಸಿಕೊಳ್ಳಿ',
+      posWhatsappTitle: 'ಪಾಲಕರ WhatsApp ಕಲಿಕಾ ಅಪ್‌ಡೇಟ್‌ಗಳು',
+      posParentPhoneLabel: 'ಪಾಲಕರ WhatsApp ಸಂಖ್ಯೆ',
+      posParentPhonePlaceholder: '+91 98765 43210',
+      posWhatsappConsentLabel: 'ನನ್ನ ಮಗುವಿನ ಕಲಿಕೆಯ ಮೈಲಿಗಲ್ಲುಗಳು ಮತ್ತು ದಿನನಿತ್ಯದ ಅಧ್ಯಯನ ಸಾರಾಂಶಗಳನ್ನು WhatsApp ನಲ್ಲಿ ಕಳುಹಿಸಿ.',
+      posWhatsappRationale: 'ಏಕೆ ಕೇಳುತ್ತಿದ್ದೇವೆ: ನಿಮ್ಮ ಸಂಖ್ಯೆಯನ್ನು ಕೇವಲ ಅಧ್ಯಯನ ಸಾರಾಂಶ ಮತ್ತು ಕಲಿಕೆಯ ಮೈಲಿಗಲ್ಲುಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಲು ಬಳಸಲಾಗುತ್ತದೆ. ಮೂರನೇ ವ್ಯಕ್ತಿಗಳೊಂದಿಗೆ ಎಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳುವುದಿಲ್ಲ. ಯಾವುದೇ ಸಮಯದಲ್ಲಿ ರದ್ದುಗೊಳಿಸಬಹುದು.',
+      phoneInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ (ಉದಾ: 9876543210 ಅಥವಾ +919876543210).',
+      phoneRequiredForConsentAlert: 'WhatsApp ಅಪ್‌ಡೇಟ್‌ಗಳನ್ನು ಪಡೆಯಲು ದಯವಿಟ್ಟು ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ, ಅಥವಾ ಬಾಕ್ಸ್ ಅನ್ನು ಗುರುತಿಸಬೇಡಿ.',
       btnPersSubmit: 'ಆದ್ಯತೆಗಳನ್ನು ಉಳಿಸಿ ಮತ್ತು ಪ್ರಾರಂಭಿಸಿ',
       alertNoChildSelected: 'ಯಾವುದೇ ಮಗುವನ್ನು ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ',
       persSaveErrorDefault: 'ವೈಯಕ್ತೀಕರಣ ಉಳಿಸಲು ವಿಫಲವಾಗಿದೆ.',
@@ -243,6 +257,13 @@
       persInterestsPlaceholder: 'अंतरिक्ष, रोबोटिक्स, खगोल विज्ञान, डायनासोर',
       persGoalsLabel: 'अप्पू के लिए सीखने का लक्ष्य',
       persGoalsPlaceholder: 'स्कूल विज्ञान में महारत हासिल करें और रचनात्मक जिज्ञासा बढ़ाएं',
+      posWhatsappTitle: 'अभिभावक WhatsApp लर्निंग अपडेट्स',
+      posParentPhoneLabel: 'अभिभावक WhatsApp नंबर',
+      posParentPhonePlaceholder: '+91 98765 43210',
+      posWhatsappConsentLabel: 'मुझे WhatsApp पर मेरे बच्चे की सीखने की प्रगति और दैनिक अध्ययन नोट्स भेजें।',
+      posWhatsappRationale: 'हम क्यों पूछ रहे हैं: आपके नंबर का उपयोग केवल अध्ययन सारांश और सीखने के मील के पत्थर साझा करने के लिए किया जाता है। तीसरे पक्ष के साथ कभी साझा नहीं किया जाता। आप कभी भी ऑप्ट-आउट कर सकते हैं।',
+      phoneInvalidAlert: 'कृपया एक मान्य फ़ोन नंबर दर्ज करें (उदा: 9876543210 या +919876543210)।',
+      phoneRequiredForConsentAlert: 'WhatsApp अपडेट प्राप्त करने के लिए कृपया अपना फ़ोन नंबर दर्ज करें, या चेकबॉक्स को अनचेक करें।',
       btnPersSubmit: 'प्राथमिकताएं सहेजें और शुरू करें',
       alertNoChildSelected: 'कोई बच्चा चयनित नहीं है',
       persSaveErrorDefault: 'वैयक्तिकरण सहेजने में विफल।',
@@ -308,6 +329,8 @@
     const persInterests = document.getElementById('pos-pers-interests');
     const persSubjects = document.getElementById('pos-pers-subjects');
     const persGoals = document.getElementById('pos-pers-goals');
+    const posParentPhone = document.getElementById('pos-parent-phone');
+    const posWhatsappConsent = document.getElementById('pos-whatsapp-consent');
 
     const btnLaunchAppu = document.getElementById('pos-btn-launch');
 
@@ -422,6 +445,18 @@
       const persGoalsLabel = document.getElementById('pos-pers-goals-label');
       if (persGoalsLabel) persGoalsLabel.textContent = t('persGoalsLabel');
       if (persGoals) persGoals.placeholder = t('persGoalsPlaceholder');
+
+      // WhatsApp section labels
+      const posWhatsappTitleEl = document.getElementById('pos-whatsapp-title');
+      if (posWhatsappTitleEl) posWhatsappTitleEl.textContent = t('posWhatsappTitle');
+      const posParentPhoneLabelEl = document.getElementById('pos-parent-phone-label');
+      if (posParentPhoneLabelEl) posParentPhoneLabelEl.textContent = t('posParentPhoneLabel');
+      if (posParentPhone) posParentPhone.placeholder = t('posParentPhonePlaceholder');
+      const posWhatsappConsentLabelEl = document.getElementById('pos-whatsapp-consent-label');
+      if (posWhatsappConsentLabelEl) posWhatsappConsentLabelEl.textContent = t('posWhatsappConsentLabel');
+      const posWhatsappRationaleEl = document.getElementById('pos-whatsapp-rationale-text');
+      if (posWhatsappRationaleEl) posWhatsappRationaleEl.textContent = t('posWhatsappRationale');
+
       const btnPersSubmit = document.getElementById('pos-btn-pers-submit');
       if (btnPersSubmit) btnPersSubmit.textContent = t('btnPersSubmit');
 
@@ -1462,6 +1497,31 @@
       });
     }
 
+    function normalizeClientPhone(raw) {
+      if (raw === undefined || raw === null) return null;
+      const cleaned = String(raw).trim().replace(/[\s\-()]/g, '');
+      if (!cleaned) return null;
+      if (/^[6-9]\d{9}$/.test(cleaned)) {
+        return `+91${cleaned}`;
+      }
+      if (/^91[6-9]\d{9}$/.test(cleaned)) {
+        return `+${cleaned}`;
+      }
+      if (cleaned.startsWith('+')) {
+        if (/^\+[1-9]\d{6,14}$/.test(cleaned)) {
+          return cleaned;
+        }
+        return false;
+      }
+      if (/^\d{7,15}$/.test(cleaned)) {
+        const withPlus = `+${cleaned}`;
+        if (/^\+[1-9]\d{6,14}$/.test(withPlus)) {
+          return withPlus;
+        }
+      }
+      return false;
+    }
+
     // -------------------------------------------------------------
     // Step 4: Personalisation Questionnaire Step
     // -------------------------------------------------------------
@@ -1470,8 +1530,17 @@
       const title = document.getElementById('pos-pers-child-name');
       if (title) title.textContent = child.preferredName;
 
+      if (posParentPhone) posParentPhone.value = '';
+      if (posWhatsappConsent) posWhatsappConsent.checked = false;
+
       try {
-        const pers = await window.ParentOnboardingShell.fetchPersonalisation(child.id);
+        const [pers, notif] = await Promise.all([
+          window.ParentOnboardingShell.fetchPersonalisation(child.id).catch(() => null),
+          (typeof window.ParentOnboardingShell.fetchNotificationPreferences === 'function'
+            ? window.ParentOnboardingShell.fetchNotificationPreferences().catch(() => null)
+            : null)
+        ]);
+
         if (pers) {
           if (persLang) persLang.value = pers.preferredLanguage || 'en';
           if (persStyle) persStyle.value = pers.learningStyle || 'interactive';
@@ -1481,6 +1550,11 @@
           if (persInterests) persInterests.value = (pers.interests || []).join(', ');
           if (persSubjects) persSubjects.value = (pers.favoriteSubjects || []).join(', ');
           if (persGoals) persGoals.value = (pers.goals || []).join(', ');
+        }
+
+        if (notif) {
+          if (posParentPhone && notif.parentPhone) posParentPhone.value = notif.parentPhone;
+          if (posWhatsappConsent) posWhatsappConsent.checked = Boolean(notif.whatsappConsent);
         }
       } catch {
         // Safe default fallback
@@ -1498,6 +1572,30 @@
           return;
         }
 
+        // Validate optional parent phone and WhatsApp consent
+        const rawPhone = posParentPhone?.value?.trim() || '';
+        const consentChecked = Boolean(posWhatsappConsent?.checked);
+
+        let parentPhone = null;
+        let whatsappConsent = false;
+
+        if (rawPhone) {
+          const normalized = normalizeClientPhone(rawPhone);
+          if (normalized === false) {
+            showAlert(t('phoneInvalidAlert') || 'Please enter a valid phone number (e.g., 9876543210 or +919876543210).');
+            return;
+          }
+          parentPhone = normalized;
+          whatsappConsent = consentChecked;
+        } else {
+          if (consentChecked) {
+            showAlert(t('phoneRequiredForConsentAlert') || 'Please enter your phone number to receive WhatsApp updates, or uncheck the box.');
+            return;
+          }
+          parentPhone = null;
+          whatsappConsent = false;
+        }
+
         const parseList = (str) =>
           str
             .split(',')
@@ -1513,7 +1611,9 @@
           favoriteColor: '#1f6feb',
           interests: parseList(persInterests?.value || 'science, space'),
           favoriteSubjects: parseList(persSubjects?.value || 'Science, Mathematics'),
-          goals: parseList(persGoals?.value || 'Learn conceptually and have fun')
+          goals: parseList(persGoals?.value || 'Learn conceptually and have fun'),
+          parentPhone,
+          whatsappConsent
         };
 
         try {

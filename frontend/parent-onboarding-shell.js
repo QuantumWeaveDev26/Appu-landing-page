@@ -812,6 +812,25 @@
   }
 
   /**
+   * Fetches household notification and WhatsApp communication preferences.
+   */
+  async function fetchNotificationPreferences() {
+    if (!state.session?.access_token) {
+      return null;
+    }
+    const res = await fetch(`${getApiBaseUrl()}/api/household/notifications`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${state.session.access_token}`
+      }
+    });
+    if (!res.ok) {
+      return null;
+    }
+    return await res.json();
+  }
+
+  /**
    * Step 5: Completes onboarding and hands off session to in-memory AppuSession.
    */
   function launchAppuSession(child) {
@@ -1162,6 +1181,7 @@
     fetchChildren,
     createChild,
     fetchPersonalisation,
+    fetchNotificationPreferences,
     savePersonalisation,
     launchAppuSession,
     updateHeaderSessionBadge,

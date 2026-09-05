@@ -1300,4 +1300,49 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     assert.equal(mockStatusLabel.textContent, 'Appu is ready');
     assert.equal(supabaseSignOutCalled, true);
   });
+
+  test('savePersonalisation forwards parentPhone and whatsappConsent to backend endpoint', async () => {
+    ParentOnboardingShell.state.session = {
+      access_token: 'valid-token-parent'
+    };
+
+    const originalFetch = global.fetch;
+    let capturedBody = null;
+    let capturedUrl = null;
+
+    global.fetch = async (url, options = {}) => {
+      capturedUrl = url;
+      capturedBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            personalisation: {
+              childId: 'child-123',
+              ...capturedBody
+            }
+          };
+        }
+      };
+    };
+
+    try {
+      const saved = await ParentOnboardingShell.savePersonalisation('child-123', {
+        preferredLanguage: 'kn',
+        learningStyle: 'visual',
+        parentPhone: '+919876543210',
+        whatsappConsent: true
+      });
+
+      assert.ok(capturedUrl.endsWith('/api/children/child-123/personalisation'));
+      assert.equal(capturedBody.parentPhone, '+919876543210');
+      assert.equal(capturedBody.whatsappConsent, true);
+      assert.equal(saved.parentPhone, '+919876543210');
+      assert.equal(saved.whatsappConsent, true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });
+
