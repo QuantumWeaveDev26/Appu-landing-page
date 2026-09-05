@@ -6,7 +6,9 @@ import type {
   CreateHouseholdInput,
   CreateHouseholdMemberInput,
   CreateChildProfileInput,
-  UpdateChildProfileInput
+  UpdateChildProfileInput,
+  HouseholdNotificationPreferences,
+  UpdateHouseholdNotificationInput
 } from './types.js';
 
 // ==========================================
@@ -383,4 +385,139 @@ export class TenancyRepository {
 
     return (result.rowCount ?? 0) > 0;
   }
+
+  /**
+   * Retrieves household-scoped notification and WhatsApp communication preferences.
+   */
+  public static async getNotificationPreferences(
+    db: Queryable,
+    householdId: string
+  ): Promise<HouseholdNotificationPreferences> {
+    const result = await db.query<{
+      parent_phone: string | null;
+      whatsapp_consent: boolean | null;
+      whatsapp_consent_at: Date | string | null;
+    }>(
+      `SELECT parent_phone, whatsapp_consent, whatsapp_consent_at
+       FROM households
+       WHERE id = $1;`,
+      [householdId]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error(`Household not found: ${householdId}`);
+    }
+
+    const row = result.rows[0];
+    return {
+      parentPhone: row.parent_phone ?? null,
+      whatsappConsent: Boolean(row.whatsapp_consent),
+      whatsappConsentAt: row.whatsapp_consent_at ? new Date(row.whatsapp_consent_at) : null
+    };
+  }
+
+  /**
+   * Updates household parent phone and WhatsApp opt-in consent.
+   */
+  public static async updateNotificationPreferences(
+    db: Queryable,
+    householdId: string,
+    input: UpdateHouseholdNotificationInput
+  ): Promise<HouseholdNotificationPreferences> {
+    const current = await TenancyRepository.getNotificationPreferences(db, householdId);
+
+    let parentPhone: string | null = current.parentPhone;
+    if (input.parentPhone !== undefined) {
+      parentPhone = normalizePhoneNumber(input.parentPhone);
+    }
+
+    const whatsappConsent = input.whatsappConsent !== undefined
+      ? Boolean(input.whatsappConsent)
+      : current.whatsappConsent;
+
+    // Invariant: Consent cannot be granted without a valid parent phone
+    if (whatsappConsent && !parentPhone) {
+      throw new Error('Parent phone number is required when granting WhatsApp consent');
+    }
+
+    let whatsappConsentAt: Date | null = current.whatsappConsentAt;
+    if (whatsappConsent) {
+      // If newly granted or missing timestamp, record current time
+      if (!current.whatsappConsent || !whatsappConsentAt) {
+        whatsappConsentAt = new Date();
+      }
+    } else {
+      // Explicit revocation clears the consent timestamp
+      whatsappConsentAt = null;
+    }
+
+    const result = await db.query<{
+      parent_phone: string | null;
+      whatsapp_consent: boolean | null;
+      whatsapp_consent_at: Date | string | null;
+    }>(
+      `UPDATE households
+       SET parent_phone = $2,
+           whatsapp_consent = $3,
+           whatsapp_consent_at = $4,
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING parent_phone, whatsapp_consent, whatsapp_consent_at;`,
+      [householdId, parentPhone, whatsappConsent, whatsappConsentAt]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error(`Household not found: ${householdId}`);
+    }
+
+    const row = result.rows[0];
+    return {
+      parentPhone: row.parent_phone ?? null,
+      whatsappConsent: Boolean(row.whatsapp_consent),
+      whatsappConsentAt: row.whatsapp_consent_at ? new Date(row.whatsapp_consent_at) : null
+    };
+  }
 }
+
+const E164_REGEX = /^\+[1-9]\d{6,14}$/;
+const INDIAN_10_DIGIT_REGEX = /^[6-9]\d{9}$/;
+
+export function normalizePhoneNumber(raw: string | null | undefined): string | null {
+  if (raw === undefined || raw === null) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  // Remove whitespace, hyphens, and parentheses
+  const cleaned = trimmed.replace(/[\s\-()]/g, '');
+  if (!cleaned) return null;
+
+  // If Indian 10-digit without country code, prepend +91
+  if (INDIAN_10_DIGIT_REGEX.test(cleaned)) {
+    return `+91${cleaned}`;
+  }
+
+  // If starts with 91 and has 12 digits, prepend +
+  if (/^91[6-9]\d{9}$/.test(cleaned)) {
+    return `+${cleaned}`;
+  }
+
+  // If already starts with +
+  if (cleaned.startsWith('+')) {
+    if (!E164_REGEX.test(cleaned)) {
+      throw new Error(`Invalid phone number format. Expected international E.164 format (e.g. +919876543210), got "${raw}"`);
+    }
+    return cleaned;
+  }
+
+  // Otherwise, if plain digits between 7 and 15 digits, prepend +
+  if (!/^\d{7,15}$/.test(cleaned)) {
+    throw new Error(`Invalid phone number format. Expected international E.164 format (e.g. +919876543210), got "${raw}"`);
+  }
+
+  const withPlus = `+${cleaned}`;
+  if (!E164_REGEX.test(withPlus)) {
+    throw new Error(`Invalid phone number format. Expected international E.164 format (e.g. +919876543210), got "${raw}"`);
+  }
+  return withPlus;
+}
+

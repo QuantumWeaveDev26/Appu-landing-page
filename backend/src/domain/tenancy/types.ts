@@ -61,3 +61,15 @@ export interface UpdateChildProfileInput {
   gradeBand?: string;
   status?: ChildStatus;
 }
+
+export interface HouseholdNotificationPreferences {
+  parentPhone: string | null;
+  whatsappConsent: boolean;
+  whatsappConsentAt: Date | null;
+}
+
+export interface UpdateHouseholdNotificationInput {
+  parentPhone?: string | null;
+  whatsappConsent?: boolean;
+}
+
