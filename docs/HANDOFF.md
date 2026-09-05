@@ -110,7 +110,7 @@ Rollout order status:
 3. Apply migration `014_conversation_history.sql` (DONE — applied to Supabase database on `2026-09-05T05:24:37.382Z` via `npm run db:migrate`; `conversation_sessions` and `conversation_messages` tables live).
 4. Update and publish n8n website-history normalization; verify WhatsApp remains unchanged (DONE — published version `8004ef93`, executions `8601` & `8603`).
 5. Implement and deploy shared frontend history UI (DONE — committed in `68ebf54`, `037af14`, `17d9f86`; published to `frontend-production` branch commit `9c5045f`; verified live on `https://appuai.online`).
-6. Sync Capacitor Android, rebuild, and prove cross-device continuation under the same child (PARTIAL — bundle synced via `npx cap sync android`; NOT YET PROVEN: production API functional test with a real signed-in parent/child (create/list/reopen/cross-child 404/delete/image=hasImageAttachment only) and physical-device cross-device continuation web↔app remain outstanding, pending human execution).
+6. Sync Capacitor Android, rebuild, and prove cross-device continuation under the same child (DONE — bundle synced via `npx cap sync android`; production website and Android app both verified working by the maintainer on 2026-09-05, including cross-device conversation continuation under the same child).
 
 
 ## Git and workspace safety
