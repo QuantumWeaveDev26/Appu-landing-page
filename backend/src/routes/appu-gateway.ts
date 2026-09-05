@@ -215,12 +215,17 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         child,
         initialSubscriptionContext,
         currentVoiceUsageMs,
-        personalisation
+        personalisation,
+        notificationPreferences
       ] = await Promise.all([
         TenancyRepository.getChildProfile(opts.db, household.id, childId),
         SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(opts.db, household.id),
         UsageService.getHouseholdVoiceUsageMs(opts.db, household.id),
-        PersonalisationRepository.getPersonalisation(opts.db, household.id, childId)
+        PersonalisationRepository.getPersonalisation(opts.db, household.id, childId),
+        TenancyRepository.getNotificationPreferences(opts.db, household.id).catch((err) => {
+          request.log.warn({ err, householdId: household.id }, 'Failed to load household notification preferences; failing open');
+          return { parentPhone: null, whatsappConsent: false, whatsappConsentAt: null };
+        })
       ]);
       const tContextEnd = performance.now();
 
@@ -355,6 +360,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       // every message and used a different, quieter model than the streaming path).
       const n8nIncludeAudio = false;
 
+      const whatsappConsent = Boolean(notificationPreferences?.whatsappConsent);
+      const parentPhone = whatsappConsent ? (notificationPreferences?.parentPhone ?? null) : null;
+
       const envelope: N8nMessageEnvelope = {
         requestId: lifecycle.id,
         action: 'sendMessage',
@@ -368,7 +376,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         conversationHistory,
         includeAudio: n8nIncludeAudio,
         ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
-        mentorContext
+        mentorContext,
+        parentPhone,
+        whatsappConsent
       };
 
       // 6. Forward to n8n via secure client with reservation rollback on failure
@@ -630,7 +640,9 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       language: effectiveLanguage,
       includeAudio: n8nIncludeAudio,
       ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
-      mentorContext
+      mentorContext,
+      parentPhone: null,
+      whatsappConsent: false
     };
 
     // 5. Forward to n8n AI workflow with failsafe rollback on error

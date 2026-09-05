@@ -1012,4 +1012,136 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     assert.equal(guestResFalse.statusCode, 200);
     assert.equal(n8nClient.lastEnvelope?.includeAudio, false);
   });
+
+  test('Appu gateway envelope includes parentPhone and whatsappConsent when opted in', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = 'token-parent-whatsapp-envelope-optin';
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` }
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId,
+      preferredName: 'Aarav',
+      gradeBand: 'Grade 6'
+    });
+
+    await TenancyRepository.updateNotificationPreferences(db, householdId, {
+      parentPhone: '+919876543210',
+      whatsappConsent: true
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId: child.id,
+        message: 'Can we practice science?',
+        language: 'en'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.ok(n8nClient.lastEnvelope);
+    assert.equal((n8nClient.lastEnvelope as any).parentPhone, '+919876543210');
+    assert.equal((n8nClient.lastEnvelope as any).whatsappConsent, true);
+  });
+
+  test('Appu gateway envelope passes parentPhone as null when whatsappConsent is false even if phone is present', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = 'token-parent-whatsapp-envelope-no-consent';
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` }
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId,
+      preferredName: 'Aarav',
+      gradeBand: 'Grade 6'
+    });
+
+    await TenancyRepository.updateNotificationPreferences(db, householdId, {
+      parentPhone: '+919876543210',
+      whatsappConsent: true
+    });
+
+    await TenancyRepository.updateNotificationPreferences(db, householdId, {
+      whatsappConsent: false
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId: child.id,
+        message: 'Can we practice science?',
+        language: 'en'
+      }
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.ok(n8nClient.lastEnvelope);
+    assert.equal((n8nClient.lastEnvelope as any).parentPhone, null);
+    assert.equal((n8nClient.lastEnvelope as any).whatsappConsent, false);
+  });
+
+  test('Appu gateway fails open if notification preferences lookup throws', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = 'token-parent-whatsapp-fail-open';
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` }
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId,
+      preferredName: 'Aarav',
+      gradeBand: 'Grade 6'
+    });
+
+    const origGet = TenancyRepository.getNotificationPreferences;
+    TenancyRepository.getNotificationPreferences = async () => {
+      throw new Error('Simulated database failure for notification preferences');
+    };
+
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/appu/message',
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          childId: child.id,
+          message: 'Can we practice science?',
+          language: 'en'
+        }
+      });
+
+      assert.equal(res.statusCode, 200);
+      assert.ok(n8nClient.lastEnvelope);
+      assert.equal((n8nClient.lastEnvelope as any).parentPhone, null);
+      assert.equal((n8nClient.lastEnvelope as any).whatsappConsent, false);
+    } finally {
+      TenancyRepository.getNotificationPreferences = origGet;
+    }
+  });
 });
+

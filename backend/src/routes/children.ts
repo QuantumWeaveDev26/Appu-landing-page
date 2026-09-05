@@ -92,7 +92,9 @@ const updatePersonalisationSchema = z.object({
     .regex(safeStringPattern, 'Invalid voice preference')
     .optional(),
   themePreference: z.enum(ThemePreferences).optional(),
-  additionalContext: z.record(z.unknown()).optional()
+  additionalContext: z.record(z.unknown()).optional(),
+  parentPhone: z.string().nullable().optional(),
+  whatsappConsent: z.boolean().optional()
 });
 
 const paramsSchema = z.object({
@@ -358,12 +360,31 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       throw new NotFoundError('Child profile not found');
     }
 
-    const updated = await PersonalisationRepository.upsertPersonalisation(
-      opts.db,
-      household.id,
-      child.id,
-      bodyResult.data
-    );
+    const { parentPhone, whatsappConsent, ...personalisationData } = bodyResult.data;
+
+    let updated;
+    try {
+      updated = await opts.db.transaction(async (tx) => {
+        if (parentPhone !== undefined || whatsappConsent !== undefined) {
+          await TenancyRepository.updateNotificationPreferences(tx, household.id, {
+            parentPhone,
+            whatsappConsent
+          });
+        }
+
+        return PersonalisationRepository.upsertPersonalisation(
+          tx,
+          household.id,
+          child.id,
+          personalisationData
+        );
+      });
+    } catch (err: any) {
+      if (err instanceof BadRequestError || err instanceof NotFoundError) {
+        throw err;
+      }
+      throw new BadRequestError(err.message || 'Failed to update personalisation');
+    }
 
     return reply.status(200).send({
       personalisation: updated

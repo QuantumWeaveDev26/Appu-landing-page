@@ -15,6 +15,8 @@ export interface N8nMessageEnvelope {
   imageBase64?: string;
   imageMimeType?: string;
   mentorContext: MentorContext;
+  parentPhone?: string | null;
+  whatsappConsent?: boolean;
 }
 
 export interface N8nMessageResponse {
