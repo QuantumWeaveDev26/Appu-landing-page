@@ -123,6 +123,22 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     assert.ok(privacyContent.includes('Supabase'), 'Privacy policy must disclose authentication by Supabase');
   });
 
+  test('privacy policy discloses conversation retention and image non-retention', () => {
+    const privacyContent = fs.readFileSync(path.join(frontendDir, 'privacy-policy.html'), 'utf8');
+    assert.ok(
+      privacyContent.includes('latest 30 text conversation threads'),
+      'Privacy policy must disclose storing latest 30 text conversation threads per child'
+    );
+    assert.ok(
+      privacyContent.includes('up to 90 days after the most recent activity'),
+      'Privacy policy must disclose retention up to 90 days after most recent activity'
+    );
+    assert.ok(
+      privacyContent.includes('not retained in conversation history'),
+      'Privacy policy must disclose that uploaded image bytes are not retained in conversation history'
+    );
+  });
+
   test('clean URL rewrite configuration exists in .htaccess', () => {
     const htaccessPath = path.join(frontendDir, '.htaccess');
     assert.ok(fs.existsSync(htaccessPath), '.htaccess must exist');
