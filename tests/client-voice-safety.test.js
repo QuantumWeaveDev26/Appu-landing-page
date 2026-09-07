@@ -101,3 +101,36 @@ test('frontend implements 3-way language switch (ENG | ಕನ್ನಡ | हि�
   assert.match(appJs, /localStorage\.setItem\(['"]appu_lang['"]/, 'Must persist selected language');
   assert.match(appJs, /applyUiTranslations\(/, 'Must apply UI translations dynamically');
 });
+
+test('voice-engine.js prevents live session feedback loop via awaitingResponse state and hard mic aborts', () => {
+  const source = read('voice-engine.js');
+
+  // (a) defines awaitingResponse in constructor
+  assert.match(source, /this\.awaitingResponse\s*=\s*false;/, 'Must initialize this.awaitingResponse = false');
+
+  // (b) aborts recognition on final transcript before invoking onTranscript
+  assert.match(
+    source,
+    /this\.awaitingResponse\s*=\s*true;[\s\S]*?this\.recognition\.abort\(\);[\s\S]*?this\.onTranscript\(/,
+    'Must set awaitingResponse=true and abort recognition before onTranscript'
+  );
+
+  // (c) the listening restart/guards reference !this.awaitingResponse
+  assert.match(
+    source,
+    /startListening\(\)\s*\{[\s\S]*?this\.awaitingResponse/,
+    'startListening guard must check this.awaitingResponse'
+  );
+  assert.match(
+    source,
+    /onend\s*=\s*\(\)\s*=>\s*\{[\s\S]*?!this\.awaitingResponse/,
+    'onend auto-restart guard must require !this.awaitingResponse'
+  );
+
+  // (d) the audioPlayer 'play' handler stops/aborts recognition
+  assert.match(
+    source,
+    /audioPlayer\.addEventListener\(['"]play['"][\s\S]*?(?:recognition\.abort\(\)|recognition\.stop\(\)|stopListening\(\))/,
+    'audioPlayer play handler must hard-stop/abort recognition during playback'
+  );
+});

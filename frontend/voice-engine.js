@@ -16,6 +16,7 @@ class VoiceEngine {
         this.currentLanguage = 'en';
         this.isListening = false;
         this.isSpeaking = false;
+        this.awaitingResponse = false;
         this.liveSessionActive = false;
         this.subtitleTimer = null;
         this.audioContext = null;
@@ -39,6 +40,9 @@ class VoiceEngine {
     initAudioPlayerEvents() {
         this.audioPlayer.addEventListener('play', () => {
             this.isSpeaking = true;
+            if (this.recognition) {
+                try { this.recognition.abort(); } catch {}
+            }
             this.updateSpeakingUI(true);
             this.onSpeechStart();
         });
@@ -50,6 +54,7 @@ class VoiceEngine {
     }
 
     handleSpeechFinish() {
+        this.awaitingResponse = false;
         this.isSpeaking = false;
         this.updateSpeakingUI(false);
         this.onSpeechEnd();
@@ -138,7 +143,13 @@ class VoiceEngine {
                 else interimText += text;
             }
             if (interimText) this.onInterimTranscript(interimText.trim());
-            if (finalText) this.onTranscript(finalText.trim());
+            if (finalText) {
+                this.awaitingResponse = true;
+                if (this.recognition) {
+                    try { this.recognition.abort(); } catch {}
+                }
+                this.onTranscript(finalText.trim());
+            }
         };
 
         this.recognition.onerror = event => {
@@ -148,6 +159,9 @@ class VoiceEngine {
             // 'aborted' happens when we stop it ourselves. Anything else (permission
             // denied, no mic, network) means retrying immediately would just loop forever.
             this.lastErrorFatal = event.error !== 'no-speech' && event.error !== 'aborted';
+            if (this.lastErrorFatal) {
+                this.awaitingResponse = false;
+            }
             this.updateLiveSessionUI();
             if (this.lastErrorFatal) {
                 this.streamSubtitles('I missed that. Tap the microphone and try again.');
@@ -160,7 +174,7 @@ class VoiceEngine {
             // Browsers stop listening after every pause even in a "live session" (there is
             // no true continuous mode cross-browser) -- restart automatically so the user
             // doesn't have to re-tap the mic between sentences, like a live conversation.
-            if (this.liveSessionActive && !this.isSpeaking && !this.lastErrorFatal) {
+            if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
                 window.setTimeout(() => this.startListening(), 250);
             }
         };
@@ -196,13 +210,14 @@ class VoiceEngine {
 
     stopLiveSession() {
         this.liveSessionActive = false;
+        this.awaitingResponse = false;
         this.stopListening();
         this.stopSpeaking();
         this.updateLiveSessionUI();
     }
 
     startListening() {
-        if (!this.recognition || this.isListening || this.isSpeaking) return;
+        if (!this.recognition || this.isListening || this.isSpeaking || this.awaitingResponse) return;
         try {
             this.recognition.start();
         } catch (error) {
@@ -234,7 +249,11 @@ class VoiceEngine {
         const source = contract?.toAudioSource ? contract.toAudioSource(audioSource) : audioSource;
         if (!source || !this.autoSpeak) {
             if (text) this.streamSubtitles(text);
+            this.awaitingResponse = false;
             this.onSpeechEnd();
+            if (this.liveSessionActive && !this.isListening) {
+                window.setTimeout(() => this.startListening(), 350);
+            }
             return false;
         }
 
@@ -262,7 +281,11 @@ class VoiceEngine {
     async playStream(streamUrl, text = '', accessToken = '') {
         if (!streamUrl || !this.autoSpeak) {
             if (text) this.streamSubtitles(text);
+            this.awaitingResponse = false;
             this.onSpeechEnd();
+            if (this.liveSessionActive && !this.isListening) {
+                window.setTimeout(() => this.startListening(), 350);
+            }
             return false;
         }
 
