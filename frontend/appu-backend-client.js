@@ -218,6 +218,9 @@
       if (typeof params.conversationId === 'string' && params.conversationId.trim()) {
         payload.conversationId = params.conversationId.trim();
       }
+      if (params.newConversation === true) {
+        payload.newConversation = true;
+      }
     } else {
       const storedGuestToken = guestToken || getStoredGuestToken();
       if (storedGuestToken) {

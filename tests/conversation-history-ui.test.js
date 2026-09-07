@@ -188,4 +188,104 @@ describe('ChatHistoryController Unit & Integration Tests', () => {
     assert.equal(elements.panel.hidden, true);
     assert.equal(controller.activeConversationId, null);
   });
+
+  test('forceNewConversation flag transitions correctly on startNewConversation and adoptConversationId', () => {
+    const { controller } = makeController();
+    assert.equal(controller.getForceNewConversation(), false, 'initially false');
+
+    controller.startNewConversation();
+    assert.equal(controller.getForceNewConversation(), true, 'true after startNewConversation');
+
+    controller.adoptConversationId('c-test-123');
+    assert.equal(controller.getForceNewConversation(), false, 'cleared to false after adoptConversationId');
+    assert.equal(controller.getActiveConversationId(), 'c-test-123');
+  });
+
+  test('ChatAgent sends newConversation: true only when forceNewConversation is true and no activeConversationId', async () => {
+    const elements = new Map();
+    const mockEl = (id) => ({ id, className: '', children: [], appendChild() {}, style: {}, setAttribute() {} });
+    elements.set('chat-messages', mockEl('chat-messages'));
+    elements.set('chat-typing', mockEl('chat-typing'));
+    global.document = {
+      getElementById(id) { return elements.get(id) || null; },
+      createElement(tag) { return mockEl(tag); }
+    };
+    let sentPayload = null;
+    global.window = {
+      document: global.document,
+      AppuSession: {
+        isAuthenticated: () => true,
+        accessToken: 'valid-test-token',
+        childId: 'c1234567-0000-0000-0000-000000000001'
+      },
+      AppuBackendClient: {
+        async sendAppuMessage(payload) {
+          sentPayload = payload;
+          return { text: 'Hello!', conversationId: 'conv-assigned-456' };
+        }
+      }
+    };
+
+    const { ChatAgent } = require('../frontend/chat-agent.js');
+    const { controller } = makeController();
+
+    const agent = new ChatAgent({
+      getConversationId: () => controller.getActiveConversationId(),
+      getForceNewConversation: () => controller.getForceNewConversation(),
+      onConversationAssigned: (id) => controller.adoptConversationId(id)
+    });
+
+    // 1. Initial state: forceNewConversation is false, activeConversationId is null
+    assert.equal(controller.getForceNewConversation(), false);
+    assert.equal(controller.getActiveConversationId(), null);
+
+    // 2. User clicks New Chat:
+    controller.startNewConversation();
+    assert.equal(controller.getForceNewConversation(), true);
+
+    // 3. User sends first message after New Chat:
+    await agent.sendMessage('Explain photosynthesis');
+    assert.ok(sentPayload, 'Payload should have been sent');
+    assert.equal(sentPayload.newConversation, true, 'newConversation: true must be included in payload');
+    assert.equal(sentPayload.conversationId, undefined, 'conversationId must NOT be included');
+
+    // 4. On response, conversationId was assigned and adopted:
+    assert.equal(controller.getActiveConversationId(), 'conv-assigned-456');
+    assert.equal(controller.getForceNewConversation(), false, 'forceNewConversation should be cleared after adopting id');
+
+    // 5. Subsequent message sends conversationId and omits newConversation:
+    sentPayload = null;
+    await agent.sendMessage('Tell me more');
+    assert.ok(sentPayload);
+    assert.equal(sentPayload.conversationId, 'conv-assigned-456', 'conversationId must match active conversation');
+    assert.equal(sentPayload.newConversation, undefined, 'newConversation must be undefined/omitted');
+  });
+
+  test('AppuBackendClient forwards newConversation: true for authenticated payload', async () => {
+    let capturedBody = null;
+    const originalFetch = global.fetch;
+    global.fetch = async (url, opts) => {
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        headers: new Map(),
+        json: async () => ({ text: 'ok', conversationId: 'c-123' })
+      };
+    };
+
+    const AppuBackendClient = require('../frontend/appu-backend-client.js');
+    try {
+      await AppuBackendClient.sendAppuMessage({
+        accessToken: 'tok',
+        childId: 'c1234567-0000-0000-0000-000000000001',
+        message: 'Hello',
+        newConversation: true
+      });
+
+      assert.ok(capturedBody);
+      assert.equal(capturedBody.newConversation, true, 'AppuBackendClient must forward newConversation flag in body');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

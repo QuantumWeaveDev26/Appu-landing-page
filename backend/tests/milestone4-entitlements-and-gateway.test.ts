@@ -14,6 +14,7 @@ import { SubscriptionRepository } from '../src/domain/subscription/repository.js
 import { MentorContextBuilder } from '../src/domain/personalisation/mentor-context-builder.js';
 import { PersonalisationRepository } from '../src/domain/personalisation/repository.js';
 import { TenancyRepository } from '../src/domain/tenancy/repository.js';
+import { ConversationRepository } from '../src/domain/conversation/repository.js';
 
 function createTestDatabase(): TransactionalQueryable {
   const memDb = newDb();
@@ -1142,6 +1143,94 @@ describe('Milestone 4: Entitlement Enforcement, Personalisation & Secure N8N Gat
     } finally {
       TenancyRepository.getNotificationPreferences = origGet;
     }
+  });
+
+  test('Appu gateway creates distinct new conversation when newConversation: true, continues latest when omitted, and honors explicit conversationId', async () => {
+    const parentUserId = crypto.randomUUID();
+    const token = 'token-parent-new-conv';
+    authVerifier.registerToken(token, { userId: parentUserId });
+
+    const onboardRes = await app.inject({
+      method: 'POST',
+      url: '/api/household/onboard',
+      headers: { authorization: `Bearer ${token}` }
+    });
+    const householdId = JSON.parse(onboardRes.payload).household.id;
+    await activateHouseholdSubscription(householdId, 'evolve_monthly');
+
+    const child = await TenancyRepository.createChildProfile(db, {
+      householdId,
+      preferredName: 'Vihaan',
+      gradeBand: 'Grade 7'
+    });
+
+    // 1. Seed one conversation + message
+    const res1 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId: child.id,
+        message: 'First chat message',
+        language: 'en'
+      }
+    });
+    assert.equal(res1.statusCode, 200);
+    const body1 = JSON.parse(res1.payload);
+    const convId1 = body1.conversationId;
+    assert.ok(convId1, 'First message should have a conversationId');
+
+    // 2. Send gateway message with newConversation: true -> creates distinct second conversation
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId: child.id,
+        message: 'Starting brand new conversation',
+        language: 'en',
+        newConversation: true
+      }
+    });
+    assert.equal(res2.statusCode, 200);
+    const body2 = JSON.parse(res2.payload);
+    const convId2 = body2.conversationId;
+    assert.ok(convId2, 'New conversation should have an id');
+    assert.notEqual(convId2, convId1, 'newConversation: true must create a distinct conversation id, not merge into latest');
+
+    const dbConversations = await ConversationRepository.listRecent(db, householdId, child.id);
+    assert.equal(dbConversations.length, 2, 'DB must have 2 distinct conversations for child');
+
+    // 3. Send next message WITHOUT conversationId and WITHOUT newConversation -> appends to second conversation (preserves latest-continuation default)
+    const res3 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId: child.id,
+        message: 'Continuing latest without explicit conversationId',
+        language: 'en'
+      }
+    });
+    assert.equal(res3.statusCode, 200);
+    const body3 = JSON.parse(res3.payload);
+    assert.equal(body3.conversationId, convId2, 'Omitted conversationId and newConversation must continue latest conversation');
+
+    // 4. Send message WITH explicit conversationId=convId1 -> appends to first conversation
+    const res4 = await app.inject({
+      method: 'POST',
+      url: '/api/appu/message',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        childId: child.id,
+        conversationId: convId1,
+        message: 'Reopening and continuing conversation 1',
+        language: 'en'
+      }
+    });
+    assert.equal(res4.statusCode, 200);
+    const body4 = JSON.parse(res4.payload);
+    assert.equal(body4.conversationId, convId1, 'Explicit conversationId must be honored');
   });
 });
 

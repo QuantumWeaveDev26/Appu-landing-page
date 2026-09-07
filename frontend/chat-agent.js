@@ -10,6 +10,7 @@ class ChatAgent {
     this.mockMode = false;
     this.voiceEngine = options.voiceEngine || null;
     this.getConversationId = options.getConversationId || (() => null);
+    this.getForceNewConversation = options.getForceNewConversation || (() => false);
     this.onConversationAssigned = options.onConversationAssigned || (() => {});
     this.messages = [];
     this.messagesContainer = document.getElementById('chat-messages');
@@ -220,11 +221,14 @@ class ChatAgent {
         ? this.getConversationId()
         : null;
 
+      const forceNew = !activeConvId && typeof this.getForceNewConversation === 'function' && Boolean(this.getForceNewConversation());
+
       const requestPayload = hasSecureSession
         ? {
             accessToken: window.AppuSession.accessToken,
             childId: window.AppuSession.childId,
             ...(activeConvId ? { conversationId: activeConvId } : {}),
+            ...(forceNew ? { newConversation: true } : {}),
             message: cleanInput,
             language: this.language || 'en',
             includeAudio

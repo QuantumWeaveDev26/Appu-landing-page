@@ -62,6 +62,7 @@
       this.activeChildId = null;
       this.accessToken = null;
       this.conversations = [];
+      this.forceNewConversation = false;
 
       const initialSession = this.getSession();
       if (initialSession && initialSession.accessToken && initialSession.childId) {
@@ -116,9 +117,14 @@
       return this.activeConversationId || null;
     }
 
+    getForceNewConversation() {
+      return Boolean(this.forceNewConversation);
+    }
+
     adoptConversationId(conversationId) {
       if (!conversationId) return;
       this.activeConversationId = conversationId;
+      this.forceNewConversation = false;
       this.refresh().catch(() => {});
     }
 
@@ -129,6 +135,7 @@
       if (nextChildId !== this.activeChildId) {
         this.activeConversationId = null;
         this.conversations = [];
+        this.forceNewConversation = false;
       }
 
       this.accessToken = nextToken;
@@ -137,6 +144,7 @@
       if (!nextToken || !nextChildId) {
         this.activeConversationId = null;
         this.conversations = [];
+        this.forceNewConversation = false;
         if (this.elements.btnOpen) this.elements.btnOpen.hidden = true;
         if (this.elements.panel) this.elements.panel.hidden = true;
         this.renderList();
@@ -180,6 +188,7 @@
 
     startNewConversation() {
       this.activeConversationId = null;
+      this.forceNewConversation = true;
       if (this.chatAgent) {
         if (typeof this.chatAgent.clearHistory === 'function') {
           this.chatAgent.clearHistory();
@@ -210,6 +219,7 @@
             return res;
           }
           this.activeConversationId = conversationId;
+          this.forceNewConversation = false;
           if (this.chatAgent && typeof this.chatAgent.replaceMessages === 'function') {
             this.chatAgent.replaceMessages(res.messages || []);
           }

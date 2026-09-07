@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mockMode: false,
     voiceEngine,
     getConversationId: () => chatHistoryController ? chatHistoryController.getActiveConversationId() : null,
+    getForceNewConversation: () => chatHistoryController ? chatHistoryController.getForceNewConversation() : false,
     onConversationAssigned: (id) => {
       if (chatHistoryController) chatHistoryController.adoptConversationId(id);
     }

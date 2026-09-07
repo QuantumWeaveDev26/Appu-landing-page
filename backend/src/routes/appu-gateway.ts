@@ -59,6 +59,7 @@ export interface AppuGatewayRouteOptions {
 const authenticatedMessageSchema = z.object({
   childId: z.string().uuid('Invalid childId format. Must be a valid UUID'),
   conversationId: z.string().uuid().optional(),
+  newConversation: z.boolean().optional(),
   message: z
     .string()
     .trim()
@@ -188,7 +189,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         });
       }
 
-      const { childId, conversationId, message, language, includeAudio, imageBase64 } = parseResult.data;
+      const { childId, conversationId, newConversation, message, language, includeAudio, imageBase64 } = parseResult.data;
 
       let imagePayload: { mimeType: string; base64: string } | null = null;
       if (imageBase64) {
@@ -258,6 +259,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         if (conversationId) {
           conversation = await ConversationRepository.getOwned(opts.db, household.id, child.id, conversationId);
           if (!conversation) throw new NotFoundError('Conversation not found');
+        } else if (newConversation) {
+          conversation = await ConversationService.createAndPrune(opts.db, household.id, child.id, undefined);
         } else {
           conversation = await ConversationService.resolveOwnedOrLatest(opts.db, household.id, child.id);
         }
