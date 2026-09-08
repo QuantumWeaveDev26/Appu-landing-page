@@ -68,28 +68,43 @@ export class ProactiveWhatsAppRepository {
          c.preferred_name,
          c.nickname,
          c.grade_band,
-         c.dob,
-         COALESCE(p.favorite_subjects, '[]'::jsonb) AS favorite_subjects
+         c.dob
        FROM households h
        JOIN child_profiles c ON c.household_id = h.id
-       LEFT JOIN child_personalisation p ON p.household_id = h.id AND p.child_id = c.id
        WHERE h.whatsapp_consent = TRUE
          AND h.parent_phone IS NOT NULL
          AND c.status = 'ACTIVE'
        ORDER BY h.id, c.created_at ASC;`
     );
 
-    return result.rows.map((row) => ({
-      householdId: row.household_id,
-      parentPhone: row.parent_phone,
-      childId: row.child_id,
-      preferredName: row.preferred_name,
-      nickname: row.nickname ?? null,
-      effectiveName: computeEffectiveName(row.nickname, row.preferred_name),
-      gradeBand: row.grade_band,
-      dob: formatDateString(row.dob),
-      favoriteSubjects: parseFavoriteSubjects(row.favorite_subjects)
-    }));
+    const targets: EligibleHouseholdTarget[] = [];
+    for (const row of result.rows) {
+      const personRes = await db.query<{ favorite_subjects: unknown }>(
+        `SELECT favorite_subjects
+         FROM child_personalisation
+         WHERE household_id = $1 AND child_id = $2
+         LIMIT 1;`,
+        [row.household_id, row.child_id]
+      );
+
+      const favoriteSubjects = personRes.rows.length > 0
+        ? parseFavoriteSubjects(personRes.rows[0].favorite_subjects)
+        : [];
+
+      targets.push({
+        householdId: row.household_id,
+        parentPhone: row.parent_phone,
+        childId: row.child_id,
+        preferredName: row.preferred_name,
+        nickname: row.nickname ?? null,
+        effectiveName: computeEffectiveName(row.nickname, row.preferred_name),
+        gradeBand: row.grade_band,
+        dob: formatDateString(row.dob),
+        favoriteSubjects
+      });
+    }
+
+    return targets;
   }
 
   /**
