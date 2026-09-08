@@ -23,6 +23,7 @@ import {
   usageRoutes,
   conversationRoutes,
   whatsappContextRoutes,
+  whatsappProactiveRoutes,
   promptsRoutes
 } from './routes/index.js';
 
@@ -240,6 +241,12 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     });
 
     app.register(whatsappContextRoutes, {
+      db: options.database,
+      signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
+      signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
+    });
+
+    app.register(whatsappProactiveRoutes, {
       db: options.database,
       signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS

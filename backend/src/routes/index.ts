@@ -11,4 +11,5 @@ export * from './appu-audio.js';
 export * from './usage.js';
 export * from './conversations.js';
 export * from './whatsapp-context.js';
+export * from './whatsapp-proactive.js';
 export * from './prompts.js';
