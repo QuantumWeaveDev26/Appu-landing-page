@@ -620,6 +620,86 @@
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(formattedNote)}`;
   }
 
+  /**
+   * Fetches personalized prompts for a child, with optional category filtering.
+   */
+  async function fetchChildPrompts(childIdOrOptions, maybeCategory) {
+    let childId;
+    let category = null;
+    let accessToken = null;
+    let baseUrl = null;
+
+    if (typeof childIdOrOptions === 'object' && childIdOrOptions !== null) {
+      childId = childIdOrOptions.childId;
+      category = childIdOrOptions.category || null;
+      accessToken = childIdOrOptions.accessToken || null;
+      baseUrl = childIdOrOptions.baseUrl || null;
+    } else {
+      childId = childIdOrOptions;
+      category = maybeCategory || null;
+    }
+
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+
+    let queryPath = `/api/children/${encodeURIComponent(childId.trim())}/prompts`;
+    if (category && typeof category === 'string' && category !== 'all') {
+      queryPath += `?category=${encodeURIComponent(category.trim())}`;
+    }
+
+    return authenticatedConversationRequest({
+      accessToken,
+      path: queryPath,
+      method: 'GET',
+      baseUrl
+    });
+  }
+
+  /**
+   * Atomically regenerates personalized prompts for a child.
+   */
+  async function regenerateChildPrompts(childIdOrOptions) {
+    let childId;
+    let accessToken = null;
+    let baseUrl = null;
+
+    if (typeof childIdOrOptions === 'object' && childIdOrOptions !== null) {
+      childId = childIdOrOptions.childId;
+      accessToken = childIdOrOptions.accessToken || null;
+      baseUrl = childIdOrOptions.baseUrl || null;
+    } else {
+      childId = childIdOrOptions;
+    }
+
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/children/${encodeURIComponent(childId.trim())}/prompts/regenerate`,
+      method: 'POST',
+      baseUrl
+    });
+  }
+
   return {
     getApiBaseUrl,
     resolveAudioStreamUrl,
@@ -633,6 +713,8 @@
     deleteConversation,
     clearConversations,
     formatWhatsAppStudyNote,
-    buildWhatsAppShareUrl
+    buildWhatsAppShareUrl,
+    fetchChildPrompts,
+    regenerateChildPrompts
   };
 });

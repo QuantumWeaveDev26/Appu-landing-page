@@ -141,6 +141,14 @@
           <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
       </div>
+
+      <div class="prompt-library-trigger-wrap">
+        <button id="btn-explore-prompts" class="explore-prompts-pill" type="button">
+          <i class="fa-solid fa-compass text-cyan" aria-hidden="true"></i>
+          <span id="btn-explore-prompts-text">Explore Prompts</span>
+          <i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i>
+        </button>
+      </div>
     </main>
 
     <!-- VOICE RESPONSE POPUP: persistent assistant reply view during hands-free voice sessions -->
@@ -251,6 +259,52 @@
       <button id="btn-chat-mic" class="composer-mic" type="button" aria-label="Ask using your voice"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
       <button class="composer-send" type="submit" aria-label="Send question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
     </form>
+  </aside>
+
+  <div id="prompt-library-scrim" class="drawer-scrim" aria-hidden="true"></div>
+  <aside id="prompt-library-panel" class="prompt-library-panel" role="dialog" aria-modal="true" aria-labelledby="prompt-library-title" aria-hidden="true">
+    <header class="prompt-library-header">
+      <div class="prompt-library-title-group">
+        <span class="online-dot" aria-hidden="true"></span>
+        <div>
+          <h2 id="prompt-library-title">Prompt Library</h2>
+          <p id="prompt-library-subtitle">Personalized sparks for your learning journey</p>
+        </div>
+      </div>
+      <div class="prompt-library-actions">
+        <button id="btn-refresh-prompts" class="icon-btn prompt-refresh-btn" type="button" aria-label="Refresh prompts" title="Refresh prompts">
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+          <span class="sr-only">Refresh prompts</span>
+        </button>
+        <button id="btn-close-prompt-library" class="icon-btn close-btn" type="button" aria-label="Close prompt library">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+    <nav class="prompt-category-tabs" aria-label="Prompt categories" role="tablist">
+      <button class="prompt-cat-tab is-active" type="button" role="tab" aria-selected="true" data-category="all">
+        <span id="tab-cat-all">All</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="quick_concepts">
+        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+        <span id="tab-cat-quick-concepts">Quick Concepts</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="homework_hints">
+        <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
+        <span id="tab-cat-homework-hints">Homework Hints</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="curious_mind">
+        <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+        <span id="tab-cat-curious-mind">Curious Mind</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="exam_drills">
+        <i class="fa-solid fa-medal" aria-hidden="true"></i>
+        <span id="tab-cat-exam-drills">Exam Drills</span>
+      </button>
+    </nav>
+    <div id="prompt-cards-container" class="prompt-cards-container" role="region" aria-live="polite">
+      <!-- Dynamically populated by prompt-library-ui.js -->
+    </div>
   </aside>
 
   <!-- GUEST LIMIT REACHED GATE MODAL -->
@@ -491,6 +545,7 @@
   <script src="appu-backend-client.js?v=20260908-2"></script>
   <script src="parent-onboarding-shell.js?v=20260908-2"></script>
   <script src="parent-setup-ui.js?v=20260908-2"></script>
+  <script src="prompt-library-ui.js?v=20260908-2"></script>
   <script src="avatar-stage.js?v=20260908-2"></script>
   <script src="voice-engine.js?v=20260908-2"></script>
   <script src="chat-history.js?v=20260908-2"></script>

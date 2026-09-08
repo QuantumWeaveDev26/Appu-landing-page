@@ -472,7 +472,17 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerContact: 'Contact Us',
       posChildNicknameLabel: 'Learner Nickname',
       posChildDobLabel: 'Date of Birth',
-      dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).'
+      dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).',
+      promptLibraryTitle: 'Prompt Library',
+      promptLibrarySubtitle: 'Personalized sparks for your learning journey',
+      categoryAll: 'All',
+      categoryQuickConcepts: 'Quick Concepts',
+      categoryHomeworkHints: 'Homework Hints',
+      categoryCuriousMind: 'Curious Mind',
+      categoryExamDrills: 'Exam Drills',
+      btnRefreshPrompts: 'Refresh prompts',
+      btnExplorePrompts: 'Explore Prompts',
+      promptCardAskAppu: 'Ask Appu'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -545,7 +555,17 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
       posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
       posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
-      dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).'
+      dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).',
+      promptLibraryTitle: 'ಪ್ರಾಂಪ್ಟ್ ಲೈಬ್ರರಿ',
+      promptLibrarySubtitle: 'ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣಕ್ಕೆ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿಷಯಗಳು',
+      categoryAll: 'ಎಲ್ಲವೂ',
+      categoryQuickConcepts: 'ತ್ವರಿತ ಪರಿಕಲ್ಪನೆಗಳು',
+      categoryHomeworkHints: 'ಮನೆಕೆಲಸದ ಸುಳಿವುಗಳು',
+      categoryCuriousMind: 'ಕುತೂಹಲಕಾರಿ ಮನಸ್ಸು',
+      categoryExamDrills: 'ಪರೀಕ್ಷಾ ಅಭ್ಯಾಸ',
+      btnRefreshPrompts: 'ಹೊಸ ಪ್ರಾಂಪ್ಟ್‌ಗಳು',
+      btnExplorePrompts: 'ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
+      promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -618,7 +638,17 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerContact: 'संपर्क करें',
       posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
       posChildDobLabel: 'जन्म तिथि',
-      dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।'
+      dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।',
+      promptLibraryTitle: 'प्रॉम्प्ट लाइब्रेरी',
+      promptLibrarySubtitle: 'आपकी सीखने की यात्रा के लिए व्यक्तिगत सुझाव',
+      categoryAll: 'सभी',
+      categoryQuickConcepts: 'त्वरित अवधारणाएं',
+      categoryHomeworkHints: 'होमवर्क संकेत',
+      categoryCuriousMind: 'जिज्ञासु मन',
+      categoryExamDrills: 'परीक्षा अभ्यास',
+      btnRefreshPrompts: 'प्रॉम्प्ट ताज़ा करें',
+      btnExplorePrompts: 'प्रॉम्प्ट देखें',
+      promptCardAskAppu: 'अप्पू से पूछें'
     }
   };
 
@@ -839,6 +869,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const posChildDobLabel = document.getElementById('pos-child-dob-label');
     if (posChildDobLabel) posChildDobLabel.textContent = t.posChildDobLabel;
+
+    // Prompt Library translations
+    const promptLibraryTitle = document.getElementById('prompt-library-title');
+    if (promptLibraryTitle) promptLibraryTitle.textContent = t.promptLibraryTitle;
+
+    const promptLibrarySubtitle = document.getElementById('prompt-library-subtitle');
+    if (promptLibrarySubtitle) promptLibrarySubtitle.textContent = t.promptLibrarySubtitle;
+
+    const btnExplorePromptsText = document.getElementById('btn-explore-prompts-text');
+    if (btnExplorePromptsText) btnExplorePromptsText.textContent = t.btnExplorePrompts;
+
+    const tabCatAll = document.getElementById('tab-cat-all');
+    if (tabCatAll) tabCatAll.textContent = t.categoryAll;
+
+    const tabCatQuick = document.getElementById('tab-cat-quick-concepts');
+    if (tabCatQuick) tabCatQuick.textContent = t.categoryQuickConcepts;
+
+    const tabCatHw = document.getElementById('tab-cat-homework-hints');
+    if (tabCatHw) tabCatHw.textContent = t.categoryHomeworkHints;
+
+    const tabCatCurious = document.getElementById('tab-cat-curious-mind');
+    if (tabCatCurious) tabCatCurious.textContent = t.categoryCuriousMind;
+
+    const tabCatExam = document.getElementById('tab-cat-exam-drills');
+    if (tabCatExam) tabCatExam.textContent = t.categoryExamDrills;
+
+    const btnRefreshPrompts = document.getElementById('btn-refresh-prompts');
+    if (btnRefreshPrompts) {
+      btnRefreshPrompts.setAttribute('title', t.btnRefreshPrompts);
+      btnRefreshPrompts.setAttribute('aria-label', t.btnRefreshPrompts);
+      const sr = btnRefreshPrompts.querySelector('.sr-only');
+      if (sr) sr.textContent = t.btnRefreshPrompts;
+    }
 
     // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
     if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
