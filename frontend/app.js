@@ -246,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseGuestLimit = document.getElementById('btn-close-guest-limit');
   const btnGuestSignin = document.getElementById('btn-guest-signin');
   const btnBetaBannerCta = document.getElementById('beta-banner-cta');
+  const btnMainAuth = document.getElementById('btn-main-auth');
   const btnGuestRegister = document.getElementById('btn-guest-register');
   const btnGuestPlans = document.getElementById('btn-guest-plans');
   const guestAccessBadge = document.getElementById('guest-access-badge');
@@ -343,6 +344,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnBetaBannerCta) {
     btnBetaBannerCta.addEventListener('click', () => {
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnMainAuth) {
+    btnMainAuth.addEventListener('click', () => {
+      voiceEngine.playClick();
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
         window.ParentSetupUI.openModal(1);
       }
@@ -1478,6 +1488,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navAccountSlot = document.getElementById('nav-drawer-account-slot');
     const languageSwitchEl = document.querySelector('.language-switch');
     const parentSessionBadgeEl = document.getElementById('parent-session-badge');
+    const btnMainAuthEl = document.getElementById('btn-main-auth');
     const btnParentSetupEl = document.getElementById('btn-parent-setup');
     const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
     const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
@@ -1486,11 +1497,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
     if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
     if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnMainAuthEl) navAccountSlot.appendChild(btnMainAuthEl);
     if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
 
     // Auto-close the drawer only for rows that navigate to another screen/modal;
     // sound toggle and language buttons stay open so users can adjust and re-check.
     if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
+    if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
     if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
 
     const CapApp = window.Capacitor.Plugins && window.Capacitor.Plugins.App;

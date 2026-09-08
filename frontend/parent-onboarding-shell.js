@@ -1062,6 +1062,7 @@
     if (typeof document === 'undefined') return;
 
     const badge = document.getElementById('parent-session-badge');
+    const mainAuthBtn = document.getElementById('btn-main-auth');
     const parentSetupBtn = document.getElementById('btn-parent-setup');
     const statusLabel = document.getElementById('status-label');
 
@@ -1088,6 +1089,9 @@
         badge.style.display = 'inline-flex';
         badge.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-cyan"></i><span>Restoring session…</span>`;
       }
+      if (mainAuthBtn) {
+        mainAuthBtn.style.display = 'none';
+      }
       if (statusLabel) {
         statusLabel.textContent = 'Restoring your Appu session…';
       }
@@ -1095,6 +1099,9 @@
     }
 
     if (isAuthed) {
+      if (mainAuthBtn) {
+        mainAuthBtn.style.display = 'none';
+      }
       const pContext = window.AppuSession.parentContext || {};
       const childName = state.selectedChild?.preferredName || state.selectedChild?.name || pContext.childName || 'Learner';
       if (badge) {
@@ -1109,6 +1116,9 @@
         statusLabel.textContent = `Appu ready for ${childName}`;
       }
     } else if (state.session && (state.authStatus === 'CHILD_SELECTION_REQUIRED' || (state.children && state.children.length > 1))) {
+      if (mainAuthBtn) {
+        mainAuthBtn.style.display = 'none';
+      }
       const displayName = state.household?.name || (state.session.user?.email ? state.session.user.email.split('@')[0] : 'Parent');
       if (badge) {
         badge.style.display = 'inline-flex';
@@ -1122,6 +1132,9 @@
         statusLabel.textContent = 'Please select a learner';
       }
     } else if (state.session && state.authStatus !== 'UNAUTHENTICATED') {
+      if (mainAuthBtn) {
+        mainAuthBtn.style.display = 'none';
+      }
       // Authenticated parent immediately after login or without active learner
       const displayName = state.household?.name || (state.session.user?.email ? state.session.user.email.split('@')[0] : 'Parent');
       if (badge) {
@@ -1139,6 +1152,9 @@
       if (badge) {
         badge.style.display = 'none';
         badge.innerHTML = '';
+      }
+      if (mainAuthBtn) {
+        mainAuthBtn.style.display = 'inline-flex';
       }
       if (parentSetupBtn) {
         parentSetupBtn.innerHTML = `<i class="fa-solid fa-user-gear"></i><span>Parent Setup</span>`;

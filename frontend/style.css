@@ -144,6 +144,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .icon-btn { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255, 255, 255, .035); cursor: pointer; transition: transform .2s, border-color .2s, background .2s; }
 .icon-btn:hover { transform: translateY(-2px); border-color: rgba(88, 233, 255, .5); background: rgba(34, 211, 238, .09); }
 .parent-zone-btn { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px; border: 1px solid rgba(251, 191, 36, .35); border-radius: 14px; color: #ffd55c; background: rgba(120, 75, 6, .18); font-size: 13px; font-weight: 800; cursor: pointer; }
+.auth-pill-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 16px; border: 1px solid rgba(34, 211, 238, .4); border-radius: 999px; color: #fff; background: rgba(8, 30, 54, .7); font: 700 12.5px/1.2 Space Grotesk, sans-serif; letter-spacing: .02em; white-space: nowrap; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 4px 16px rgba(0, 0, 0, .2); cursor: pointer; transition: transform .2s, background .2s, border-color .2s, box-shadow .2s; }
+.auth-pill-btn:hover { transform: translateY(-1px); border-color: var(--cyan-bright); background: rgba(14, 45, 78, .85); color: var(--cyan-bright); box-shadow: 0 6px 20px rgba(0, 0, 0, .3), 0 0 16px rgba(34, 211, 238, .2); }
+.auth-pill-btn:active { transform: translateY(0); }
+.auth-pill-btn:focus-visible { outline: 2px solid var(--cyan-bright); outline-offset: 2px; }
+.auth-pill-btn i { color: var(--cyan-bright); font-size: 12px; }
 .parent-session-badge { display: none; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px 0 14px; border-radius: 999px; border: 1px solid rgba(34, 211, 238, .35); background: rgba(8, 30, 54, .7); color: var(--cyan-bright); font: 700 12px/1.2 Space Grotesk, sans-serif; letter-spacing: .02em; white-space: nowrap; backdrop-filter: blur(12px); box-shadow: 0 4px 16px rgba(0, 0, 0, .2); }
 .parent-session-badge strong { color: #fff; font-weight: 800; }
 .badge-logout-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 4px; padding: 0; border: 1px solid rgba(255, 255, 255, .15); border-radius: 50%; background: rgba(255, 255, 255, .08); color: var(--muted); font-size: 11px; cursor: pointer; transition: transform .2s, background .2s, color .2s, border-color .2s; }
@@ -384,6 +389,7 @@ select option:checked, .discovery-form select option:checked {
   .parent-session-badge > i { flex-shrink: 0; }
   .parent-session-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
   .badge-logout-btn { width: 20px; height: 20px; font-size: 9.5px; margin-left: 2px; flex-shrink: 0; }
+  .auth-pill-btn { min-height: 32px; padding: 0 10px; font-size: 11px; gap: 5px; flex-shrink: 0; }
   .language-switch { padding: 2px; gap: 2px; flex-shrink: 0; }
   .lang-btn { min-height: 32px; padding: 0 8px; font-size: 10.5px; }
   .parent-zone-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; border-radius: 10px; flex-shrink: 0; }
@@ -2168,6 +2174,8 @@ body.policy-page {
   background: rgba(255, 255, 255, .02);
 }
 .nav-drawer-footer .parent-session-badge { display: flex; width: 100%; max-width: none; }
+.nav-drawer-footer .auth-pill-btn { width: 100%; height: 46px; min-height: 46px; justify-content: center; padding: 0 16px; }
+.nav-drawer-footer .auth-pill-btn span { display: inline; }
 .nav-drawer-footer .parent-zone-btn { width: 100%; height: 46px; min-height: 46px; justify-content: center; padding: 0 16px; }
 .nav-drawer-footer .parent-zone-btn span { display: inline; }
 
