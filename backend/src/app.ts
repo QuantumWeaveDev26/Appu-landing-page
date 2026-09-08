@@ -22,7 +22,8 @@ import {
   appuAudioRoutes,
   usageRoutes,
   conversationRoutes,
-  whatsappContextRoutes
+  whatsappContextRoutes,
+  promptsRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -269,6 +270,11 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       authVerifier,
       betaMode: config.APPU_BETA_MODE,
       betaChatLimit: config.APPU_BETA_CHAT_LIMIT
+    });
+
+    app.register(promptsRoutes, {
+      db: options.database,
+      authVerifier
     });
 
     app.register(conversationRoutes, {
