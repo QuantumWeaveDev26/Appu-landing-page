@@ -8,7 +8,8 @@ import type {
   CreateChildProfileInput,
   UpdateChildProfileInput,
   HouseholdNotificationPreferences,
-  UpdateHouseholdNotificationInput
+  UpdateHouseholdNotificationInput,
+  HouseholdWithConsent
 } from './types.js';
 
 // ==========================================
@@ -475,6 +476,58 @@ export class TenancyRepository {
       parentPhone: row.parent_phone ?? null,
       whatsappConsent: Boolean(row.whatsapp_consent),
       whatsappConsentAt: row.whatsapp_consent_at ? new Date(row.whatsapp_consent_at) : null
+    };
+  }
+
+  /**
+   * Retrieves a household by normalized parent phone number where WhatsApp consent is granted.
+   * Returns null if no match, consent not granted, or invalid phone number.
+   */
+  public static async findHouseholdByParentPhone(
+    db: Queryable,
+    rawPhone: string
+  ): Promise<HouseholdWithConsent | null> {
+    let normalized: string | null = null;
+    try {
+      normalized = normalizePhoneNumber(rawPhone);
+    } catch {
+      return null;
+    }
+
+    if (!normalized) {
+      return null;
+    }
+
+    const result = await db.query<{
+      id: string;
+      name: string | null;
+      parent_phone: string | null;
+      whatsapp_consent: boolean | null;
+      whatsapp_consent_at: Date | string | null;
+      created_at: Date | string;
+      updated_at: Date | string;
+    }>(
+      `SELECT id, name, parent_phone, whatsapp_consent, whatsapp_consent_at, created_at, updated_at
+       FROM households
+       WHERE parent_phone = $1 AND whatsapp_consent = TRUE
+       ORDER BY updated_at DESC, created_at DESC
+       LIMIT 1;`,
+      [normalized]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      name: row.name,
+      parentPhone: row.parent_phone ?? null,
+      whatsappConsent: Boolean(row.whatsapp_consent),
+      whatsappConsentAt: row.whatsapp_consent_at ? new Date(row.whatsapp_consent_at) : null,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at)
     };
   }
 }

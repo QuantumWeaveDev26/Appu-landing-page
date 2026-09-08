@@ -5,7 +5,7 @@
 **Goal:** Implement server-side read-only WhatsApp Context Sync: recognize inbound WhatsApp users by consented `parent_phone`, load learner profile (`mentorContext`), and feed recent web/app conversation history into APPU Mentor on WhatsApp.
 
 **Architecture:** 
-- Backend: Query `households` by normalized `parent_phone` where `whatsapp_consent = true`. Assemble canonical `mentorContext` from child profile, personalization, and plan entitlements. Fetch up to 8 recent turns from the latest conversation session and format as an untrusted transcript. Expose via secure internal endpoint `POST /api/appu/whatsapp/context` protected by HMAC-SHA256 signature and shared secret header.
+- Backend: Query `households` by normalized `parent_phone` where `whatsapp_consent = true`. Assemble canonical `mentorContext` from child profile, personalization, and plan entitlements. Fetch up to 8 recent turns from the latest conversation session and format as an untrusted transcript. Expose via secure internal endpoint `POST /api/appu/whatsapp/context` protected by HMAC-SHA256 signature (`verifyAppuHmacSignature`).
 - n8n (Production Gated): Rewire `Normalize WhatsApp Input` to fetch context from backend, inject `mentorContext` + prior transcript into `APPU Mentor`, and update validation envelope.
 
 **Tech Stack:** TypeScript (Node.js 20+), Fastify, PostgreSQL (pg / pg-mem), Node.js native test runner (`node:test`, `node:assert/strict`), n8n LangChain agent workflow.
@@ -121,17 +121,16 @@ Expected: PASS (all assertions green).
 - Modify: `backend/src/app.ts`
 - Create: `backend/tests/whatsapp-context-route.test.ts`
 
-**Context:** Expose the secure internal endpoint callable by n8n. Requires server-to-server authentication via HMAC signature (`X-APPU-Timestamp` + `X-APPU-Signature`) or shared secret header (`X-APPU-Internal-Secret`).
+**Context:** Expose the secure internal endpoint callable by n8n. Requires server-to-server HMAC authentication via `verifyAppuHmacSignature` (`X-APPU-Timestamp` + `X-APPU-Signature`, 300s freshness).
 
 - [ ] **Step 1: Write failing route tests in `backend/tests/whatsapp-context-route.test.ts` (RED)**
 
 Cover:
-1. **Authentication:**
-   - Missing signature/secret returns HTTP 401.
-   - Invalid HMAC signature returns HTTP 401.
+1. **HMAC Authentication:**
+   - Missing signature or timestamp headers returns HTTP 401.
+   - Invalid/mismatched HMAC signature returns HTTP 401.
    - Stale timestamp (> 300s) returns HTTP 401.
    - Valid HMAC signature succeeds (HTTP 200).
-   - Valid `X-APPU-Internal-Secret` header succeeds (HTTP 200).
 2. **Payload validation:**
    - Missing or empty `phone` returns HTTP 400.
    - Valid payload returns HTTP 200 with `WhatsAppContextResult`.
@@ -146,11 +145,11 @@ Expected: FAIL (route not found / 404).
 - [ ] **Step 3: Implement route and configuration**
 
 1. In `backend/src/config/env.ts`:
-   - Ensure `N8N_APPU_CALLBACK_HMAC_SECRET` or optional `WHATSAPP_CONTEXT_SECRET` is available.
+   - Ensure `N8N_APPU_CALLBACK_HMAC_SECRET` is used for signature validation.
 2. In `backend/src/routes/whatsapp-context.ts`:
-   - Validate auth:
-     - Check `X-APPU-Timestamp` and `X-APPU-Signature` using `verifyAppuHmacSignature`.
-     - Or check `X-APPU-Internal-Secret` header using constant-time equality check.
+   - Validate auth strictly via `verifyAppuHmacSignature`:
+     - Read rawBody, `X-APPU-Timestamp`, and `X-APPU-Signature`.
+     - Throw `UnauthorizedError` if verification fails.
    - Parse body with Zod schema (`phone: z.string().trim().min(1).max(32)`, `turnLimit: z.number().int().min(1).max(20).optional()`).
    - Call `WhatsAppContextService.resolveContext(opts.db, phone, turnLimit)`.
    - Return 200 with context result.
@@ -162,9 +161,16 @@ Expected: FAIL (route not found / 404).
 Run: `node --test backend/tests/whatsapp-context-route.test.ts`  
 Expected: PASS (all assertions green).
 
-- [ ] **Step 5: Run full backend regression suite**
+- [ ] **Step 5: Run targeted backend regression suites**
 
-Run: `npm test` inside `backend/` to ensure zero regressions across existing auth, gateway, and conversation suites.
+Run individual test suites:
+- `node --test backend/tests/tenancy-parent-phone-lookup.test.ts`
+- `node --test backend/tests/whatsapp-context-service.test.ts`
+- `node --test backend/tests/whatsapp-context-route.test.ts`
+- `node --test backend/tests/gateway-hmac.test.ts`
+- `node --test backend/tests/conversation-history.test.ts`
+- `node --test backend/tests/household-whatsapp-preferences.test.ts`
+(Note: Full `npm test` glob has a pre-existing pg-mem RLS parser failure on migration 012 unrelated to this feature).
 
 ---
 

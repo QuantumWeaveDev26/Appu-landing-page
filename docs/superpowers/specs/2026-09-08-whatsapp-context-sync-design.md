@@ -81,7 +81,7 @@ This specification designs **WhatsApp Context Sync**, unifying APPU's WhatsApp e
 * The backend currently authenticates server-to-server callbacks from n8n (`POST /api/internal/n8n/appu/callback` in `backend/src/routes/appu-callback.ts`) using HMAC-SHA256:
   * Headers: `X-APPU-Timestamp` (seconds timestamp) and `X-APPU-Signature` (`v1=<64-hex HMAC of "${timestamp}.${rawBody}">`).
   * Validated via `verifyAppuHmacSignature(...)` in `backend/src/domain/gateway/hmac.ts` with replay prevention (`maxAgeSeconds: 300`) and constant-time equality check (`crypto.timingSafeEqual`).
-* The new WhatsApp context endpoint will follow this exact internal authentication scheme, while also allowing a constant-time verified `X-APPU-Internal-Secret` header or Bearer token for simpler n8n HTTP Request node configurations.
+* The new WhatsApp context endpoint will follow this exact internal HMAC authentication scheme (`verifyAppuHmacSignature` with `X-APPU-Timestamp` and `X-APPU-Signature`), matching existing production patterns and preventing replay attacks.
 
 ---
 
@@ -136,16 +136,12 @@ Fetches read-only learner personalization profile and recent web/app conversatio
 #### Security & Authentication
 Calls to this endpoint return sensitive minor learner profile data (name, grade, learning style, and recent transcripts). It MUST NOT be publicly callable.
 
-Authentication requires either:
-1. **HMAC Signature (Preferred):**
-   * Header `X-APPU-Timestamp`: Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`).
-   * Header `X-APPU-Signature`: `v1=` followed by SHA-256 HMAC of `${timestamp}.${rawBody}` using `N8N_APPU_CALLBACK_HMAC_SECRET` or `WHATSAPP_CONTEXT_SECRET`.
-   * Evaluated with 300s freshness window and constant-time buffer comparison.
-2. **Shared Secret Header (Direct HTTP Option):**
-   * Header `X-APPU-Internal-Secret: <secret>` or `Authorization: Bearer <secret>`.
-   * Verified against configured secret with constant-time comparison `crypto.timingSafeEqual`.
+Authentication is strictly **HMAC-only**:
+* Header `X-APPU-Timestamp`: Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`).
+* Header `X-APPU-Signature`: `v1=` followed by SHA-256 HMAC of `${timestamp}.${rawBody}` using `N8N_APPU_CALLBACK_HMAC_SECRET` (or configured WhatsApp context HMAC secret).
+* Evaluated via `verifyAppuHmacSignature(...)` with 300s freshness window, replay prevention, and constant-time buffer comparison.
 
-If authentication fails, the endpoint returns HTTP 401 `UnauthorizedError`.
+If authentication is missing, malformed, stale, or signature mismatches, the endpoint returns HTTP 401 `UnauthorizedError`.
 
 #### Request Payload
 ```json

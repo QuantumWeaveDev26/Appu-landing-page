@@ -73,3 +73,13 @@ export interface UpdateHouseholdNotificationInput {
   whatsappConsent?: boolean;
 }
 
+export interface HouseholdWithConsent {
+  id: string;
+  name: string | null;
+  parentPhone: string | null;
+  whatsappConsent: boolean;
+  whatsappConsentAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
