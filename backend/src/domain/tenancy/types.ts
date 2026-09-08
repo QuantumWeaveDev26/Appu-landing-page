@@ -35,6 +35,8 @@ export interface ChildProfile {
   preferredName: string;
   gradeBand: string;
   status: ChildStatus;
+  nickname: string | null;
+  dob: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,12 +56,16 @@ export interface CreateChildProfileInput {
   preferredName: string;
   gradeBand: string;
   status?: ChildStatus;
+  nickname?: string | null;
+  dob?: string | null;
 }
 
 export interface UpdateChildProfileInput {
   preferredName?: string;
   gradeBand?: string;
   status?: ChildStatus;
+  nickname?: string | null;
+  dob?: string | null;
 }
 
 export interface HouseholdNotificationPreferences {

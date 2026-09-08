@@ -38,6 +38,8 @@ interface ChildProfileRow {
   preferred_name: string;
   grade_band: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  nickname?: string | null;
+  dob?: Date | string | null;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -67,12 +69,23 @@ function mapHouseholdMemberRow(row: HouseholdMemberRow): HouseholdMember {
 }
 
 function mapChildProfileRow(row: ChildProfileRow): ChildProfile {
+  let dobStr: string | null = null;
+  if (row.dob) {
+    if (typeof row.dob === 'string') {
+      dobStr = row.dob.slice(0, 10);
+    } else if (row.dob instanceof Date) {
+      dobStr = row.dob.toISOString().slice(0, 10);
+    }
+  }
+
   return {
     id: row.id,
     householdId: row.household_id,
     preferredName: row.preferred_name,
     gradeBand: row.grade_band,
     status: row.status,
+    nickname: row.nickname ?? null,
+    dob: dobStr,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at)
   };
@@ -247,10 +260,17 @@ export class TenancyRepository {
     const status = input.status ?? 'ACTIVE';
 
     const result = await db.query<ChildProfileRow>(
-      `INSERT INTO child_profiles (household_id, preferred_name, grade_band, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
-       RETURNING id, household_id, preferred_name, grade_band, status, created_at, updated_at;`,
-      [input.householdId, input.preferredName, input.gradeBand, status]
+      `INSERT INTO child_profiles (household_id, preferred_name, grade_band, status, nickname, dob, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       RETURNING id, household_id, preferred_name, grade_band, status, nickname, dob, created_at, updated_at;`,
+      [
+        input.householdId,
+        input.preferredName,
+        input.gradeBand,
+        status,
+        input.nickname ?? null,
+        input.dob ?? null
+      ]
     );
 
     return mapChildProfileRow(result.rows[0]);
@@ -267,7 +287,7 @@ export class TenancyRepository {
     childId: string
   ): Promise<ChildProfile | null> {
     const result = await db.query<ChildProfileRow>(
-      `SELECT id, household_id, preferred_name, grade_band, status, created_at, updated_at
+      `SELECT id, household_id, preferred_name, grade_band, status, nickname, dob, created_at, updated_at
        FROM child_profiles
        WHERE household_id = $1 AND id = $2;`,
       [householdId, childId]
@@ -288,7 +308,7 @@ export class TenancyRepository {
     householdId: string
   ): Promise<ChildProfile[]> {
     const result = await db.query<ChildProfileRow>(
-      `SELECT id, household_id, preferred_name, grade_band, status, created_at, updated_at
+      `SELECT id, household_id, preferred_name, grade_band, status, nickname, dob, created_at, updated_at
        FROM child_profiles
        WHERE household_id = $1
        ORDER BY created_at ASC;`,
@@ -348,6 +368,16 @@ export class TenancyRepository {
       values.push(input.status);
     }
 
+    if (input.nickname !== undefined) {
+      fields.push(`nickname = $${idx++}`);
+      values.push(input.nickname);
+    }
+
+    if (input.dob !== undefined) {
+      fields.push(`dob = $${idx++}`);
+      values.push(input.dob);
+    }
+
     if (fields.length === 0) {
       return TenancyRepository.getChildProfile(db, householdId, childId);
     }
@@ -358,7 +388,7 @@ export class TenancyRepository {
       `UPDATE child_profiles
        SET ${fields.join(', ')}
        WHERE household_id = $1 AND id = $2
-       RETURNING id, household_id, preferred_name, grade_band, status, created_at, updated_at;`,
+       RETURNING id, household_id, preferred_name, grade_band, status, nickname, dob, created_at, updated_at;`,
       values
     );
 
