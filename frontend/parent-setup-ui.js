@@ -87,6 +87,11 @@
       persInterestsPlaceholder: 'Space, Robotics, Astronomy, Dinosaurs',
       persGoalsLabel: 'Learning Goal for Appu',
       persGoalsPlaceholder: 'Master school science and build creative curiosity',
+      posChildNicknameLabel: 'Learner Nickname',
+      posChildDobLabel: 'Date of Birth',
+      dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).',
+      nicknameTooLongAlert: 'Learner nickname must not exceed 50 characters.',
+      nicknameInvalidAlert: 'Learner nickname contains forbidden characters.',
       posWhatsappTitle: 'Parent WhatsApp Learning Updates',
       posParentPhoneLabel: 'Parent WhatsApp Number',
       posParentPhonePlaceholder: '+91 98765 43210',
@@ -172,6 +177,11 @@
       persInterestsPlaceholder: 'ಬಾಹ್ಯಾಕಾಶ, ರೊಬೊಟಿಕ್ಸ್, ಖಗೋಳಶಾಸ್ತ್ರ, ಡೈನೋಸಾರ್‌ಗಳು',
       persGoalsLabel: 'ಅಪ್ಪುಗಾಗಿ ಕಲಿಕಾ ಗುರಿ',
       persGoalsPlaceholder: 'ಶಾಲಾ ವಿಜ್ಞಾನವನ್ನು ಕರಗತ ಮಾಡಿಕೊಂಡು ಸೃಜನಶೀಲ ಕುತೂಹಲ ಬೆಳೆಸಿಕೊಳ್ಳಿ',
+      posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
+      posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
+      dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).',
+      nicknameTooLongAlert: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು 50 ಅಕ್ಷರಗಳನ್ನು ಮೀರಬಾರದು.',
+      nicknameInvalidAlert: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು ನಿಷೇಧಿತ ಅಕ್ಷರಗಳನ್ನು ಒಳಗೊಂಡಿದೆ.',
       posWhatsappTitle: 'ಪಾಲಕರ WhatsApp ಕಲಿಕಾ ಅಪ್‌ಡೇಟ್‌ಗಳು',
       posParentPhoneLabel: 'ಪಾಲಕರ WhatsApp ಸಂಖ್ಯೆ',
       posParentPhonePlaceholder: '+91 98765 43210',
@@ -257,6 +267,11 @@
       persInterestsPlaceholder: 'अंतरिक्ष, रोबोटिक्स, खगोल विज्ञान, डायनासोर',
       persGoalsLabel: 'अप्पू के लिए सीखने का लक्ष्य',
       persGoalsPlaceholder: 'स्कूल विज्ञान में महारत हासिल करें और रचनात्मक जिज्ञासा बढ़ाएं',
+      posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
+      posChildDobLabel: 'जन्म तिथि',
+      dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।',
+      nicknameTooLongAlert: 'शिक्षार्थी का उपनाम 50 अक्षरों से अधिक नहीं होना चाहिए।',
+      nicknameInvalidAlert: 'शिक्षार्थी के उपनाम में अमान्य वर्ण हैं।',
       posWhatsappTitle: 'अभिभावक WhatsApp लर्निंग अपडेट्स',
       posParentPhoneLabel: 'अभिभावक WhatsApp नंबर',
       posParentPhonePlaceholder: '+91 98765 43210',
@@ -329,6 +344,8 @@
     const persInterests = document.getElementById('pos-pers-interests');
     const persSubjects = document.getElementById('pos-pers-subjects');
     const persGoals = document.getElementById('pos-pers-goals');
+    const posChildNickname = document.getElementById('pos-child-nickname');
+    const posChildDob = document.getElementById('pos-child-dob');
     const posParentPhone = document.getElementById('pos-parent-phone');
     const posWhatsappConsent = document.getElementById('pos-whatsapp-consent');
 
@@ -400,6 +417,10 @@
       // Step 4: Personalisation
       const persIntroText = document.getElementById('pos-pers-intro-text');
       if (persIntroText) persIntroText.textContent = t('persIntroText');
+      const posChildNicknameLabelEl = document.getElementById('pos-child-nickname-label');
+      if (posChildNicknameLabelEl) posChildNicknameLabelEl.textContent = t('posChildNicknameLabel');
+      const posChildDobLabelEl = document.getElementById('pos-child-dob-label');
+      if (posChildDobLabelEl) posChildDobLabelEl.textContent = t('posChildDobLabel');
       const persLangLabel = document.getElementById('pos-pers-lang-label');
       if (persLangLabel) persLangLabel.textContent = t('persLangLabel');
       const persStyleLabel = document.getElementById('pos-pers-style-label');
@@ -542,6 +563,12 @@
         renderPlansStep();
       } else if (preferredStep === 3) {
         renderChildStep();
+      } else if (preferredStep === 4) {
+        if (shell && shell.state.selectedChild) {
+          renderPersonalisationStep(shell.state.selectedChild);
+        } else {
+          setStep(4);
+        }
       } else if (isAuthed) {
         const sub = shell.state.subscription;
         if (sub && sub.status === 'ACTIVE') {
@@ -1530,6 +1557,8 @@
       const title = document.getElementById('pos-pers-child-name');
       if (title) title.textContent = child.preferredName;
 
+      if (posChildNickname) posChildNickname.value = child.nickname || '';
+      if (posChildDob) posChildDob.value = child.dob || '';
       if (posParentPhone) posParentPhone.value = '';
       if (posWhatsappConsent) posWhatsappConsent.checked = false;
 
@@ -1570,6 +1599,52 @@
         if (!child) {
           showAlert(t('alertNoChildSelected'));
           return;
+        }
+
+        // Validate optional learner nickname & DOB
+        const rawNickname = posChildNickname?.value?.trim() || '';
+        const rawDob = posChildDob?.value?.trim() || '';
+
+        if (rawNickname) {
+          if (rawNickname.length > 50) {
+            showAlert(t('nicknameTooLongAlert') || 'Learner nickname must not exceed 50 characters.');
+            return;
+          }
+          if (/[<>`$]/.test(rawNickname)) {
+            showAlert(t('nicknameInvalidAlert') || 'Learner nickname contains forbidden characters.');
+            return;
+          }
+        }
+
+        if (rawDob) {
+          const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dobRegex.test(rawDob)) {
+            showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            return;
+          }
+          const parts = rawDob.split('-').map(Number);
+          const year = parts[0];
+          const month = parts[1];
+          const day = parts[2];
+          const parsed = new Date(Date.UTC(year, month - 1, day));
+          if (
+            parsed.getUTCFullYear() !== year ||
+            parsed.getUTCMonth() !== month - 1 ||
+            parsed.getUTCDate() !== day
+          ) {
+            showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            return;
+          }
+          const now = new Date();
+          if (parsed > now) {
+            showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            return;
+          }
+          const ageYears = (now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+          if (ageYears < 3 || ageYears > 25) {
+            showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            return;
+          }
         }
 
         // Validate optional parent phone and WhatsApp consent
@@ -1613,11 +1688,17 @@
           favoriteSubjects: parseList(persSubjects?.value || 'Science, Mathematics'),
           goals: parseList(persGoals?.value || 'Learn conceptually and have fun'),
           parentPhone,
-          whatsappConsent
+          whatsappConsent,
+          nickname: rawNickname || null,
+          dob: rawDob || null
         };
 
         try {
           await window.ParentOnboardingShell.savePersonalisation(child.id, personalisationData);
+          if (child) {
+            child.nickname = rawNickname || null;
+            child.dob = rawDob || null;
+          }
           setStep(5);
         } catch (err) {
           showAlert(err.message || t('persSaveErrorDefault'));
@@ -1644,7 +1725,8 @@
             hi: (name) => `नमस्ते ${name}! मैं अप्पू हूं, आपका व्यक्तिगत एआई लर्निंग साथी। आज हम क्या सीखना चाहेंगे?`
           };
           const greet = LAUNCH_GREETINGS[lang] || LAUNCH_GREETINGS.en;
-          window.app.handleUserInteraction(greet(child.preferredName));
+          const addressingName = (child.nickname && child.nickname.trim()) || child.preferredName;
+          window.app.handleUserInteraction(greet(addressingName));
         }
       });
     }

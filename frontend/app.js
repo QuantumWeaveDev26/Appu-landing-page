@@ -469,7 +469,10 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerCancellation: 'Cancellation & Refunds',
       drawerShipping: 'Shipping & Delivery',
       drawerPricing: 'Pricing',
-      drawerContact: 'Contact Us'
+      drawerContact: 'Contact Us',
+      posChildNicknameLabel: 'Learner Nickname',
+      posChildDobLabel: 'Date of Birth',
+      dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -539,7 +542,10 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerCancellation: 'ರದ್ದತಿ ಮತ್ತು ಮರುಪಾವತಿ',
       drawerShipping: 'ರವಾನೆ ಮತ್ತು ವಿತರಣೆ',
       drawerPricing: 'ದರ ವಿವರ',
-      drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ'
+      drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
+      posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
+      posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
+      dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -609,7 +615,10 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerCancellation: 'रद्दीकरण और रिफंड',
       drawerShipping: 'शिपिंग और डिलीवरी',
       drawerPricing: 'मूल्य निर्धारण',
-      drawerContact: 'संपर्क करें'
+      drawerContact: 'संपर्क करें',
+      posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
+      posChildDobLabel: 'जन्म तिथि',
+      dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।'
     }
   };
 
@@ -824,6 +833,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const drawerContactLink = document.querySelector('.nav-drawer-legal a[href*="contact-us"]');
     if (drawerContactLink) drawerContactLink.textContent = t.drawerContact;
+
+    const posChildNicknameLabel = document.getElementById('pos-child-nickname-label');
+    if (posChildNicknameLabel) posChildNicknameLabel.textContent = t.posChildNicknameLabel;
+
+    const posChildDobLabel = document.getElementById('pos-child-dob-label');
+    if (posChildDobLabel) posChildDobLabel.textContent = t.posChildDobLabel;
 
     // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
     if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {

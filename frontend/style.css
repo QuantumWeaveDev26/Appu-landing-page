@@ -255,6 +255,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .discovery-form input { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid var(--line); border-radius: 12px; outline: 0; color: var(--ink); background: rgba(255, 255, 255, .045); font-size: 13px; }
 .discovery-form input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34, 211, 238, .1); }
 
+/* Dark Luxury Glass Date Input */
+input[type="date"]#pos-child-dob,
+#pos-child-dob {
+  color-scheme: dark;
+  position: relative;
+}
+#pos-child-dob::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.8) sepia(1) saturate(5) hue-rotate(150deg);
+  opacity: 0.8;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#pos-child-dob::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
 /* Dark Glassmorphic Dropdown & Select System */
 select, .discovery-form select {
   color-scheme: dark;
