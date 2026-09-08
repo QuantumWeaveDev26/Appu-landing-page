@@ -459,7 +459,17 @@ document.addEventListener('DOMContentLoaded', () => {
       discoverySuccessTitle: "You're all set!",
       successMeetLink: 'Open meeting link',
       successWaLink: 'Open WhatsApp',
-      btnDoneDiscovery: 'Return to Appu'
+      btnDoneDiscovery: 'Return to Appu',
+      drawerLearnWithAppu: 'Learn with Appu',
+      drawerCloseMenu: 'Close menu',
+      drawerScheduleCall: 'Schedule Support Call',
+      drawerSoundEffects: 'Sound Effects',
+      drawerPrivacy: 'Privacy Policy',
+      drawerTerms: 'Terms & Conditions',
+      drawerCancellation: 'Cancellation & Refunds',
+      drawerShipping: 'Shipping & Delivery',
+      drawerPricing: 'Pricing',
+      drawerContact: 'Contact Us'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -519,7 +529,17 @@ document.addEventListener('DOMContentLoaded', () => {
       discoverySuccessTitle: 'ನೀವು ಸಿದ್ಧರಿದ್ದೀರಿ!',
       successMeetLink: 'ಮೀಟಿಂಗ್ ಲಿಂಕ್ ತೆರೆಯಿರಿ',
       successWaLink: 'WhatsApp ತೆರೆಯಿರಿ',
-      btnDoneDiscovery: 'ಅಪ್ಪುಗೆ ಹಿಂತಿರುಗಿ'
+      btnDoneDiscovery: 'ಅಪ್ಪುಗೆ ಹಿಂತಿರುಗಿ',
+      drawerLearnWithAppu: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಕಲಿಯಿರಿ',
+      drawerCloseMenu: 'ಮೆನು ಮುಚ್ಚಿ',
+      drawerScheduleCall: 'ಬೆಂಬಲ ಕರೆ ನಿಗದಿಪಡಿಸಿ',
+      drawerSoundEffects: 'ಧ್ವನಿ ಪರಿಣಾಮಗಳು',
+      drawerPrivacy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
+      drawerTerms: 'ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು',
+      drawerCancellation: 'ರದ್ದತಿ ಮತ್ತು ಮರುಪಾವತಿ',
+      drawerShipping: 'ರವಾನೆ ಮತ್ತು ವಿತರಣೆ',
+      drawerPricing: 'ದರ ವಿವರ',
+      drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -579,7 +599,17 @@ document.addEventListener('DOMContentLoaded', () => {
       discoverySuccessTitle: 'आप तैयार हैं!',
       successMeetLink: 'मीटिंग लिंक खोलें',
       successWaLink: 'WhatsApp खोलें',
-      btnDoneDiscovery: 'अप्पू पर वापस जाएं'
+      btnDoneDiscovery: 'अप्पू पर वापस जाएं',
+      drawerLearnWithAppu: 'अप्पू के साथ सीखें',
+      drawerCloseMenu: 'मेनू बंद करें',
+      drawerScheduleCall: 'सहायता कॉल बुक करें',
+      drawerSoundEffects: 'ध्वनि प्रभाव',
+      drawerPrivacy: 'गोपनीयता नीति',
+      drawerTerms: 'नियम और शर्तें',
+      drawerCancellation: 'रद्दीकरण और रिफंड',
+      drawerShipping: 'शिपिंग और डिलीवरी',
+      drawerPricing: 'मूल्य निर्धारण',
+      drawerContact: 'संपर्क करें'
     }
   };
 
@@ -754,6 +784,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnDoneDiscovery = document.getElementById('btn-done-discovery');
     if (btnDoneDiscovery) btnDoneDiscovery.textContent = t.btnDoneDiscovery;
+
+    // Nav drawer translations
+    const drawerTitleSmall = document.querySelector('#nav-drawer-title small');
+    if (drawerTitleSmall) drawerTitleSmall.textContent = t.drawerLearnWithAppu;
+
+    const btnCloseNavDrawer = document.getElementById('btn-close-nav-drawer');
+    if (btnCloseNavDrawer) btnCloseNavDrawer.setAttribute('aria-label', t.drawerCloseMenu);
+
+    const btnQuickSchedule = document.getElementById('btn-quick-schedule');
+    if (btnQuickSchedule) {
+      btnQuickSchedule.setAttribute('aria-label', t.drawerScheduleCall);
+      btnQuickSchedule.setAttribute('title', t.drawerScheduleCall);
+      const span = btnQuickSchedule.querySelector('span');
+      if (span) span.textContent = t.drawerScheduleCall;
+    }
+
+    const btnSoundToggle = document.getElementById('btn-sound-toggle');
+    if (btnSoundToggle) {
+      btnSoundToggle.setAttribute('aria-label', t.drawerSoundEffects);
+      const span = btnSoundToggle.querySelector('span');
+      if (span) span.textContent = t.drawerSoundEffects;
+    }
+
+    const drawerPrivacyLink = document.querySelector('.nav-drawer-legal a[href*="privacy-policy"]');
+    if (drawerPrivacyLink) drawerPrivacyLink.textContent = t.drawerPrivacy;
+
+    const drawerTermsLink = document.querySelector('.nav-drawer-legal a[href*="terms-and-conditions"]');
+    if (drawerTermsLink) drawerTermsLink.textContent = t.drawerTerms;
+
+    const drawerCancellationLink = document.querySelector('.nav-drawer-legal a[href*="cancellation-refund-policy"]');
+    if (drawerCancellationLink) drawerCancellationLink.textContent = t.drawerCancellation;
+
+    const drawerShippingLink = document.querySelector('.nav-drawer-legal a[href*="shipping-delivery-policy"]');
+    if (drawerShippingLink) drawerShippingLink.textContent = t.drawerShipping;
+
+    const drawerPricingLink = document.querySelector('.nav-drawer-legal a[href*="pricing"]');
+    if (drawerPricingLink) drawerPricingLink.textContent = t.drawerPricing;
+
+    const drawerContactLink = document.querySelector('.nav-drawer-legal a[href*="contact-us"]');
+    if (drawerContactLink) drawerContactLink.textContent = t.drawerContact;
 
     // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
     if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
