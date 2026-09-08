@@ -40,3 +40,37 @@ export interface ClaimedStudyReminder {
   timeDisplay: string;
   reminderSent: boolean;
 }
+
+export interface RecordStudyScheduleInput {
+  phone: string;
+  topic: string;
+  scheduledAt: string | Date;
+  timeDisplay?: string;
+  rawExpression?: string | null;
+}
+
+export interface RecordStudyScheduleResult {
+  schedule: StudyScheduleRecord;
+  calendarUrl: string;
+}
+
+export interface MetaTemplateParameter {
+  type: 'text';
+  text: string;
+}
+
+export interface StudyReminderTargetPayload {
+  householdId: string;
+  childId: string;
+  recipientPhone: string;
+  templateName: string;
+  templateLanguage: string;
+  parameters: MetaTemplateParameter[];
+}
+
+export interface ClaimDueRemindersOptions {
+  windowMinutes?: number;
+  limit?: number;
+  dryRun?: boolean;
+  asOfDate?: Date;
+}
