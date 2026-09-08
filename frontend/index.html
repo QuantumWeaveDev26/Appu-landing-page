@@ -143,6 +143,20 @@
       </div>
     </main>
 
+    <!-- VOICE RESPONSE POPUP: persistent assistant reply view during hands-free voice sessions -->
+    <div id="voice-reply-popup" class="voice-reply-popup" role="region" aria-live="polite" aria-label="Appu's response" hidden>
+      <div class="voice-popup-header">
+        <div class="voice-popup-title">
+          <span class="online-dot" aria-hidden="true"></span>
+          <strong id="voice-popup-title-text">Appu says</strong>
+        </div>
+        <button id="btn-close-voice-popup" class="icon-btn voice-popup-close" type="button" aria-label="Dismiss response">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div id="voice-popup-content" class="voice-popup-body"></div>
+    </div>
+
     <section class="response-dock" aria-label="Talk to Appu">
       <div class="response-card">
         <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong id="appu-says-label">Appu says</strong><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>

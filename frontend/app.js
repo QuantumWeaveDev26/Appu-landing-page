@@ -874,6 +874,56 @@ document.addEventListener('DOMContentLoaded', () => {
   if (langHiBtn) langHiBtn.addEventListener('click', () => setLanguage('hi'));
 
   // ==========================================
+  // VOICE RESPONSE POPUP (PERSISTENT HEADS-UP DISPLAY)
+  // ==========================================
+  let voicePopupTimer = null;
+  const voiceReplyPopup = document.getElementById('voice-reply-popup');
+  const voicePopupContent = document.getElementById('voice-popup-content');
+  const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
+
+  function showVoicePopup(text) {
+    if (!voiceReplyPopup || !text) return;
+    if (voicePopupContent) {
+      voicePopupContent.textContent = text;
+    }
+    voiceReplyPopup.hidden = false;
+    voiceReplyPopup.removeAttribute('hidden');
+    voiceReplyPopup.classList.add('is-visible');
+
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+
+    const wordCount = String(text).trim().split(/\s+/).filter(Boolean).length;
+    const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
+    const timeoutMs = Math.max(30000, readingDurationMs);
+
+    voicePopupTimer = setTimeout(() => {
+      hideVoicePopup();
+    }, timeoutMs);
+  }
+
+  function hideVoicePopup() {
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+    if (voiceReplyPopup) {
+      voiceReplyPopup.classList.remove('is-visible');
+      voiceReplyPopup.hidden = true;
+      voiceReplyPopup.setAttribute('hidden', 'true');
+    }
+  }
+
+  if (btnCloseVoicePopup) {
+    btnCloseVoicePopup.addEventListener('click', () => {
+      voiceEngine.playClick();
+      hideVoicePopup();
+    });
+  }
+
+  // ==========================================
   // CORE INTERACTION HANDLER
   // ==========================================
   async function handleUserInteraction(text, image = null) {
@@ -928,6 +978,12 @@ document.addEventListener('DOMContentLoaded', () => {
       () => avatarStage.setState('thinking'),
       async (reply, audioData, audioStreamUrl, accessToken) => {
         avatarStage.setState('speaking');
+        if (typeof showVoicePopup === 'function') {
+          const chatDrawer = document.getElementById('chat-drawer');
+          if (!chatDrawer || !chatDrawer.classList.contains('is-open')) {
+            showVoicePopup(reply);
+          }
+        }
         await voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
         voiceEngine.playMessage();
       },
@@ -1134,6 +1190,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (shouldOpen) {
       chatDrawer.classList.add('is-open');
+      if (typeof hideVoicePopup === 'function') {
+        hideVoicePopup();
+      }
       if (chatScrim) chatScrim.classList.add('is-visible');
       activateDialog(chatDrawer, btnCloseChat);
       voiceEngine.playClick();
@@ -1718,6 +1777,9 @@ document.addEventListener('DOMContentLoaded', () => {
       closeNavDrawer();
       closeWelcomeGate();
       closeLegalViewer();
+      if (typeof hideVoicePopup === 'function') {
+        hideVoicePopup();
+      }
     }
   });
 });
