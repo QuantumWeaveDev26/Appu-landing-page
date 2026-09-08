@@ -21,7 +21,8 @@ import {
   appuCallbackRoutes,
   appuAudioRoutes,
   usageRoutes,
-  conversationRoutes
+  conversationRoutes,
+  whatsappContextRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -234,6 +235,12 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     app.register(appuCallbackRoutes, {
       db: options.database,
       callbackSigningSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
+      signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
+    });
+
+    app.register(whatsappContextRoutes, {
+      db: options.database,
+      signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
     });
   }
