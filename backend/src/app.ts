@@ -24,7 +24,8 @@ import {
   conversationRoutes,
   whatsappContextRoutes,
   whatsappProactiveRoutes,
-  promptsRoutes
+  promptsRoutes,
+  studySchedulesRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -247,6 +248,12 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     });
 
     app.register(whatsappProactiveRoutes, {
+      db: options.database,
+      signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
+      signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
+    });
+
+    app.register(studySchedulesRoutes, {
       db: options.database,
       signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS

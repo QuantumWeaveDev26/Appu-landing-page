@@ -13,3 +13,4 @@ export * from './conversations.js';
 export * from './whatsapp-context.js';
 export * from './whatsapp-proactive.js';
 export * from './prompts.js';
+export * from './study-schedules.js';
