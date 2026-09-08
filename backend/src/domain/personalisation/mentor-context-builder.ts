@@ -35,7 +35,13 @@ export class MentorContextBuilder {
    * completely eliminating duplicate database lookups in the request lifecycle.
    */
   public static buildFromResolved(
-    child: { id: string; preferredName: string; gradeBand: string },
+    child: {
+      id: string;
+      preferredName: string;
+      gradeBand: string;
+      nickname?: string | null;
+      dob?: string | null;
+    },
     personalisation: {
       preferredLanguage?: string;
       learningStyle?: string;
@@ -47,11 +53,15 @@ export class MentorContextBuilder {
     entitlements: EntitlementsMap | null
   ): AuthenticatedMentorContext {
     const multilingualEnabled = Boolean(entitlements?.multilingual ?? false);
+    const effectiveName =
+      child.nickname && child.nickname.trim()
+        ? child.nickname.trim()
+        : child.preferredName;
 
     return {
       mode: 'authenticated',
       learnerId: child.id,
-      learnerName: child.preferredName,
+      learnerName: effectiveName,
       grade: child.gradeBand,
       primaryLanguage: multilingualEnabled
         ? (personalisation?.preferredLanguage ?? 'en')
