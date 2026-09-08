@@ -608,12 +608,11 @@
   }
 
   /**
-   * Constructs a wa.me sharing URL directed TO the parent.
+   * Constructs a wa.me sharing URL directed TO the companion WhatsApp number (defaults to 919740595677).
    */
-  function buildWhatsAppShareUrl(parentPhone, text, childName = '') {
-    if (!parentPhone || typeof parentPhone !== 'string') return null;
-    const cleanPhone = parentPhone.replace(/\D/g, '');
-    if (!cleanPhone) return null;
+  function buildWhatsAppShareUrl(targetPhone = '919740595677', text, childName = '') {
+    const raw = (typeof targetPhone === 'string' && targetPhone.trim()) ? targetPhone : '919740595677';
+    const cleanPhone = raw.replace(/\D/g, '') || '919740595677';
 
     const formattedNote = formatWhatsAppStudyNote(text, childName);
     if (!formattedNote) return null;

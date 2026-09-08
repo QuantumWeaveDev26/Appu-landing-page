@@ -147,7 +147,7 @@ describe('In-Chat "Share study note to parent WhatsApp" Affordance', () => {
     assert.ok(shareBtn, '.btn-share-whatsapp button must be present on assistant explanation message');
   });
 
-  test('UI copy / title clearly communicates that it opens WhatsApp on this device to send TO parent', () => {
+  test('UI copy / title clearly communicates sending note via WhatsApp', () => {
     const agent = new ChatAgent();
     agent.clearHistory();
 
@@ -158,23 +158,21 @@ describe('In-Chat "Share study note to parent WhatsApp" Affordance', () => {
     assert.ok(shareBtn);
     const combinedText = (shareBtn.textContent + ' ' + (shareBtn.getAttribute('title') || '') + ' ' + (shareBtn.getAttribute('aria-label') || '')).toLowerCase();
     
-    // Explicit sender semantics: sends TO parent
-    assert.match(combinedText, /parent/, 'Must reference parent');
     assert.match(combinedText, /whatsapp/, 'Must reference WhatsApp');
-    // Clearly conveys user sending to parent (e.g. "Send note to Parent WhatsApp", "Opens your WhatsApp")
+    assert.match(combinedText, /send|share/, 'Must reference send or share');
     assert.ok(
-      combinedText.includes('parent') && (combinedText.includes('send') || combinedText.includes('share')),
-      'Must clearly communicate sending/sharing note to parent'
+      shareBtn.textContent.includes('Send note to WhatsApp'),
+      `Button copy must be "Send note to WhatsApp", got: "${shareBtn.textContent}"`
     );
   });
 
-  test('when parent WhatsApp is consented, clicking generates a clean wa.me/<parentPhone>?text= link', async () => {
+  test('clicking generates a clean wa.me/919740595677?text= link without requiring parent consent or phone', async () => {
     global.window.AppuSession.setSession({
       accessToken: 'test-token',
       childId: 'child-123',
       parentContext: {
-        parentPhone: '+919876543210',
-        whatsappConsent: true,
+        parentPhone: null,
+        whatsappConsent: false,
         childName: 'Aarav'
       }
     });
@@ -191,25 +189,19 @@ describe('In-Chat "Share study note to parent WhatsApp" Affordance', () => {
 
     const openedUrl = global.window.getOpenedUrl();
     assert.ok(openedUrl, 'Clicking must open a WhatsApp link');
-    assert.ok(openedUrl.startsWith('https://wa.me/919876543210?text='), `URL must start with https://wa.me/919876543210?text=, got: ${openedUrl}`);
+    assert.ok(openedUrl.startsWith('https://wa.me/919740595677?text='), `URL must start with https://wa.me/919740595677?text=, got: ${openedUrl}`);
     assert.ok(openedUrl.includes('Gravity'), 'Text must contain the explained concept');
   });
 
-  test('when parent WhatsApp is NOT consented, clicking shows an informative prompt to enable in settings', async () => {
-    global.window.AppuSession.setSession({
-      accessToken: 'test-token',
-      childId: 'child-123',
-      parentContext: {
-        parentPhone: '+919876543210',
-        whatsappConsent: false // Consent NOT given
-      }
-    });
+  test('clicking does NOT trigger modal 4 or alert when parent consent is absent or unauthenticated', async () => {
+    global.window.AppuSession.clear();
 
-    let promptMessage = '';
-    global.window.alert = (msg) => { promptMessage = msg; };
+    let modalOpened = false;
+    let alertShown = false;
+    global.window.alert = () => { alertShown = true; };
     global.window.ParentSetupUI = {
-      openModal(step) {
-        promptMessage = `Parent setup opened at step ${step}`;
+      openModal() {
+        modalOpened = true;
       }
     };
 
@@ -222,14 +214,27 @@ describe('In-Chat "Share study note to parent WhatsApp" Affordance', () => {
 
     await shareBtn.dispatchEvent({ type: 'click' });
 
-    assert.equal(global.window.getOpenedUrl(), null, 'Must NOT open wa.me link when consent is false');
-    assert.ok(promptMessage.length > 0, 'Must show a friendly prompt or modal directing parent to connect WhatsApp');
+    assert.equal(modalOpened, false, 'Must NOT open modal 4');
+    assert.equal(alertShown, false, 'Must NOT show alert');
+    const openedUrl = global.window.getOpenedUrl();
+    assert.ok(openedUrl, 'Must open wa.me link directly');
+    assert.ok(openedUrl.startsWith('https://wa.me/919740595677?text='), `URL must target 919740595677, got: ${openedUrl}`);
+  });
+
+  test('buildWhatsAppShareUrl defaults to 919740595677 and cleans non-digits', () => {
+    const urlDefault = AppuBackendClient.buildWhatsAppShareUrl(undefined, 'Test note', 'Vihaan');
+    assert.ok(urlDefault, 'Must build URL with default phone');
+    assert.ok(urlDefault.startsWith('https://wa.me/919740595677?text='), `Default URL must target 919740595677, got: ${urlDefault}`);
+
+    const urlFormatted = AppuBackendClient.buildWhatsAppShareUrl('+91 97405 95677', 'Test note', 'Vihaan');
+    assert.ok(urlFormatted);
+    assert.ok(urlFormatted.startsWith('https://wa.me/919740595677?text='), `Formatted phone URL must target 919740595677, got: ${urlFormatted}`);
   });
 
   test('shared note sanitization: internal tags stripped, trimmed under 500 chars, no image bytes', () => {
     const rawExplanation = '<think>internal reasoning</think><action>eval</action><b>Mitosis</b> is the process of cell division where a single cell divides into two identical daughter cells. '.repeat(10) + 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
-    const url = AppuBackendClient.buildWhatsAppShareUrl('+919876543210', rawExplanation, 'Vihaan');
+    const url = AppuBackendClient.buildWhatsAppShareUrl('919740595677', rawExplanation, 'Vihaan');
     assert.ok(url);
 
     const parsed = new URL(url);
