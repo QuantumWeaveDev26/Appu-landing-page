@@ -25,6 +25,45 @@ export interface ChildrenRouteOptions {
 
 const safeStringPattern = /^[^<>`$]*$/;
 
+const nicknameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Nickname must not be empty')
+  .max(50, 'Nickname must not exceed 50 characters')
+  .regex(safeStringPattern, 'Nickname contains forbidden characters')
+  .nullable()
+  .optional();
+
+const dobSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be YYYY-MM-DD')
+  .refine(
+    (dateStr) => {
+      const parts = dateStr.split('-').map(Number);
+      const year = parts[0];
+      const month = parts[1];
+      const day = parts[2];
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      if (
+        parsed.getUTCFullYear() !== year ||
+        parsed.getUTCMonth() !== month - 1 ||
+        parsed.getUTCDate() !== day
+      ) {
+        return false;
+      }
+      const now = new Date();
+      if (parsed > now) return false;
+      const ageYears = (now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      return ageYears >= 3 && ageYears <= 25;
+    },
+    {
+      message: 'Date of birth must represent an age between 3 and 25 years old'
+    }
+  )
+  .nullable()
+  .optional();
+
 const createChildSchema = z.object({
   preferredName: z
     .string()
@@ -38,6 +77,8 @@ const createChildSchema = z.object({
     .min(1, 'gradeBand is required')
     .max(50, 'gradeBand must not exceed 50 characters')
     .regex(safeStringPattern, 'gradeBand contains forbidden characters'),
+  nickname: nicknameSchema,
+  dob: dobSchema,
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional().default('ACTIVE')
 });
 
@@ -56,6 +97,8 @@ const updateChildSchema = z.object({
     .max(50)
     .regex(safeStringPattern, 'gradeBand contains forbidden characters')
     .optional(),
+  nickname: nicknameSchema,
+  dob: dobSchema,
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional()
 });
 
@@ -94,7 +137,9 @@ const updatePersonalisationSchema = z.object({
   themePreference: z.enum(ThemePreferences).optional(),
   additionalContext: z.record(z.unknown()).optional(),
   parentPhone: z.string().nullable().optional(),
-  whatsappConsent: z.boolean().optional()
+  whatsappConsent: z.boolean().optional(),
+  nickname: nicknameSchema,
+  dob: dobSchema
 });
 
 const paramsSchema = z.object({
@@ -139,6 +184,8 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       householdId: household.id,
       preferredName: parseResult.data.preferredName,
       gradeBand: parseResult.data.gradeBand,
+      nickname: parseResult.data.nickname,
+      dob: parseResult.data.dob,
       status: parseResult.data.status
     });
 
@@ -147,6 +194,8 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         id: child.id,
         householdId: child.householdId,
         preferredName: child.preferredName,
+        nickname: child.nickname,
+        dob: child.dob,
         gradeBand: child.gradeBand,
         status: child.status,
         createdAt: child.createdAt,
@@ -176,6 +225,8 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         id: c.id,
         householdId: c.householdId,
         preferredName: c.preferredName,
+        nickname: c.nickname,
+        dob: c.dob,
         gradeBand: c.gradeBand,
         status: c.status,
         createdAt: c.createdAt,
@@ -216,6 +267,8 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         id: child.id,
         householdId: child.householdId,
         preferredName: child.preferredName,
+        nickname: child.nickname,
+        dob: child.dob,
         gradeBand: child.gradeBand,
         status: child.status,
         createdAt: child.createdAt,
@@ -268,6 +321,8 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         id: updatedChild.id,
         householdId: updatedChild.householdId,
         preferredName: updatedChild.preferredName,
+        nickname: updatedChild.nickname,
+        dob: updatedChild.dob,
         gradeBand: updatedChild.gradeBand,
         status: updatedChild.status,
         createdAt: updatedChild.createdAt,
@@ -360,11 +415,18 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       throw new NotFoundError('Child profile not found');
     }
 
-    const { parentPhone, whatsappConsent, ...personalisationData } = bodyResult.data;
+    const { parentPhone, whatsappConsent, nickname, dob, ...personalisationData } = bodyResult.data;
 
     let updated;
     try {
       updated = await opts.db.transaction(async (tx) => {
+        if (nickname !== undefined || dob !== undefined) {
+          await TenancyRepository.updateChildProfile(tx, household.id, child.id, {
+            ...(nickname !== undefined ? { nickname } : {}),
+            ...(dob !== undefined ? { dob } : {})
+          });
+        }
+
         if (parentPhone !== undefined || whatsappConsent !== undefined) {
           await TenancyRepository.updateNotificationPreferences(tx, household.id, {
             parentPhone,
