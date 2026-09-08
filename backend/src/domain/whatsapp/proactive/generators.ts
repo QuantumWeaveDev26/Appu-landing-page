@@ -19,6 +19,35 @@ export function sanitizeMetaParam(text: string | null | undefined, maxLength: nu
   return cleaned.slice(0, maxLength - 3).trim() + '...';
 }
 
+/**
+ * Determines if a conversation session title is a plausible academic study topic.
+ * Filters out auto-generated welcome lines, greetings, conversational remarks, question sentences,
+ * and overly long titles (> 40 chars).
+ */
+export function isValidTopicTitle(title: string | null | undefined): boolean {
+  if (!title) return false;
+  const trimmed = title.trim();
+  if (trimmed.length === 0 || trimmed.length > 40) return false;
+  if (/[?!]/.test(trimmed)) return false;
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes("appu") ||
+    lower.includes("hello") ||
+    lower.includes("welcome") ||
+    lower.includes("namaste") ||
+    lower.includes("conversation") ||
+    lower.includes("untitled") ||
+    lower.startsWith("hi ") ||
+    lower.startsWith("hey ") ||
+    lower.includes("what would you like") ||
+    lower.includes("how are you") ||
+    lower.includes("how are u")
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export class WeeklyDigestGenerator {
   /**
    * Generates parameters for template `appu_weekly_digest`:
@@ -39,11 +68,13 @@ export class WeeklyDigestGenerator {
       const sessionWord = metrics.sessionCount === 1 ? 'study session' : 'study sessions';
       const qWord = metrics.userQuestionCount === 1 ? 'question' : 'questions';
 
+      const validTopics = (metrics.recentTopics || []).filter(isValidTopicTitle);
+
       let topicPhrase = '';
-      if (metrics.recentTopics.length > 0) {
-        topicPhrase = ` exploring ${metrics.recentTopics.slice(0, 2).join(' and ')}`;
+      if (validTopics.length > 0) {
+        topicPhrase = ` exploring ${validTopics.slice(0, 2).join(' and ')}`;
       } else if (metrics.favoriteSubjects.length > 0) {
-        topicPhrase = ` in ${metrics.favoriteSubjects.slice(0, 2).join(' and ')}`;
+        topicPhrase = ` exploring ${metrics.favoriteSubjects.slice(0, 2).join(' & ')}`;
       }
 
       summary = sanitizeMetaParam(
@@ -52,10 +83,10 @@ export class WeeklyDigestGenerator {
       );
 
       let focusTopic = 'Core concepts';
-      if (metrics.recentTopics.length > 1) {
-        focusTopic = metrics.recentTopics[metrics.recentTopics.length - 1];
-      } else if (metrics.favoriteSubjects.length > 0) {
+      if (metrics.favoriteSubjects.length > 0) {
         focusTopic = metrics.favoriteSubjects[0];
+      } else if (validTopics.length > 0) {
+        focusTopic = validTopics[0];
       }
       focus = sanitizeMetaParam(`${focusTopic} practice and consistent daily study habits.`, 150);
     } else {

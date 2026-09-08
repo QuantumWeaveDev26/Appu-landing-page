@@ -185,6 +185,29 @@ describe('Deterministic WhatsApp Generators & Service (Task 2)', () => {
       assert.ok(!params[1].text.includes('\n'));
       assert.ok(!params[2].text.includes('\n'));
     });
+
+    test('filters out greeting-like or long question session titles from summary and falls back to favorite subjects', () => {
+      const welcomeGreetingTitle = "Hi Aishu! I'm Appu, your personal AI learning companion. What would you like to explore today?.";
+      const metrics = {
+        sessionCount: 1,
+        userQuestionCount: 7,
+        totalMessageCount: 14,
+        recentTopics: [welcomeGreetingTitle],
+        favoriteSubjects: ['Science', 'Mathematics']
+      };
+
+      const params = WeeklyDigestGenerator.generate(mockTarget, metrics);
+      assert.equal(params.length, 3);
+      assert.equal(params[0].text, 'Aru');
+      // Assert welcome greeting title does NOT appear in {{2}} or {{3}}
+      assert.ok(!params[1].text.includes("I'm Appu"), 'Summary must not contain greeting line');
+      assert.ok(!params[1].text.includes('?'), 'Summary must not contain question sentence');
+      assert.ok(!params[1].text.includes(welcomeGreetingTitle), 'Summary must not contain raw welcome title');
+      assert.ok(params[1].text.includes('Science'), 'Summary should fall back to favorite subjects');
+      assert.ok(params[1].text.length <= 250);
+      assert.ok(params[2].text.length <= 150);
+      assert.ok(!params[2].text.includes("I'm Appu"), 'Focus must not contain greeting line');
+    });
   });
 
   describe('DailyTipGenerator', () => {

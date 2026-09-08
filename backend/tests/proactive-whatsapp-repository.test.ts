@@ -233,6 +233,47 @@ describe('ProactiveWhatsAppRepository (Task 1)', () => {
       assert.deepEqual(metrics.favoriteSubjects, ['Biology']);
     });
 
+    test('excludes greeting-like, question-like, or overly long session titles from recentTopics', async () => {
+      const h = await TenancyService.createHouseholdWithOwner(db, {
+        userId: crypto.randomUUID(),
+        householdName: 'Greeting Household'
+      });
+      const c = await TenancyRepository.createChildProfile(db, {
+        householdId: h.household.id,
+        preferredName: 'Aishu',
+        gradeBand: 'Grade 8'
+      });
+
+      // Create session with welcome greeting title and another with valid topic
+      await ConversationRepository.create(
+        db,
+        h.household.id,
+        c.id,
+        "Hi Aishu! I'm Appu, your personal AI learning companion. What would you like to explore today?."
+      );
+      await ConversationRepository.create(
+        db,
+        h.household.id,
+        c.id,
+        'New conversation'
+      );
+      await ConversationRepository.create(
+        db,
+        h.household.id,
+        c.id,
+        'Algebraic Expressions'
+      );
+
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const metrics = await ProactiveWhatsAppRepository.getWeeklyActivityMetrics(db, h.household.id, c.id, sevenDaysAgo);
+
+      assert.equal(metrics.sessionCount, 3);
+      // Recent topics must NOT contain the greeting title or generic 'New conversation'
+      assert.ok(!metrics.recentTopics.some(t => t.includes("I'm Appu")), 'Must not contain greeting in topics');
+      assert.ok(!metrics.recentTopics.some(t => t.toLowerCase() === 'new conversation'), 'Must not contain New conversation');
+      assert.ok(metrics.recentTopics.includes('Algebraic Expressions'), 'Must contain legitimate topic');
+    });
+
     test('returns zero counts and fallback subjects when no sessions exist', async () => {
       const h = await TenancyService.createHouseholdWithOwner(db, {
         userId: crypto.randomUUID(),

@@ -4,6 +4,7 @@ import type {
   EligibleHouseholdTarget,
   WeeklyActivityMetrics
 } from './types.js';
+import { isValidTopicTitle } from './generators.js';
 
 interface EligibleHouseholdRow {
   household_id: string;
@@ -155,12 +156,12 @@ export class ProactiveWhatsAppRepository {
     const totalMessageCount = Number(messageRes.rows[0]?.total_count ?? 0);
     const userQuestionCount = Number(messageRes.rows[0]?.user_question_count ?? 0);
 
-    // Deduplicate and filter non-empty topics, up to 5
+    // Deduplicate and filter plausible topics, up to 5
     const seenTopics = new Set<string>();
     const recentTopics: string[] = [];
     for (const session of sessionRes.rows) {
       const trimmed = (session.title ?? '').trim();
-      if (trimmed.length > 0 && !seenTopics.has(trimmed.toLowerCase())) {
+      if (isValidTopicTitle(trimmed) && !seenTopics.has(trimmed.toLowerCase())) {
         seenTopics.add(trimmed.toLowerCase());
         recentTopics.push(trimmed);
         if (recentTopics.length >= 5) break;
