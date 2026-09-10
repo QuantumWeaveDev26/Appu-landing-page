@@ -66,6 +66,14 @@ export function HomeScreen({ navigation }: Props) {
           <View style={styles.topRightActions}>
             <TouchableOpacity
               style={styles.iconBtn}
+              onPress={() => navigation.navigate('ParentZone')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.iconBtnText}>👨‍👩‍👧</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconBtn}
               onPress={() => navigation.navigate('Settings')}
               activeOpacity={0.7}
             >

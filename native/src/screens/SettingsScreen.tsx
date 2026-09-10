@@ -89,6 +89,21 @@ export function SettingsScreen({ navigation }: Props) {
             <Text style={styles.statusBadge}>1.0x</Text>
           </View>
         </View>
+
+        {/* Parent Zone Section */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.prefRow}
+            onPress={() => navigation.navigate('ParentZone')}
+            activeOpacity={0.75}
+          >
+            <View style={styles.prefCopy}>
+              <Text style={styles.prefTitle}>👨‍👩‍👧 {t('parent.title')}</Text>
+              <Text style={styles.prefDesc}>{t('parent.subtitle')}</Text>
+            </View>
+            <Text style={styles.chevronText}>›</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -208,5 +223,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: theme.radius.sm,
     backgroundColor: 'rgba(34, 211, 238, 0.1)',
+  },
+  chevronText: {
+    color: theme.colors.cyan,
+    fontSize: 22,
+    fontWeight: '700',
   },
 });

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -37,8 +37,15 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export function ChatScreen({ navigation, route }: Props) {
   const { t, currentLanguage } = useLanguage();
-  const { session, isGuest, guestToken, guestRemainingQuota, updateGuestQuota } =
-    useAuthStore();
+  const {
+    session,
+    isGuest,
+    guestToken,
+    guestRemainingQuota,
+    updateGuestQuota,
+    activeChildId,
+    activeChild,
+  } = useAuthStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -63,10 +70,9 @@ export function ChatScreen({ navigation, route }: Props) {
 
   // Handle initial prompt from navigation (e.g. Mission cards or Explore Prompts)
   useEffect(() => {
-    const prompt = route.params?.initialPrompt;
-    if (prompt && !hasHandledInitialPrompt.current) {
+    if (route.params?.initialPrompt && !hasHandledInitialPrompt.current) {
       hasHandledInitialPrompt.current = true;
-      handleSendMessage(prompt);
+      handleSendMessage(route.params.initialPrompt);
     }
   }, [route.params?.initialPrompt]);
 
@@ -115,6 +121,7 @@ export function ChatScreen({ navigation, route }: Props) {
         language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
         includeAudio: true,
         accessToken: session?.access_token,
+        childId: !isGuest ? (activeChildId || undefined) : undefined,
         guestToken: isGuest ? guestToken || undefined : undefined,
         conversationId,
         newConversation: isNewConversation,

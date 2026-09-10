@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -43,8 +43,14 @@ export function VoiceSessionModal({
   onSignInPress,
 }: VoiceSessionModalProps) {
   const { t, currentLanguage, setLanguage, languages } = useLanguage();
-  const { session, isGuest, guestToken, guestRemainingQuota, updateGuestQuota } =
-    useAuthStore();
+  const {
+    session,
+    isGuest,
+    guestToken,
+    guestRemainingQuota,
+    updateGuestQuota,
+    activeChildId,
+  } = useAuthStore();
 
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -166,6 +172,7 @@ export function VoiceSessionModal({
         language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
         includeAudio: true,
         accessToken: session?.access_token,
+        childId: !isGuest ? (activeChildId || undefined) : undefined,
         guestToken: isGuest ? guestToken || undefined : undefined,
         conversationId,
       });

@@ -319,3 +319,445 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
     guestSession: normalizedQuota,
   };
 }
+
+// ==========================================
+// PARENT ZONE: CHILDREN & PERSONALISATION TYPES
+// ==========================================
+
+export interface ChildProfile {
+  id: string;
+  householdId: string;
+  preferredName: string;
+  gradeBand: string;
+  nickname?: string | null;
+  dob?: string | null;
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateChildInput {
+  preferredName: string;
+  gradeBand: string;
+  nickname?: string | null;
+  dob?: string | null;
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+}
+
+export interface UpdateChildInput {
+  preferredName?: string;
+  gradeBand?: string;
+  nickname?: string | null;
+  dob?: string | null;
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+}
+
+export type FontPreference = 'friendly' | 'rounded' | 'clean';
+export type LearningStyle = 'visual' | 'auditory' | 'kinesthetic' | 'reading_writing' | 'interactive';
+export type ResponseStyle = 'playful' | 'balanced' | 'focused';
+export type ThemePreference = 'auto' | 'bright' | 'calm';
+
+export interface ChildPersonalisation {
+  id?: string;
+  childId: string;
+  householdId?: string;
+  preferredLanguage: string;
+  favoriteColor?: string | null;
+  fontPreference: FontPreference;
+  learningStyle: LearningStyle;
+  interests: string[];
+  favoriteSubjects: string[];
+  goals: string[];
+  responseStyle: ResponseStyle;
+  voicePreference?: string;
+  themePreference: ThemePreference;
+  parentPhone?: string | null;
+  whatsappConsent?: boolean;
+  nickname?: string | null;
+  dob?: string | null;
+  additionalContext?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdatePersonalisationInput {
+  preferredLanguage?: string;
+  learningStyle?: LearningStyle;
+  fontPreference?: FontPreference;
+  responseStyle?: ResponseStyle;
+  themePreference?: ThemePreference;
+  favoriteColor?: string | null;
+  interests?: string[];
+  favoriteSubjects?: string[];
+  goals?: string[];
+  parentPhone?: string | null;
+  whatsappConsent?: boolean;
+  nickname?: string | null;
+  dob?: string | null;
+}
+
+export interface SubscriptionInfo {
+  id: string;
+  planCode: string;
+  status: 'ACTIVE' | 'AUTHENTICATED' | 'PENDING_PAYMENT' | 'PAST_DUE' | 'PAUSED' | 'HALTED' | 'CANCELLED' | 'EXPIRED';
+  providerSubscriptionId?: string | null;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+}
+
+export interface EntitlementsInfo {
+  monthly_ai_sessions?: number;
+  monthly_voice_minutes?: number;
+  multilingual?: boolean;
+  advanced_personalisation?: boolean;
+  parent_reports?: boolean;
+  long_term_context?: boolean;
+  premium_themes?: boolean;
+  max_children?: number;
+}
+
+export interface CurrentSubscriptionResponse {
+  hasSubscription: boolean;
+  subscription: SubscriptionInfo | null;
+  entitlements: EntitlementsInfo | null;
+}
+
+export interface UsageSummaryResponse {
+  period?: {
+    startsAt?: string;
+    endsAt?: string;
+    source?: string;
+  };
+  aiSessions?: {
+    used: number;
+    limit: number;
+    remaining: number;
+  };
+  voiceMinutes?: {
+    used: number | null;
+    limit: number;
+    remaining: number | null;
+    meteringStatus?: string;
+  };
+}
+
+export interface PlanItem {
+  code: string;
+  tierCode: string;
+  tierName: string;
+  name: string;
+  description: string;
+  currency: string;
+  amountPaise: number;
+  displayPrice: string;
+  billingInterval: 'monthly' | 'yearly';
+  isPublic: boolean;
+  isPrimaryCard: boolean;
+  isRecommended: boolean;
+  entitlements?: EntitlementsInfo;
+}
+
+// ==========================================
+// VALIDATION HELPERS (Parity with Web & Backend)
+// ==========================================
+
+export function validateChildNickname(nickname?: string | null): { valid: boolean; errorKey?: string } {
+  if (!nickname || !nickname.trim()) return { valid: true };
+  const trimmed = nickname.trim();
+  if (trimmed.length > 50) return { valid: false, errorKey: 'nicknameTooLongAlert' };
+  if (/[<>`$]/.test(trimmed)) return { valid: false, errorKey: 'nicknameInvalidAlert' };
+  return { valid: true };
+}
+
+export function validateChildDob(dob?: string | null): { valid: boolean; errorKey?: string } {
+  if (!dob || !dob.trim()) return { valid: true };
+  const trimmed = dob.trim();
+  const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dobRegex.test(trimmed)) return { valid: false, errorKey: 'dobAgeInvalidAlert' };
+  const parts = trimmed.split('-').map(Number);
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return { valid: false, errorKey: 'dobAgeInvalidAlert' };
+  }
+  const now = new Date();
+  if (parsed > now) return { valid: false, errorKey: 'dobAgeInvalidAlert' };
+  const ageYears = (now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  if (ageYears < 3 || ageYears > 25) {
+    return { valid: false, errorKey: 'dobAgeInvalidAlert' };
+  }
+  return { valid: true };
+}
+
+export function normalizePhoneNumber(raw?: string | null): string | false | null {
+  if (raw === undefined || raw === null) return null;
+  const cleaned = String(raw).trim().replace(/[\s\-()]/g, '');
+  if (!cleaned) return null;
+  if (/^[6-9]\d{9}$/.test(cleaned)) {
+    return `+91${cleaned}`;
+  }
+  if (/^91[6-9]\d{9}$/.test(cleaned)) {
+    return `+${cleaned}`;
+  }
+  if (cleaned.startsWith('+')) {
+    if (/^\+[1-9]\d{6,14}$/.test(cleaned)) {
+      return cleaned;
+    }
+    return false;
+  }
+  if (/^\d{7,15}$/.test(cleaned)) {
+    const withPlus = `+${cleaned}`;
+    if (/^\+[1-9]\d{6,14}$/.test(withPlus)) {
+      return withPlus;
+    }
+  }
+  return false;
+}
+
+// ==========================================
+// PARENT ZONE: API ENDPOINTS
+// ==========================================
+
+/**
+ * Lists all child profiles for the authenticated parent's household.
+ * GET /api/children
+ */
+export async function fetchChildren(accessToken: string): Promise<ChildProfile[]> {
+  if (!accessToken) return [];
+  const url = `${config.apiBaseUrl}/api/children`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.code || err.error?.code || 'FETCH_CHILDREN_FAILED',
+      err.message || err.error?.message || 'Failed to load learner profiles'
+    );
+  }
+
+  const data = await response.json();
+  return data.children || [];
+}
+
+/**
+ * Creates a new child profile under the verified parent's household.
+ * POST /api/children
+ */
+export async function createChild(
+  accessToken: string,
+  input: CreateChildInput
+): Promise<ChildProfile> {
+  const url = `${config.apiBaseUrl}/api/children`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+    body: JSON.stringify({
+      preferredName: input.preferredName.trim(),
+      gradeBand: input.gradeBand.trim(),
+      nickname: input.nickname?.trim() || null,
+      dob: input.dob?.trim() || null,
+      status: input.status || 'ACTIVE',
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.code || err.error?.code || 'CREATE_CHILD_FAILED',
+      err.message || err.error?.message || 'Failed to create child profile'
+    );
+  }
+
+  const data = await response.json();
+  return data.child;
+}
+
+/**
+ * Updates a child profile.
+ * PATCH /api/children/:childId
+ */
+export async function updateChild(
+  accessToken: string,
+  childId: string,
+  input: UpdateChildInput
+): Promise<ChildProfile> {
+  const url = `${config.apiBaseUrl}/api/children/${childId}`;
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+    body: JSON.stringify({
+      preferredName: input.preferredName?.trim(),
+      gradeBand: input.gradeBand?.trim(),
+      nickname: input.nickname !== undefined ? (input.nickname?.trim() || null) : undefined,
+      dob: input.dob !== undefined ? (input.dob?.trim() || null) : undefined,
+      status: input.status,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.code || err.error?.code || 'UPDATE_CHILD_FAILED',
+      err.message || err.error?.message || 'Failed to update child profile'
+    );
+  }
+
+  const data = await response.json();
+  return data.child;
+}
+
+/**
+ * Fetches personalization settings for a specific child.
+ * GET /api/children/:childId/personalisation
+ */
+export async function fetchPersonalisation(
+  accessToken: string,
+  childId: string
+): Promise<ChildPersonalisation | null> {
+  if (!accessToken || !childId) return null;
+  const url = `${config.apiBaseUrl}/api/children/${childId}/personalisation`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+  return data.personalisation || null;
+}
+
+/**
+ * Saves/updates personalization settings for a child.
+ * PUT /api/children/:childId/personalisation
+ */
+export async function savePersonalisation(
+  accessToken: string,
+  childId: string,
+  input: UpdatePersonalisationInput
+): Promise<ChildPersonalisation> {
+  const url = `${config.apiBaseUrl}/api/children/${childId}/personalisation`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.code || err.error?.code || 'SAVE_PERSONALISATION_FAILED',
+      err.message || err.error?.message || 'Failed to save personalization'
+    );
+  }
+
+  const data = await response.json();
+  return data.personalisation;
+}
+
+/**
+ * Fetches current household subscription details.
+ * GET /api/subscriptions/current
+ */
+export async function fetchCurrentSubscription(
+  accessToken: string
+): Promise<CurrentSubscriptionResponse> {
+  const url = `${config.apiBaseUrl}/api/subscriptions/current`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+  });
+
+  if (!response.ok) {
+    return {
+      hasSubscription: false,
+      subscription: null,
+      entitlements: null,
+    };
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches authoritative usage summary for the household.
+ * GET /api/usage/current
+ */
+export async function fetchCurrentUsage(
+  accessToken: string
+): Promise<UsageSummaryResponse> {
+  const url = `${config.apiBaseUrl}/api/usage/current`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+  });
+
+  if (!response.ok) {
+    return {
+      aiSessions: { used: 0, limit: 30, remaining: 30 },
+      voiceMinutes: { used: 0, limit: 60, remaining: 60 },
+    };
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches available subscription plans.
+ * GET /api/plans
+ */
+export async function fetchPlans(): Promise<PlanItem[]> {
+  const url = `${config.apiBaseUrl}/api/plans`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' },
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = await response.json();
+  return data.plans || [];
+}
+

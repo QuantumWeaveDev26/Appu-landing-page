@@ -1,4 +1,4 @@
-﻿import { createAudioPlayer, type AudioPlayer, type AudioSource } from 'expo-audio';
+import { createAudioPlayer, type AudioPlayer, type AudioSource } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import Voice, {
   type SpeechResultsEvent,
