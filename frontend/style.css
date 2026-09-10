@@ -377,6 +377,8 @@ select option:checked, .discovery-form select option:checked {
   .loader-tribute-badge { font-size: 10px; }
   .loader-enter-cta { min-height: 44px; font-size: 12px; }
 
+  #beta-banner { display: none; }
+
   .app-shell {
     display: flex;
     flex-direction: column;
@@ -480,15 +482,15 @@ select option:checked, .discovery-form select option:checked {
     left: auto;
     bottom: auto;
     transform: none;
-    width: min(320px, 72vw);
+    width: min(360px, 82vw);
     flex: 1 1 0;
-    min-height: 132px;
+    min-height: 138px;
     margin: 2px auto 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     z-index: 5;
-    overflow: visible;
+    overflow: hidden;
   }
   .avatar-interactive-figure {
     position: relative;
@@ -499,7 +501,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.15);
+    transform: scale(1.0);
     padding: 0;
   }
   .avatar-interactive-figure img {
