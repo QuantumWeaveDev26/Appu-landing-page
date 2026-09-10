@@ -4,10 +4,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 
+import { useAuthStore } from '../stores/authStore';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 export function SplashScreen({ navigation }: Props) {
   useEffect(() => {
+    // Initialize session and guest quota
+    useAuthStore.getState().initialize().catch(() => {});
+
     const timer = setTimeout(() => {
       navigation.replace('Home');
     }, 1200);

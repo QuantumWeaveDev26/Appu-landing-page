@@ -30,6 +30,7 @@ export interface SendMessageOptions {
   newConversation?: boolean;
   accessToken?: string;
   guestToken?: string;
+  idempotencyKey?: string;
 }
 
 export interface MessageResponse {
@@ -107,35 +108,59 @@ export async function pingHealth(): Promise<HealthResponse> {
 
 /**
  * Resolves current guest status & remaining turns.
+ * Hits /api/appu/guest-status with X-Guest-Session-Token header.
  */
 export async function getGuestStatus(): Promise<GuestStatusResponse> {
   const token = await getStoredGuestToken();
-  const url = new URL(`${config.apiBaseUrl}/api/appu/guest/status`);
+  const url = `${config.apiBaseUrl}/api/appu/guest-status`;
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+  };
   if (token) {
-    url.searchParams.set('guestToken', token);
+    headers['X-Guest-Session-Token'] = token;
   }
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers,
   });
 
   if (!response.ok) {
     throw new ApiError(response.status, 'GUEST_STATUS_FAILED', `Guest status failed: ${response.statusText}`);
   }
 
-  return response.json();
+  const headerToken = response.headers.get('x-guest-session-token');
+  const data = await response.json();
+
+  const activeToken =
+    headerToken ||
+    data?.guestSession?.guestToken ||
+    data?.token ||
+    data?.guest?.token ||
+    data?.guestSession?.token;
+
+  if (activeToken) {
+    await setStoredGuestToken(activeToken);
+  }
+
+  return data;
 }
 
 /**
  * Sends a learner message to the APPU backend gateway (POST /api/appu/message).
  * Supports both authenticated (Bearer token + childId) and guest (guestToken) modes.
+ * Includes Idempotency-Key and X-Guest-Session-Token headers.
  */
 export async function sendAppuMessage(options: SendMessageOptions): Promise<MessageResponse> {
   const url = `${config.apiBaseUrl}/api/appu/message`;
+  const idempotencyKey =
+    options.idempotencyKey ||
+    `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'Idempotency-Key': idempotencyKey,
   };
 
   const body: Record<string, unknown> = {
@@ -160,6 +185,7 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
     const guestToken = options.guestToken || (await getStoredGuestToken());
     if (guestToken) {
       body.guestToken = guestToken;
+      headers['X-Guest-Session-Token'] = guestToken;
     }
   }
 
@@ -169,14 +195,20 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
     body: JSON.stringify(body),
   });
 
+  const headerToken = response.headers.get('x-guest-session-token');
   const data: MessageResponse = await response.json().catch(() => ({
     text: null,
     error: 'INVALID_JSON',
     message: 'Failed to parse response from server',
   }));
 
-  if (data.guestSession?.guestToken) {
-    await setStoredGuestToken(data.guestSession.guestToken);
+  const activeToken =
+    headerToken ||
+    data?.guestSession?.guestToken ||
+    (data as Record<string, any>)?.token;
+
+  if (activeToken) {
+    await setStoredGuestToken(activeToken);
   }
 
   if (!response.ok) {

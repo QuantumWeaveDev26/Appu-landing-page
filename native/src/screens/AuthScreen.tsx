@@ -6,26 +6,123 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
+import { useAuthStore } from '../stores/authStore';
+import { isGoogleAuthAvailable, promptGoogleSignIn } from '../lib/googleAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 
 export function AuthScreen({ navigation }: Props) {
   const { t } = useLanguage();
+  const {
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    continueAsGuest,
+    isLoading,
+    error,
+    clearError,
+  } = useAuthStore();
+
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [household, setHousehold] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  const googleAvailable = isGoogleAuthAvailable();
+
+  const handleTabChange = (newTab: 'login' | 'signup') => {
+    setTab(newTab);
+    setLocalError(null);
+    setInfoMessage(null);
+    clearError();
+  };
+
+  const handleEmailAuth = async () => {
+    setLocalError(null);
+    setInfoMessage(null);
+    clearError();
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setLocalError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setLocalError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    try {
+      if (tab === 'signup') {
+        const res = await signUpWithEmail(
+          trimmedEmail,
+          password,
+          household.trim() || 'Family'
+        );
+        if (res.needsVerification) {
+          setInfoMessage(
+            `Verification link sent to ${trimmedEmail}. Please check your inbox.`
+          );
+        } else {
+          navigation.replace('Home');
+        }
+      } else {
+        await signInWithEmail(trimmedEmail, password);
+        navigation.replace('Home');
+      }
+    } catch (err: any) {
+      setLocalError(err?.message || 'Authentication failed. Please try again.');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!googleAvailable) {
+      Alert.alert(
+        'Google Sign-In Pending',
+        'Google OAuth Client ID has not been configured for this build yet. Please sign in with email and password.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setLocalError(null);
+    clearError();
+    try {
+      const idToken = await promptGoogleSignIn();
+      await signInWithGoogle(idToken);
+      navigation.replace('Home');
+    } catch (err: any) {
+      if (err?.code !== 'SIGN_IN_CANCELLED') {
+        setLocalError(err?.message || 'Google sign-in was cancelled or failed.');
+      }
+    }
+  };
+
+  const handleGuestContinue = async () => {
+    await continueAsGuest();
+    navigation.replace('Home');
+  };
+
+  const displayError = localError || error;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Back header */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backBtn}
@@ -38,35 +135,76 @@ export function AuthScreen({ navigation }: Props) {
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Tab switch */}
+        {/* Brand Kicker Card */}
+        <View style={styles.kickerCard}>
+          <Text style={styles.kickerBadge}>PUBLIC BETA · COMPLIMENTARY</Text>
+          <Text style={styles.kickerTitle}>Parent & Family Portal</Text>
+          <Text style={styles.kickerSubtitle}>
+            Save learning milestones, configure child profiles, and unlock WhatsApp homework companion.
+          </Text>
+        </View>
+
+        {/* Tab Switcher */}
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, tab === 'login' && styles.tabActive]}
-            onPress={() => setTab('login')}
+            onPress={() => handleTabChange('login')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, tab === 'login' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                tab === 'login' && styles.tabTextActive,
+              ]}
+            >
               {t('auth.signInTab')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'signup' && styles.tabActive]}
-            onPress={() => setTab('signup')}
+            onPress={() => handleTabChange('signup')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, tab === 'signup' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                tab === 'signup' && styles.tabTextActive,
+              ]}
+            >
               {t('auth.createAccountTab')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Google sign-in button stub */}
+        {/* Error / Info Banners */}
+        {displayError ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{displayError}</Text>
+          </View>
+        ) : null}
+
+        {infoMessage ? (
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>{infoMessage}</Text>
+          </View>
+        ) : null}
+
+        {/* Continue with Google */}
         <TouchableOpacity
-          style={styles.googleBtn}
-          onPress={() => {}}
-          activeOpacity={0.85}
+          style={[
+            styles.googleBtn,
+            !googleAvailable && styles.googleBtnDisabled,
+          ]}
+          onPress={handleGoogleSignIn}
+          activeOpacity={googleAvailable ? 0.85 : 0.6}
         >
-          <Text style={styles.googleBtnText}>G  {t('auth.continueWithGoogle')}</Text>
+          <Text style={styles.googleIcon}>G</Text>
+          <Text style={styles.googleBtnText}>
+            {t('auth.continueWithGoogle')}
+          </Text>
+          {!googleAvailable && (
+            <Text style={styles.disabledTag}>Soon</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.dividerRow}>
@@ -86,6 +224,7 @@ export function AuthScreen({ navigation }: Props) {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
+            autoCorrect={false}
           />
 
           <Text style={styles.label}>{t('auth.passwordLabel')}</Text>
@@ -112,15 +251,33 @@ export function AuthScreen({ navigation }: Props) {
           )}
 
           <TouchableOpacity
-            style={styles.submitBtn}
-            onPress={() => {}}
+            style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
+            onPress={handleEmailAuth}
+            disabled={isLoading}
             activeOpacity={0.8}
           >
-            <Text style={styles.submitBtnText}>
-              {tab === 'login' ? t('auth.signInButton') : t('auth.signUpButton')}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#00121d" />
+            ) : (
+              <Text style={styles.submitBtnText}>
+                {tab === 'login'
+                  ? t('auth.signInButton')
+                  : t('auth.signUpButton')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
+
+        {/* Skip / Continue as Guest */}
+        <TouchableOpacity
+          style={styles.guestBtn}
+          onPress={handleGuestContinue}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.guestBtnText}>
+            Skip for now · Continue as Guest →
+          </Text>
+        </TouchableOpacity>
 
         <Text style={styles.noticeText}>{t('auth.guestNotice')}</Text>
       </ScrollView>
@@ -135,7 +292,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
@@ -160,6 +317,33 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 48,
   },
+  kickerCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.line,
+    padding: 18,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  kickerBadge: {
+    color: theme.colors.cyanSoft,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  kickerTitle: {
+    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  kickerSubtitle: {
+    color: theme.colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   tabs: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
@@ -167,7 +351,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.line,
     padding: 4,
-    marginVertical: 16,
+    marginBottom: 16,
     gap: 4,
   },
   tab: {
@@ -187,18 +371,64 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#00121d',
   },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: theme.radius.md,
+    padding: 12,
+    marginBottom: 14,
+  },
+  errorText: {
+    color: '#fca5a5',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  infoBox: {
+    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 211, 238, 0.3)',
+    borderRadius: theme.radius.md,
+    padding: 12,
+    marginBottom: 14,
+  },
+  infoText: {
+    color: theme.colors.cyanSoft,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   googleBtn: {
     backgroundColor: '#ffffff',
     borderRadius: theme.radius.md,
     minHeight: 48,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    gap: 10,
+    paddingHorizontal: 16,
+  },
+  googleBtnDisabled: {
+    opacity: 0.65,
+  },
+  googleIcon: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#4285f4',
   },
   googleBtnText: {
     color: '#1f1f1f',
     fontSize: 14,
     fontWeight: '700',
+  },
+  disabledTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#666666',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    textTransform: 'uppercase',
   },
   dividerRow: {
     flexDirection: 'row',
@@ -244,16 +474,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 18,
   },
+  submitBtnDisabled: {
+    opacity: 0.7,
+  },
   submitBtnText: {
     color: '#00121d',
     fontSize: 14,
     fontWeight: '800',
   },
+  guestBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 12,
+  },
+  guestBtnText: {
+    color: theme.colors.cyanSoft,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   noticeText: {
     color: theme.colors.textMuted,
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 10,
     lineHeight: 18,
   },
 });

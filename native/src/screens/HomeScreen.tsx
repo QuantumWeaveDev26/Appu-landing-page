@@ -12,10 +12,13 @@ import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 
+import { useAuthStore } from '../stores/authStore';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { t, currentLanguage, setLanguage, languages } = useLanguage();
+  const { user, isGuest, guestRemainingQuota, signOut } = useAuthStore();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,7 +52,7 @@ export function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Hero branded shell from App.tsx */}
+        {/* Hero branded shell */}
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('home.eyebrow')}</Text>
           <Text style={styles.brand}>{t('common.appTitle')}</Text>
@@ -60,8 +63,12 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
 
           <View style={styles.badge}>
-            <View style={styles.dot} />
-            <Text style={styles.badgeText}>Native app · Phase 0</Text>
+            <View style={[styles.dot, !isGuest && { backgroundColor: '#10b981' }]} />
+            <Text style={styles.badgeText}>
+              {!isGuest && user
+                ? `${user.email?.split('@')[0] || 'Parent'} · Account Active`
+                : `Public Beta · ${guestRemainingQuota} Free Chats`}
+            </Text>
           </View>
         </View>
 
@@ -76,13 +83,23 @@ export function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <View style={styles.btnRow}>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={() => navigation.navigate('Auth')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.secondaryBtnText}>🔐 {t('auth.signInTab')}</Text>
-            </TouchableOpacity>
+            {isGuest ? (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => navigation.navigate('Auth')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>🔐 {t('auth.signInTab')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => signOut()}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryBtnText}>🚪 Sign Out</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.secondaryBtn}
