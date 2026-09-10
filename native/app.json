@@ -2,6 +2,7 @@
   "expo": {
     "name": "Appu",
     "slug": "appu",
+    "owner": "naveen.qwai",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "appu",
@@ -28,6 +29,11 @@
     "plugins": [
       "expo-secure-store",
       "expo-localization"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7f1a744b-11e2-4c12-851e-a54315ddff93"
+      }
+    }
   }
 }
