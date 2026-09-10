@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,19 +11,34 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
-
 import { useAuthStore } from '../stores/authStore';
+import { AvatarStage } from '../components/AvatarStage';
+import { MissionCard } from '../components/MissionCard';
+import { ExplorePromptsModal } from '../components/ExplorePromptsModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { t, currentLanguage, setLanguage, languages } = useLanguage();
   const { user, isGuest, guestRemainingQuota, signOut } = useAuthStore();
+  const [exploreModalVisible, setExploreModalVisible] = useState(false);
+
+  const handleSelectPrompt = (prompt: string) => {
+    setExploreModalVisible(false);
+    navigation.navigate('Chat', { initialPrompt: prompt });
+  };
+
+  const handleMissionPress = (prompt: string) => {
+    navigation.navigate('Chat', { initialPrompt: prompt });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Top bar with language switcher */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top bar with language switcher & settings */}
         <View style={styles.topBar}>
           <View style={styles.langSwitch}>
             {languages.map((lang) => {
@@ -35,7 +50,12 @@ export function HomeScreen({ navigation }: Props) {
                   onPress={() => setLanguage(lang.code)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.langText, isActive && styles.langTextActive]}>
+                  <Text
+                    style={[
+                      styles.langText,
+                      isActive && styles.langTextActive,
+                    ]}
+                  >
                     {lang.nativeLabel}
                   </Text>
                 </TouchableOpacity>
@@ -43,74 +63,145 @@ export function HomeScreen({ navigation }: Props) {
             })}
           </View>
 
-          <TouchableOpacity
-            style={styles.settingsIconBtn}
-            onPress={() => navigation.navigate('Settings')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.settingsIconText}>⚙️</Text>
-          </TouchableOpacity>
+          <View style={styles.topRightActions}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.iconBtnText}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Hero branded shell */}
-        <View style={styles.hero}>
+        {/* Hero title & subtitle */}
+        <View style={styles.heroSection}>
           <Text style={styles.eyebrow}>{t('home.eyebrow')}</Text>
-          <Text style={styles.brand}>{t('common.appTitle')}</Text>
           <Text style={styles.title}>
             {t('home.title')}{' '}
             <Text style={styles.titleAccent}>{t('home.titleHighlight')}</Text>
           </Text>
           <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
 
-          <View style={styles.badge}>
-            <View style={[styles.dot, !isGuest && { backgroundColor: '#10b981' }]} />
-            <Text style={styles.badgeText}>
-              {!isGuest && user
-                ? `${user.email?.split('@')[0] || 'Parent'} · Account Active`
-                : `Public Beta · ${guestRemainingQuota} Free Chats`}
-            </Text>
-          </View>
-        </View>
-
-        {/* Navigation Quick Links */}
-        <View style={styles.actionsContainer}>
+          {/* Explore Prompts Pill Button */}
           <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('Chat')}
+            style={styles.explorePill}
+            onPress={() => setExploreModalVisible(true)}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryBtnText}>💬 {t('chat.title')}</Text>
+            <Text style={styles.explorePillIcon}>🧭</Text>
+            <Text style={styles.explorePillText}>{t('home.explorePrompts')}</Text>
+            <Text style={styles.explorePillSparkle}>✦</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Reanimated Avatar Stage */}
+        <AvatarStage
+          onPressAvatar={() => navigation.navigate('Chat')}
+        />
+
+        {/* Account / Quota Status Badge */}
+        <View style={styles.badgeRow}>
+          <View
+            style={[
+              styles.statusDot,
+              !isGuest && { backgroundColor: '#10b981' },
+            ]}
+          />
+          <Text style={styles.badgeText}>
+            {!isGuest && user
+              ? `${user.email?.split('@')[0] || 'Parent'} · Account Active`
+              : `Public Beta · ${guestRemainingQuota} Complimentary Chats`}
+          </Text>
+        </View>
+
+        {/* Mission Cards Deck */}
+        <View style={styles.missionSection}>
+          <Text style={styles.sectionHeader}>LEARNING MISSIONS</Text>
+
+          <MissionCard
+            title={t('home.chipExplainTitle')}
+            description={t('home.chipExplainDesc')}
+            prompt={t('home.chipExplainPrompt')}
+            icon="💡"
+            accentColor="#22d3ee"
+            onPress={handleMissionPress}
+          />
+
+          <MissionCard
+            title={t('home.chipQuizTitle')}
+            description={t('home.chipQuizDesc')}
+            prompt={t('home.chipQuizPrompt')}
+            icon="⚡"
+            accentColor="#a855f7"
+            onPress={handleMissionPress}
+          />
+
+          <MissionCard
+            title={t('home.chipHomeworkTitle')}
+            description={t('home.chipHomeworkDesc')}
+            prompt={t('home.chipHomeworkPrompt')}
+            icon="📖"
+            accentColor="#10b981"
+            onPress={handleMissionPress}
+          />
+
+          <MissionCard
+            title={t('home.chipExamTitle')}
+            description={t('home.chipExamDesc')}
+            prompt={t('home.chipExamPrompt')}
+            icon="🏅"
+            accentColor="#f5b301"
+            onPress={handleMissionPress}
+          />
+        </View>
+
+        {/* Quick Nav Bar */}
+        <View style={styles.navBar}>
+          <TouchableOpacity
+            style={styles.chatPrimaryBtn}
+            onPress={() => navigation.navigate('Chat')}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.chatPrimaryText}>💬 {t('chat.title')}</Text>
           </TouchableOpacity>
 
-          <View style={styles.btnRow}>
+          <View style={styles.navRow}>
             {isGuest ? (
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={styles.navSecondaryBtn}
                 onPress={() => navigation.navigate('Auth')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.secondaryBtnText}>🔐 {t('auth.signInTab')}</Text>
+                <Text style={styles.navSecondaryText}>🔐 {t('auth.signInTab')}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={styles.navSecondaryBtn}
                 onPress={() => signOut()}
                 activeOpacity={0.8}
               >
-                <Text style={styles.secondaryBtnText}>🚪 Sign Out</Text>
+                <Text style={styles.navSecondaryText}>🚪 Sign Out</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
-              style={styles.secondaryBtn}
+              style={styles.navSecondaryBtn}
               onPress={() => navigation.navigate('ParentZone')}
               activeOpacity={0.8}
             >
-              <Text style={styles.secondaryBtnText}>👨‍👩‍👦 {t('parent.title')}</Text>
+              <Text style={styles.navSecondaryText}>👨‍👩‍👦 {t('parent.title')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      {/* Explore Prompts Modal */}
+      <ExplorePromptsModal
+        visible={exploreModalVisible}
+        onClose={() => setExploreModalVisible(false)}
+        onSelectPrompt={handleSelectPrompt}
+      />
     </SafeAreaView>
   );
 }
@@ -121,9 +212,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bg,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   topBar: {
     flexDirection: 'row',
@@ -138,11 +228,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.line,
     padding: 3,
-    gap: 3,
+    gap: 2,
   },
   langBtn: {
+    paddingVertical: 5,
     paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: theme.radius.pill,
   },
   langBtnActive: {
@@ -150,126 +240,154 @@ const styles = StyleSheet.create({
   },
   langText: {
     color: theme.colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   langTextActive: {
     color: '#00121d',
+    fontWeight: '800',
   },
-  settingsIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surface,
+  topRightActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: theme.colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  settingsIconText: {
+  iconBtnText: {
     fontSize: 16,
   },
-  hero: {
+  heroSection: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    paddingVertical: 20,
+    marginTop: 10,
+    marginBottom: 4,
   },
   eyebrow: {
     color: theme.colors.cyanSoft,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 2,
-    marginBottom: 10,
+    marginBottom: 6,
     textAlign: 'center',
-  },
-  brand: {
-    color: theme.colors.text,
-    fontSize: 56,
-    fontWeight: '800',
-    letterSpacing: 2,
   },
   title: {
     color: theme.colors.text,
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
-    marginTop: 14,
-    lineHeight: 34,
+    lineHeight: 32,
   },
   titleAccent: {
     color: theme.colors.cyan,
   },
   subtitle: {
     color: theme.colors.textMuted,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
-    marginTop: 10,
-    lineHeight: 20,
-    maxWidth: 320,
+    marginTop: 6,
+    lineHeight: 18,
+    maxWidth: '90%',
   },
-  badge: {
+  explorePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 24,
+    marginTop: 14,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: 'rgba(8, 30, 54, 0.9)',
     borderWidth: 1,
     borderColor: theme.colors.line,
   },
-  dot: {
-    width: 8,
-    height: 8,
+  explorePillIcon: {
+    fontSize: 14,
+  },
+  explorePillText: {
+    color: theme.colors.cyanSoft,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  explorePillSparkle: {
+    color: theme.colors.amber,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: theme.colors.cyan,
   },
   badgeText: {
     color: theme.colors.textMuted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
-  actionsContainer: {
-    marginTop: 'auto',
-    gap: 12,
-    paddingTop: 32,
+  missionSection: {
+    marginTop: 8,
+    marginBottom: 18,
   },
-  primaryBtn: {
+  sectionHeader: {
+    color: theme.colors.cyanSoft,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 12,
+    marginLeft: 2,
+  },
+  navBar: {
+    gap: 10,
+    marginTop: 6,
+  },
+  chatPrimaryBtn: {
     backgroundColor: theme.colors.cyan,
     borderRadius: theme.radius.md,
-    minHeight: 52,
+    minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
     shadowColor: theme.colors.cyan,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 4,
   },
-  primaryBtnText: {
+  chatPrimaryText: {
     color: '#00121d',
     fontSize: 15,
     fontWeight: '800',
   },
-  btnRow: {
+  navRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
-  secondaryBtn: {
+  navSecondaryBtn: {
     flex: 1,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.md,
-    minHeight: 48,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
   },
-  secondaryBtnText: {
+  navSecondaryText: {
     color: theme.colors.text,
     fontSize: 13,
     fontWeight: '700',
