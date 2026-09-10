@@ -50,5 +50,9 @@ Splash/loader → Auth (Sign in / Create account + Continue with Google) → Hom
 - Google Cloud: Android OAuth client ID (app signing SHA-1) + register in Supabase for `signInWithIdToken` (Phase 1).
 - Expo/EAS account for cloud builds (Phase 0/7).
 
+## Application ID & Coexistence
+- **Dev/Preview Builds:** Use `online.appuai.appudev` so the native preview app coexists alongside the existing Capacitor app (`online.appuai.appu`) on test devices without Android signature collision.
+- **Production Builds:** Will target `online.appuai.appu` for official Play Store release and replacement.
+
 ## Current-app bug note
 - The website/Capacitor Google-login redirect bug is **solved natively** here. For the *existing* Capacitor app we can still apply the App-Links-narrowing patch if you want it fixed in the meantime — separate small task, or skip since native supersedes it.

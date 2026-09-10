@@ -11,10 +11,10 @@
     "backgroundColor": "#06101f",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "online.appuai.appu"
+      "bundleIdentifier": "online.appuai.appudev"
     },
     "android": {
-      "package": "online.appuai.appu",
+      "package": "online.appuai.appudev",
       "adaptiveIcon": {
         "backgroundColor": "#06101f",
         "foregroundImage": "./assets/android-icon-foreground.png",
