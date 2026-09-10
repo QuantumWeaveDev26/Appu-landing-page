@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Appu",
+    "slug": "appu",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "appu",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#06101f",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "online.appuai.appu.native"
+    },
+    "android": {
+      "package": "online.appuai.appu.native",
+      "adaptiveIcon": {
+        "backgroundColor": "#06101f",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
