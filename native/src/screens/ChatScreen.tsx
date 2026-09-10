@@ -18,7 +18,9 @@ import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
 import { sendAppuMessage } from '../lib/api';
+import { voiceService } from '../lib/voiceService';
 import { TypingIndicator } from '../components/TypingIndicator';
+import { VoiceSessionModal } from '../components/VoiceSessionModal';
 
 interface ChatMessage {
   id: string;
@@ -27,13 +29,15 @@ interface ChatMessage {
   timestamp: number;
   status: 'sending' | 'sent' | 'error';
   isGateCard?: boolean;
+  audioStreamUrl?: string | null;
+  audioSource?: string | null;
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export function ChatScreen({ navigation, route }: Props) {
   const { t, currentLanguage } = useLanguage();
-  const { user, session, isGuest, guestToken, guestRemainingQuota, updateGuestQuota } =
+  const { session, isGuest, guestToken, guestRemainingQuota, updateGuestQuota } =
     useAuthStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
@@ -49,6 +53,8 @@ export function ChatScreen({ navigation, route }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [isNewConversation, setIsNewConversation] = useState(true);
+  const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const hasHandledInitialPrompt = useRef(false);
@@ -65,6 +71,7 @@ export function ChatScreen({ navigation, route }: Props) {
   }, [route.params?.initialPrompt]);
 
   const handleNewChat = () => {
+    voiceService.stopPlayback();
     setMessages([
       {
         id: `welcome_${Date.now()}`,
@@ -106,7 +113,7 @@ export function ChatScreen({ navigation, route }: Props) {
       const response = await sendAppuMessage({
         message: messageContent,
         language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
-        includeAudio: false,
+        includeAudio: true,
         accessToken: session?.access_token,
         guestToken: isGuest ? guestToken || undefined : undefined,
         conversationId,
@@ -158,9 +165,7 @@ export function ChatScreen({ navigation, route }: Props) {
           },
         ]);
       } else {
-        const replyText =
-          response.text ||
-          '';
+        const replyText = response.text || '';
 
         if (replyText) {
           setMessages((prev) => [
@@ -171,6 +176,8 @@ export function ChatScreen({ navigation, route }: Props) {
               text: replyText,
               timestamp: Date.now(),
               status: 'sent',
+              audioStreamUrl: response.audioStreamUrl,
+              audioSource: response.audioSource,
             },
           ]);
         }
@@ -190,9 +197,32 @@ export function ChatScreen({ navigation, route }: Props) {
   };
 
   const handleRetry = (msg: ChatMessage) => {
-    // Remove the errored message and resend
     setMessages((prev) => prev.filter((m) => m.id !== msg.id));
     handleSendMessage(msg.text);
+  };
+
+  const handlePlayAppuAudio = (item: ChatMessage) => {
+    if (playingMessageId === item.id) {
+      voiceService.stopPlayback();
+      setPlayingMessageId(null);
+      return;
+    }
+
+    setPlayingMessageId(item.id);
+    voiceService.playAppuVoice({
+      text: item.text,
+      audioStreamUrl: item.audioStreamUrl,
+      audioSource: item.audioSource,
+      language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
+      accessToken: session?.access_token,
+      guestToken: isGuest ? guestToken : undefined,
+      onFinish: () => {
+        setPlayingMessageId(null);
+      },
+      onError: () => {
+        setPlayingMessageId(null);
+      },
+    });
   };
 
   const quickPrompts = [
@@ -226,6 +256,7 @@ export function ChatScreen({ navigation, route }: Props) {
     }
 
     const isUser = item.sender === 'user';
+    const isPlaying = playingMessageId === item.id;
 
     return (
       <View
@@ -251,7 +282,18 @@ export function ChatScreen({ navigation, route }: Props) {
           ]}
         >
           {!isUser && (
-            <Text style={styles.appuSenderLabel}>{t('chat.appuSays')}</Text>
+            <View style={styles.appuBubbleHeader}>
+              <Text style={styles.appuSenderLabel}>{t('chat.appuSays')}</Text>
+              <TouchableOpacity
+                style={styles.speakerBtn}
+                onPress={() => handlePlayAppuAudio(item)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.speakerIcon}>
+                  {isPlaying ? '⏸' : '🔊'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
           <Text style={[styles.messageText, isUser && styles.messageTextUser]}>
             {item.text}
@@ -280,7 +322,10 @@ export function ChatScreen({ navigation, route }: Props) {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              voiceService.stopPlayback();
+              navigation.goBack();
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.backBtnText}>‹ {t('common.back')}</Text>
@@ -301,6 +346,14 @@ export function ChatScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.voiceHeaderBtn}
+              onPress={() => setIsVoiceModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.voiceHeaderIcon}>🎙️</Text>
+            </TouchableOpacity>
+
             {isGuest && (
               <View
                 style={[
@@ -375,6 +428,14 @@ export function ChatScreen({ navigation, route }: Props) {
           </View>
         ) : (
           <View style={styles.inputBar}>
+            <TouchableOpacity
+              style={styles.voiceBarBtn}
+              onPress={() => setIsVoiceModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.voiceBarIcon}>🎙️</Text>
+            </TouchableOpacity>
+
             <TextInput
               style={styles.textInput}
               placeholder={t('chat.placeholder')}
@@ -385,6 +446,7 @@ export function ChatScreen({ navigation, route }: Props) {
               maxLength={1000}
               editable={!isLoading}
             />
+
             <TouchableOpacity
               style={[
                 styles.sendBtn,
@@ -402,6 +464,36 @@ export function ChatScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Full-Screen Hands-Free Voice Session Modal */}
+        <VoiceSessionModal
+          visible={isVoiceModalVisible}
+          onClose={() => setIsVoiceModalVisible(false)}
+          conversationId={conversationId}
+          onExchangeCompleted={({ userText, assistantText, conversationId: newConvId }) => {
+            if (newConvId) {
+              setConversationId(newConvId);
+            }
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `voice_user_${Date.now()}`,
+                sender: 'user',
+                text: userText,
+                timestamp: Date.now(),
+                status: 'sent',
+              },
+              {
+                id: `voice_appu_${Date.now() + 1}`,
+                sender: 'appu',
+                text: assistantText,
+                timestamp: Date.now() + 1,
+                status: 'sent',
+              },
+            ]);
+          }}
+          onSignInPress={() => navigation.navigate('Auth')}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -469,6 +561,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  voiceHeaderBtn: {
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    backgroundColor: '#0a1e38',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  voiceHeaderIcon: {
+    fontSize: 14,
   },
   quotaBadge: {
     backgroundColor: 'rgba(56, 189, 248, 0.15)',
@@ -553,13 +656,25 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444',
     backgroundColor: '#260e15',
   },
+  appuBubbleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   appuSenderLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: theme.colors.cyan,
-    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  speakerBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  speakerIcon: {
+    fontSize: 13,
   },
   messageText: {
     fontSize: 15,
@@ -656,6 +771,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.line,
     gap: 8,
+  },
+  voiceBarBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#0a1e38',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceBarIcon: {
+    fontSize: 18,
   },
   textInput: {
     flex: 1,

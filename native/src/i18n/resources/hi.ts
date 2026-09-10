@@ -54,6 +54,17 @@ export const hi: TranslationKeys = {
     retry: 'पुनः प्रयास करें',
     errorGeneric: 'संदेश नहीं भेजा जा सका। कृपया पुनः प्रयास करें।',
   },
+  voice: {
+    title: 'अप्पू के साथ वॉयस बातचीत',
+    tapToSpeak: 'बोलने के लिए टैप करें',
+    listening: 'सुन रहा हूँ… स्पष्ट बोलें',
+    appuSpeaking: 'अप्पू बोल रहा है…',
+    autoListen: 'हैंड्स-फ्री निरंतर बातचीत',
+    autoListenOn: 'ऑटो-लिसन ऑन',
+    autoListenOff: 'ऑटो-लिसन ऑफ़',
+    close: 'चैट पर वापस जाएं',
+    permissionDenied: 'आवाज बातचीत के लिए माइक्रोफ़ोन अनुमति आवश्यक है।',
+  },
   auth: {
     signInTab: 'साइन इन',
     createAccountTab: 'खाता बनाएं',

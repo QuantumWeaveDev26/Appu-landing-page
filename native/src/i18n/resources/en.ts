@@ -52,6 +52,17 @@ export const en = {
     retry: 'Retry',
     errorGeneric: 'Could not send message. Please try again.',
   },
+  voice: {
+    title: 'Voice Session with Appu',
+    tapToSpeak: 'Tap to speak',
+    listening: 'Listening… speak clearly',
+    appuSpeaking: 'Appu is speaking…',
+    autoListen: 'Hands-free continuous chat',
+    autoListenOn: 'Auto-listen ON',
+    autoListenOff: 'Auto-listen OFF',
+    close: 'Back to chat',
+    permissionDenied: 'Microphone permission is required for voice chat.',
+  },
   auth: {
     signInTab: 'Sign In',
     createAccountTab: 'Create Account',

@@ -54,6 +54,17 @@ export const kn: TranslationKeys = {
     retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
     errorGeneric: 'ಸಂದೇಶ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   },
+  voice: {
+    title: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಧ್ವನಿ ಸಂಭಾಷಣೆ',
+    tapToSpeak: 'ಮಾತನಾಡಲು ಒತ್ತಿ',
+    listening: 'ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ… ಮಾತನಾಡಿ',
+    appuSpeaking: 'ಅಪ್ಪು ಮಾತನಾಡುತ್ತಿದ್ದಾನೆ…',
+    autoListen: 'ಸ್ವಯಂ ನಿರಂತರ ಸಂಭಾಷಣೆ',
+    autoListenOn: 'ಸ್ವಯಂ ಆಲಿಸುವಿಕೆ ಆನ್',
+    autoListenOff: 'ಸ್ವಯಂ ಆಲಿಸುವಿಕೆ ಆಫ್',
+    close: 'ಚಾಟ್‌ಗೆ ಹಿಂತಿರುಗಿ',
+    permissionDenied: 'ಧ್ವನಿ ಸಂಭಾಷಣೆಗಾಗಿ ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ಅಗತ್ಯವಿದೆ.',
+  },
   auth: {
     signInTab: 'ಸೈನ್ ಇನ್',
     createAccountTab: 'ಖಾತೆ ರಚಿಸಿ',
