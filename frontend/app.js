@@ -1667,6 +1667,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // AndroidManifest.xml) straight into this already-running app instead of a browser.
   // Supabase's own detectSessionInUrl only runs once at client construction against the
   // page's own URL, so a link arriving later has to be applied manually.
+  // Mobile web (narrow, non-native) adopts the app's minimal chrome: add the same
+  // is-native class and relocate the crowded header controls (language switch, sign-in,
+  // parent, etc.) into the nav drawer, exactly as the native path below does — minus the
+  // Capacitor/legal-viewer specifics that only apply inside the packaged app.
+  if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+      && typeof window !== 'undefined' && window.innerWidth <= 640) {
+    document.body.classList.add('is-native');
+    const navLangSlot = document.getElementById('nav-drawer-lang-slot');
+    const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
+    const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
+    const navAccountSlot = document.getElementById('nav-drawer-account-slot');
+    const languageSwitchEl = document.querySelector('.language-switch');
+    const parentSessionBadgeEl = document.getElementById('parent-session-badge');
+    const btnMainAuthEl = document.getElementById('btn-main-auth');
+    const btnParentSetupEl = document.getElementById('btn-parent-setup');
+    const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
+    const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
+    if (navLangSlot && languageSwitchEl) navLangSlot.appendChild(languageSwitchEl);
+    if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
+    if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
+    if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnMainAuthEl) navAccountSlot.appendChild(btnMainAuthEl);
+    if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
+    if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
+    if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
+    if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
+  }
+
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
     document.body.classList.add('is-native');
 

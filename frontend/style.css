@@ -447,7 +447,7 @@ select option:checked, .discovery-form select option:checked {
     transform: none;
     width: 100%;
     max-width: 100%;
-    padding: 12px 16px 0;
+    padding: 6px 16px 0;
     margin: 0;
     text-align: center;
     box-sizing: border-box;
@@ -458,15 +458,13 @@ select option:checked, .discovery-form select option:checked {
     display: none;
   }
   .mission-intro h1 {
-    font-size: clamp(22px, 6.2vw, 30px);
-    line-height: 1.12;
+    font-size: clamp(19px, 5.2vw, 25px);
+    line-height: 1.1;
     margin: 0;
   }
   .mission-intro #mission-subtitle,
   .mission-intro > p:last-child {
-    margin-top: 6px;
-    font-size: 12px;
-    color: #b6c4d9;
+    display: none;
   }
   .prompt-library-trigger-wrap {
     margin: 8px 0 0;
@@ -2132,14 +2130,6 @@ body.policy-page {
 .is-native .topbar { grid-template-columns: auto 1fr auto; }
 .is-native #beta-banner { display: none; }
 .is-native .landing-footer-strip { display: none; }
-
-/* Mobile web adopts the app's chrome: hamburger menu, no brand text / banner / footer strip */
-@media (max-width: 640px) {
-  .topbar-hamburger { display: grid; }
-  .brand { display: none; }
-  #beta-banner { display: none; }
-  .landing-footer-strip { display: none; }
-}
 
 .nav-drawer {
   position: fixed;
