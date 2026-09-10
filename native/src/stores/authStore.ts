@@ -30,6 +30,7 @@ export interface AuthState {
   continueAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
+  updateGuestQuota: (remaining: number, token?: string) => void;
 }
 
 let authSubscriptionInitialized = false;
@@ -45,6 +46,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   clearError: () => set({ error: null }),
+
+  updateGuestQuota: (remaining: number, token?: string) => {
+    set((state) => ({
+      guestRemainingQuota: remaining,
+      guestToken: token || state.guestToken,
+    }));
+  },
 
   initialize: async () => {
     if (get().isInitialized) return;
@@ -75,11 +83,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
           const guestRes = await getGuestStatus();
           const activeToken =
-            guestRes.guestSession?.guestToken || storedToken;
-          remaining =
-            guestRes.guestSession?.remainingQuota ??
-            (guestRes as any).remaining ??
-            3;
+            guestRes.token ||
+            guestRes.guest?.token ||
+            guestRes.guestSession?.token ||
+            storedToken;
+          remaining = guestRes.remaining ?? 3;
 
           if (activeToken) {
             await setStoredGuestToken(activeToken);
@@ -237,9 +245,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
           const res = await getGuestStatus();
           token =
-            res.guestSession?.guestToken ||
-            (res as any).token ||
+            res.token ||
+            res.guest?.token ||
+            res.guestSession?.token ||
             null;
+          if (typeof res.remaining === 'number') {
+            set({ guestRemainingQuota: res.remaining });
+          }
         } catch {
           // Will be assigned on first message dispatch
         }

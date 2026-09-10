@@ -7,16 +7,25 @@ export interface HealthResponse {
   status: string;
 }
 
-export interface GuestSessionInfo {
-  guestToken: string;
-  remainingQuota: number;
-  usedQuota: number;
-  maxQuota: number;
+export interface GuestQuotaInfo {
+  token?: string;
+  limit: number;
+  guestLimit?: number;
+  used: number;
+  remaining: number;
+  loginRequired: boolean;
 }
 
 export interface GuestStatusResponse {
-  authenticated: boolean;
-  guestSession?: GuestSessionInfo;
+  authenticated?: boolean;
+  guestLimit: number;
+  limit: number;
+  used: number;
+  remaining: number;
+  loginRequired: boolean;
+  token: string;
+  guest?: GuestQuotaInfo;
+  guestSession?: GuestQuotaInfo;
   error?: string;
   message?: string;
 }
@@ -34,13 +43,21 @@ export interface SendMessageOptions {
 }
 
 export interface MessageResponse {
+  requestId?: string;
+  requestStatus?: string;
+  childId?: string | null;
+  conversationId?: string | null;
   text: string | null;
   audioSource?: string | null;
+  audioStreamUrl?: string | null;
   audioDurationMs?: number | null;
-  guestSession?: GuestSessionInfo | null;
-  conversationId?: string | null;
+  idempotentReplay?: boolean;
+  guest?: GuestQuotaInfo | null;
+  guestSession?: GuestQuotaInfo | null;
   error?: string;
+  code?: string;
   message?: string;
+  loginRequired?: boolean;
 }
 
 export class ApiError extends Error {
@@ -134,7 +151,6 @@ export async function getGuestStatus(): Promise<GuestStatusResponse> {
 
   const activeToken =
     headerToken ||
-    data?.guestSession?.guestToken ||
     data?.token ||
     data?.guest?.token ||
     data?.guestSession?.token;
@@ -143,7 +159,31 @@ export async function getGuestStatus(): Promise<GuestStatusResponse> {
     await setStoredGuestToken(activeToken);
   }
 
-  return data;
+  const limit = data.guestLimit ?? data.limit ?? data.guest?.limit ?? 3;
+  const used = data.used ?? data.guest?.used ?? 0;
+  const remaining = data.remaining ?? data.guest?.remaining ?? 3;
+  const loginRequired = Boolean(data.loginRequired ?? data.guest?.loginRequired);
+
+  const quotaInfo: GuestQuotaInfo = {
+    token: activeToken,
+    limit,
+    guestLimit: limit,
+    used,
+    remaining,
+    loginRequired,
+  };
+
+  return {
+    ...data,
+    limit,
+    guestLimit: limit,
+    used,
+    remaining,
+    loginRequired,
+    token: activeToken || data.token,
+    guest: quotaInfo,
+    guestSession: quotaInfo,
+  };
 }
 
 /**
@@ -196,16 +236,50 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
   });
 
   const headerToken = response.headers.get('x-guest-session-token');
-  const data: MessageResponse = await response.json().catch(() => ({
-    text: null,
-    error: 'INVALID_JSON',
-    message: 'Failed to parse response from server',
-  }));
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    data = {
+      text: null,
+      error: 'INVALID_JSON',
+      message: 'Failed to parse response from server',
+    };
+  }
+
+  // Handle 403 GUEST_LIMIT_REACHED cleanly without throwing hard error
+  const errCode = data?.code || data?.error?.code;
+  if (response.status === 403 && (errCode === 'GUEST_LIMIT_REACHED' || data?.loginRequired || data?.guest?.loginRequired)) {
+    const limit = data?.limit ?? data?.guestLimit ?? data?.guest?.limit ?? 3;
+    const used = data?.used ?? data?.guest?.used ?? limit;
+    const quotaInfo: GuestQuotaInfo = {
+      limit,
+      guestLimit: limit,
+      used,
+      remaining: 0,
+      loginRequired: true,
+      token: (await getStoredGuestToken()) || undefined,
+    };
+    return {
+      requestId: data?.requestId,
+      requestStatus: 'FAILED',
+      text: data?.message || "Your complimentary APPU chats are complete. Sign in to continue learning and save your progress.",
+      audioSource: null,
+      audioStreamUrl: null,
+      audioDurationMs: null,
+      error: 'guest_limit_reached',
+      code: 'GUEST_LIMIT_REACHED',
+      loginRequired: true,
+      guest: quotaInfo,
+      guestSession: quotaInfo,
+    };
+  }
 
   const activeToken =
     headerToken ||
-    data?.guestSession?.guestToken ||
-    (data as Record<string, any>)?.token;
+    data?.guest?.token ||
+    data?.guestSession?.token ||
+    data?.token;
 
   if (activeToken) {
     await setStoredGuestToken(activeToken);
@@ -214,10 +288,34 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
   if (!response.ok) {
     throw new ApiError(
       response.status,
-      data.error || 'SERVER_ERROR',
+      data.code || data.error || 'SERVER_ERROR',
       data.message || `Request failed with status ${response.status}`
     );
   }
 
-  return data;
+  const normalizedQuota: GuestQuotaInfo | null = data.guest
+    ? {
+        token: data.guest.token || activeToken,
+        limit: data.guest.limit ?? data.guest.guestLimit ?? 3,
+        guestLimit: data.guest.limit ?? data.guest.guestLimit ?? 3,
+        used: data.guest.used ?? 0,
+        remaining: data.guest.remaining ?? 0,
+        loginRequired: Boolean(data.guest.loginRequired),
+      }
+    : data.guestSession
+    ? {
+        token: data.guestSession.token || activeToken,
+        limit: data.guestSession.limit ?? data.guestSession.guestLimit ?? 3,
+        guestLimit: data.guestSession.limit ?? data.guestSession.guestLimit ?? 3,
+        used: data.guestSession.used ?? 0,
+        remaining: data.guestSession.remaining ?? 0,
+        loginRequired: Boolean(data.guestSession.loginRequired),
+      }
+    : null;
+
+  return {
+    ...data,
+    guest: normalizedQuota,
+    guestSession: normalizedQuota,
+  };
 }
