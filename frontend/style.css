@@ -2133,6 +2133,14 @@ body.policy-page {
 .is-native #beta-banner { display: none; }
 .is-native .landing-footer-strip { display: none; }
 
+/* Mobile web adopts the app's chrome: hamburger menu, no brand text / banner / footer strip */
+@media (max-width: 640px) {
+  .topbar-hamburger { display: grid; }
+  .brand { display: none; }
+  #beta-banner { display: none; }
+  .landing-footer-strip { display: none; }
+}
+
 .nav-drawer {
   position: fixed;
   z-index: 92;
