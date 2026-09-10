@@ -171,7 +171,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mission-intro h1 span { color: var(--cyan-bright); }
 .mission-intro #mission-subtitle, .mission-intro > p:last-child { margin: 8px 0 0; color: #b6c4d9; font-size: 13px; }
 
-.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -3%; width: min(430px, 33vw); height: 78%; transform: translateX(-50%); }
+.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -3%; width: min(500px, 37vw); height: 90%; transform: translateX(-50%); }
 .avatar-interactive-figure { position: absolute; z-index: 3; inset: 4% 8% 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .avatar-interactive-figure img { display: block; width: auto; height: 96%; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 28px 28px rgba(0, 0, 0, .52)); transform: none; animation: none; }
 .avatar-glow { position: absolute; z-index: -1; left: 50%; bottom: 2%; width: 78%; height: 57%; border-radius: 50%; background: radial-gradient(circle, rgba(34, 211, 238, .22), transparent 68%); transform: translateX(-50%); filter: blur(12px); }
@@ -453,9 +453,7 @@ select option:checked, .discovery-form select option:checked {
     z-index: 6;
   }
   .mission-intro .eyebrow {
-    font-size: 10px;
-    margin-bottom: 5px;
-    letter-spacing: 0.14em;
+    display: none;
   }
   .mission-intro h1 {
     font-size: clamp(22px, 6.2vw, 30px);
@@ -482,15 +480,15 @@ select option:checked, .discovery-form select option:checked {
     left: auto;
     bottom: auto;
     transform: none;
-    width: min(360px, 78vw);
+    width: min(320px, 72vw);
     flex: 1 1 0;
-    min-height: 90px;
-    margin: 8px auto 0;
+    min-height: 132px;
+    margin: 2px auto 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     z-index: 5;
-    overflow: hidden;
+    overflow: visible;
   }
   .avatar-interactive-figure {
     position: relative;
@@ -501,7 +499,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.0);
+    transform: scale(1.15);
     padding: 0;
   }
   .avatar-interactive-figure img {
@@ -555,15 +553,15 @@ select option:checked, .discovery-form select option:checked {
     box-sizing: border-box;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 10px 14px 12px;
+    gap: 6px;
+    padding: 4px 14px 6px;
     margin-top: 0;
     flex-shrink: 0;
     z-index: 7;
     pointer-events: auto;
   }
   .mission-card {
-    min-height: 48px;
+    min-height: 44px;
     grid-template-columns: 36px 1fr;
     gap: 8px;
     padding: 6px 10px;
