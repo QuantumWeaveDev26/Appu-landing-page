@@ -812,6 +812,24 @@
       });
     }
 
+    const btnGoogleAuth = document.getElementById('pos-btn-google');
+    if (btnGoogleAuth) {
+      btnGoogleAuth.addEventListener('click', () => {
+        if (btnGoogleAuth.disabled) return;
+        btnGoogleAuth.disabled = true;
+        const restore = () => { btnGoogleAuth.disabled = false; };
+        const shell = typeof window !== 'undefined' ? window.ParentOnboardingShell : null;
+        if (shell && typeof shell.signInWithGoogle === 'function') {
+          shell.signInWithGoogle().then(restore).catch((err) => {
+            console.warn('[Appu] Google sign-in warning:', err?.message || err);
+            restore();
+          });
+        } else {
+          restore();
+        }
+      });
+    }
+
     if (authForm) {
       authForm.addEventListener('submit', async (e) => {
         e.preventDefault();

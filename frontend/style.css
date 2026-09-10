@@ -990,6 +990,9 @@ select option:checked, .discovery-form select option:checked {
 
 .pos-tabs { display: flex; gap: 4px; margin-bottom: 18px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255, 255, 255, .03); }
 .pos-tab { flex: 1; min-height: 38px; border: 0; border-radius: 10px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 800; cursor: pointer; transition: background .2s, color .2s; }
+.pos-google-btn { width: 100%; justify-content: center; margin: 0 0 14px; }
+.pos-auth-divider { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.pos-auth-divider::before, .pos-auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .pos-tab.active { color: #00121d; background: var(--cyan-bright); box-shadow: 0 4px 12px rgba(34, 211, 238, .2); }
 
 /* Full-width Current Plan Summary */

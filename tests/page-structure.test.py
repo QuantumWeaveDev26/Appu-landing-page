@@ -162,7 +162,7 @@ class LandingPageStructureTests(unittest.TestCase):
         version_matches = re.findall(r'(?:href|src)=["\'][^"\']+\?v=([^"\']+)["\']', HTML)
         self.assertGreater(len(version_matches), 0)
         for v in version_matches:
-            self.assertEqual(v, "20260908-8")
+            self.assertEqual(v, "20260908-9")
 
 
 if __name__ == "__main__":
