@@ -9,15 +9,15 @@ Full plan & phases: [`../docs/native-app/2026-09-10-react-native-plan.md`](../do
 - Android first (iOS later possible). Dev package id: `online.appuai.appu.native` (distinct so it installs alongside the current Capacitor app during development).
 
 ## Status
-- **Phase 0 (scaffold) — in progress.** Done: Expo base, brand theme (`src/theme.ts`), branded shell (`App.tsx`), app config. Remaining: install deps, navigation shell, i18n wiring, Supabase + backend client skeletons, first Android dev build.
+- **Phases 0 through 6 — Completed.** Full feature coverage: Auth (Email/Password + Google ready), Home avatar & missions, Chat with normalized API fallbacks, Voice session (hands-free auto-listen + server Eleven v3 streaming + device TTS fallback), Parent Zone (multi-learner profiles, personalization DNA, subscription meters), Settings (voice rate/pitch controls + live preview, auto-speak), Study Reminders (0-OAuth Google Calendar + WhatsApp study notes), WhatsApp sharing CTAs, Legal/compliance cards, and First-run onboarding tour.
+- **Preview APK Build:** Successfully compiled and built with EAS (`c982d536`).
 
-## Run (once deps are installed)
+## Run
 ```bash
 cd native
 npm install
-npx expo start        # then press "a" for Android, or scan with Expo Go / a dev build
+npx expo start        # then press "a" for Android, or scan with a dev/preview build
 ```
-> A first **on-device build** needs an Expo/EAS account (see plan). The coordinator will provide step-by-step setup when we reach that point.
 
 ## Adding native modules
-Follow the exact Expo v57 docs (see `AGENTS.md`) and install with `npx expo install <pkg>` so versions stay compatible with the SDK. Planned: `@react-navigation/native` (+ native-stack), `zustand`, `@supabase/supabase-js`, `@react-native-async-storage/async-storage`, `i18next` + `react-i18next`, `@react-native-google-signin/google-signin`, `@react-native-voice/voice`, `expo-speech`, `react-native-reanimated`.
+Follow the exact Expo v57 docs (see `AGENTS.md`) and install with `npx expo install <pkg>` so versions stay compatible with the SDK. Installed: `@react-navigation/native` (+ native-stack), `zustand`, `@supabase/supabase-js`, `@react-native-async-storage/async-storage`, `i18next` + `react-i18next`, `@react-native-google-signin/google-signin`, `expo-speech-recognition`, `expo-speech`, `expo-audio`, `react-native-reanimated`, `react-native-worklets`.
