@@ -62,7 +62,11 @@ function validateDob(val: unknown): string {
 
 function validateLanguage(val: unknown): string {
   if (typeof val !== 'string') throw new BadRequestError('Preferred language must be a string');
-  const trimmed = val.trim();
+  let trimmed = val.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'english' || lower.startsWith('eng')) trimmed = 'en';
+  else if (lower === 'hindi' || lower.startsWith('hin')) trimmed = 'hi';
+  else if (lower === 'kannada' || lower.startsWith('kan')) trimmed = 'kn';
   if (!isValidLanguageCode(trimmed)) {
     throw new BadRequestError('Invalid language code format (e.g. en, hi, kn)');
   }
