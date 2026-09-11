@@ -163,16 +163,17 @@ class ChatAgent {
         window.ParentOnboardingShell &&
         Boolean(window.ParentOnboardingShell.state?.session?.access_token);
 
-      // A verified parent session without an active learner is not a guest session.
-      // Block locally so a child-selection/subscription state can never consume guest access.
-      if (hasAuthenticatedParentSession && !hasSecureSession) {
-        responseText = 'Please open Parent Zone to activate your plan or select a learner before chatting with Appu.';
+      // Gated chat: chatting strictly requires an authenticated session with an active personalized learner.
+      if (!hasSecureSession) {
+        responseText = hasAuthenticatedParentSession
+          ? 'Please open Parent Zone to set up your learner profile and preferences before chatting with Appu.'
+          : 'Please sign in or create a parent account to start chatting with Appu.';
         actionCard = {
-          title: 'Parent Zone',
-          buttonText: 'Choose learner',
+          title: hasAuthenticatedParentSession ? 'Parent Zone' : 'Sign In',
+          buttonText: hasAuthenticatedParentSession ? 'Personalize Appu' : 'Sign in / Sign up',
           onClick: () => {
             if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-              window.ParentSetupUI.openModal(4);
+              window.ParentSetupUI.openModal(hasAuthenticatedParentSession ? 4 : 1);
             }
           }
         };

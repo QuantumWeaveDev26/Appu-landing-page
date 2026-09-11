@@ -575,6 +575,8 @@
           // If child selection required or multiple learners, route to step 3
           if (shell.state.authStatus === 'CHILD_SELECTION_REQUIRED' || !shell.state.selectedChild) {
             renderChildStep();
+          } else if (shell.state.authStatus === 'PERSONALISATION_REQUIRED' || !shell.state.personalisation) {
+            renderPersonalisationStep(shell.state.selectedChild);
           } else {
             renderPlansStep();
           }
@@ -1733,18 +1735,26 @@
         window.ParentOnboardingShell.launchAppuSession(child);
         closeModal();
 
-        // Trigger welcome voice greeting in Appu (uses the learner's chosen personalisation
-        // language from Step 4, which may differ from the parent's UI language above).
+        // If there was a pending chat prompt that triggered the gating, send it right away
+        // now that the learner profile and personalisation are fully configured.
         if (typeof window.app !== 'undefined' && typeof window.app.handleUserInteraction === 'function') {
-          const lang = persLang?.value || 'en';
-          const LAUNCH_GREETINGS = {
-            en: (name) => `Hi ${name}! I'm Appu, your personal AI learning companion. What would you like to explore today?`,
-            kn: (name) => `ನಮಸ್ಕಾರ ${name}! ನಾನು ಅಪ್ಪು, ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಕಲಿಕೆಯ ಸ್ನೇಹಿತ. ಇಂದು ನಾವು ಏನು ಕಲಿಯೋಣ?`,
-            hi: (name) => `नमस्ते ${name}! मैं अप्पू हूं, आपका व्यक्तिगत एआई लर्निंग साथी। आज हम क्या सीखना चाहेंगे?`
-          };
-          const greet = LAUNCH_GREETINGS[lang] || LAUNCH_GREETINGS.en;
-          const addressingName = (child.nickname && child.nickname.trim()) || child.preferredName;
-          window.app.handleUserInteraction(greet(addressingName));
+          if (window.__pendingChatPrompt) {
+            const pendingPrompt = window.__pendingChatPrompt;
+            window.__pendingChatPrompt = null;
+            window.app.handleUserInteraction(pendingPrompt);
+          } else {
+            // Trigger welcome voice greeting in Appu (uses the learner's chosen personalisation
+            // language from Step 4, which may differ from the parent's UI language above).
+            const lang = persLang?.value || 'en';
+            const LAUNCH_GREETINGS = {
+              en: (name) => `Hi ${name}! I'm Appu, your personal AI learning companion. What would you like to explore today?`,
+              kn: (name) => `ನಮಸ್ಕಾರ ${name}! ನಾನು ಅಪ್ಪು, ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಕಲಿಕೆಯ ಸ್ನೇಹಿತ. ಇಂದು ನಾವು ಏನು ಕಲಿಯೋಣ?`,
+              hi: (name) => `नमस्ते ${name}! मैं अप्पू हूं, आपका व्यक्तिगत एआई लर्निंग साथी। आज हम क्या सीखना चाहेंगे?`
+            };
+            const greet = LAUNCH_GREETINGS[lang] || LAUNCH_GREETINGS.en;
+            const addressingName = (child.nickname && child.nickname.trim()) || child.preferredName;
+            window.app.handleUserInteraction(greet(addressingName));
+          }
         }
       });
     }

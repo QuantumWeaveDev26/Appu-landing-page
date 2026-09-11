@@ -972,19 +972,33 @@
       if (isSuperseded()) return supersededResult();
       if (children.length === 1) {
         state.selectedChild = children[0];
-        await fetchPersonalisation(state.selectedChild.id).catch(() => null);
+        const pers = await fetchPersonalisation(state.selectedChild.id).catch(() => null);
         if (isSuperseded()) return supersededResult();
-        launchAppuSession(state.selectedChild);
-        _lastSynchronizedAccessToken = token;
-        finishAuthTransition('READY');
-        return {
-          status: 'READY',
-          synchronized: true,
-          session: state.session,
-          household: state.household,
-          subscription: state.subscription,
-          child: state.selectedChild
-        };
+        if (pers && (pers.favoriteSubjects?.length || pers.learningStyle || pers.interests?.length || pers.preferredLanguage)) {
+          launchAppuSession(state.selectedChild);
+          _lastSynchronizedAccessToken = token;
+          finishAuthTransition('READY');
+          return {
+            status: 'READY',
+            synchronized: true,
+            session: state.session,
+            household: state.household,
+            subscription: state.subscription,
+            child: state.selectedChild
+          };
+        } else {
+          state.personalisation = null;
+          _lastSynchronizedAccessToken = token;
+          finishAuthTransition('PERSONALISATION_REQUIRED');
+          return {
+            status: 'PERSONALISATION_REQUIRED',
+            synchronized: true,
+            session: state.session,
+            household: state.household,
+            subscription: state.subscription,
+            child: state.selectedChild
+          };
+        }
       }
 
       state.selectedChild = null;

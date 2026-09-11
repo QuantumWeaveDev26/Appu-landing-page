@@ -162,6 +162,13 @@
    * Selects a prompt: populates chat input, opens chat drawer, closes prompt panel, focuses input.
    */
   function handleSelectPrompt(promptText) {
+    if (typeof globalThis !== 'undefined' && globalThis.app && typeof globalThis.app.ensureChatSessionReady === 'function') {
+      if (!globalThis.app.ensureChatSessionReady(promptText)) {
+        closePromptLibrary();
+        return;
+      }
+    }
+
     const chatInput = document.getElementById('chat-input');
     if (chatInput) {
       chatInput.value = promptText;
