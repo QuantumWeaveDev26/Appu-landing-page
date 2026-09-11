@@ -385,7 +385,10 @@ If runtime onboarding.isComplete is false:
 
 ---
 
-## 8. Link-Later Web Account Merging Strategy
+## 8. Link-Later Web Account Merging Strategy (Deferred to OTP Milestone)
+
+> [!NOTE]
+> **Security Audit Decision (2026-09-11):** Link-later account claiming via unverified request-body phone has been deferred to a separate milestone that includes cryptographic/SMS OTP verification of phone ownership. In this initial release, phone-only WhatsApp profiles remain isolated and self-contained without risking account takeover.
 
 When a user who onboarded via WhatsApp later registers or signs in on the web app:
 

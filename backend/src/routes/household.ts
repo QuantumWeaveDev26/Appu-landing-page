@@ -14,8 +14,7 @@ export interface HouseholdRouteOptions {
 }
 
 const onboardSchema = z.object({
-  householdName: z.string().max(255, 'householdName must not exceed 255 characters').optional(),
-  phone: z.string().max(32, 'phone must not exceed 32 characters').optional()
+  householdName: z.string().max(255, 'householdName must not exceed 255 characters').optional()
 });
 
 const updateNotificationSchema = z.object({
@@ -42,8 +41,7 @@ export const householdRoutes: FastifyPluginAsync<HouseholdRouteOptions> = async 
 
     const { household, member, isNew } = await TenancyService.onboardParentHousehold(opts.db, {
       userId: principal.userId,
-      householdName: parseResult.data.householdName,
-      phone: parseResult.data.phone
+      householdName: parseResult.data.householdName
     });
 
     const statusCode = isNew ? 201 : 200;

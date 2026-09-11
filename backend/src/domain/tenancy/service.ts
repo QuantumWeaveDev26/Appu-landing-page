@@ -1,7 +1,6 @@
 import type { TransactionalQueryable } from '../../db/types.js';
-import { TenancyRepository, normalizePhoneNumber } from './repository.js';
+import { TenancyRepository } from './repository.js';
 import { HouseholdRoles, type Household, type HouseholdMember } from './types.js';
-import { WhatsAppOnboardingRepository } from '../whatsapp/onboarding/repository.js';
 
 export interface CreateHouseholdWithOwnerInput {
   /**
@@ -11,12 +10,6 @@ export interface CreateHouseholdWithOwnerInput {
    */
   userId: string;
   householdName?: string | null;
-  /**
-   * Optional verified parent phone number.
-   * If provided and matches an existing phone-only household (zero household_members),
-   * the user is attached as OWNER instead of creating a duplicate household.
-   */
-  phone?: string | null;
 }
 
 export interface CreateHouseholdWithOwnerResult {
@@ -74,9 +67,7 @@ export class TenancyService {
    *
    * If the authenticated parent already belongs to a household, returns the existing
    * household and membership without creating an accidental duplicate household.
-   * If the parent has no household but matches an existing phone-only household,
-   * claims that household as OWNER.
-   * Otherwise, atomically creates a new household with OWNER role.
+   * If the parent has no household, atomically creates one with OWNER role.
    */
   public static async onboardParentHousehold(
     db: TransactionalQueryable,
@@ -88,7 +79,7 @@ export class TenancyService {
 
     const trimmedUserId = input.userId.trim();
 
-    // 1. Check for existing membership first (idempotent retry safety)
+    // Check for existing membership first (idempotent retry safety)
     const existingMemberships = await TenancyRepository.findMembershipsByUserId(db, trimmedUserId);
     if (existingMemberships.length > 0) {
       const primaryMembership = existingMemberships[0];
@@ -103,41 +94,7 @@ export class TenancyService {
       }
     }
 
-    // 2. Link-later: If phone number provided, check for existing phone-only household
-    if (input.phone && typeof input.phone === 'string') {
-      try {
-        const normalized = normalizePhoneNumber(input.phone);
-        if (normalized) {
-          const matchingHousehold = await WhatsAppOnboardingRepository.findHouseholdByPhone(db, normalized);
-          if (matchingHousehold) {
-            const members = await TenancyRepository.getHouseholdMembers(db, matchingHousehold.id);
-            if (members.length === 0) {
-              // Atomically claim phone-only household as initial OWNER
-              const owner = await TenancyRepository.createHouseholdMember(db, {
-                householdId: matchingHousehold.id,
-                userId: trimmedUserId,
-                role: HouseholdRoles.OWNER
-              });
-
-              if (input.householdName && (!matchingHousehold.name || matchingHousehold.name === 'Learner Household')) {
-                await WhatsAppOnboardingRepository.updateHouseholdName(db, matchingHousehold.id, input.householdName);
-                matchingHousehold.name = input.householdName;
-              }
-
-              return {
-                household: matchingHousehold,
-                member: owner,
-                isNew: false
-              };
-            }
-          }
-        }
-      } catch {
-        // Ignore phone normalization error and proceed to normal creation
-      }
-    }
-
-    // 3. No existing household membership found, perform atomic creation
+    // No existing household membership found, perform atomic creation
     const { household, owner } = await TenancyService.createHouseholdWithOwner(db, {
       userId: trimmedUserId,
       householdName: input.householdName
