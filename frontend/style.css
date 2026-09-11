@@ -171,7 +171,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mission-intro h1 span { color: var(--cyan-bright); }
 .mission-intro #mission-subtitle, .mission-intro > p:last-child { margin: 8px 0 0; color: #b6c4d9; font-size: 13px; }
 
-.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -3%; width: min(500px, 37vw); height: 90%; transform: translateX(-50%); }
+.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -3%; width: min(560px, 41vw); height: 90%; transform: translateX(-50%); }
 .avatar-interactive-figure { position: absolute; z-index: 3; inset: 4% 8% 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .avatar-interactive-figure img { display: block; width: auto; height: 96%; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 28px 28px rgba(0, 0, 0, .52)); transform: none; animation: none; }
 .avatar-glow { position: absolute; z-index: -1; left: 50%; bottom: 2%; width: 78%; height: 57%; border-radius: 50%; background: radial-gradient(circle, rgba(34, 211, 238, .22), transparent 68%); transform: translateX(-50%); filter: blur(12px); }
@@ -333,7 +333,7 @@ select option:checked, .discovery-form select option:checked {
   .mission-intro { top: 16px; }
   .mission-intro h1 { font-size: clamp(30px, 2.55vw, 42px); }
   .mission-intro > p:last-child { margin-top: 6px; font-size: 12px; }
-  .avatar-stage { bottom: -4%; width: min(560px, 39vw); height: 78%; }
+  .avatar-stage { bottom: -4%; width: min(620px, 43vw); height: 82%; }
   .avatar-interactive-figure { inset: 0 4% 0; }
   .avatar-interactive-figure img { height: 100%; }
   .appu-nameplate { bottom: 5%; }
@@ -480,15 +480,15 @@ select option:checked, .discovery-form select option:checked {
     left: auto;
     bottom: auto;
     transform: none;
-    width: min(360px, 82vw);
+    width: min(430px, 92vw);
     flex: 1 1 0;
-    min-height: 138px;
+    min-height: 200px;
     margin: 2px auto 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     z-index: 5;
-    overflow: hidden;
+    overflow: visible;
   }
   .avatar-interactive-figure {
     position: relative;
@@ -499,7 +499,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.0);
+    transform: scale(1.08);
     padding: 0;
   }
   .avatar-interactive-figure img {
@@ -670,11 +670,11 @@ select option:checked, .discovery-form select option:checked {
     padding: 6px 10px;
   }
   .avatar-stage {
-    width: min(280px, 80vw);
-    height: 235px;
+    width: min(320px, 88vw);
+    height: 275px;
   }
   .avatar-interactive-figure img {
-    max-height: 215px;
+    max-height: 255px;
   }
 }
 
