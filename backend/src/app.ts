@@ -23,6 +23,7 @@ import {
   usageRoutes,
   conversationRoutes,
   whatsappContextRoutes,
+  whatsappOnboardingRoutes,
   whatsappProactiveRoutes,
   promptsRoutes,
   studySchedulesRoutes
@@ -245,6 +246,13 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       db: options.database,
       signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
+    });
+
+    app.register(whatsappOnboardingRoutes, {
+      db: options.database,
+      signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
+      signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS,
+      betaChatLimit: config.APPU_BETA_CHAT_LIMIT
     });
 
     app.register(whatsappProactiveRoutes, {

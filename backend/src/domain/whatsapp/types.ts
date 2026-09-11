@@ -5,6 +5,12 @@ export interface WhatsAppConversationTurn {
   text: string;
 }
 
+export interface WhatsAppOnboardingContextSummary {
+  isComplete: boolean;
+  nextPromptField: string | null;
+  missingFields: string[];
+}
+
 export interface WhatsAppContextResult {
   recognized: boolean;
   householdId?: string;
@@ -13,4 +19,5 @@ export interface WhatsAppContextResult {
   conversationHistory?: WhatsAppConversationTurn[];
   formattedTranscript?: string;
   linkNudge?: string;
+  onboarding?: WhatsAppOnboardingContextSummary;
 }
