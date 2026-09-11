@@ -21,7 +21,7 @@ interface AvatarStageProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const AVATAR_SIZE = Math.min(SCREEN_WIDTH * 0.72, 280);
+const AVATAR_SIZE = Math.min(SCREEN_WIDTH * 0.86, 332);
 
 export function AvatarStage({ onPressAvatar }: AvatarStageProps) {
   const { t } = useLanguage();
@@ -110,21 +110,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 10,
     position: 'relative',
-    height: AVATAR_SIZE + 50,
+    height: AVATAR_SIZE + 44,
   },
   haloGlow: {
     position: 'absolute',
-    width: AVATAR_SIZE * 1.15,
-    height: AVATAR_SIZE * 1.15,
-    borderRadius: (AVATAR_SIZE * 1.15) / 2,
+    width: AVATAR_SIZE * 1.08,
+    height: AVATAR_SIZE * 1.08,
+    borderRadius: (AVATAR_SIZE * 1.08) / 2,
     backgroundColor: 'rgba(34, 211, 238, 0.12)',
     top: 6,
   },
   haloOuterRing: {
     position: 'absolute',
-    width: AVATAR_SIZE * 1.3,
-    height: AVATAR_SIZE * 1.3,
-    borderRadius: (AVATAR_SIZE * 1.3) / 2,
+    width: AVATAR_SIZE * 1.16,
+    height: AVATAR_SIZE * 1.16,
+    borderRadius: (AVATAR_SIZE * 1.16) / 2,
     borderWidth: 1,
     borderColor: 'rgba(34, 211, 238, 0.22)',
     top: -8,
@@ -137,18 +137,18 @@ const styles = StyleSheet.create({
     transform: [{ scaleY: 0.32 }],
   },
   podiumRingOuter: {
-    width: AVATAR_SIZE * 1.25,
-    height: AVATAR_SIZE * 1.25,
-    borderRadius: (AVATAR_SIZE * 1.25) / 2,
+    width: AVATAR_SIZE * 1.15,
+    height: AVATAR_SIZE * 1.15,
+    borderRadius: (AVATAR_SIZE * 1.15) / 2,
     borderWidth: 2,
     borderColor: 'rgba(105, 216, 239, 0.45)',
     backgroundColor: 'rgba(8, 30, 54, 0.6)',
   },
   podiumRingInner: {
     position: 'absolute',
-    width: AVATAR_SIZE * 0.9,
-    height: AVATAR_SIZE * 0.9,
-    borderRadius: (AVATAR_SIZE * 0.9) / 2,
+    width: AVATAR_SIZE * 0.86,
+    height: AVATAR_SIZE * 0.86,
+    borderRadius: (AVATAR_SIZE * 0.86) / 2,
     borderWidth: 1.5,
     borderColor: 'rgba(34, 211, 238, 0.7)',
   },
