@@ -62,7 +62,11 @@ function validateDob(val: unknown): string {
 
 function validateLanguage(val: unknown): string {
   if (typeof val !== 'string') throw new BadRequestError('Preferred language must be a string');
-  const trimmed = val.trim();
+  let trimmed = val.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'english' || lower.startsWith('eng')) trimmed = 'en';
+  else if (lower === 'hindi' || lower.startsWith('hin')) trimmed = 'hi';
+  else if (lower === 'kannada' || lower.startsWith('kan')) trimmed = 'kn';
   if (!isValidLanguageCode(trimmed)) {
     throw new BadRequestError('Invalid language code format (e.g. en, hi, kn)');
   }
@@ -103,17 +107,33 @@ function normalizeStringArray(val: unknown, fieldName: string): string[] {
 }
 
 function validateLearningStyle(val: unknown): LearningStyle {
-  if (typeof val !== 'string' || !LearningStyles.includes(val as any)) {
+  if (typeof val !== 'string') {
     throw new BadRequestError(`Invalid learningStyle. Must be one of: ${LearningStyles.join(', ')}`);
   }
-  return val as LearningStyle;
+  const trimmed = val.trim().toLowerCase();
+  if (LearningStyles.includes(trimmed as any)) {
+    return trimmed as LearningStyle;
+  }
+  if (trimmed.includes('visual') || trimmed.includes('video') || trimmed.includes('watch')) return 'visual';
+  if (trimmed.includes('audit') || trimmed.includes('listen') || trimmed.includes('hear')) return 'auditory';
+  if (trimmed.includes('kinesthe') || trimmed.includes('hand') || trimmed.includes('practic')) return 'kinesthetic';
+  if (trimmed.includes('read') || trimmed.includes('writ')) return 'reading_writing';
+  if (trimmed.includes('interact') || trimmed.includes('quiz') || trimmed.includes('game')) return 'interactive';
+  throw new BadRequestError(`Invalid learningStyle. Must be one of: ${LearningStyles.join(', ')}`);
 }
 
 function validateResponseStyle(val: unknown): ResponseStyle {
-  if (typeof val !== 'string' || !ResponseStyles.includes(val as any)) {
+  if (typeof val !== 'string') {
     throw new BadRequestError(`Invalid responseStyle. Must be one of: ${ResponseStyles.join(', ')}`);
   }
-  return val as ResponseStyle;
+  const trimmed = val.trim().toLowerCase();
+  if (ResponseStyles.includes(trimmed as any)) {
+    return trimmed as ResponseStyle;
+  }
+  if (trimmed.includes('play') || trimmed.includes('fun') || trimmed.includes('game') || trimmed.includes('wit')) return 'playful';
+  if (trimmed.includes('focus') || trimmed.includes('direct') || trimmed.includes('crisp') || trimmed.includes('strict')) return 'focused';
+  if (trimmed.includes('balanc') || trimmed.includes('calm') || trimmed.includes('socrat')) return 'balanced';
+  throw new BadRequestError(`Invalid responseStyle. Must be one of: ${ResponseStyles.join(', ')}`);
 }
 
 function validateWhatsappConsent(val: unknown): boolean {

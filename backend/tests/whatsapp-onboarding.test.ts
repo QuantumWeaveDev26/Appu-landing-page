@@ -436,5 +436,62 @@ describe('WhatsApp Conversational Onboarding Backend', () => {
       assert.equal(data.personalisation.preferredLanguage, 'hi');
       assert.deepEqual(data.missingFields, []);
     });
+
+    test('normalizes language names (English, Hindi, Kannada) to ISO codes (en, hi, kn)', async () => {
+      const phone = '+919988771122';
+      const payload = {
+        phone,
+        field: 'preferredLanguage',
+        value: 'English'
+      };
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/appu/whatsapp/onboarding/save-step',
+        headers: makeSignedHeaders(payload),
+        payload
+      });
+
+      assert.equal(res.statusCode, 200);
+      const data = res.json();
+      assert.equal(data.success, true);
+      assert.equal(data.personalisation.preferredLanguage, 'en');
+    });
+
+    test('POST /api/appu/whatsapp/context returns accurate onboarding progression during onboarding without consent', async () => {
+      const phone = '+919988773344';
+
+      // 1. Initial state before any steps
+      const ctx0 = await app.inject({
+        method: 'POST',
+        url: '/api/appu/whatsapp/context',
+        headers: makeSignedHeaders({ phone }),
+        payload: { phone }
+      });
+      assert.equal(ctx0.statusCode, 200);
+      assert.equal(ctx0.json().recognized, false);
+      assert.equal(ctx0.json().onboarding.nextPromptField, 'name');
+
+      // 2. Save name
+      await app.inject({
+        method: 'POST',
+        url: '/api/appu/whatsapp/onboarding/save-step',
+        headers: makeSignedHeaders({ phone, field: 'name', value: 'Rohan' }),
+        payload: { phone, field: 'name', value: 'Rohan' }
+      });
+
+      // 3. Check context reflects nextPromptField = grade
+      const ctx1 = await app.inject({
+        method: 'POST',
+        url: '/api/appu/whatsapp/context',
+        headers: makeSignedHeaders({ phone }),
+        payload: { phone }
+      });
+      assert.equal(ctx1.statusCode, 200);
+      assert.equal(ctx1.json().recognized, false);
+      assert.equal(ctx1.json().onboarding.nextPromptField, 'grade');
+      assert.equal(ctx1.json().onboarding.missingFields.includes('name'), false);
+      assert.equal(ctx1.json().onboarding.missingFields[0], 'grade');
+    });
   });
 });
