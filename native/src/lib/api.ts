@@ -856,9 +856,16 @@ export async function fetchPlans(): Promise<PlanItem[]> {
 
 export interface ConversationSummary {
   id: string;
+  householdId?: string;
+  childId?: string;
   title: string;
-  created_at: string;
-  updated_at: string;
+  createdAt?: string;
+  updatedAt?: string;
+  expiresAt?: string;
+  lastMessagePreview?: string | null;
+  // Backwards-compatibility aliases
+  created_at?: string;
+  updated_at?: string;
   message_count?: number;
 }
 
@@ -866,7 +873,11 @@ export interface StoredConversationMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
-  created_at: string;
+  createdAt?: string;
+  created_at?: string;
+  conversationId?: string;
+  requestId?: string | null;
+  hasImageAttachment?: boolean;
   audio_source?: string | null;
 }
 
@@ -956,5 +967,80 @@ export async function deleteConversation(
     return false;
   }
 }
+
+// ==========================================
+// HOUSEHOLD NOTIFICATIONS / WHATSAPP PREFERENCES
+// ==========================================
+
+export interface HouseholdNotificationPreferences {
+  parentPhone: string | null;
+  whatsappConsent: boolean;
+  whatsappConsentAt?: string | null;
+}
+
+/**
+ * Retrieves notification and WhatsApp communication preferences for the authenticated parent's household.
+ * GET /api/household/notifications
+ */
+export async function fetchNotificationPreferences(
+  accessToken: string
+): Promise<HouseholdNotificationPreferences | null> {
+  if (!accessToken) return null;
+  try {
+    const url = `${config.apiBaseUrl}/api/household/notifications`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken.trim()}`,
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.warn('[API] fetchNotificationPreferences failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Updates notification and WhatsApp communication preferences for the authenticated parent's household.
+ * PATCH /api/household/notifications
+ */
+export async function updateNotificationPreferences(
+  accessToken: string,
+  input: {
+    parentPhone?: string | null;
+    whatsappConsent?: boolean;
+  }
+): Promise<HouseholdNotificationPreferences | null> {
+  if (!accessToken) return null;
+  try {
+    const url = `${config.apiBaseUrl}/api/household/notifications`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken.trim()}`,
+      },
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.warn('[API] updateNotificationPreferences failed:', err);
+    return null;
+  }
+}
+
 
 

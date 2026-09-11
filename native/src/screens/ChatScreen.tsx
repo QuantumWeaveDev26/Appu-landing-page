@@ -133,7 +133,9 @@ export function ChatScreen({ navigation, route }: Props) {
           id: m.id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
           sender: m.role === 'assistant' ? 'appu' : 'user',
           text: m.text,
-          timestamp: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
+          timestamp: (m.createdAt || m.created_at)
+            ? new Date(m.createdAt || m.created_at!).getTime()
+            : Date.now(),
           status: 'sent',
           audioSource: m.audio_source || undefined,
         }));

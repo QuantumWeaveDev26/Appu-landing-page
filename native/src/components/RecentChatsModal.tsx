@@ -85,17 +85,36 @@ export function RecentChatsModal({
     );
   };
 
-  const formatDate = (isoString: string) => {
+  const formatChatDate = (rawDate?: string | null): string => {
+    if (!rawDate) return 'Recent';
     try {
-      const d = new Date(isoString);
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return 'Recent';
+
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDays = Math.floor(diffHour / 24);
+
+      if (diffSec < 60) return 'Just now';
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHour < 24 && d.getDate() === now.getDate()) {
+        return `${diffHour}h ago`;
+      }
+      if (diffDays === 1 || (diffHour < 48 && d.getDate() === now.getDate() - 1)) {
+        return 'Yesterday';
+      }
+      if (diffDays < 7) {
+        return `${diffDays}d ago`;
+      }
       return d.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
       });
     } catch {
-      return '';
+      return 'Recent';
     }
   };
 
@@ -197,9 +216,15 @@ export function RecentChatsModal({
                         )}
                       </View>
 
+                      {item.lastMessagePreview ? (
+                        <Text style={styles.previewText} numberOfLines={1}>
+                          {item.lastMessagePreview}
+                        </Text>
+                      ) : null}
+
                       <View style={styles.metaRow}>
                         <Text style={styles.dateText}>
-                          {formatDate(item.updated_at || item.created_at)}
+                          {formatChatDate(item.updatedAt || item.createdAt || item.updated_at || item.created_at)}
                         </Text>
                         {typeof item.message_count === 'number' && item.message_count > 0 && (
                           <Text style={styles.countText}>
@@ -387,6 +412,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: theme.colors.cyanSoft,
+  },
+  previewText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 4,
   },
   metaRow: {
     flexDirection: 'row',

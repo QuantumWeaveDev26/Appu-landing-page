@@ -26,6 +26,8 @@ import {
   updateChild,
   fetchPersonalisation,
   savePersonalisation,
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
   fetchCurrentSubscription,
   fetchCurrentUsage,
   validateChildDob,
@@ -154,7 +156,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
     }
   }, [route.params?.tab]);
 
-  // Load personalization when persChild changes
+  // Load personalization when persChild changes or activeTab becomes personalization
   useEffect(() => {
     if (!accessToken || !persChild?.id) return;
     let isMounted = true;
@@ -165,32 +167,49 @@ export function ParentZoneScreen({ navigation, route }: Props) {
     setPersNickname(persChild.nickname || '');
     setPersDob(persChild.dob || '');
 
-    fetchPersonalisation(accessToken, persChild.id)
-      .then((p) => {
-        if (!isMounted || !p) return;
-        if (p.preferredLanguage === 'kn' || p.preferredLanguage === 'hi' || p.preferredLanguage === 'en') {
-          setPersLang(p.preferredLanguage);
-        }
-        if (p.learningStyle) setPersLearningStyle(p.learningStyle);
-        if (p.responseStyle) setPersResponseStyle(p.responseStyle);
-        if (p.fontPreference) setPersFont(p.fontPreference);
-        if (p.themePreference) setPersTheme(p.themePreference);
-        if (Array.isArray(p.favoriteSubjects) && p.favoriteSubjects.length > 0) {
-          setPersSubjects(p.favoriteSubjects.join(', '));
-        }
-        if (Array.isArray(p.interests) && p.interests.length > 0) {
-          setPersInterests(p.interests.join(', '));
-        }
-        if (Array.isArray(p.goals) && p.goals.length > 0) {
-          setPersGoals(p.goals.join(', '));
-        }
-        if (p.parentPhone) setParentPhone(p.parentPhone);
-        if (typeof p.whatsappConsent === 'boolean') setWhatsappConsent(p.whatsappConsent);
-        if (p.nickname) setPersNickname(p.nickname);
-        if (p.dob) setPersDob(p.dob);
-      })
-      .catch((err) => {
+    Promise.all([
+      fetchPersonalisation(accessToken, persChild.id).catch((err) => {
         console.warn('[ParentZone] Failed to fetch personalization:', err);
+        return null;
+      }),
+      fetchNotificationPreferences(accessToken).catch((err) => {
+        console.warn('[ParentZone] Failed to fetch notification preferences:', err);
+        return null;
+      }),
+    ])
+      .then(([p, notif]) => {
+        if (!isMounted) return;
+        if (p) {
+          if (p.preferredLanguage === 'kn' || p.preferredLanguage === 'hi' || p.preferredLanguage === 'en') {
+            setPersLang(p.preferredLanguage);
+          }
+          if (p.learningStyle) setPersLearningStyle(p.learningStyle);
+          if (p.responseStyle) setPersResponseStyle(p.responseStyle);
+          if (p.fontPreference) setPersFont(p.fontPreference);
+          if (p.themePreference) setPersTheme(p.themePreference);
+          if (Array.isArray(p.favoriteSubjects) && p.favoriteSubjects.length > 0) {
+            setPersSubjects(p.favoriteSubjects.join(', '));
+          }
+          if (Array.isArray(p.interests) && p.interests.length > 0) {
+            setPersInterests(p.interests.join(', '));
+          }
+          if (Array.isArray(p.goals) && p.goals.length > 0) {
+            setPersGoals(p.goals.join(', '));
+          }
+          if (p.nickname) setPersNickname(p.nickname);
+          if (p.dob) setPersDob(p.dob);
+          if (p.parentPhone) setParentPhone(p.parentPhone);
+          if (typeof p.whatsappConsent === 'boolean') setWhatsappConsent(p.whatsappConsent);
+        }
+
+        if (notif) {
+          if (notif.parentPhone) {
+            setParentPhone(notif.parentPhone);
+          }
+          if (typeof notif.whatsappConsent === 'boolean') {
+            setWhatsappConsent(notif.whatsappConsent);
+          }
+        }
       })
       .finally(() => {
         if (isMounted) setLoadingPers(false);
@@ -199,7 +218,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, persChild]);
+  }, [accessToken, persChild, activeTab]);
 
   // Load subscription and usage data
   const loadSubscriptionAndUsage = useCallback(async () => {
@@ -384,8 +403,22 @@ export function ParentZoneScreen({ navigation, route }: Props) {
         dob: persDob.trim() || null,
       };
 
-      const updated = await savePersonalisation(accessToken, persChild.id, payload);
+      const [updated] = await Promise.all([
+        savePersonalisation(accessToken, persChild.id, payload),
+        updateNotificationPreferences(accessToken, {
+          parentPhone: validatedPhone,
+          whatsappConsent,
+        }).catch((err) => {
+          console.warn('[ParentZone] updateNotificationPreferences non-fatal warning:', err);
+          return null;
+        }),
+      ]);
+
       void setActivePersonalisation(updated);
+
+      if (validatedPhone) {
+        setParentPhone(validatedPhone);
+      }
 
       // Update child profile locally
       if (persChild) {
