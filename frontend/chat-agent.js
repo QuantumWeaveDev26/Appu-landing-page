@@ -163,17 +163,15 @@ class ChatAgent {
         window.ParentOnboardingShell &&
         Boolean(window.ParentOnboardingShell.state?.session?.access_token);
 
-      // Gated chat: chatting strictly requires an authenticated session with an active personalized learner.
-      if (!hasSecureSession) {
-        responseText = hasAuthenticatedParentSession
-          ? 'Please open Parent Zone to set up your learner profile and preferences before chatting with Appu.'
-          : 'Please sign in or create a parent account to start chatting with Appu.';
+      // Gated chat: If parent is authenticated, require active learner profile & personalization before chatting.
+      if (hasAuthenticatedParentSession && !hasSecureSession) {
+        responseText = 'Please open Parent Zone to set up your learner profile and preferences before chatting with Appu.';
         actionCard = {
-          title: hasAuthenticatedParentSession ? 'Parent Zone' : 'Sign In',
-          buttonText: hasAuthenticatedParentSession ? 'Personalize Appu' : 'Sign in / Sign up',
+          title: 'Parent Zone',
+          buttonText: 'Personalize Appu',
           onClick: () => {
             if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-              window.ParentSetupUI.openModal(hasAuthenticatedParentSession ? 4 : 1);
+              window.ParentSetupUI.openModal(4);
             }
           }
         };

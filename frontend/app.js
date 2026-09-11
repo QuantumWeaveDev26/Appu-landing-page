@@ -253,7 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const guestAccessBadge = document.getElementById('guest-access-badge');
   const guestAccessText = document.getElementById('guest-access-text');
 
-  let currentGuestRemaining = 3;
+  let currentGuestRemaining = (typeof window !== 'undefined' && window.APPU_CONFIG && typeof window.APPU_CONFIG.betaChatLimit === 'number')
+    ? window.APPU_CONFIG.betaChatLimit
+    : 5;
 
   function showGuestGateModal() {
     if (!guestLimitModal) return;
@@ -299,21 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Gated chat: guests cannot chat anonymously -- point directly to signup/setup.
-    guestAccessBadge.classList.remove('is-hidden', 'is-warning', 'is-exhausted');
-    guestAccessBadge.style.cursor = 'pointer';
-    guestAccessBadge.onclick = () => {
-      ensureChatSessionReady();
-    };
-    if (guestAccessText) {
-      guestAccessText.textContent = hasAuthenticatedParent
-        ? 'Complete learner setup in Parent Zone to chat'
-        : 'Sign up free to unlock 30 personalized chats';
-    }
-    return;
-
-    guestAccessBadge.classList.remove('is-hidden');
-
     if (guestData) {
       if (typeof guestData.remaining === 'number') {
         currentGuestRemaining = guestData.remaining;
@@ -324,27 +311,36 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    guestAccessBadge.classList.remove('is-hidden');
     guestAccessBadge.classList.remove('is-warning', 'is-exhausted');
 
     if (currentGuestRemaining <= 0) {
-      if (guestAccessText) guestAccessText.textContent = '0 complimentary chats remaining';
+      if (guestAccessText) guestAccessText.textContent = '0 free chats remaining · Sign in to continue';
       guestAccessBadge.classList.add('is-exhausted');
+      guestAccessBadge.style.cursor = 'pointer';
+      guestAccessBadge.onclick = () => {
+        ensureChatSessionReady();
+      };
     } else if (currentGuestRemaining === 1) {
-      if (guestAccessText) guestAccessText.textContent = '1 complimentary chat remaining';
+      if (guestAccessText) guestAccessText.textContent = '1 free chat remaining';
       guestAccessBadge.classList.add('is-warning');
+      guestAccessBadge.style.cursor = 'default';
+      guestAccessBadge.onclick = null;
     } else {
-      if (guestAccessText) guestAccessText.textContent = `${currentGuestRemaining} complimentary chats remaining`;
+      if (guestAccessText) guestAccessText.textContent = `${currentGuestRemaining} free chats remaining`;
+      guestAccessBadge.style.cursor = 'default';
+      guestAccessBadge.onclick = null;
     }
   }
 
   function onGuestLimitReached(err) {
     currentGuestRemaining = 0;
-    updateGuestBadge({ remaining: 0, used: 3 });
+    updateGuestBadge({ remaining: 0, used: 5 });
     showGuestGateModal();
 
     const subtitlesText = document.getElementById('subtitles-text');
     if (subtitlesText) {
-      subtitlesText.textContent = 'Your complimentary APPU chats are complete. Sign in to continue learning!';
+      subtitlesText.textContent = "You've used your 5 free chats. Sign in to continue learning!";
     }
     avatarStage.setState('idle');
   }
@@ -1023,35 +1019,41 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     }
 
-    voiceEngine.playClick();
-    if (pendingText) {
-      window.__pendingChatPrompt = pendingText;
-    }
-
-    if (!hasAuthenticatedParent) {
+    if (hasAuthenticatedParent) {
+      voiceEngine.playClick();
+      if (pendingText) {
+        window.__pendingChatPrompt = pendingText;
+      }
+      const shell = window.ParentOnboardingShell;
+      const children = (shell && shell.state && shell.state.children) || [];
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-        window.ParentSetupUI.openModal(1);
+        if (children.length === 0) {
+          window.ParentSetupUI.openModal(3);
+        } else {
+          window.ParentSetupUI.openModal(4);
+        }
       }
       const subtitlesText = document.getElementById('subtitles-text');
       if (subtitlesText) {
-        subtitlesText.textContent = 'Sign up free to start chatting with Appu — takes 30 seconds!';
+        subtitlesText.textContent = 'Please set up your learner profile and preferences to start chatting!';
       }
       return false;
     }
 
-    // Parent is authenticated, but child profile or personalization is required
-    const shell = window.ParentOnboardingShell;
-    const children = (shell && shell.state && shell.state.children) || [];
-    if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-      if (children.length === 0) {
-        window.ParentSetupUI.openModal(3);
-      } else {
-        window.ParentSetupUI.openModal(4);
-      }
+    // Guest user with remaining quota (> 0) can chat freely!
+    if (currentGuestRemaining > 0) {
+      return true;
     }
+
+    // Guest quota exhausted -> show gate modal
+    voiceEngine.playClick();
+    if (pendingText) {
+      window.__pendingChatPrompt = pendingText;
+    }
+    showGuestGateModal();
     const subtitlesText = document.getElementById('subtitles-text');
     if (subtitlesText) {
-      subtitlesText.textContent = 'Please set up your learner profile and preferences to start chatting!';
+      subtitlesText.textContent = "You've used your 5 free chats. Sign in to continue with unlimited personalized learning for your child!";
     }
     return false;
   }
@@ -1432,7 +1434,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAuthed = typeof window.AppuSession !== 'undefined' &&
         typeof window.AppuSession.isAuthenticated === 'function' &&
         window.AppuSession.isAuthenticated();
-      if (!isAuthed) {
+      const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+        typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+        window.ParentOnboardingShell.isParentAuthenticated();
+
+      if (hasAuthenticatedParent && !isAuthed) {
+        chatInput.blur();
+        ensureChatSessionReady();
+      } else if (!isAuthed && currentGuestRemaining <= 0) {
         chatInput.blur();
         ensureChatSessionReady();
       }
