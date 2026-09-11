@@ -250,7 +250,7 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
   // Handle 403 GUEST_LIMIT_REACHED cleanly without throwing hard error
   const errCode = data?.code || data?.error?.code;
   if (response.status === 403 && (errCode === 'GUEST_LIMIT_REACHED' || data?.loginRequired || data?.guest?.loginRequired)) {
-    const limit = data?.limit ?? data?.guestLimit ?? data?.guest?.limit ?? 3;
+    const limit = data?.limit ?? data?.guestLimit ?? data?.guest?.limit ?? 5;
     const used = data?.used ?? data?.guest?.used ?? limit;
     const quotaInfo: GuestQuotaInfo = {
       limit,
@@ -853,4 +853,108 @@ export async function fetchPlans(): Promise<PlanItem[]> {
   const data = await response.json();
   return data.plans || [];
 }
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+}
+
+export interface StoredConversationMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  created_at: string;
+  audio_source?: string | null;
+}
+
+/**
+ * Lists recent conversations for an active child.
+ * GET /api/appu/conversations?childId=<childId>
+ */
+export async function fetchConversations(
+  accessToken: string,
+  childId: string
+): Promise<ConversationSummary[]> {
+  try {
+    const url = `${config.apiBaseUrl}/api/appu/conversations?childId=${encodeURIComponent(childId)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken.trim()}`,
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.conversations || [];
+  } catch (err) {
+    console.warn('[API] Failed to fetch conversations:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetches messages for a specific conversation.
+ * GET /api/appu/conversations/:conversationId/messages?childId=<childId>
+ */
+export async function fetchConversationMessages(
+  accessToken: string,
+  childId: string,
+  conversationId: string
+): Promise<StoredConversationMessage[]> {
+  try {
+    const url = `${config.apiBaseUrl}/api/appu/conversations/${encodeURIComponent(conversationId)}/messages?childId=${encodeURIComponent(childId)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken.trim()}`,
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.messages || [];
+  } catch (err) {
+    console.warn('[API] Failed to fetch conversation messages:', err);
+    return [];
+  }
+}
+
+/**
+ * Deletes a conversation for an active child.
+ * DELETE /api/appu/conversations/:conversationId?childId=<childId>
+ */
+export async function deleteConversation(
+  accessToken: string,
+  childId: string,
+  conversationId: string
+): Promise<boolean> {
+  try {
+    const url = `${config.apiBaseUrl}/api/appu/conversations/${encodeURIComponent(conversationId)}?childId=${encodeURIComponent(childId)}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken.trim()}`,
+      },
+    });
+
+    return response.ok;
+  } catch (err) {
+    console.warn('[API] Failed to delete conversation:', err);
+    return false;
+  }
+}
+
 

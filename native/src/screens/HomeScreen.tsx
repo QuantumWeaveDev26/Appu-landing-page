@@ -28,6 +28,7 @@ export function HomeScreen({ navigation }: Props) {
     user,
     session,
     isGuest,
+    guestRemainingQuota,
     activeChild,
     hasCompletedPersonalisation,
     signOut,
@@ -43,8 +44,12 @@ export function HomeScreen({ navigation }: Props) {
   }, [onboardingCompleted]);
 
   const handleStartChat = (initialPrompt?: string) => {
-    // 1. If not authenticated, route to Auth
+    // 1. If not authenticated:
     if (isGuest || !user || !session) {
+      if (guestRemainingQuota > 0) {
+        navigation.navigate('Chat', { initialPrompt });
+        return;
+      }
       navigation.navigate('Auth', { initialPrompt, returnTo: 'Chat' });
       return;
     }
@@ -167,7 +172,9 @@ export function HomeScreen({ navigation }: Props) {
               ? activeChild
                 ? `Learning with ${activeChild.preferredName} · Class ${activeChild.gradeBand}`
                 : `${user.email?.split('@')[0] || 'Parent'} · Account Active`
-              : '✦ Public Beta · Sign in to start free learning'}
+              : guestRemainingQuota > 0
+                ? `✦ ${guestRemainingQuota} free chats remaining · Sign in to save progress`
+                : '✦ Free limit reached · Sign in to continue learning'}
           </Text>
         </View>
 

@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   household: null,
   isGuest: true,
   guestToken: null,
-  guestRemainingQuota: 0,
+  guestRemainingQuota: 5,
   children: [],
   activeChildId: null,
   activeChild: null,
@@ -263,9 +263,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isInitialized: true,
         });
       } else {
-        // 2. Hydrate guest session token & status (browsing only, no anonymous chat)
+        // 2. Hydrate guest session token & status (5 free generic chats allowed before auth gate)
         const storedToken = await getStoredGuestToken();
-        let remaining = 0;
+        let remaining = 5;
 
         try {
           const guestRes = await getGuestStatus();
@@ -274,14 +274,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             guestRes.guest?.token ||
             guestRes.guestSession?.token ||
             storedToken;
-          remaining = guestRes.remaining ?? 0;
+          remaining = typeof guestRes.remaining === 'number'
+            ? guestRes.remaining
+            : (guestRes.guest?.remaining ?? 5);
 
           if (activeToken) {
             await setStoredGuestToken(activeToken);
           }
           set({ guestToken: activeToken, guestRemainingQuota: remaining });
         } catch {
-          set({ guestToken: storedToken });
+          set({ guestToken: storedToken, guestRemainingQuota: remaining });
         }
 
         set({

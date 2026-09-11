@@ -19,11 +19,12 @@ import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { sendAppuMessage } from '../lib/api';
+import { sendAppuMessage, fetchConversationMessages } from '../lib/api';
 import { voiceService } from '../lib/voiceService';
 import { buildWhatsAppShareUrl } from '../lib/studySchedule';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { VoiceSessionModal } from '../components/VoiceSessionModal';
+import { RecentChatsModal } from '../components/RecentChatsModal';
 
 interface ChatMessage {
   id: string;
@@ -67,13 +68,15 @@ export function ChatScreen({ navigation, route }: Props) {
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [isNewConversation, setIsNewConversation] = useState(true);
   const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
+  const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const hasHandledInitialPrompt = useRef(false);
 
-  const isAuthRequired = isGuest || !session || !user;
-  const isProfileRequired = !isAuthRequired && (!activeChild || !hasCompletedPersonalisation());
+  const isGuestGated = isGuest && guestRemainingQuota <= 0;
+  const isAuthRequired = (!isGuest && (!session || !user)) || isGuestGated;
+  const isProfileRequired = !isGuest && (!activeChild || !hasCompletedPersonalisation());
 
   // Handle initial prompt from navigation (e.g. Mission cards or Explore Prompts)
   useEffect(() => {
@@ -113,6 +116,49 @@ export function ChatScreen({ navigation, route }: Props) {
     setConversationId(undefined);
     setIsNewConversation(true);
     setInputText('');
+  };
+
+  const handleSelectConversation = async (selectedConvId: string) => {
+    if (!session?.access_token || !activeChild?.id) return;
+    voiceService.stopPlayback();
+    setIsLoading(true);
+    try {
+      const pastMessages = await fetchConversationMessages(
+        session.access_token,
+        activeChild.id,
+        selectedConvId
+      );
+      if (pastMessages && pastMessages.length > 0) {
+        const formatted: ChatMessage[] = pastMessages.map((m) => ({
+          id: m.id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          sender: m.role === 'assistant' ? 'appu' : 'user',
+          text: m.text,
+          timestamp: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
+          status: 'sent',
+          audioSource: m.audio_source || undefined,
+        }));
+        setMessages(formatted);
+      } else {
+        setMessages([
+          {
+            id: `welcome_${Date.now()}`,
+            sender: 'appu',
+            text: t('chat.emptyState'),
+            timestamp: Date.now(),
+            status: 'sent',
+          },
+        ]);
+      }
+      setConversationId(selectedConvId);
+      setIsNewConversation(false);
+    } catch (err) {
+      console.warn('[Chat] Failed to load conversation messages:', err);
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
   };
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -188,7 +234,15 @@ export function ChatScreen({ navigation, route }: Props) {
       }
 
       // Check if guest limit was reached
-      if (response.loginRequired || response.code === 'GUEST_LIMIT_REACHED') {
+      const isLimitReached =
+        Boolean(response.loginRequired) ||
+        response.code === 'GUEST_LIMIT_REACHED' ||
+        (isGuest &&
+          ((response.guest && response.guest.remaining <= 0) ||
+            (response.guestSession && response.guestSession.remaining <= 0)));
+
+      if (isLimitReached) {
+        updateGuestQuota(0);
         const replyText =
           response.text ||
           t('chat.guestLimitDesc');
@@ -420,6 +474,10 @@ export function ChatScreen({ navigation, route }: Props) {
               <Text style={styles.headerSubtitle}>
                 {activeChild
                   ? `✦ ${activeChild.preferredName} · Class ${activeChild.gradeBand}`
+                  : isGuest
+                  ? guestRemainingQuota > 0
+                    ? `✦ ${guestRemainingQuota} free chats left`
+                    : '🔒 Free limit reached'
                   : isAuthRequired
                   ? '🔒 Sign in required'
                   : isProfileRequired
@@ -430,6 +488,19 @@ export function ChatScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.headerRight}>
+            {isGuest && (
+              <View
+                style={[
+                  styles.quotaBadge,
+                  guestRemainingQuota <= 1 && styles.quotaBadgeLow,
+                ]}
+              >
+                <Text style={styles.quotaText}>
+                  {guestRemainingQuota > 0 ? `${guestRemainingQuota} left` : '0 left'}
+                </Text>
+              </View>
+            )}
+
             <TouchableOpacity
               style={styles.voiceHeaderBtn}
               onPress={() => {
@@ -449,6 +520,16 @@ export function ChatScreen({ navigation, route }: Props) {
             >
               <Text style={styles.voiceHeaderIcon}>🎙️</Text>
             </TouchableOpacity>
+
+            {!isGuest && activeChild && (
+              <TouchableOpacity
+                style={styles.historyHeaderBtn}
+                onPress={() => setIsHistoryModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.historyHeaderIcon}>🕒</Text>
+              </TouchableOpacity>
+            )}
 
             {isAuthRequired ? (
               <TouchableOpacity
@@ -531,7 +612,9 @@ export function ChatScreen({ navigation, route }: Props) {
         {isAuthRequired ? (
           <View style={styles.exhaustedBar}>
             <Text style={styles.exhaustedText}>
-              🔒 Sign in required to chat with Appu (Free Beta)
+              {isGuest
+                ? "✦ You've used your 5 free chats. Sign in to continue with unlimited learning!"
+                : '🔒 Sign in required to chat with Appu (Free Beta)'}
             </Text>
             <TouchableOpacity
               style={styles.signInBarBtn}
@@ -565,41 +648,56 @@ export function ChatScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.inputBar}>
-            <TouchableOpacity
-              style={styles.voiceBarBtn}
-              onPress={() => setIsVoiceModalVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.voiceBarIcon}>🎙️</Text>
-            </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            {isGuest && guestRemainingQuota > 0 && (
+              <View style={styles.guestReminderBar}>
+                <Text style={styles.guestReminderText}>
+                  ✦ {guestRemainingQuota} complimentary {guestRemainingQuota === 1 ? 'chat' : 'chats'} remaining ·{' '}
+                  <Text
+                    style={styles.guestReminderLink}
+                    onPress={() => navigation.navigate('Auth', { returnTo: 'Chat' })}
+                  >
+                    Sign in to save history
+                  </Text>
+                </Text>
+              </View>
+            )}
+            <View style={styles.inputBar}>
+              <TouchableOpacity
+                style={styles.voiceBarBtn}
+                onPress={() => setIsVoiceModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.voiceBarIcon}>🎙️</Text>
+              </TouchableOpacity>
 
-            <TextInput
-              style={styles.textInput}
-              placeholder={t('chat.placeholder')}
-              placeholderTextColor={theme.colors.textMuted}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={1000}
-              editable={!isLoading}
-            />
+              <TextInput
+                style={styles.textInput}
+                placeholder={t('chat.placeholder')}
+                placeholderTextColor={theme.colors.textMuted}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                maxLength={1000}
+                editable={!isLoading}
+              />
 
-            <TouchableOpacity
-              style={[
-                styles.sendBtn,
-                (!inputText.trim() || isLoading) && styles.sendBtnDisabled,
-              ]}
-              onPress={() => handleSendMessage()}
-              disabled={!inputText.trim() || isLoading}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#031124" />
-              ) : (
-                <Text style={styles.sendBtnText}>➤</Text>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.sendBtn,
+                  (!inputText.trim() || isLoading) && styles.sendBtnDisabled,
+                ]}
+                onPress={() => handleSendMessage()}
+                disabled={!inputText.trim() || isLoading}
+                activeOpacity={0.8}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#031124" />
+                ) : (
+                  <Text style={styles.sendBtnText}>➤</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -631,6 +729,17 @@ export function ChatScreen({ navigation, route }: Props) {
             ]);
           }}
           onSignInPress={() => navigation.navigate('Auth', { returnTo: 'Chat' })}
+        />
+
+        {/* Chat History Modal */}
+        <RecentChatsModal
+          visible={isHistoryModalVisible}
+          onClose={() => setIsHistoryModalVisible(false)}
+          onSelectConversation={handleSelectConversation}
+          onNewChat={handleNewChat}
+          currentConversationId={conversationId}
+          accessToken={session?.access_token}
+          childId={activeChild?.id}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -709,6 +818,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(56, 189, 248, 0.3)',
   },
   voiceHeaderIcon: {
+    fontSize: 14,
+  },
+  historyHeaderBtn: {
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    backgroundColor: '#0a1e38',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.4)',
+  },
+  historyHeaderIcon: {
     fontSize: 14,
   },
   quotaBadge: {
@@ -914,14 +1034,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  inputContainer: {
+    backgroundColor: '#07152b',
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.line,
+  },
+  guestReminderBar: {
+    paddingVertical: 5,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(56, 189, 248, 0.15)',
+    alignItems: 'center',
+  },
+  guestReminderText: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+  guestReminderLink: {
+    color: theme.colors.cyanSoft,
+    fontWeight: '700',
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: '#07152b',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.line,
     gap: 8,
   },
   voiceBarBtn: {
