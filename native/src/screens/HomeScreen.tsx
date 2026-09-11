@@ -24,7 +24,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { t, currentLanguage, setLanguage, languages } = useLanguage();
-  const { user, isGuest, guestRemainingQuota, signOut } = useAuthStore();
+  const {
+    user,
+    session,
+    isGuest,
+    activeChild,
+    hasCompletedPersonalisation,
+    signOut,
+  } = useAuthStore();
   const { onboardingCompleted } = useSettingsStore();
   const [exploreModalVisible, setExploreModalVisible] = useState(false);
   const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
@@ -35,13 +42,35 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [onboardingCompleted]);
 
+  const handleStartChat = (initialPrompt?: string) => {
+    // 1. If not authenticated, route to Auth
+    if (isGuest || !user || !session) {
+      navigation.navigate('Auth', { initialPrompt, returnTo: 'Chat' });
+      return;
+    }
+
+    // 2. If authenticated but child / personalisation incomplete, route to Parent Zone setup
+    if (!activeChild || !hasCompletedPersonalisation()) {
+      navigation.navigate('ParentZone', {
+        tab: activeChild ? 'personalization' : 'learners',
+        initialPrompt,
+        returnToChat: true,
+        promptSetupRequired: true,
+      });
+      return;
+    }
+
+    // 3. Authenticated and personalized -> start Chat
+    navigation.navigate('Chat', { initialPrompt });
+  };
+
   const handleSelectPrompt = (prompt: string) => {
     setExploreModalVisible(false);
-    navigation.navigate('Chat', { initialPrompt: prompt });
+    handleStartChat(prompt);
   };
 
   const handleMissionPress = (prompt: string) => {
-    navigation.navigate('Chat', { initialPrompt: prompt });
+    handleStartChat(prompt);
   };
 
   const handleShareApp = () => {
@@ -122,7 +151,7 @@ export function HomeScreen({ navigation }: Props) {
 
         {/* Reanimated Avatar Stage */}
         <AvatarStage
-          onPressAvatar={() => navigation.navigate('Chat')}
+          onPressAvatar={() => handleStartChat()}
         />
 
         {/* Account / Quota Status Badge */}
@@ -130,13 +159,15 @@ export function HomeScreen({ navigation }: Props) {
           <View
             style={[
               styles.statusDot,
-              !isGuest && { backgroundColor: '#10b981' },
+              !isGuest && user && { backgroundColor: '#10b981' },
             ]}
           />
           <Text style={styles.badgeText}>
             {!isGuest && user
-              ? `${user.email?.split('@')[0] || 'Parent'} · Account Active`
-              : `Public Beta · ${guestRemainingQuota} Complimentary Chats`}
+              ? activeChild
+                ? `Learning with ${activeChild.preferredName} · Class ${activeChild.gradeBand}`
+                : `${user.email?.split('@')[0] || 'Parent'} · Account Active`
+              : '✦ Public Beta · Sign in to start free learning'}
           </Text>
         </View>
 
@@ -185,7 +216,7 @@ export function HomeScreen({ navigation }: Props) {
         <View style={styles.navBar}>
           <TouchableOpacity
             style={styles.chatPrimaryBtn}
-            onPress={() => navigation.navigate('Chat')}
+            onPress={() => handleStartChat()}
             activeOpacity={0.82}
           >
             <Text style={styles.chatPrimaryText}>💬 {t('chat.title')}</Text>

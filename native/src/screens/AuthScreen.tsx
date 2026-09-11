@@ -19,13 +19,15 @@ import { isGoogleAuthAvailable, promptGoogleSignIn } from '../lib/googleAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 
-export function AuthScreen({ navigation }: Props) {
+export function AuthScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
   const {
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
     continueAsGuest,
+    refreshChildren,
+    hasCompletedPersonalisation,
     isLoading,
     error,
     clearError,
@@ -45,6 +47,30 @@ export function AuthScreen({ navigation }: Props) {
     setLocalError(null);
     setInfoMessage(null);
     clearError();
+  };
+
+  const handlePostAuthRouting = async () => {
+    try {
+      const children = await refreshChildren();
+      const isPersonalized = hasCompletedPersonalisation();
+      const initialPrompt = route.params?.initialPrompt;
+      const returnTo = route.params?.returnTo;
+
+      if (children.length === 0 || !isPersonalized) {
+        navigation.replace('ParentZone', {
+          tab: children.length === 0 ? 'learners' : 'personalization',
+          initialPrompt,
+          returnToChat: returnTo === 'Chat' || Boolean(initialPrompt),
+          promptSetupRequired: true,
+        });
+      } else if (returnTo === 'Chat' || initialPrompt) {
+        navigation.replace('Chat', { initialPrompt });
+      } else {
+        navigation.replace('Home');
+      }
+    } catch {
+      navigation.replace('Home');
+    }
   };
 
   const handleEmailAuth = async () => {
@@ -75,11 +101,11 @@ export function AuthScreen({ navigation }: Props) {
             `Verification link sent to ${trimmedEmail}. Please check your inbox.`
           );
         } else {
-          navigation.replace('Home');
+          await handlePostAuthRouting();
         }
       } else {
         await signInWithEmail(trimmedEmail, password);
-        navigation.replace('Home');
+        await handlePostAuthRouting();
       }
     } catch (err: any) {
       setLocalError(err?.message || 'Authentication failed. Please try again.');
@@ -101,7 +127,7 @@ export function AuthScreen({ navigation }: Props) {
     try {
       const idToken = await promptGoogleSignIn();
       await signInWithGoogle(idToken);
-      navigation.replace('Home');
+      await handlePostAuthRouting();
     } catch (err: any) {
       if (err?.code !== 'SIGN_IN_CANCELLED') {
         setLocalError(err?.message || 'Google sign-in was cancelled or failed.');
@@ -275,11 +301,13 @@ export function AuthScreen({ navigation }: Props) {
           activeOpacity={0.7}
         >
           <Text style={styles.guestBtnText}>
-            Skip for now · Continue as Guest →
+            Explore App as Guest (Preview Only) →
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.noticeText}>{t('auth.guestNotice')}</Text>
+        <Text style={styles.noticeText}>
+          Guests can browse topics and settings. Sign-in is required to chat with Appu and personalize lessons.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

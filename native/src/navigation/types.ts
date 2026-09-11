@@ -4,9 +4,16 @@ import type { RouteProp } from '@react-navigation/native';
 export type RootStackParamList = {
   Splash: undefined;
   Home: undefined;
-  Auth: undefined;
+  Auth: { initialPrompt?: string; returnTo?: 'Chat' | 'Home' } | undefined;
   Chat: { initialPrompt?: string } | undefined;
-  ParentZone: undefined;
+  ParentZone:
+    | {
+        tab?: 'learners' | 'personalization' | 'subscription';
+        initialPrompt?: string;
+        returnToChat?: boolean;
+        promptSetupRequired?: boolean;
+      }
+    | undefined;
   Settings: undefined;
   StudySchedule: { prefillTopic?: string } | undefined;
   Legal:

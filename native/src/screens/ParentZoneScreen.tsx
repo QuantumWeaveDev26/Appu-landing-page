@@ -55,7 +55,7 @@ const GRADE_OPTIONS = [
   'Grade 12',
 ];
 
-export function ParentZoneScreen({ navigation }: Props) {
+export function ParentZoneScreen({ navigation, route }: Props) {
   const { t, currentLanguage, setLanguage } = useLanguage();
   const {
     user,
@@ -66,9 +66,12 @@ export function ParentZoneScreen({ navigation }: Props) {
     activeChild,
     setActiveChild,
     setActiveChildId,
+    setActivePersonalisation,
   } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<ParentTab>('learners');
+  const [activeTab, setActiveTab] = useState<ParentTab>(
+    () => route.params?.tab || 'learners'
+  );
 
   // Learners list state
   const [children, setChildren] = useState<ChildProfile[]>([]);
@@ -143,6 +146,12 @@ export function ParentZoneScreen({ navigation }: Props) {
       void loadLearners();
     }
   }, [accessToken, loadLearners]);
+
+  useEffect(() => {
+    if (route.params?.tab) {
+      setActiveTab(route.params.tab);
+    }
+  }, [route.params?.tab]);
 
   // Load personalization when persChild changes
   useEffect(() => {
@@ -294,6 +303,7 @@ export function ParentZoneScreen({ navigation }: Props) {
         setChildren((prev) => [...prev, created]);
         void setActiveChild(created);
         setPersChild(created);
+        setActiveTab('personalization');
       }
       setIsChildModalVisible(false);
     } catch (err: any) {
@@ -365,6 +375,7 @@ export function ParentZoneScreen({ navigation }: Props) {
       };
 
       const updated = await savePersonalisation(accessToken, persChild.id, payload);
+      void setActivePersonalisation(updated);
 
       // Update child profile locally
       if (persChild) {
@@ -383,6 +394,23 @@ export function ParentZoneScreen({ navigation }: Props) {
       }
 
       setPersSuccess(true);
+
+      if (route.params?.returnToChat || route.params?.initialPrompt) {
+        Alert.alert(
+          'Personalization Complete! 🎉',
+          `Appu is now personalized for ${persChild?.preferredName || 'your learner'}. Ready to start learning?`,
+          [
+            {
+              text: 'Start Chatting',
+              onPress: () => {
+                navigation.navigate('Chat', {
+                  initialPrompt: route.params?.initialPrompt,
+                });
+              },
+            },
+          ]
+        );
+      }
     } catch (err: any) {
       Alert.alert('Save Failed', err.message || t('parent.errors.saveFailed'));
     } finally {
@@ -508,6 +536,18 @@ export function ParentZoneScreen({ navigation }: Props) {
           <Text style={styles.signOutHeaderText}>{t('parent.signOut')}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Required Setup Notice if redirected from Chat */}
+      {route.params?.promptSetupRequired && (
+        <View style={styles.requiredSetupBanner}>
+          <Text style={styles.requiredSetupTitle}>
+            ✨ Child Setup & Personalization Required
+          </Text>
+          <Text style={styles.requiredSetupText}>
+            To unlock Appu's interactive chat, please add your child's profile and save their learning preferences below.
+          </Text>
+        </View>
+      )}
 
       {/* Tab Selector */}
       <View style={styles.tabBar}>
@@ -2098,5 +2138,26 @@ const styles = StyleSheet.create({
     color: '#030c1e',
     fontSize: 14,
     fontWeight: '800',
+  },
+  requiredSetupBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderRadius: theme.radius.md,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    padding: 12,
+  },
+  requiredSetupTitle: {
+    color: '#fbbf24',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  requiredSetupText: {
+    color: '#fde68a',
+    fontSize: 12,
+    lineHeight: 17,
   },
 });

@@ -41,6 +41,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 export function ChatScreen({ navigation, route }: Props) {
   const { t, currentLanguage } = useLanguage();
   const {
+    user,
     session,
     isGuest,
     guestToken,
@@ -48,6 +49,7 @@ export function ChatScreen({ navigation, route }: Props) {
     updateGuestQuota,
     activeChildId,
     activeChild,
+    hasCompletedPersonalisation,
   } = useAuthStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
@@ -69,15 +71,32 @@ export function ChatScreen({ navigation, route }: Props) {
   const flatListRef = useRef<FlatList>(null);
   const hasHandledInitialPrompt = useRef(false);
 
-  const isQuotaExhausted = isGuest && guestRemainingQuota <= 0;
+  const isAuthRequired = isGuest || !session || !user;
+  const isProfileRequired = !isAuthRequired && (!activeChild || !hasCompletedPersonalisation());
 
   // Handle initial prompt from navigation (e.g. Mission cards or Explore Prompts)
   useEffect(() => {
     if (route.params?.initialPrompt && !hasHandledInitialPrompt.current) {
       hasHandledInitialPrompt.current = true;
+      if (isAuthRequired) {
+        navigation.navigate('Auth', {
+          initialPrompt: route.params.initialPrompt,
+          returnTo: 'Chat',
+        });
+        return;
+      }
+      if (isProfileRequired) {
+        navigation.navigate('ParentZone', {
+          tab: activeChild ? 'personalization' : 'learners',
+          initialPrompt: route.params.initialPrompt,
+          returnToChat: true,
+          promptSetupRequired: true,
+        });
+        return;
+      }
       handleSendMessage(route.params.initialPrompt);
     }
-  }, [route.params?.initialPrompt]);
+  }, [route.params?.initialPrompt, isAuthRequired, isProfileRequired, activeChild]);
 
   const handleNewChat = () => {
     voiceService.stopPlayback();
@@ -99,8 +118,21 @@ export function ChatScreen({ navigation, route }: Props) {
     const messageContent = (textToSend ?? inputText).trim();
     if (!messageContent || isLoading) return;
 
-    if (isQuotaExhausted) {
-      navigation.navigate('Auth');
+    if (isAuthRequired) {
+      navigation.navigate('Auth', {
+        initialPrompt: messageContent,
+        returnTo: 'Chat',
+      });
+      return;
+    }
+
+    if (isProfileRequired) {
+      navigation.navigate('ParentZone', {
+        tab: activeChild ? 'personalization' : 'learners',
+        initialPrompt: messageContent,
+        returnToChat: true,
+        promptSetupRequired: true,
+      });
       return;
     }
 
@@ -380,38 +412,56 @@ export function ChatScreen({ navigation, route }: Props) {
             </View>
             <View>
               <Text style={styles.headerTitle}>{t('common.appTitle')}</Text>
-              <Text style={styles.headerSubtitle}>🟢 {t('common.statusReady')}</Text>
+              <Text style={styles.headerSubtitle}>
+                {activeChild
+                  ? `✦ ${activeChild.preferredName} · Class ${activeChild.gradeBand}`
+                  : isAuthRequired
+                  ? '🔒 Sign in required'
+                  : isProfileRequired
+                  ? '✦ Profile setup required'
+                  : `🟢 ${t('common.statusReady')}`}
+              </Text>
             </View>
           </View>
 
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.voiceHeaderBtn}
-              onPress={() => setIsVoiceModalVisible(true)}
+              onPress={() => {
+                if (isAuthRequired) {
+                  navigation.navigate('Auth', { returnTo: 'Chat' });
+                } else if (isProfileRequired) {
+                  navigation.navigate('ParentZone', {
+                    tab: activeChild ? 'personalization' : 'learners',
+                    returnToChat: true,
+                    promptSetupRequired: true,
+                  });
+                } else {
+                  setIsVoiceModalVisible(true);
+                }
+              }}
               activeOpacity={0.7}
             >
               <Text style={styles.voiceHeaderIcon}>🎙️</Text>
             </TouchableOpacity>
 
-            {isGuest && (
-              <View
-                style={[
-                  styles.quotaBadge,
-                  guestRemainingQuota <= 2 && styles.quotaBadgeLow,
-                ]}
+            {isAuthRequired ? (
+              <TouchableOpacity
+                style={styles.headerSignInBtn}
+                onPress={() => navigation.navigate('Auth', { returnTo: 'Chat' })}
+                activeOpacity={0.8}
               >
-                <Text style={styles.quotaText}>
-                  ⚡ {guestRemainingQuota}
-                </Text>
-              </View>
+                <Text style={styles.headerSignInText}>{t('auth.signInTab')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.newChatBtn}
+                onPress={handleNewChat}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.newChatText}>+ {t('chat.newChat')}</Text>
+              </TouchableOpacity>
             )}
-            <TouchableOpacity
-              style={styles.newChatBtn}
-              onPress={handleNewChat}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.newChatText}>+ {t('chat.newChat')}</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -423,6 +473,29 @@ export function ChatScreen({ navigation, route }: Props) {
           renderItem={renderMessageItem}
           contentContainerStyle={styles.messageListContent}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            isProfileRequired ? (
+              <View style={styles.profileNoticeCard}>
+                <Text style={styles.profileNoticeTitle}>✦ Set Up Learner Profile</Text>
+                <Text style={styles.profileNoticeDesc}>
+                  Appu personalizes explanations to your child's class and learning style.
+                </Text>
+                <TouchableOpacity
+                  style={styles.profileNoticeBtn}
+                  onPress={() =>
+                    navigation.navigate('ParentZone', {
+                      tab: activeChild ? 'personalization' : 'learners',
+                      returnToChat: true,
+                      promptSetupRequired: true,
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.profileNoticeBtnText}>Configure in Parent Zone →</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
           ListFooterComponent={
             <>
               {isLoading && <TypingIndicator label={t('chat.thinking')} />}
@@ -449,19 +522,40 @@ export function ChatScreen({ navigation, route }: Props) {
           }
         />
 
-        {/* Bottom Input or Quota Exhausted Banner */}
-        {isQuotaExhausted ? (
+        {/* Bottom Input or Auth/Profile Gate Banner */}
+        {isAuthRequired ? (
           <View style={styles.exhaustedBar}>
             <Text style={styles.exhaustedText}>
-              {t('chat.guestLimitTitle')}
+              🔒 Sign in required to chat with Appu (Free Beta)
             </Text>
             <TouchableOpacity
               style={styles.signInBarBtn}
-              onPress={() => navigation.navigate('Auth')}
+              onPress={() => navigation.navigate('Auth', { returnTo: 'Chat' })}
               activeOpacity={0.8}
             >
               <Text style={styles.signInBarBtnText}>
-                {t('chat.signInToContinue')} →
+                {t('auth.signInTab')} / {t('auth.createAccountTab')} →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : isProfileRequired ? (
+          <View style={styles.exhaustedBar}>
+            <Text style={styles.exhaustedText}>
+              ✦ Set up learner profile to start chatting
+            </Text>
+            <TouchableOpacity
+              style={styles.signInBarBtn}
+              onPress={() =>
+                navigation.navigate('ParentZone', {
+                  tab: activeChild ? 'personalization' : 'learners',
+                  returnToChat: true,
+                  promptSetupRequired: true,
+                })
+              }
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signInBarBtnText}>
+                Configure in Parent Zone →
               </Text>
             </TouchableOpacity>
           </View>
@@ -531,7 +625,7 @@ export function ChatScreen({ navigation, route }: Props) {
               },
             ]);
           }}
-          onSignInPress={() => navigation.navigate('Auth')}
+          onSignInPress={() => navigation.navigate('Auth', { returnTo: 'Chat' })}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -894,6 +988,48 @@ const styles = StyleSheet.create({
   signInBarBtnText: {
     color: '#031124',
     fontSize: 14,
+    fontWeight: '800',
+  },
+  headerSignInBtn: {
+    backgroundColor: theme.colors.cyan,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  headerSignInText: {
+    color: '#031124',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  profileNoticeCard: {
+    backgroundColor: '#0a1d35',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  profileNoticeTitle: {
+    color: theme.colors.cyanSoft,
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  profileNoticeDesc: {
+    color: theme.colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  profileNoticeBtn: {
+    backgroundColor: theme.colors.cyan,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  profileNoticeBtnText: {
+    color: '#031124',
+    fontSize: 13,
     fontWeight: '800',
   },
 });

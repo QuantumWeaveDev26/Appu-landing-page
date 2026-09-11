@@ -94,13 +94,15 @@ export function VoiceSessionModal({
     };
   });
 
-  // Start listening on open if not quota exhausted
+  const isAuthRequired = isGuest || !session;
+
+  // Start listening on open only if authenticated
   useEffect(() => {
     if (visible) {
       setErrorNotice(null);
       setTranscript('');
       setResponseText('');
-      if (!isQuotaExhausted) {
+      if (!isAuthRequired) {
         startListeningSession();
       }
     } else {
@@ -109,7 +111,7 @@ export function VoiceSessionModal({
     return () => {
       stopAll();
     };
-  }, [visible]);
+  }, [visible, isAuthRequired]);
 
   const stopAll = () => {
     voiceService.stopPlayback();
@@ -231,6 +233,12 @@ export function VoiceSessionModal({
   };
 
   const handleMicPress = () => {
+    if (isAuthRequired) {
+      handleClose();
+      onSignInPress?.();
+      return;
+    }
+
     if (isListening) {
       voiceService.stopListening();
       setIsListening(false);
@@ -285,11 +293,6 @@ export function VoiceSessionModal({
             })}
           </View>
 
-          {isGuest && (
-            <View style={styles.quotaBadge}>
-              <Text style={styles.quotaText}>⚡ {guestRemainingQuota}</Text>
-            </View>
-          )}
         </View>
 
         {/* Central Visualizer & Avatar */}
@@ -319,6 +322,8 @@ export function VoiceSessionModal({
                 ? t('voice.listening')
                 : isSpeaking
                 ? t('voice.appuSpeaking')
+                : isAuthRequired
+                ? 'Sign in required'
                 : t('voice.tapToSpeak')}
             </Text>
           </View>
@@ -326,13 +331,13 @@ export function VoiceSessionModal({
 
         {/* Live Subtitle Card */}
         <View style={styles.subtitleCard}>
-          {isQuotaExhausted ? (
+          {isAuthRequired ? (
             <View style={styles.quotaGateWrap}>
               <Text style={styles.quotaGateTitle}>
-                {t('chat.guestLimitTitle')}
+                {t('chat.guestLimitTitle') || 'Sign In Required'}
               </Text>
               <Text style={styles.quotaGateDesc}>
-                {t('chat.guestLimitDesc')}
+                Create a free parent account to have real voice conversations with Appu.
               </Text>
               <TouchableOpacity
                 style={styles.signInBtn}
@@ -342,7 +347,7 @@ export function VoiceSessionModal({
                 }}
               >
                 <Text style={styles.signInBtnText}>
-                  {t('chat.signInToContinue')} →
+                  {t('auth.signInTab')} / {t('auth.createAccountTab')} →
                 </Text>
               </TouchableOpacity>
             </View>

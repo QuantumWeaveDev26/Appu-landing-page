@@ -9,6 +9,8 @@ import {
   getGuestStatus,
   fetchChildren,
   ChildProfile,
+  fetchPersonalisation,
+  ChildPersonalisation,
 } from '../lib/api';
 
 const ACTIVE_CHILD_ID_KEY = 'appu_active_child_id';
@@ -19,8 +21,10 @@ export interface AuthState {
   isGuest: boolean;
   guestToken: string | null;
   guestRemainingQuota: number;
+  children: ChildProfile[];
   activeChildId: string | null;
   activeChild: ChildProfile | null;
+  activePersonalisation: ChildPersonalisation | null;
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
@@ -40,7 +44,9 @@ export interface AuthState {
   updateGuestQuota: (remaining: number, token?: string) => void;
   setActiveChild: (child: ChildProfile | null) => Promise<void>;
   setActiveChildId: (childId: string | null) => Promise<void>;
+  setActivePersonalisation: (p: ChildPersonalisation | null) => void;
   refreshChildren: () => Promise<ChildProfile[]>;
+  hasCompletedPersonalisation: () => boolean;
 }
 
 let authSubscriptionInitialized = false;
@@ -50,9 +56,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   isGuest: true,
   guestToken: null,
-  guestRemainingQuota: 3,
+  guestRemainingQuota: 0,
+  children: [],
   activeChildId: null,
   activeChild: null,
+  activePersonalisation: null,
   isLoading: false,
   isInitialized: false,
   error: null,
@@ -66,14 +74,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }));
   },
 
+  setActivePersonalisation: (p: ChildPersonalisation | null) => {
+    set({ activePersonalisation: p });
+  },
+
+  hasCompletedPersonalisation: () => {
+    const { activeChild, activePersonalisation } = get();
+    return Boolean(activeChild && activePersonalisation);
+  },
+
   setActiveChild: async (child: ChildProfile | null) => {
     try {
+      const session = get().session;
+      let pers: ChildPersonalisation | null = null;
+      if (child && session?.access_token) {
+        try {
+          pers = await fetchPersonalisation(session.access_token, child.id);
+        } catch {}
+      }
+
       if (child) {
         await AsyncStorage.setItem(ACTIVE_CHILD_ID_KEY, child.id);
-        set({ activeChildId: child.id, activeChild: child });
+        set({
+          activeChildId: child.id,
+          activeChild: child,
+          activePersonalisation: pers,
+        });
       } else {
         await AsyncStorage.removeItem(ACTIVE_CHILD_ID_KEY);
-        set({ activeChildId: null, activeChild: null });
+        set({
+          activeChildId: null,
+          activeChild: null,
+          activePersonalisation: null,
+        });
       }
     } catch (e) {
       console.warn('[AuthStore] Failed to store active child:', e);
@@ -83,15 +116,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setActiveChildId: async (childId: string | null) => {
     try {
+      const session = get().session;
+      const target = get().children.find((c) => c.id === childId) || null;
+      let pers: ChildPersonalisation | null = null;
+      if (childId && session?.access_token) {
+        try {
+          pers = await fetchPersonalisation(session.access_token, childId);
+        } catch {}
+      }
+
       if (childId) {
         await AsyncStorage.setItem(ACTIVE_CHILD_ID_KEY, childId);
-        set((state) => ({
+        set({
           activeChildId: childId,
-          activeChild: state.activeChild?.id === childId ? state.activeChild : null,
-        }));
+          activeChild: target,
+          activePersonalisation: pers,
+        });
       } else {
         await AsyncStorage.removeItem(ACTIVE_CHILD_ID_KEY);
-        set({ activeChildId: null, activeChild: null });
+        set({
+          activeChildId: null,
+          activeChild: null,
+          activePersonalisation: null,
+        });
       }
     } catch (e) {
       console.warn('[AuthStore] Failed to store active child id:', e);
@@ -101,18 +148,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshChildren: async () => {
     const session = get().session;
-    if (!session?.access_token) return [];
+    if (!session?.access_token) {
+      set({
+        children: [],
+        activeChildId: null,
+        activeChild: null,
+        activePersonalisation: null,
+      });
+      return [];
+    }
     try {
       const children = await fetchChildren(session.access_token);
-      const currentActiveId = get().activeChildId || (await AsyncStorage.getItem(ACTIVE_CHILD_ID_KEY));
+      const currentActiveId =
+        get().activeChildId || (await AsyncStorage.getItem(ACTIVE_CHILD_ID_KEY));
       let resolvedChild = children.find((c) => c.id === currentActiveId) || null;
       if (!resolvedChild && children.length > 0) {
         resolvedChild = children[0];
         await AsyncStorage.setItem(ACTIVE_CHILD_ID_KEY, resolvedChild.id);
       }
+
+      let activePersonalisation: ChildPersonalisation | null = null;
+      if (resolvedChild) {
+        try {
+          activePersonalisation = await fetchPersonalisation(
+            session.access_token,
+            resolvedChild.id
+          );
+        } catch {
+          activePersonalisation = null;
+        }
+      }
+
       set({
+        children,
         activeChildId: resolvedChild?.id || null,
         activeChild: resolvedChild,
+        activePersonalisation,
       });
       return children;
     } catch (e) {
@@ -139,14 +210,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const storedChildId = await AsyncStorage.getItem(ACTIVE_CHILD_ID_KEY);
         let activeChild: ChildProfile | null = null;
         let activeChildId: string | null = storedChildId;
+        let activePersonalisation: ChildPersonalisation | null = null;
+        let childrenList: ChildProfile[] = [];
 
         try {
-          const children = await fetchChildren(token);
-          activeChild = children.find((c) => c.id === storedChildId) || null;
-          if (!activeChild && children.length > 0) {
-            activeChild = children[0];
+          childrenList = await fetchChildren(token);
+          activeChild =
+            childrenList.find((c) => c.id === storedChildId) || null;
+          if (!activeChild && childrenList.length > 0) {
+            activeChild = childrenList[0];
             activeChildId = activeChild.id;
             await AsyncStorage.setItem(ACTIVE_CHILD_ID_KEY, activeChild.id);
+          }
+          if (activeChild) {
+            try {
+              activePersonalisation = await fetchPersonalisation(
+                token,
+                activeChild.id
+              );
+            } catch {}
           }
         } catch {
           // Non-blocking
@@ -156,15 +238,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           user: sessionData.session.user,
           session: sessionData.session,
           isGuest: false,
+          children: childrenList,
           activeChildId,
           activeChild,
+          activePersonalisation,
           isLoading: false,
           isInitialized: true,
         });
       } else {
-        // 2. Hydrate guest session token & status
+        // 2. Hydrate guest session token & status (browsing only, no anonymous chat)
         const storedToken = await getStoredGuestToken();
-        let remaining = 3;
+        let remaining = 0;
 
         try {
           const guestRes = await getGuestStatus();
@@ -173,7 +257,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             guestRes.guest?.token ||
             guestRes.guestSession?.token ||
             storedToken;
-          remaining = guestRes.remaining ?? 3;
+          remaining = guestRes.remaining ?? 0;
 
           if (activeToken) {
             await setStoredGuestToken(activeToken);
@@ -187,8 +271,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           user: null,
           session: null,
           isGuest: true,
+          children: [],
           activeChildId: null,
           activeChild: null,
+          activePersonalisation: null,
           isLoading: false,
           isInitialized: true,
         });
@@ -212,8 +298,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               user: null,
               session: null,
               isGuest: true,
+              children: [],
               activeChildId: null,
               activeChild: null,
+              activePersonalisation: null,
               isLoading: false,
             });
           }
