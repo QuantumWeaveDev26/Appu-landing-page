@@ -636,7 +636,7 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
         return { ok: true, status: 200, async json() { return { children: [{ id: 'child-events', preferredName: 'Mira', gradeBand: 'Grade 6' }] }; } };
       }
       if (url.endsWith('/api/children/child-events/personalisation')) {
-        return { ok: true, status: 200, async json() { return { personalisation: { primaryLanguage: 'kn' } }; } };
+        return { ok: true, status: 200, async json() { return { personalisation: { preferredLanguage: 'kn' } }; } };
       }
       throw new Error(`Unexpected fetch URL: ${url}`);
     };
@@ -765,6 +765,9 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
             return { children: [{ id: 'child-101', preferredName: 'Riya', gradeBand: 'Grade 4' }] };
           }
         };
+      }
+      if (url.endsWith('/api/children/child-101/personalisation')) {
+        return { ok: true, status: 200, async json() { return { personalisation: { preferredLanguage: 'en', favoriteSubjects: ['Science'] } }; } };
       }
       throw new Error(`Unexpected fetch URL: ${url}`);
     };

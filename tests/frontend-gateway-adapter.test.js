@@ -204,7 +204,7 @@ describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
       const response = await agent.sendMessage('Teach me fractions');
 
       assert.equal(gatewayCalls, 0);
-      assert.match(response.text, /select.*learner/i);
+      assert.match(response.text, /learner profile/i);
       assert.equal(response.actionCard.title, 'Parent Zone');
     } finally {
       global.window = originalWindow;
