@@ -525,12 +525,100 @@ export function normalizePhoneNumber(raw?: string | null): string | false | null
 // PARENT ZONE: API ENDPOINTS
 // ==========================================
 
+export interface HouseholdInfo {
+  id: string;
+  name: string;
+  role?: string;
+}
+
+export interface OnboardHouseholdResponse {
+  household: HouseholdInfo;
+  role: string;
+  isNew: boolean;
+}
+
+/**
+ * Ensures the authenticated parent has an active household.
+ * Idempotently creates one if none exists.
+ * POST /api/household/onboard
+ */
+export async function ensureHousehold(
+  accessToken: string,
+  householdName?: string
+): Promise<HouseholdInfo> {
+  if (!accessToken) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Access token required');
+  }
+  const url = `${config.apiBaseUrl}/api/household/onboard`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+    body: JSON.stringify({
+      householdName: householdName?.trim() || 'Family Household',
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.code || err.error?.code || 'ONBOARD_HOUSEHOLD_FAILED',
+      err.message || err.error?.message || 'Failed to initialize household'
+    );
+  }
+
+  const data: OnboardHouseholdResponse = await response.json();
+  return data.household;
+}
+
+/**
+ * Retrieves authenticated user and household context.
+ * GET /api/auth/me
+ */
+export async function fetchAuthMe(accessToken: string): Promise<{
+  authenticated: boolean;
+  userId: string;
+  household: HouseholdInfo | null;
+}> {
+  if (!accessToken) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Access token required');
+  }
+  const url = `${config.apiBaseUrl}/api/auth/me`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken.trim()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.code || 'AUTH_ME_FAILED',
+      err.message || 'Failed to fetch auth info'
+    );
+  }
+
+  return response.json();
+}
+
 /**
  * Lists all child profiles for the authenticated parent's household.
  * GET /api/children
  */
 export async function fetchChildren(accessToken: string): Promise<ChildProfile[]> {
   if (!accessToken) return [];
+  // Ensure household exists first so GET /api/children succeeds for fresh accounts
+  await ensureHousehold(accessToken).catch((err) => {
+    console.warn('[API] ensureHousehold pre-check non-fatal error:', err);
+  });
+
   const url = `${config.apiBaseUrl}/api/children`;
   const response = await fetch(url, {
     method: 'GET',
@@ -561,6 +649,11 @@ export async function createChild(
   accessToken: string,
   input: CreateChildInput
 ): Promise<ChildProfile> {
+  // Ensure household exists before creating child
+  await ensureHousehold(accessToken).catch((err) => {
+    console.warn('[API] ensureHousehold pre-create non-fatal error:', err);
+  });
+
   const url = `${config.apiBaseUrl}/api/children`;
   const response = await fetch(url, {
     method: 'POST',

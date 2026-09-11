@@ -11,6 +11,8 @@ import {
   ChildProfile,
   fetchPersonalisation,
   ChildPersonalisation,
+  HouseholdInfo,
+  ensureHousehold,
 } from '../lib/api';
 import { signOutGoogle } from '../lib/googleAuth';
 
@@ -19,6 +21,7 @@ const ACTIVE_CHILD_ID_KEY = 'appu_active_child_id';
 export interface AuthState {
   user: User | null;
   session: Session | null;
+  household: HouseholdInfo | null;
   isGuest: boolean;
   guestToken: string | null;
   guestRemainingQuota: number;
@@ -55,6 +58,7 @@ let authSubscriptionInitialized = false;
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
+  household: null,
   isGuest: true,
   guestToken: null,
   guestRemainingQuota: 0,
@@ -208,6 +212,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (sessionData?.session) {
         const token = sessionData.session.access_token;
+        let household: HouseholdInfo | null = null;
+        try {
+          const meta = sessionData.session.user?.user_metadata;
+          const hName =
+            meta?.household_name ||
+            (meta?.full_name ? `${meta.full_name}'s Family` : 'Family Household');
+          household = await ensureHousehold(token, hName);
+        } catch (e) {
+          console.warn('[AuthStore] ensureHousehold on init:', e);
+        }
+
         const storedChildId = await AsyncStorage.getItem(ACTIVE_CHILD_ID_KEY);
         let activeChild: ChildProfile | null = null;
         let activeChildId: string | null = storedChildId;
@@ -238,6 +253,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
           user: sessionData.session.user,
           session: sessionData.session,
+          household,
           isGuest: false,
           children: childrenList,
           activeChildId,
@@ -333,9 +349,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Sign in succeeded but no active session was returned');
       }
 
+      let household: HouseholdInfo | null = null;
+      try {
+        const meta = data.session.user?.user_metadata;
+        const hName =
+          meta?.household_name ||
+          (meta?.full_name ? `${meta.full_name}'s Family` : 'Family Household');
+        household = await ensureHousehold(data.session.access_token, hName);
+      } catch (e) {
+        console.warn('[AuthStore] ensureHousehold on email sign in:', e);
+      }
+
       set({
         user: data.session.user,
         session: data.session,
+        household,
         isGuest: false,
         isLoading: false,
       });
@@ -371,9 +399,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const hasSession = Boolean(data.session);
 
       if (data.session) {
+        let household: HouseholdInfo | null = null;
+        try {
+          const hName = householdName.trim() || 'Family Household';
+          household = await ensureHousehold(data.session.access_token, hName);
+        } catch (e) {
+          console.warn('[AuthStore] ensureHousehold on email sign up:', e);
+        }
+
         set({
           user: data.session.user,
           session: data.session,
+          household,
           isGuest: false,
           isLoading: false,
         });
@@ -402,9 +439,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (data.session) {
+        let household: HouseholdInfo | null = null;
+        try {
+          const meta = data.session.user?.user_metadata;
+          const hName =
+            meta?.household_name ||
+            (meta?.full_name ? `${meta.full_name}'s Family` : 'Family Household');
+          household = await ensureHousehold(data.session.access_token, hName);
+        } catch (e) {
+          console.warn('[AuthStore] ensureHousehold on Google sign in:', e);
+        }
+
         set({
           user: data.session.user,
           session: data.session,
+          household,
           isGuest: false,
           isLoading: false,
         });
@@ -464,6 +513,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         user: null,
         session: null,
+        household: null,
         isGuest: true,
         guestToken: null,
         activeChildId: null,

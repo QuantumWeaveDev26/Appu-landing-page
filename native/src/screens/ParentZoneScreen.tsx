@@ -20,6 +20,7 @@ import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
 import { config } from '../config';
 import {
+  ensureHousehold,
   fetchChildren,
   createChild,
   updateChild,
@@ -224,8 +225,16 @@ export function ParentZoneScreen({ navigation, route }: Props) {
     }
   }, [activeTab, accessToken, loadSubscriptionAndUsage]);
 
-  // Handle open Add child modal
+  // Handle open Add child modal (Single learner per account rule)
   const openAddChildModal = () => {
+    if (children.length >= 1) {
+      Alert.alert(
+        'Learner Limit Reached',
+        'Each account is dedicated to 1 learner profile. You can edit your existing learner profile or update their personalization preferences.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     setEditingChild(null);
     setChildFormName('');
     setChildFormGrade('Grade 6');
@@ -286,21 +295,22 @@ export function ParentZoneScreen({ navigation, route }: Props) {
           nickname,
           dob,
         });
-        setChildren((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-        if (activeChildId === updated.id) {
-          void setActiveChild(updated);
-        }
-        if (persChild?.id === updated.id) {
-          setPersChild(updated);
-        }
+        setChildren([updated]);
+        void setActiveChild(updated);
+        setPersChild(updated);
       } else {
+        // Ensure household exists before child creation
+        await ensureHousehold(accessToken).catch((e) => {
+          console.warn('[ParentZone] ensureHousehold pre-create warning:', e);
+        });
+
         const created = await createChild(accessToken, {
           preferredName,
           gradeBand,
           nickname,
           dob,
         });
-        setChildren((prev) => [...prev, created]);
+        setChildren([created]);
         void setActiveChild(created);
         setPersChild(created);
         setActiveTab('personalization');
@@ -610,19 +620,23 @@ export function ParentZoneScreen({ navigation, route }: Props) {
         {activeTab === 'learners' && (
           <View>
             <View style={styles.sectionHeaderRow}>
-              <View>
+              <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={styles.sectionTitle}>{t('parent.learnersTitle')}</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Select the active child for Appu conversations or add profiles.
+                  {children.length === 0
+                    ? 'Add your learner profile to begin personalized AI learning.'
+                    : 'Your dedicated learner profile for Appu conversations.'}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={styles.addLearnerBtn}
-                onPress={openAddChildModal}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.addLearnerBtnText}>+ {t('parent.addNewLearner')}</Text>
-              </TouchableOpacity>
+              {children.length === 0 && (
+                <TouchableOpacity
+                  style={styles.addLearnerBtn}
+                  onPress={openAddChildModal}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.addLearnerBtnText}>+ {t('parent.addNewLearner')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {loadingChildren ? (
@@ -646,11 +660,11 @@ export function ParentZoneScreen({ navigation, route }: Props) {
               </View>
             ) : (
               children.map((child) => {
-                const isActive = child.id === activeChildId;
+                const isActive = child.id === activeChildId || children.length === 1;
                 return (
                   <View
                     key={child.id}
-                    style={[styles.childCard, isActive && styles.childCardActive]}
+                    style={[styles.childCard, styles.childCardActive]}
                   >
                     <View style={styles.childCardHeader}>
                       <View style={styles.childAvatarCircle}>
@@ -678,36 +692,22 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                           {child.dob ? (
                             <Text style={styles.dobBadgeText}>🎂 {child.dob}</Text>
                           ) : null}
-                          {isActive && (
-                            <View style={styles.activePill}>
-                              <Text style={styles.activePillText}>
-                                🟢 {t('parent.activeLearner')}
-                              </Text>
-                            </View>
-                          )}
+                          <View style={styles.activePill}>
+                            <Text style={styles.activePillText}>
+                              🟢 {t('parent.activeLearner')}
+                            </Text>
+                          </View>
                         </View>
                       </View>
                     </View>
 
                     <View style={styles.childCardActions}>
-                      {!isActive ? (
-                        <TouchableOpacity
-                          style={styles.childSelectBtn}
-                          onPress={() => void setActiveChild(child)}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.childSelectBtnText}>
-                            {t('parent.setActive')}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
-
                       <TouchableOpacity
                         style={styles.childEditBtn}
                         onPress={() => openEditChildModal(child)}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.childEditBtnText}>✏️ Edit</Text>
+                        <Text style={styles.childEditBtnText}>✏️ Edit Profile</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
