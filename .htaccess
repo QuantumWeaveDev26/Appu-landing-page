@@ -1,0 +1,11 @@
+# Apache / Hostinger Clean URLs for APPU Policy & Landing Pages
+RewriteEngine On
+
+# If file or directory exists directly, serve it
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Rewrite /privacy-policy -> privacy-policy.html
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^/]+)/?$ $1.html [L,QSA]
