@@ -10,6 +10,7 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,8 +18,10 @@ import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { sendAppuMessage } from '../lib/api';
 import { voiceService } from '../lib/voiceService';
+import { buildWhatsAppShareUrl } from '../lib/studySchedule';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { VoiceSessionModal } from '../components/VoiceSessionModal';
 
@@ -175,18 +178,33 @@ export function ChatScreen({ navigation, route }: Props) {
         const replyText = response.text || '';
 
         if (replyText) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: response.requestId || `appu_${Date.now()}`,
-              sender: 'appu',
-              text: replyText,
-              timestamp: Date.now(),
-              status: 'sent',
+          const msgId = response.requestId || `appu_${Date.now()}`;
+          const newMsg: ChatMessage = {
+            id: msgId,
+            sender: 'appu',
+            text: replyText,
+            timestamp: Date.now(),
+            status: 'sent',
+            audioStreamUrl: response.audioStreamUrl,
+            audioSource: response.audioSource,
+          };
+          setMessages((prev) => [...prev, newMsg]);
+
+          // Auto-speak if enabled in settings
+          const autoSpeak = useSettingsStore.getState().autoSpeak;
+          if (autoSpeak) {
+            voiceService.playAppuVoice({
               audioStreamUrl: response.audioStreamUrl,
               audioSource: response.audioSource,
-            },
-          ]);
+              text: replyText,
+              language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
+              accessToken: session?.access_token,
+              guestToken: guestToken || undefined,
+              onStart: () => setPlayingMessageId(msgId),
+              onFinish: () => setPlayingMessageId(null),
+              onError: () => setPlayingMessageId(null),
+            });
+          }
         }
       }
     } catch (err: any) {
@@ -232,6 +250,13 @@ export function ChatScreen({ navigation, route }: Props) {
     });
   };
 
+  const handleShareWhatsApp = (text: string) => {
+    const url = buildWhatsAppShareUrl(undefined, text, activeChild?.preferredName);
+    Linking.openURL(url).catch((err) =>
+      console.warn('[Chat] Failed to open WhatsApp:', err)
+    );
+  };
+
   const quickPrompts = [
     { label: '💡 Explain Photosynthesis', prompt: 'Can you explain photosynthesis in a fun and simple way?' },
     { label: '⚡ Quiz me on Solar System', prompt: 'Give me a fun 3-question quiz about the planets!' },
@@ -253,9 +278,7 @@ export function ChatScreen({ navigation, route }: Props) {
               onPress={() => navigation.navigate('Auth')}
               activeOpacity={0.8}
             >
-              <Text style={styles.gateButtonText}>
-                {t('chat.signInToContinue')} →
-              </Text>
+              <Text style={styles.gateButtonText}>{t('auth.signInTab')} / {t('auth.createAccountTab')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -291,15 +314,24 @@ export function ChatScreen({ navigation, route }: Props) {
           {!isUser && (
             <View style={styles.appuBubbleHeader}>
               <Text style={styles.appuSenderLabel}>{t('chat.appuSays')}</Text>
-              <TouchableOpacity
-                style={styles.speakerBtn}
-                onPress={() => handlePlayAppuAudio(item)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.speakerIcon}>
-                  {isPlaying ? '⏸' : '🔊'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.bubbleActionRow}>
+                <TouchableOpacity
+                  style={styles.speakerBtn}
+                  onPress={() => handlePlayAppuAudio(item)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.speakerIcon}>
+                    {isPlaying ? '⏸' : '🔊'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.waBubbleBtn}
+                  onPress={() => handleShareWhatsApp(item.text)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.waBubbleIcon}>💬</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           <Text style={[styles.messageText, isUser && styles.messageTextUser]}>
@@ -676,12 +708,26 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  bubbleActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   speakerBtn: {
     paddingHorizontal: 4,
     paddingVertical: 2,
   },
   speakerIcon: {
     fontSize: 13,
+  },
+  waBubbleBtn: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(37, 211, 102, 0.12)',
+  },
+  waBubbleIcon: {
+    fontSize: 12,
   },
   messageText: {
     fontSize: 15,

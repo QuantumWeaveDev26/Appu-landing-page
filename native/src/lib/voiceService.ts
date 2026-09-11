@@ -1,10 +1,8 @@
 import { createAudioPlayer, type AudioPlayer, type AudioSource } from 'expo-audio';
 import * as Speech from 'expo-speech';
-import Voice, {
-  type SpeechResultsEvent,
-  type SpeechErrorEvent,
-} from '@react-native-voice/voice';
+import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 import { config } from '../config';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export interface PlaybackOptions {
   audioStreamUrl?: string | null;
@@ -21,6 +19,7 @@ export interface PlaybackOptions {
 class VoiceService {
   private currentPlayer: AudioPlayer | null = null;
   private isSpeechActive = false;
+  private recognitionSubscriptions: { remove: () => void }[] = [];
 
   /**
    * Resolves language code into standard locale identifier for STT / TTS.
@@ -121,12 +120,13 @@ class VoiceService {
       try {
         this.isSpeechActive = true;
         const locale = this.getLocale(language);
+        const settings = useSettingsStore.getState();
         onStart?.();
 
         Speech.speak(text, {
           language: locale,
-          pitch: 1.05, // Slightly cheerful pitch for Appu
-          rate: 0.95,
+          pitch: settings.voicePitch,
+          rate: settings.voiceRate,
           onDone: () => {
             this.isSpeechActive = false;
             onFinish?.();
@@ -145,6 +145,33 @@ class VoiceService {
     } else {
       onFinish?.();
     }
+  }
+
+  /**
+   * Plays a quick preview sentence to test current voice rate and pitch.
+   */
+  public testVoice(
+    language: 'en' | 'kn' | 'hi' = 'en',
+    customRate?: number,
+    customPitch?: number
+  ): void {
+    this.stopPlayback();
+    const settings = useSettingsStore.getState();
+    const rate = customRate ?? settings.voiceRate;
+    const pitch = customPitch ?? settings.voicePitch;
+    const locale = this.getLocale(language);
+
+    const previewPhrases: Record<'en' | 'kn' | 'hi', string> = {
+      en: 'Hello! I am Appu, your AI learning friend. How can I help you today?',
+      kn: 'ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು, ನಿಮ್ಮ ಕಲಿಕೆಯ ಸ್ನೇಹಿತ. ಇಂದು ಏನು ಕಲಿಯೋಣ?',
+      hi: 'नमस्ते! मैं अप्पू हूँ, आपका सीखने का साथी। आज हम क्या नया सीखेंगे?',
+    };
+
+    Speech.speak(previewPhrases[language] || previewPhrases.en, {
+      language: locale,
+      pitch,
+      rate,
+    });
   }
 
   /**
@@ -167,8 +194,17 @@ class VoiceService {
     }
   }
 
+  private clearRecognitionSubscriptions(): void {
+    for (const sub of this.recognitionSubscriptions) {
+      try {
+        sub.remove();
+      } catch {}
+    }
+    this.recognitionSubscriptions = [];
+  }
+
   /**
-   * Starts native speech recognition.
+   * Starts native speech recognition via expo-speech-recognition.
    */
   public async startListening(
     language: string,
@@ -180,32 +216,46 @@ class VoiceService {
     }
   ): Promise<void> {
     this.stopPlayback();
+    this.clearRecognitionSubscriptions();
 
     try {
-      Voice.removeAllListeners();
+      const perms = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!perms.granted) {
+        callbacks.onError?.(new Error('Microphone/Speech permission not granted'));
+        return;
+      }
 
-      Voice.onSpeechStart = () => {
-        callbacks.onStart?.();
-      };
+      this.recognitionSubscriptions.push(
+        ExpoSpeechRecognitionModule.addListener('start', () => {
+          callbacks.onStart?.();
+        })
+      );
 
-      Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
-        if (e.value && e.value.length > 0) {
-          callbacks.onPartial?.(e.value[0]);
-        }
-      };
+      this.recognitionSubscriptions.push(
+        ExpoSpeechRecognitionModule.addListener('result', (ev) => {
+          const transcript = ev.results?.[0]?.transcript || '';
+          if (transcript) {
+            if (ev.isFinal) {
+              callbacks.onResults?.(transcript);
+            } else {
+              callbacks.onPartial?.(transcript);
+            }
+          }
+        })
+      );
 
-      Voice.onSpeechResults = (e: SpeechResultsEvent) => {
-        if (e.value && e.value.length > 0) {
-          callbacks.onResults?.(e.value[0]);
-        }
-      };
-
-      Voice.onSpeechError = (e: SpeechErrorEvent) => {
-        callbacks.onError?.(e);
-      };
+      this.recognitionSubscriptions.push(
+        ExpoSpeechRecognitionModule.addListener('error', (ev) => {
+          callbacks.onError?.(ev.message || ev.error);
+        })
+      );
 
       const locale = this.getLocale(language);
-      await Voice.start(locale);
+      ExpoSpeechRecognitionModule.start({
+        lang: locale,
+        interimResults: true,
+        continuous: false,
+      });
     } catch (err) {
       callbacks.onError?.(err);
     }
@@ -216,7 +266,7 @@ class VoiceService {
    */
   public async stopListening(): Promise<void> {
     try {
-      await Voice.stop();
+      ExpoSpeechRecognitionModule.stop();
     } catch {}
   }
 
@@ -225,9 +275,9 @@ class VoiceService {
    */
   public async cancelListening(): Promise<void> {
     try {
-      await Voice.cancel();
-      Voice.removeAllListeners();
+      ExpoSpeechRecognitionModule.abort();
     } catch {}
+    this.clearRecognitionSubscriptions();
   }
 }
 

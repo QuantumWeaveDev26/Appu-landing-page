@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,16 +13,27 @@ import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { AvatarStage } from '../components/AvatarStage';
 import { MissionCard } from '../components/MissionCard';
 import { ExplorePromptsModal } from '../components/ExplorePromptsModal';
+import { OnboardingModal } from '../components/OnboardingModal';
+import { buildAppuAppShareUrl } from '../lib/studySchedule';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { t, currentLanguage, setLanguage, languages } = useLanguage();
   const { user, isGuest, guestRemainingQuota, signOut } = useAuthStore();
+  const { onboardingCompleted } = useSettingsStore();
   const [exploreModalVisible, setExploreModalVisible] = useState(false);
+  const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
+
+  useEffect(() => {
+    if (!onboardingCompleted) {
+      setIsOnboardingVisible(true);
+    }
+  }, [onboardingCompleted]);
 
   const handleSelectPrompt = (prompt: string) => {
     setExploreModalVisible(false);
@@ -30,6 +42,11 @@ export function HomeScreen({ navigation }: Props) {
 
   const handleMissionPress = (prompt: string) => {
     navigation.navigate('Chat', { initialPrompt: prompt });
+  };
+
+  const handleShareApp = () => {
+    const url = buildAppuAppShareUrl(currentLanguage);
+    Linking.openURL(url).catch((err) => console.warn('[Home] WhatsApp share failed:', err));
   };
 
   return (
@@ -202,6 +219,83 @@ export function HomeScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Quick Tools & Study Section */}
+        <View style={styles.quickToolsSection}>
+          <Text style={styles.sectionHeader}>STUDY TOOLS & REMINDERS</Text>
+
+          {/* Study Schedule & 0-OAuth Google Calendar */}
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() => navigation.navigate('StudySchedule')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.toolIconWrap, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
+              <Text style={styles.toolIcon}>⏰</Text>
+            </View>
+            <View style={styles.toolContent}>
+              <Text style={styles.toolTitle}>{t('study.title') || 'Study Schedule & Reminders'}</Text>
+              <Text style={styles.toolDesc}>
+                {t('study.subtitle') || '1-Tap Google Calendar schedule & WhatsApp study notes'}
+              </Text>
+            </View>
+            <Text style={styles.toolArrow}>›</Text>
+          </TouchableOpacity>
+
+          {/* WhatsApp Share Card */}
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={handleShareApp}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.toolIconWrap, { backgroundColor: 'rgba(37, 211, 102, 0.12)' }]}>
+              <Text style={styles.toolIcon}>💬</Text>
+            </View>
+            <View style={styles.toolContent}>
+              <Text style={styles.toolTitle}>Invite Family on WhatsApp</Text>
+              <Text style={styles.toolDesc}>
+                Share APPU AI tutor with friends, siblings & classmates
+              </Text>
+            </View>
+            <Text style={styles.toolArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Legal & Policy Footer */}
+        <View style={styles.footerLegal}>
+          <View style={styles.legalLinksRow}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Legal', { initialTab: 'privacy' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.legalLinkText}>Privacy</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalDot}>•</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Legal', { initialTab: 'terms' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.legalLinkText}>Terms</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalDot}>•</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Legal', { initialTab: 'cancellation' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.legalLinkText}>Refunds</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalDot}>•</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Legal', { initialTab: 'contact' })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.legalLinkText}>Contact Us</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.copyrightText}>
+            © 2026 APPU AI · Designed for Classes 5-12 in India
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Explore Prompts Modal */}
@@ -209,6 +303,12 @@ export function HomeScreen({ navigation }: Props) {
         visible={exploreModalVisible}
         onClose={() => setExploreModalVisible(false)}
         onSelectPrompt={handleSelectPrompt}
+      />
+
+      {/* First-run Onboarding Modal */}
+      <OnboardingModal
+        visible={isOnboardingVisible}
+        onClose={() => setIsOnboardingVisible(false)}
       />
     </SafeAreaView>
   );
@@ -399,5 +499,73 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 13,
     fontWeight: '700',
+  },
+  quickToolsSection: {
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  toolCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0a1a2f',
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.15)',
+    padding: 14,
+    marginBottom: 10,
+    gap: 12,
+  },
+  toolIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolIcon: {
+    fontSize: 20,
+  },
+  toolContent: {
+    flex: 1,
+  },
+  toolTitle: {
+    color: '#e2f1fd',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  toolDesc: {
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  toolArrow: {
+    color: theme.colors.cyanSoft,
+    fontSize: 20,
+    fontWeight: '300',
+  },
+  footerLegal: {
+    marginTop: 20,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  legalLinkText: {
+    color: theme.colors.cyanSoft,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  legalDot: {
+    color: theme.colors.textMuted,
+    fontSize: 10,
+  },
+  copyrightText: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
   },
 });

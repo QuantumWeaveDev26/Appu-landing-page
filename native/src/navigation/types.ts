@@ -8,6 +8,18 @@ export type RootStackParamList = {
   Chat: { initialPrompt?: string } | undefined;
   ParentZone: undefined;
   Settings: undefined;
+  StudySchedule: { prefillTopic?: string } | undefined;
+  Legal:
+    | {
+        initialTab?:
+          | 'privacy'
+          | 'terms'
+          | 'cancellation'
+          | 'shipping'
+          | 'pricing'
+          | 'contact';
+      }
+    | undefined;
 };
 
 export type RootStackNavigationProp<T extends keyof RootStackParamList> =

@@ -37,7 +37,14 @@
       "expo-localization",
       "@react-native-google-signin/google-signin",
       "expo-audio",
-      "@react-native-voice/voice"
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow APPU to use the microphone for interactive voice learning.",
+          "speechRecognitionPermission": "Allow APPU to use speech recognition to understand your questions.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ]
     ],
     "extra": {
       "eas": {

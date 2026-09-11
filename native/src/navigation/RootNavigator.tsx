@@ -7,6 +7,8 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ParentZoneScreen } from '../screens/ParentZoneScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { StudyScheduleScreen } from '../screens/StudyScheduleScreen';
+import { LegalScreen } from '../screens/LegalScreen';
 import { theme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,6 +44,16 @@ export function RootNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="StudySchedule"
+        component={StudyScheduleScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Legal"
+        component={LegalScreen}
+        options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
   );

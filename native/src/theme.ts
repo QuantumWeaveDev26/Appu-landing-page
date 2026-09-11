@@ -14,7 +14,7 @@ export const theme = {
     text: '#ffffff',
     textMuted: '#b6c4d9',
   },
-  radius: { sm: 10, md: 14, lg: 20, pill: 999 },
+  radius: { sm: 10, md: 14, lg: 20, xl: 24, pill: 999, full: 999 },
   space: (n: number) => n * 4,
 } as const;
 
