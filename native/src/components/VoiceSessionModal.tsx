@@ -50,6 +50,8 @@ export function VoiceSessionModal({
     guestRemainingQuota,
     updateGuestQuota,
     activeChildId,
+    activeChild,
+    children,
   } = useAuthStore();
 
   const [isListening, setIsListening] = useState(false);
@@ -169,12 +171,16 @@ export function VoiceSessionModal({
     setErrorNotice(null);
 
     try {
+      const resolvedChildId = !isGuest
+        ? (activeChildId || activeChild?.id || (children && children.length > 0 ? children[0].id : undefined))
+        : undefined;
+
       const response = await sendAppuMessage({
         message: text,
         language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
         includeAudio: true,
         accessToken: session?.access_token,
-        childId: !isGuest ? (activeChildId || undefined) : undefined,
+        childId: resolvedChildId,
         guestToken: isGuest ? guestToken || undefined : undefined,
         conversationId,
       });

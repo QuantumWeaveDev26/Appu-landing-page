@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,11 +10,8 @@ import {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withRepeat,
   withSequence,
-  withTiming,
   withSpring,
-  Easing,
 } from 'react-native-reanimated';
 import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
@@ -24,68 +21,24 @@ interface AvatarStageProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const AVATAR_SIZE = Math.min(SCREEN_WIDTH * 0.58, 240);
+const AVATAR_SIZE = Math.min(SCREEN_WIDTH * 0.72, 280);
 
 export function AvatarStage({ onPressAvatar }: AvatarStageProps) {
   const { t } = useLanguage();
   const [speechBubbleText, setSpeechBubbleText] = useState<string | null>(null);
 
-  // Floating breathing animation
-  const translateY = useSharedValue(0);
+  // Gentle tactile response on tap
   const avatarScale = useSharedValue(1);
 
-  // Halo pulse animations
-  const haloScale = useSharedValue(1);
-  const haloOpacity = useSharedValue(0.5);
-
-  useEffect(() => {
-    // Continuous floating breathing motion (4-second cycle)
-    translateY.value = withRepeat(
-      withSequence(
-        withTiming(-10, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
-        withTiming(4, { duration: 2200, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      true
-    );
-
-    // Continuous halo breathing
-    haloScale.value = withRepeat(
-      withSequence(
-        withTiming(1.15, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0.95, { duration: 2600, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      true
-    );
-
-    haloOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.85, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0.35, { duration: 2600, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      true
-    );
-  }, []);
-
   const animatedAvatarStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: translateY.value },
-      { scale: avatarScale.value },
-    ],
-  }));
-
-  const animatedHaloStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: haloScale.value }],
-    opacity: haloOpacity.value,
+    transform: [{ scale: avatarScale.value }],
   }));
 
   const handlePress = () => {
     // Tactile spring bounce on tap
     avatarScale.value = withSequence(
-      withSpring(0.92, { damping: 10, stiffness: 300 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
+      withSpring(0.94, { damping: 12, stiffness: 300 }),
+      withSpring(1, { damping: 14, stiffness: 200 })
     );
 
     const greetings = [
@@ -116,8 +69,8 @@ export function AvatarStage({ onPressAvatar }: AvatarStageProps) {
       ) : null}
 
       {/* Holographic Halo & Aura Behind Avatar */}
-      <Animated.View style={[styles.haloGlow, animatedHaloStyle]} />
-      <Animated.View style={[styles.haloOuterRing, animatedHaloStyle]} />
+      <View style={styles.haloGlow} />
+      <View style={styles.haloOuterRing} />
 
       {/* Concentric Holographic Podium Base Rings */}
       <View style={styles.podiumBase}>
@@ -155,9 +108,9 @@ const styles = StyleSheet.create({
   stageWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 18,
+    marginVertical: 10,
     position: 'relative',
-    height: AVATAR_SIZE + 70,
+    height: AVATAR_SIZE + 50,
   },
   haloGlow: {
     position: 'absolute',
@@ -165,20 +118,20 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE * 1.15,
     borderRadius: (AVATAR_SIZE * 1.15) / 2,
     backgroundColor: 'rgba(34, 211, 238, 0.12)',
-    top: 10,
+    top: 6,
   },
   haloOuterRing: {
     position: 'absolute',
-    width: AVATAR_SIZE * 1.32,
-    height: AVATAR_SIZE * 1.32,
-    borderRadius: (AVATAR_SIZE * 1.32) / 2,
+    width: AVATAR_SIZE * 1.3,
+    height: AVATAR_SIZE * 1.3,
+    borderRadius: (AVATAR_SIZE * 1.3) / 2,
     borderWidth: 1,
     borderColor: 'rgba(34, 211, 238, 0.22)',
-    top: -5,
+    top: -8,
   },
   podiumBase: {
     position: 'absolute',
-    bottom: 22,
+    bottom: 14,
     alignItems: 'center',
     justifyContent: 'center',
     transform: [{ scaleY: 0.32 }],

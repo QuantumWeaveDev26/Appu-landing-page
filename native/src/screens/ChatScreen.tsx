@@ -49,6 +49,7 @@ export function ChatScreen({ navigation, route }: Props) {
     updateGuestQuota,
     activeChildId,
     activeChild,
+    children,
     hasCompletedPersonalisation,
   } = useAuthStore();
 
@@ -151,12 +152,16 @@ export function ChatScreen({ navigation, route }: Props) {
     setIsLoading(true);
 
     try {
+      const resolvedChildId = !isGuest
+        ? (activeChildId || activeChild?.id || (children && children.length > 0 ? children[0].id : undefined))
+        : undefined;
+
       const response = await sendAppuMessage({
         message: messageContent,
         language: (currentLanguage as 'en' | 'kn' | 'hi') || 'en',
         includeAudio: true,
         accessToken: session?.access_token,
-        childId: !isGuest ? (activeChildId || undefined) : undefined,
+        childId: resolvedChildId,
         guestToken: isGuest ? guestToken || undefined : undefined,
         conversationId,
         newConversation: isNewConversation,

@@ -171,6 +171,45 @@ export function HomeScreen({ navigation }: Props) {
           </Text>
         </View>
 
+        {/* Primary Action Deck: Chat with Appu + Parent Zone & Sign Out (above missions) */}
+        <View style={styles.navBar}>
+          <TouchableOpacity
+            style={styles.chatPrimaryBtn}
+            onPress={() => handleStartChat()}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.chatPrimaryText}>💬 {t('chat.title')}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.navRow}>
+            <TouchableOpacity
+              style={styles.navSecondaryBtn}
+              onPress={() => navigation.navigate('ParentZone')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navSecondaryText}>👨‍👩‍👧 {t('parent.title')}</Text>
+            </TouchableOpacity>
+
+            {isGuest ? (
+              <TouchableOpacity
+                style={styles.navSecondaryBtn}
+                onPress={() => navigation.navigate('Auth')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.navSecondaryText}>🔐 {t('auth.signInTab')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.navSecondaryBtn}
+                onPress={() => signOut()}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.navSecondaryText}>🚪 Sign Out</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* Mission Cards Deck */}
         <View style={styles.missionSection}>
           <Text style={styles.sectionHeader}>LEARNING MISSIONS</Text>
@@ -212,45 +251,6 @@ export function HomeScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Quick Nav Bar */}
-        <View style={styles.navBar}>
-          <TouchableOpacity
-            style={styles.chatPrimaryBtn}
-            onPress={() => handleStartChat()}
-            activeOpacity={0.82}
-          >
-            <Text style={styles.chatPrimaryText}>💬 {t('chat.title')}</Text>
-          </TouchableOpacity>
-
-          <View style={styles.navRow}>
-            {isGuest ? (
-              <TouchableOpacity
-                style={styles.navSecondaryBtn}
-                onPress={() => navigation.navigate('Auth')}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.navSecondaryText}>🔐 {t('auth.signInTab')}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.navSecondaryBtn}
-                onPress={() => signOut()}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.navSecondaryText}>🚪 Sign Out</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.navSecondaryBtn}
-              onPress={() => navigation.navigate('ParentZone')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.navSecondaryText}>👨‍👩‍👦 {t('parent.title')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Quick Tools & Study Section */}
         <View style={styles.quickToolsSection}>
           <Text style={styles.sectionHeader}>STUDY TOOLS & REMINDERS</Text>
@@ -265,9 +265,9 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={styles.toolIcon}>⏰</Text>
             </View>
             <View style={styles.toolContent}>
-              <Text style={styles.toolTitle}>{t('study.title') || 'Study Schedule & Reminders'}</Text>
+              <Text style={styles.toolTitle}>{t('study.title')}</Text>
               <Text style={styles.toolDesc}>
-                {t('study.subtitle') || '1-Tap Google Calendar schedule & WhatsApp study notes'}
+                {t('study.subtitle')}
               </Text>
             </View>
             <Text style={styles.toolArrow}>›</Text>
@@ -494,23 +494,25 @@ const styles = StyleSheet.create({
   navBar: {
     gap: 10,
     marginTop: 6,
+    marginBottom: 20,
   },
   chatPrimaryBtn: {
     backgroundColor: theme.colors.cyan,
-    borderRadius: theme.radius.md,
-    minHeight: 50,
+    borderRadius: theme.radius.lg,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: theme.colors.cyan,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 4,
   },
   chatPrimaryText: {
     color: '#00121d',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
   navRow: {
     flexDirection: 'row',
@@ -522,9 +524,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.md,
-    minHeight: 44,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   navSecondaryText: {
     color: theme.colors.text,
