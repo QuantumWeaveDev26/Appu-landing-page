@@ -12,6 +12,7 @@ import {
   fetchPersonalisation,
   ChildPersonalisation,
 } from '../lib/api';
+import { signOutGoogle } from '../lib/googleAuth';
 
 const ACTIVE_CHILD_ID_KEY = 'appu_active_child_id';
 
@@ -457,6 +458,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await supabase.auth.signOut();
+      await signOutGoogle();
       await clearStoredGuestToken();
       await AsyncStorage.removeItem(ACTIVE_CHILD_ID_KEY).catch(() => {});
       set({
