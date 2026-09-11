@@ -290,7 +290,12 @@ Atomically creates/finds phone-only household & child, validates input fields wi
 - `learningStyle` (`visual` | `auditory` | `kinesthetic` | `reading_writing` | `interactive`)
 - `responseStyle` (`playful` | `balanced` | `focused`)
 - `goals` (string or string[])
-- `whatsappConsent` (boolean: explicit opt-in confirmation)
+- `whatsappConsent` (boolean: explicit opt-in confirmation; must be affirmatively `true`, does NOT default to `true`)
+
+**Automatic Subscription Provisioning:**
+- Every invocation of `save-step` executes `ensureBetaSubscription(tx, household.id, betaChatLimit ?? 30)`.
+- On the very first call (e.g. saving the learner's name), this immediately provisions the active beta subscription and all plan entitlements (`multilingual: true`, `advanced_personalisation: true`, `monthly_ai_sessions: 30`).
+- Subsequent calls no-op cleanly. This guarantees WhatsApp learners are never blocked by subscription/entitlement gates.
 
 **Response:**
 ```json
