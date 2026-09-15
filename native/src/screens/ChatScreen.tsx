@@ -25,6 +25,14 @@ import { buildWhatsAppShareUrl } from '../lib/studySchedule';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { VoiceSessionModal } from '../components/VoiceSessionModal';
 import { RecentChatsModal } from '../components/RecentChatsModal';
+import { ParentFeedbackGateModal } from '../components/ParentFeedbackGateModal';
+import {
+  FEEDBACK_CHAT_THRESHOLD,
+  getAuthedChatCount,
+  incrementAuthedChatCount,
+  isCachedFeedbackUnlocked,
+  checkFeedbackStatus,
+} from '../lib/feedbackGate';
 
 interface ChatMessage {
   id: string;
@@ -71,12 +79,55 @@ export function ChatScreen({ navigation, route }: Props) {
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
 
+  // Feedback gate state (after 12 chats, signed-in parent must submit feedback)
+  const [feedbackUnlocked, setFeedbackUnlocked] = useState(false);
+  const [authedChatCount, setAuthedChatCount] = useState(0);
+  const [isFeedbackGateModalVisible, setIsFeedbackGateModalVisible] = useState(false);
+
   const flatListRef = useRef<FlatList>(null);
   const hasHandledInitialPrompt = useRef(false);
 
   const isGuestGated = isGuest && guestRemainingQuota <= 0;
   const isAuthRequired = (!isGuest && (!session || !user)) || isGuestGated;
   const isProfileRequired = !isGuest && (!activeChild || !hasCompletedPersonalisation());
+  const isFeedbackGated =
+    !isGuest &&
+    Boolean(session && user) &&
+    !feedbackUnlocked &&
+    authedChatCount >= FEEDBACK_CHAT_THRESHOLD;
+
+  // Check unlock status and authed chat count for signed-in parents
+  useEffect(() => {
+    let isMounted = true;
+    if (!isGuest && session?.access_token) {
+      void isCachedFeedbackUnlocked().then((cached) => {
+        if (!isMounted) return;
+        if (cached) {
+          setFeedbackUnlocked(true);
+        } else {
+          void checkFeedbackStatus(session.access_token).then((unlocked) => {
+            if (!isMounted) return;
+            setFeedbackUnlocked(unlocked);
+          });
+        }
+      });
+
+      void getAuthedChatCount().then((count) => {
+        if (!isMounted) return;
+        setAuthedChatCount(count);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isGuest, session?.access_token]);
+
+  // Force open the feedback gate modal if user reaches the threshold
+  useEffect(() => {
+    if (isFeedbackGated) {
+      setIsFeedbackGateModalVisible(true);
+    }
+  }, [isFeedbackGated]);
 
   // Handle initial prompt from navigation (e.g. Mission cards or Explore Prompts)
   useEffect(() => {
@@ -183,7 +234,19 @@ export function ChatScreen({ navigation, route }: Props) {
       return;
     }
 
+    if (isFeedbackGated) {
+      setIsFeedbackGateModalVisible(true);
+      return;
+    }
+
     setInputText('');
+
+    // Count authed chat if not already unlocked
+    if (!isGuest && session?.access_token && !feedbackUnlocked) {
+      void incrementAuthedChatCount().then((nextCount) => {
+        setAuthedChatCount(nextCount);
+      });
+    }
 
     const userMessageId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const userMsg: ChatMessage = {
@@ -512,6 +575,8 @@ export function ChatScreen({ navigation, route }: Props) {
                     returnToChat: true,
                     promptSetupRequired: true,
                   });
+                } else if (isFeedbackGated) {
+                  setIsFeedbackGateModalVisible(true);
                 } else {
                   setIsVoiceModalVisible(true);
                 }
@@ -647,6 +712,21 @@ export function ChatScreen({ navigation, route }: Props) {
               </Text>
             </TouchableOpacity>
           </View>
+        ) : isFeedbackGated ? (
+          <View style={styles.exhaustedBar}>
+            <Text style={styles.exhaustedText}>
+              🔒 {t('chat.feedbackGateNote')}
+            </Text>
+            <TouchableOpacity
+              style={styles.signInBarBtn}
+              onPress={() => setIsFeedbackGateModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signInBarBtnText}>
+                {t('parent.giveFeedbackBtn')} →
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.inputContainer}>
             {isGuest && guestRemainingQuota > 0 && (
@@ -665,7 +745,13 @@ export function ChatScreen({ navigation, route }: Props) {
             <View style={styles.inputBar}>
               <TouchableOpacity
                 style={styles.voiceBarBtn}
-                onPress={() => setIsVoiceModalVisible(true)}
+                onPress={() => {
+                  if (isFeedbackGated) {
+                    setIsFeedbackGateModalVisible(true);
+                  } else {
+                    setIsVoiceModalVisible(true);
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={styles.voiceBarIcon}>🎙️</Text>
@@ -710,6 +796,11 @@ export function ChatScreen({ navigation, route }: Props) {
             if (newConvId) {
               setConversationId(newConvId);
             }
+            if (!isGuest && session?.access_token && !feedbackUnlocked) {
+              void incrementAuthedChatCount().then((nextCount) => {
+                setAuthedChatCount(nextCount);
+              });
+            }
             setMessages((prev) => [
               ...prev,
               {
@@ -740,6 +831,16 @@ export function ChatScreen({ navigation, route }: Props) {
           currentConversationId={conversationId}
           accessToken={session?.access_token}
           childId={activeChild?.id}
+        />
+
+        {/* Non-Dismissable Parent Feedback Gate Modal (after 12 chats) */}
+        <ParentFeedbackGateModal
+          visible={isFeedbackGateModalVisible}
+          accessToken={session?.access_token}
+          onFeedbackSubmitted={() => {
+            setFeedbackUnlocked(true);
+            setIsFeedbackGateModalVisible(false);
+          }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -57,6 +57,10 @@ export const en = {
     errorGeneric: 'Could not send message. Please try again.',
     learnerContext: 'Learning with {{name}}',
     setupLearnerPrompt: 'Set up a learner profile in Parent Zone →',
+    feedbackGateTitle: 'Parent Feedback Required',
+    feedbackGatePill: 'Required to continue',
+    feedbackGateNote: "You've had a great run with Appu! Please share quick feedback to keep chatting.",
+    feedbackGatePlaceholder: 'Submit feedback to keep chatting',
   },
   voice: {
     title: 'Voice Session with Appu',
