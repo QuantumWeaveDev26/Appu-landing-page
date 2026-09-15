@@ -129,6 +129,8 @@ class VoiceEngine {
         this.recognition.onstart = () => {
             this.isListening = true;
             this.lastErrorFatal = false;
+            this._cycleStart = Date.now();
+            this._cycleGotSpeech = false;
             this.updateLiveSessionUI();
             this.playListenStart();
             this.streamSubtitles('Listening — tell me what you want to learn.');
@@ -142,6 +144,7 @@ class VoiceEngine {
                 if (event.results[index].isFinal) finalText += text;
                 else interimText += text;
             }
+            if (interimText || finalText) this._cycleGotSpeech = true;
             if (interimText) this.onInterimTranscript(interimText.trim());
             if (finalText) {
                 this.awaitingResponse = true;
@@ -171,11 +174,27 @@ class VoiceEngine {
         this.recognition.onend = () => {
             this.isListening = false;
             this.updateLiveSessionUI();
+            // Some devices (seen on certain Android Chrome builds) end recognition almost
+            // instantly without capturing anything. Auto-restarting then produces a rapid
+            // on/off/on/off flicker loop. Detect these empty, sub-second cycles and, after a
+            // few in a row, stop the live session gracefully instead of looping forever.
+            const cycleMs = Date.now() - (this._cycleStart || 0);
+            if (!this._cycleGotSpeech && cycleMs < 700) {
+                this._emptyCycles = (this._emptyCycles || 0) + 1;
+            } else {
+                this._emptyCycles = 0;
+            }
+            if (this._emptyCycles >= 3) {
+                this._emptyCycles = 0;
+                this.stopLiveSession();
+                this.streamSubtitles("I couldn't hear the microphone. Tap the mic to retry, or use “Type instead”.");
+                return;
+            }
             // Browsers stop listening after every pause even in a "live session" (there is
             // no true continuous mode cross-browser) -- restart automatically so the user
             // doesn't have to re-tap the mic between sentences, like a live conversation.
             if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
-                window.setTimeout(() => this.startListening(), 250);
+                window.setTimeout(() => this.startListening(), 400);
             }
         };
     }

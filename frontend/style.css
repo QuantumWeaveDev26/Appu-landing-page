@@ -655,6 +655,9 @@ select option:checked, .discovery-form select option:checked {
   .success-links { flex-direction: column; }
   .chat-drawer { inset: 7px; width: auto; border-radius: 19px; }
   .chat-composer { grid-template-columns: 1fr 38px 38px 40px; margin: 0 9px 9px; }
+  /* Larger, properly-centered input text on mobile — 16px also stops mobile browsers
+     zooming in on focus, and prevents the value/placeholder from being clipped. */
+  .chat-composer input { font-size: 16px; height: 44px; line-height: 44px; padding: 0 6px; }
   #cursor-dot, #cursor-aura { display: none; }
 }
 

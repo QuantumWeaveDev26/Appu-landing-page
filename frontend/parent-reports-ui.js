@@ -26,6 +26,37 @@
 
   let modal, elLoading, elLocked, elUnlocked, elError, elRating, elWorking, elImprove, elSubmit, elDownload, elDownloadStatus;
   let currentRating = 0;
+  let feedbackUnlocked = false;
+  let statusChecked = false;
+  let forcedMode = false;
+  const CHAT_COUNT_KEY = 'appu_authed_chats';
+
+  function chatCount() { try { return parseInt(localStorage.getItem(CHAT_COUNT_KEY) || '0', 10) || 0; } catch (e) { return 0; } }
+  function noteAuthedChat() {
+    if (!parentToken() || feedbackUnlocked) return;
+    try { localStorage.setItem(CHAT_COUNT_KEY, String(chatCount() + 1)); } catch (e) {}
+  }
+  function threshold() { return (window.APPU_CONFIG && Number(window.APPU_CONFIG.feedbackChatThreshold)) || 12; }
+
+  async function refreshUnlockStatus() {
+    const token = parentToken();
+    if (!token) { feedbackUnlocked = false; statusChecked = true; return false; }
+    try {
+      const res = await fetch(`${apiBase()}/api/household/feedback`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const d = await res.json(); feedbackUnlocked = !!(d && d.reportsUnlocked); }
+    } catch (e) {}
+    statusChecked = true;
+    return feedbackUnlocked;
+  }
+
+  // Returns true if chatting should be BLOCKED pending feedback (opens the forced modal).
+  function enforceFeedbackGate() {
+    if (!parentToken() || feedbackUnlocked) return false;
+    if (chatCount() < threshold()) return false;
+    if (!statusChecked) { refreshUnlockStatus(); return false; }
+    openForced();
+    return true;
+  }
 
   function show(el) { if (el) el.hidden = false; }
   function hide(el) { if (el) el.hidden = true; }
@@ -56,7 +87,9 @@
       });
       if (!res.ok) throw new Error(`status ${res.status}`);
       const data = await res.json();
-      setView(data && data.reportsUnlocked ? 'unlocked' : 'locked');
+      feedbackUnlocked = !!(data && data.reportsUnlocked);
+      statusChecked = true;
+      setView(feedbackUnlocked ? 'unlocked' : 'locked');
     } catch (e) {
       setView('error');
     }
@@ -84,13 +117,33 @@
         })
       });
       if (!res.ok) throw new Error(`status ${res.status}`);
-      setView('unlocked');
+      feedbackUnlocked = true;
+      statusChecked = true;
+      if (forcedMode) {
+        // Was blocking chat — release the gate and let the parent carry on.
+        forcedMode = false;
+        modal.querySelectorAll('[data-close-reports]').forEach((b) => { b.hidden = false; });
+        close();
+      } else {
+        setView('unlocked');
+      }
     } catch (e) {
       flashLocked('Could not submit right now. Please try again.');
     } finally {
       elSubmit.disabled = false;
       elSubmit.textContent = prev;
     }
+  }
+
+  // Open the modal as a hard gate: feedback form only, no way to dismiss until submitted.
+  function openForced() {
+    if (!modal) return;
+    forcedMode = true;
+    modal.classList.add('is-visible');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.querySelectorAll('[data-close-reports]').forEach((b) => { b.hidden = true; });
+    setView('locked');
+    flashLocked("You've had a great run with Appu! Please share quick feedback to keep chatting.");
   }
 
   function flashLocked(msg) {
@@ -147,6 +200,7 @@
 
   function close() {
     if (!modal) return;
+    if (forcedMode) return; // hard gate — must submit feedback first
     modal.classList.remove('is-visible');
     modal.setAttribute('aria-hidden', 'true');
   }
@@ -180,6 +234,9 @@
       const b = document.getElementById(id);
       if (b) b.addEventListener('click', open);
     });
+
+    // Check feedback/unlock status once the session has settled so the chat gate is accurate.
+    setTimeout(() => { refreshUnlockStatus(); }, 2000);
   }
 
   if (document.readyState === 'loading') {
@@ -188,5 +245,5 @@
     init();
   }
 
-  window.ParentReportsUI = { open, close };
+  window.ParentReportsUI = { open, close, openForced, enforceFeedbackGate, noteAuthedChat, refreshUnlockStatus };
 })();

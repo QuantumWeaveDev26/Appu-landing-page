@@ -40,6 +40,8 @@
     // BETA: hides plan pricing UI and unlocks the free beta signup path. Flip to false to
     // restore normal paid-plan display once the beta period ends.
     betaMode: true,
-    betaChatLimit: 5
+    betaChatLimit: 5,
+    // After this many chats, a signed-in parent must submit feedback before continuing.
+    feedbackChatThreshold: 12
   };
 });

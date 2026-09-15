@@ -1016,6 +1016,11 @@ document.addEventListener('DOMContentLoaded', () => {
       window.ParentOnboardingShell.isParentAuthenticated();
 
     if (isAuthed) {
+      // After enough chats, a signed-in parent must give feedback before continuing.
+      if (window.ParentReportsUI && typeof window.ParentReportsUI.enforceFeedbackGate === 'function') {
+        if (window.ParentReportsUI.enforceFeedbackGate()) return false;
+        if (typeof window.ParentReportsUI.noteAuthedChat === 'function') window.ParentReportsUI.noteAuthedChat();
+      }
       return true;
     }
 
