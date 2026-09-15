@@ -534,6 +534,49 @@
         <h3 id="pos-success-title">Personalized Appu is Ready!</h3>
         <p id="pos-success-desc">Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.</p>
         <button id="pos-btn-launch" class="primary-modal-btn" type="button" style="margin-top: 15px;"><span id="pos-btn-launch-text">Launch Appu Now</span><i class="fa-solid fa-sparkles"></i></button>
+        <button id="btn-open-reports" class="secondary-modal-btn" type="button" style="margin-top: 10px;"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>View Progress Report</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHILD PERFORMANCE REPORTS + PARENT FEEDBACK GATE -->
+  <section id="reports-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reports-modal-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet reports-sheet">
+      <button class="icon-btn modal-close close-btn" type="button" aria-label="Close reports" data-close-reports><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Parent Zone • Progress</div>
+      <h2 id="reports-modal-title">Child Performance Report</h2>
+
+      <div id="report-view-loading" class="report-view" hidden>
+        <p class="modal-lead">Checking your reports…</p>
+      </div>
+
+      <div id="report-view-locked" class="report-view" hidden>
+        <p class="modal-lead">Appu can generate a detailed performance report for your child — with a score, strengths, and what to improve. To unlock it, please share quick feedback first. Once you do, your child's report is generated on demand and appears here, in the app, and on WhatsApp.</p>
+        <div class="report-fb-block">
+          <span class="report-fb-label">How is Appu working for your family?</span>
+          <div id="report-rating" class="report-rating" role="radiogroup" aria-label="Overall rating">
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="1 star"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="2 stars"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="3 stars"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="4 stars"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="5 stars"><i class="fa-solid fa-star"></i></button>
+          </div>
+        </div>
+        <label class="report-fb-field"><span>What's working well?</span><textarea id="report-fb-working" rows="2" maxlength="500" placeholder="What your child enjoys or finds helpful…"></textarea></label>
+        <label class="report-fb-field"><span>What should we improve?</span><textarea id="report-fb-improve" rows="2" maxlength="500" placeholder="Anything that could be better…"></textarea></label>
+        <p id="report-feedback-note" class="report-note" role="alert"></p>
+        <button id="report-fb-submit" class="primary-modal-btn" type="button">Submit feedback & unlock report</button>
+      </div>
+
+      <div id="report-view-unlocked" class="report-view" hidden>
+        <p class="modal-lead">Your child's report is ready to generate. It analyzes their conversations with Appu across the app, website, and WhatsApp, and produces a designed PDF with an overall score, subject breakdown, strengths, and recommendations.</p>
+        <button id="report-download-btn" class="primary-modal-btn" type="button"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> <span>Download performance report (PDF)</span></button>
+        <p id="report-download-status" class="report-note" role="status"></p>
+      </div>
+
+      <div id="report-view-error" class="report-view" hidden>
+        <p class="modal-lead">We couldn't load your reports right now.</p>
+        <button id="report-retry-btn" class="secondary-modal-btn" type="button">Try again</button>
       </div>
     </div>
   </section>
@@ -554,6 +597,7 @@
   <script src="voice-engine.js?v=20260911-3"></script>
   <script src="chat-history.js?v=20260911-3"></script>
   <script src="chat-agent.js?v=20260911-3"></script>
+  <script src="parent-reports-ui.js?v=20260915-1"></script>
   <script src="app.js?v=20260911-3"></script>
 </body>
 </html>
