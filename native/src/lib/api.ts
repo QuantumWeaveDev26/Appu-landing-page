@@ -975,8 +975,8 @@ export interface FamilyFeedbackStatus {
 
 export interface SubmitFamilyFeedbackInput {
   rating: number;
-  whatsWorking?: string;
-  whatsToImprove?: string;
+  whatsWorking: string;
+  whatsToImprove: string;
 }
 
 export interface ChildPerformanceReport {

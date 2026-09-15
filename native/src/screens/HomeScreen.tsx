@@ -217,6 +217,40 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         </View>
 
+        {/* Persistent Reports Card / Awareness Banner */}
+        <TouchableOpacity
+          style={styles.reportsBanner}
+          onPress={() => {
+            if (isGuest || !user || !session) {
+              navigation.navigate('Auth', { returnTo: 'ParentZone' });
+            } else {
+              navigation.navigate('ParentZone', { tab: 'reports' });
+            }
+          }}
+          activeOpacity={0.88}
+        >
+          <View style={styles.reportsBannerHeader}>
+            <View style={styles.reportsBannerPill}>
+              <Text style={styles.reportsBannerPillText}>{t('home.reportsBannerPill')}</Text>
+            </View>
+            <Text style={styles.reportsAwarenessBadge}>
+              {t('home.reportsAwarenessNote')}
+            </Text>
+          </View>
+          <View style={styles.reportsBannerBody}>
+            <View style={styles.reportsBannerIconWrap}>
+              <Text style={styles.reportsBannerIcon}>📈</Text>
+            </View>
+            <View style={styles.reportsBannerTextWrap}>
+              <Text style={styles.reportsBannerTitle}>{t('home.reportsBannerTitle')}</Text>
+              <Text style={styles.reportsBannerSubtitle}>
+                {t('home.reportsBannerSubtitle')}
+              </Text>
+            </View>
+            <Text style={styles.reportsBannerArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Mission Cards Deck */}
         <View style={styles.missionSection}>
           <Text style={styles.sectionHeader}>LEARNING MISSIONS</Text>
@@ -608,5 +642,78 @@ const styles = StyleSheet.create({
   copyrightText: {
     color: theme.colors.textMuted,
     fontSize: 11,
+  },
+  reportsBanner: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: 'rgba(10, 25, 47, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 196, 0.35)',
+    borderRadius: 16,
+    padding: 14,
+  },
+  reportsBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 8,
+  },
+  reportsBannerPill: {
+    backgroundColor: 'rgba(14, 165, 196, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 196, 0.4)',
+  },
+  reportsBannerPillText: {
+    color: '#38bdf8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  reportsAwarenessBadge: {
+    color: '#94a3b8',
+    fontSize: 11,
+    flex: 1,
+    textAlign: 'right',
+  },
+  reportsBannerBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reportsBannerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(14, 165, 196, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 196, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportsBannerIcon: {
+    fontSize: 22,
+  },
+  reportsBannerTextWrap: {
+    flex: 1,
+  },
+  reportsBannerTitle: {
+    color: '#f8fafc',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  reportsBannerSubtitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  reportsBannerArrow: {
+    color: '#38bdf8',
+    fontSize: 20,
+    fontWeight: '400',
   },
 });

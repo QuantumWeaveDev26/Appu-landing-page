@@ -13,6 +13,7 @@ export interface WhatsAppReportsRouteOptions {
   signingSecret: string;
   signatureMaxAgeSeconds?: number;
   openaiApiKey?: string;
+  n8nFeedbackWebhookUrl?: string;
 }
 
 const submitFeedbackSchema = z
@@ -27,8 +28,16 @@ const submitFeedbackSchema = z
       .int('Rating must be an integer')
       .min(1, 'Rating must be at least 1')
       .max(5, 'Rating must be at most 5'),
-    whatsWorking: z.string().max(2000).optional().nullable(),
-    whatsToImprove: z.string().max(2000).optional().nullable()
+    whatsWorking: z
+      .string({ required_error: "What's working is required" })
+      .trim()
+      .min(1, "What's working cannot be empty")
+      .max(2000),
+    whatsToImprove: z
+      .string({ required_error: "What's to improve is required" })
+      .trim()
+      .min(1, "What's to improve cannot be empty")
+      .max(2000)
   })
   .strict();
 
@@ -91,11 +100,19 @@ export const whatsappReportsRoutes: FastifyPluginAsync<WhatsAppReportsRouteOptio
       household = await WhatsAppOnboardingRepository.createPhoneOnlyHousehold(opts.db, normalized);
     }
 
-    const result = await FamilyFeedbackService.saveFeedback(opts.db, household.id, {
-      rating,
-      whatsWorking,
-      whatsToImprove
-    });
+    const result = await FamilyFeedbackService.saveFeedback(
+      opts.db,
+      household.id,
+      {
+        rating,
+        whatsWorking,
+        whatsToImprove
+      },
+      {
+        source: 'whatsapp',
+        webhookUrl: opts.n8nFeedbackWebhookUrl
+      }
+    );
 
     return reply.status(200).send({
       success: true,

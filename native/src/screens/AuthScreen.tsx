@@ -56,7 +56,9 @@ export function AuthScreen({ navigation, route }: Props) {
       const initialPrompt = route.params?.initialPrompt;
       const returnTo = route.params?.returnTo;
 
-      if (children.length === 0 || !isPersonalized) {
+      if (returnTo === 'ParentZone') {
+        navigation.replace('ParentZone', { tab: 'reports' });
+      } else if (children.length === 0 || !isPersonalized) {
         navigation.replace('ParentZone', {
           tab: children.length === 0 ? 'learners' : 'personalization',
           initialPrompt,

@@ -278,12 +278,23 @@ export function ParentZoneScreen({ navigation, route }: Props) {
   // Submit Feedback Handler
   const handleSubmitFeedback = async () => {
     if (!accessToken) return;
+    const workingTrimmed = feedbackWorking.trim();
+    const improveTrimmed = feedbackImprove.trim();
+
+    if (!workingTrimmed || !improveTrimmed) {
+      Alert.alert(
+        t('parent.feedbackRequiredAlert'),
+        t('parent.bothFeedbackFieldsRequired')
+      );
+      return;
+    }
+
     setSubmittingFeedback(true);
     try {
       const result = await submitFamilyFeedback(accessToken, {
         rating: feedbackRating,
-        whatsWorking: feedbackWorking.trim() || undefined,
-        whatsToImprove: feedbackImprove.trim() || undefined,
+        whatsWorking: workingTrimmed,
+        whatsToImprove: improveTrimmed,
       });
       setFeedbackStatus({
         submitted: true,
@@ -1799,7 +1810,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
 
               {/* What is working */}
               <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>{t('parent.whatsWorkingLabel')}</Text>
+                <Text style={styles.fieldLabel}>{t('parent.whatsWorkingLabel')} *</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
                   value={feedbackWorking}
@@ -1814,7 +1825,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
 
               {/* What could we improve */}
               <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>{t('parent.whatsToImproveLabel')}</Text>
+                <Text style={styles.fieldLabel}>{t('parent.whatsToImproveLabel')} *</Text>
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
                   value={feedbackImprove}
@@ -1836,20 +1847,32 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                   <Text style={styles.modalCancelText}>{t('parent.cancel')}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.modalSubmitBtn, submittingFeedback && { opacity: 0.6 }]}
-                  onPress={handleSubmitFeedback}
-                  disabled={submittingFeedback}
-                  activeOpacity={0.8}
-                >
-                  {submittingFeedback ? (
-                    <ActivityIndicator color="#030c1e" />
-                  ) : (
-                    <Text style={styles.modalSubmitText}>
-                      {t('parent.submitFeedbackBtn')}
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                {(() => {
+                  const isFeedbackValid =
+                    feedbackRating >= 1 &&
+                    feedbackRating <= 5 &&
+                    feedbackWorking.trim().length > 0 &&
+                    feedbackImprove.trim().length > 0;
+                  return (
+                    <TouchableOpacity
+                      style={[
+                        styles.modalSubmitBtn,
+                        (!isFeedbackValid || submittingFeedback) && { opacity: 0.5 },
+                      ]}
+                      onPress={handleSubmitFeedback}
+                      disabled={!isFeedbackValid || submittingFeedback}
+                      activeOpacity={0.8}
+                    >
+                      {submittingFeedback ? (
+                        <ActivityIndicator color="#030c1e" />
+                      ) : (
+                        <Text style={styles.modalSubmitText}>
+                          {t('parent.submitFeedbackBtn')}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })()}
               </View>
             </ScrollView>
           </View>

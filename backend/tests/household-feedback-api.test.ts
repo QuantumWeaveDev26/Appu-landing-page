@@ -225,4 +225,36 @@ describe('Household Feedback API Endpoints', () => {
     assert.equal(getBody.reportsUnlocked, true);
     assert.equal(getBody.feedback.rating, 5);
   });
+
+  test('POST /api/household/feedback rejects empty whatsWorking or whatsToImprove with 400', async () => {
+    const resNoWorking = await app.inject({
+      method: 'POST',
+      url: '/api/household/feedback',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify({
+        rating: 5,
+        whatsWorking: '   ',
+        whatsToImprove: 'Quizzes'
+      })
+    });
+    assert.equal(resNoWorking.statusCode, 400);
+
+    const resNoImprove = await app.inject({
+      method: 'POST',
+      url: '/api/household/feedback',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify({
+        rating: 5,
+        whatsWorking: 'Great',
+        whatsToImprove: ''
+      })
+    });
+    assert.equal(resNoImprove.statusCode, 400);
+  });
 });
