@@ -83,7 +83,7 @@ export const envSchema = z
     N8N_FEEDBACK_WEBHOOK_URL: z
       .string()
       .url('N8N_FEEDBACK_WEBHOOK_URL must be a valid URL')
-      .optional(),
+      .default('https://n8n.srv1871828.hstgr.cloud/webhook/appu-parent-feedback'),
     // BETA: toggle to bypass the ACTIVE-subscription gate for signed-up users, capped at
     // APPU_BETA_CHAT_LIMIT free AI sessions. Turn off (or unset) to restore normal paid gating.
     APPU_BETA_MODE: z.coerce.boolean().default(false),
