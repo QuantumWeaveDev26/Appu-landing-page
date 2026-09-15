@@ -63,7 +63,11 @@
   }
 
   async function submitFeedback() {
-    if (currentRating < 1) { elDownloadStatus && (elDownloadStatus.textContent = ''); flashLocked('Please pick a star rating first.'); return; }
+    const working = (elWorking.value || '').trim();
+    const improve = (elImprove.value || '').trim();
+    if (currentRating < 1) { flashLocked('Please pick a star rating first.'); return; }
+    if (!working) { flashLocked("Please tell us what's working well."); elWorking.focus(); return; }
+    if (!improve) { flashLocked('Please tell us what we should improve.'); elImprove.focus(); return; }
     const token = parentToken();
     if (!token) { flashLocked('Please sign in first.'); return; }
     elSubmit.disabled = true;
@@ -126,6 +130,16 @@
 
   function open() {
     if (!modal) return;
+    // Not signed in yet → route to the parent sign-in/setup flow so the feature is
+    // discoverable to everyone but only usable once authenticated.
+    if (!parentToken()) {
+      const drawer = document.getElementById('nav-drawer');
+      if (drawer) drawer.setAttribute('aria-hidden', 'true');
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+        return;
+      }
+    }
     modal.classList.add('is-visible');
     modal.setAttribute('aria-hidden', 'false');
     loadStatus();
@@ -162,8 +176,10 @@
     if (retry) retry.addEventListener('click', loadStatus);
     Array.from(modal.querySelectorAll('[data-close-reports]')).forEach((b) => b.addEventListener('click', close));
 
-    const opener = document.getElementById('btn-open-reports');
-    if (opener) opener.addEventListener('click', open);
+    ['btn-open-reports', 'btn-drawer-reports', 'home-report-card'].forEach((id) => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener('click', open);
+    });
   }
 
   if (document.readyState === 'loading') {
