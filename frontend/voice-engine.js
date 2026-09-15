@@ -178,16 +178,18 @@ class VoiceEngine {
             // instantly without capturing anything. Auto-restarting then produces a rapid
             // on/off/on/off flicker loop. Detect these empty, sub-second cycles and, after a
             // few in a row, stop the live session gracefully instead of looping forever.
-            const cycleMs = Date.now() - (this._cycleStart || 0);
-            if (!this._cycleGotSpeech && cycleMs < 700) {
-                this._emptyCycles = (this._emptyCycles || 0) + 1;
-            } else {
-                this._emptyCycles = 0;
-            }
-            if (this._emptyCycles >= 3) {
-                this._emptyCycles = 0;
+            // Rate-limit restarts: on some devices recognition ends almost instantly and the
+            // auto-restart produces a rapid on/off/on/off flicker loop. Count short (<900ms)
+            // cycles in a 4s window — regardless of whether brief noise triggered interim
+            // results — and if too many happen, stop gracefully instead of looping forever.
+            const now = Date.now();
+            const cycleMs = now - (this._cycleStart || 0);
+            this._restartTimes = (this._restartTimes || []).filter((t) => now - t < 4000);
+            if (cycleMs < 900) this._restartTimes.push(now);
+            if (this._restartTimes.length >= 4) {
+                this._restartTimes = [];
                 this.stopLiveSession();
-                this.streamSubtitles("I couldn't hear the microphone. Tap the mic to retry, or use “Type instead”.");
+                this.streamSubtitles("Voice had trouble starting on this device. Tap the mic to try again, or use “Type instead”.");
                 return;
             }
             // Browsers stop listening after every pause even in a "live session" (there is

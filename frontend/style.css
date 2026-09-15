@@ -2598,3 +2598,7 @@ body.policy-page {
 .home-report-card-copy { display: flex; flex-direction: column; line-height: 1.25; }
 .home-report-card-copy strong { font-size: 15px; }
 .home-report-card-copy small { opacity: 0.75; font-size: 12px; }
+
+/* Topbar Report button: visible on desktop, hidden on mobile (drawer entry covers mobile) */
+.topbar-reports-btn i { color: #0EA5C4; }
+@media (max-width: 768px) { .topbar-reports-btn { display: none !important; } }

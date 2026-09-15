@@ -230,7 +230,7 @@
     if (retry) retry.addEventListener('click', loadStatus);
     Array.from(modal.querySelectorAll('[data-close-reports]')).forEach((b) => b.addEventListener('click', close));
 
-    ['btn-open-reports', 'btn-drawer-reports', 'home-report-card'].forEach((id) => {
+    ['btn-open-reports', 'btn-drawer-reports', 'btn-topbar-reports', 'home-report-card'].forEach((id) => {
       const b = document.getElementById(id);
       if (b) b.addEventListener('click', open);
     });
