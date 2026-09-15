@@ -190,7 +190,8 @@ describe('Child Performance Report API & Gating', () => {
     // Unlock by submitting feedback
     await FamilyFeedbackService.saveFeedback(db, householdId, {
       rating: 5,
-      whatsWorking: 'Helpful tutoring'
+      whatsWorking: 'Helpful tutoring',
+      whatsToImprove: 'More practice quizzes'
     });
 
     const res = await app.inject({
@@ -224,7 +225,9 @@ describe('Child Performance Report API & Gating', () => {
   test('POST /api/children/:childId/report generates designed PDF attachment by default', async () => {
     // Unlock by submitting feedback
     await FamilyFeedbackService.saveFeedback(db, householdId, {
-      rating: 5
+      rating: 5,
+      whatsWorking: 'Helpful tutoring',
+      whatsToImprove: 'More practice quizzes'
     });
 
     const res = await app.inject({
@@ -255,7 +258,11 @@ describe('Child Performance Report API & Gating', () => {
     });
 
     // Parent from Household A attempts to generate report for child from Household B
-    await FamilyFeedbackService.saveFeedback(db, householdId, { rating: 5 });
+    await FamilyFeedbackService.saveFeedback(db, householdId, {
+      rating: 5,
+      whatsWorking: 'Helpful tutoring',
+      whatsToImprove: 'More practice quizzes'
+    });
 
     const res = await app.inject({
       method: 'POST',

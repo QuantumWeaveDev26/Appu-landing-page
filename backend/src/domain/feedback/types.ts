@@ -9,8 +9,13 @@ export interface FamilyFeedback {
 
 export interface SubmitFeedbackInput {
   rating: number;
-  whatsWorking?: string | null;
-  whatsToImprove?: string | null;
+  whatsWorking: string;
+  whatsToImprove: string;
+}
+
+export interface SaveFeedbackOptions {
+  source?: 'web' | 'whatsapp';
+  webhookUrl?: string;
 }
 
 export interface FeedbackStatusResponse {

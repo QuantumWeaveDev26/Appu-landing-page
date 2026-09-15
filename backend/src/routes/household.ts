@@ -12,6 +12,7 @@ import { BadRequestError } from '../errors/index.js';
 export interface HouseholdRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
+  n8nFeedbackWebhookUrl?: string;
 }
 
 const onboardSchema = z.object({
@@ -25,8 +26,16 @@ const updateNotificationSchema = z.object({
 
 const submitFeedbackSchema = z.object({
   rating: z.number().int().min(1, 'Rating must be between 1 and 5').max(5, 'Rating must be between 1 and 5'),
-  whatsWorking: z.string().max(2000).optional().nullable(),
-  whatsToImprove: z.string().max(2000).optional().nullable()
+  whatsWorking: z
+    .string({ required_error: "What's working is required" })
+    .trim()
+    .min(1, "What's working cannot be empty")
+    .max(2000),
+  whatsToImprove: z
+    .string({ required_error: "What's to improve is required" })
+    .trim()
+    .min(1, "What's to improve cannot be empty")
+    .max(2000)
 });
 
 export const householdRoutes: FastifyPluginAsync<HouseholdRouteOptions> = async (fastify, opts) => {
@@ -139,7 +148,15 @@ export const householdRoutes: FastifyPluginAsync<HouseholdRouteOptions> = async 
     const result = await FamilyFeedbackService.saveFeedback(
       opts.db,
       household.id,
-      parseResult.data
+      {
+        rating: parseResult.data.rating,
+        whatsWorking: parseResult.data.whatsWorking,
+        whatsToImprove: parseResult.data.whatsToImprove
+      },
+      {
+        source: 'web',
+        webhookUrl: opts.n8nFeedbackWebhookUrl
+      }
     );
 
     return reply.status(200).send(result);

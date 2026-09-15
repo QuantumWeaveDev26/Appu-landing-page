@@ -137,7 +137,8 @@ describe('Family Feedback Domain (Migration 019, Repository & Service)', () => {
   test('latest submission wins for household feedback', async () => {
     await FamilyFeedbackService.saveFeedback(db, householdId, {
       rating: 3,
-      whatsWorking: 'Initial thoughts'
+      whatsWorking: 'Initial thoughts',
+      whatsToImprove: 'Need more quizzes'
     });
 
     await FamilyFeedbackService.saveFeedback(db, householdId, {
@@ -150,13 +151,16 @@ describe('Family Feedback Domain (Migration 019, Repository & Service)', () => {
     assert.equal(status.submitted, true);
     assert.equal(status.feedback?.rating, 4);
     assert.equal(status.feedback?.whatsWorking, 'Updated thoughts after two weeks');
+    assert.equal(status.feedback?.whatsToImprove, 'More science explanations');
   });
 
   test('rejects invalid rating values', async () => {
     await assert.rejects(
       async () => {
         await FamilyFeedbackService.saveFeedback(db, householdId, {
-          rating: 0
+          rating: 0,
+          whatsWorking: 'Good',
+          whatsToImprove: 'Quizzes'
         });
       },
       /Rating must be an integer between 1 and 5/
@@ -165,7 +169,9 @@ describe('Family Feedback Domain (Migration 019, Repository & Service)', () => {
     await assert.rejects(
       async () => {
         await FamilyFeedbackService.saveFeedback(db, householdId, {
-          rating: 6
+          rating: 6,
+          whatsWorking: 'Good',
+          whatsToImprove: 'Quizzes'
         });
       },
       /Rating must be an integer between 1 and 5/
@@ -174,10 +180,58 @@ describe('Family Feedback Domain (Migration 019, Repository & Service)', () => {
     await assert.rejects(
       async () => {
         await FamilyFeedbackService.saveFeedback(db, householdId, {
-          rating: 3.5 as any
+          rating: 3.5 as any,
+          whatsWorking: 'Good',
+          whatsToImprove: 'Quizzes'
         });
       },
       /Rating must be an integer between 1 and 5/
+    );
+  });
+
+  test('rejects empty whatsWorking or whatsToImprove', async () => {
+    await assert.rejects(
+      async () => {
+        await FamilyFeedbackService.saveFeedback(db, householdId, {
+          rating: 5,
+          whatsWorking: '',
+          whatsToImprove: 'Quizzes'
+        });
+      },
+      /What's working field cannot be empty/
+    );
+
+    await assert.rejects(
+      async () => {
+        await FamilyFeedbackService.saveFeedback(db, householdId, {
+          rating: 5,
+          whatsWorking: '   ',
+          whatsToImprove: 'Quizzes'
+        });
+      },
+      /What's working field cannot be empty/
+    );
+
+    await assert.rejects(
+      async () => {
+        await FamilyFeedbackService.saveFeedback(db, householdId, {
+          rating: 5,
+          whatsWorking: 'Good explanations',
+          whatsToImprove: ''
+        });
+      },
+      /What's to improve field cannot be empty/
+    );
+
+    await assert.rejects(
+      async () => {
+        await FamilyFeedbackService.saveFeedback(db, householdId, {
+          rating: 5,
+          whatsWorking: 'Good explanations',
+          whatsToImprove: '   '
+        });
+      },
+      /What's to improve field cannot be empty/
     );
   });
 });

@@ -272,7 +272,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       db: options.database,
       signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS,
-      openaiApiKey: config.OPENAI_API_KEY
+      openaiApiKey: config.OPENAI_API_KEY,
+      n8nFeedbackWebhookUrl: config.N8N_FEEDBACK_WEBHOOK_URL
     });
   }
 
@@ -292,7 +293,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
 
     app.register(householdRoutes, {
       db: options.database,
-      authVerifier
+      authVerifier,
+      n8nFeedbackWebhookUrl: config.N8N_FEEDBACK_WEBHOOK_URL
     });
 
     app.register(childrenRoutes, {

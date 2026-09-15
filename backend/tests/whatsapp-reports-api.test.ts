@@ -164,7 +164,12 @@ describe('WhatsApp Reports API (/api/appu/whatsapp/submit-feedback & send-report
   }
 
   test('POST /api/appu/whatsapp/submit-feedback rejects unsigned request with 401', async () => {
-    const payload = JSON.stringify({ phone, rating: 5 });
+    const payload = JSON.stringify({
+      phone,
+      rating: 5,
+      whatsWorking: 'Great dialogues',
+      whatsToImprove: 'More practice'
+    });
     const res = await app.inject({
       method: 'POST',
       url: '/api/appu/whatsapp/submit-feedback',
@@ -172,6 +177,36 @@ describe('WhatsApp Reports API (/api/appu/whatsapp/submit-feedback & send-report
       payload
     });
     assert.equal(res.statusCode, 401);
+  });
+
+  test('POST /api/appu/whatsapp/submit-feedback rejects empty whatsWorking or whatsToImprove with 400', async () => {
+    const payloadEmptyWorking = JSON.stringify({
+      phone,
+      rating: 5,
+      whatsWorking: '  ',
+      whatsToImprove: 'More practice'
+    });
+    const resNoWorking = await app.inject({
+      method: 'POST',
+      url: '/api/appu/whatsapp/submit-feedback',
+      headers: makeSignedHeaders(payloadEmptyWorking),
+      payload: payloadEmptyWorking
+    });
+    assert.equal(resNoWorking.statusCode, 400);
+
+    const payloadEmptyImprove = JSON.stringify({
+      phone,
+      rating: 5,
+      whatsWorking: 'Great dialogues',
+      whatsToImprove: ''
+    });
+    const resNoImprove = await app.inject({
+      method: 'POST',
+      url: '/api/appu/whatsapp/submit-feedback',
+      headers: makeSignedHeaders(payloadEmptyImprove),
+      payload: payloadEmptyImprove
+    });
+    assert.equal(resNoImprove.statusCode, 400);
   });
 
   test('POST /api/appu/whatsapp/send-report returns feedbackRequired: true before feedback', async () => {
