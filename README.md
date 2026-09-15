@@ -3,18 +3,23 @@
 An AI-powered learning companion for students in Classes 5 to 12.
 
 * **Production URL**: [https://appuai.online](https://appuai.online)
-* **Backend API**: `https://antiquewhite-elk-758047.hostingersite.com`
+* **Backend API**: `https://api.appuai.online`
 * **Brand / Operating Entity**: IGR Academy (`Learn with Appu`)
-* **Current Cache Release**: `v=20260825-4`
+* **Current Cache Release**: `v=20260915-4`
+* **Channels**: Website · Native Android app (React Native/Expo) · WhatsApp
 
 ---
 
 ## Documentation
 
+* **[Feature & Status Overview](docs/FEATURE_STATUS.md)** — start here: current snapshot of what's live, the architecture, key flows, deployment, and roadmap.
 * **[Developer Guide & Architecture Reference](docs/DEVELOPER.md)**: Full architecture guide, security invariants, environment setup, database schema, and test suites.
 * **[Project Context & Decisions](docs/PROJECT_CONTEXT.md)**: High-level product principles, tenancy boundaries, and system evolution.
 * **[Current Task & Roadmap](docs/CURRENT_TASK.md)**: Active work log and task status tracking.
 * **[Phase 2 Architecture Specification](docs/PHASE2_ARCHITECTURE.md)**: Deep dive into Supabase Auth, PostgreSQL schema, Razorpay billing, and n8n gateway design.
+* **[Native app plan](docs/native-app/2026-09-10-react-native-plan.md)** and **[per-feature specs](docs/superpowers/specs/)** — design docs for individual features (personalisation, conversation history, WhatsApp onboarding, reports, etc.).
+
+> Note: the website (`frontend/`) and the **native Android app** (`native/`, React Native + Expo) are separate clients that share the same backend. An earlier Capacitor wrapper has been superseded by the true native app.
 
 ---
 
@@ -44,6 +49,7 @@ Appu-landing-page/
 │   ├── .htaccess                 # Apache rewrite rules for clean URLs & HTTPS enforcement
 │   └── assets/                   # Official IGr logo, 3D avatar cutouts, stage videos
 ├── backend/                      # Fastify Node.js backend (deployed to Hostinger Node hosting)
+├── native/                       # Native Android app (React Native + Expo, EAS builds)
 ├── tests/                        # Frontend, DOM structure, and compliance test suites
 ├── docs/                         # Architecture guides, developer specs, and runbooks
 └── .gitignore                    # Global git ignore configuration

@@ -1,14 +1,33 @@
 # Current Task
 
-Last updated: 2026-08-24
+Last updated: 2026-09-15
 
-## Current Phase:
+> For the full current-state snapshot (architecture, all live features, flows, deploy, roadmap) see **[docs/FEATURE_STATUS.md](FEATURE_STATUS.md)**. This file is the running task log; the newest status is at the top and older sprints follow.
 
-Phase 2 SaaS Foundation
+## Current status (2026-09-15) — Public Beta, live
 
-## Current Milestone:
+**Recently shipped & live:**
+- Parent **feedback gate** + AI **child performance PDF report** across web, app, and WhatsApp (migration `019_family_feedback`; `@react-pdf/renderer`).
+- **Feedback → Google Sheet** (n8n webhook → "Parent Feedback" tab) for team review.
+- **Feedback prompt after 12 chats** (`feedbackChatThreshold`) — non-dismissable until submitted (web + app).
+- Report entry moved to the **nav bar** (web); mobile mic auto-restart **rate-limiter** + mobile chat-input sizing fixes. Web at `v=20260915-4`.
+- WhatsApp **new-user onboarding** (phone-only profile, conversational field collection, explicit consent) — live & verified.
+- **5 free guest chats → sign-in → personalisation** (web + app); personalisation fixed end-to-end; bigger Appu avatar; native app **chat history**.
+- **True native Android app** (React Native/Expo) shipped as installable APKs.
 
-APPU latency and timeout-boundary remediation — backend implementation complete; secure duplicate callback/signature cutover pending secret provisioning
+**In progress / next:**
+- Automated project tracking → **Trello** (secure n8n Trello credential + log webhook).
+- Native **Google Play release** (signed AAB, listing, Families policy) — planned.
+- **Link-later** WhatsApp↔web account merge — held for phone-OTP verification.
+- Device QA (mic/voice + mobile input on specific Android devices).
+
+---
+
+## Historical log
+
+### Phase 2 SaaS Foundation
+
+Milestone: APPU latency and timeout-boundary remediation — backend implementation complete; secure duplicate callback/signature cutover pending secret provisioning
 
 ## Completed:
 

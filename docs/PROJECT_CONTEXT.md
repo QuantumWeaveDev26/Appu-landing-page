@@ -1,22 +1,25 @@
 # Appu Project Context
 
-Last updated: 2026-08-24
+Last updated: 2026-09-15
 
 ## Start here
 
 Future development agents should read:
 
-1. `docs/PROJECT_CONTEXT.md`
-2. `docs/PHASE2_ARCHITECTURE.md`
-3. `docs/CURRENT_TASK.md`
+1. `docs/FEATURE_STATUS.md` — current snapshot of everything live (start here)
+2. `docs/PROJECT_CONTEXT.md`
+3. `docs/PHASE2_ARCHITECTURE.md`
+4. `docs/CURRENT_TASK.md`
 
 Then inspect the relevant code. Repository code is the source of truth when documentation and implementation disagree. The manually verified live n8n workflow is authoritative for live workflow topology where the checked-in workflow snapshot is known to be stale.
 
 ## Product
 
-Appu is an AI learning companion for children in Classes 5–12. Parents are the account owners and purchasers; children are the primary learning users. Phase 2 will add parent accounts, isolated child profiles, controlled personalisation, subscriptions, entitlements, usage quotas, Razorpay, consent/privacy controls, and a parent dashboard.
+Appu is an AI learning companion for children in Classes 5–12. Parents are the account owners and purchasers; children are the primary learning users.
 
-The product must remain child-safe, privacy-conscious, multilingual, voice-enabled, and visually consistent with Phase 1.
+The Phase 2 parent/tenancy foundation is **shipped and live**: parent accounts, isolated child profiles, controlled personalisation, subscriptions/entitlements, usage quotas, consent/privacy controls, and a parent zone. Built on top of it and also live: a **true native Android app** (React Native/Expo, separate from the website), **WhatsApp** as a first-class channel (two-way tutoring, new-user onboarding, proactive sends), and **parent feedback + AI child performance reports**. Delivery reaches the learner across website, app, and WhatsApp with one shared learning record per child. See `docs/FEATURE_STATUS.md` for the full list and status.
+
+The product must remain child-safe, privacy-conscious, multilingual, voice-enabled, and visually consistent.
 
 ## Current repository
 

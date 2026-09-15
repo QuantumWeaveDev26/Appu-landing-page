@@ -1,9 +1,10 @@
 # APPU AI — Developer Guide & Architecture Reference
 
-Last Updated: 2026-08-25  
-Active Cache Release: `v=20260825-4`  
+Last Updated: 2026-09-15  
+Active Cache Release: `v=20260915-4`  
 Production Frontend: `https://appuai.online`  
-Hosted Backend API: `https://antiquewhite-elk-758047.hostingersite.com`  
+Hosted Backend API: `https://api.appuai.online`  
+Current-state overview: [`docs/FEATURE_STATUS.md`](FEATURE_STATUS.md)  
 
 ---
 

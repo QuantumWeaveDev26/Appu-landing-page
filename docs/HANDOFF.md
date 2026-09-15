@@ -1,16 +1,19 @@
-# APPU handoff — 2026-09-04
+# APPU handoff — 2026-09-04 (see FEATURE_STATUS.md for the current snapshot)
 
 Read this file before making changes. It records verified repository, deployment, and n8n state for continuation in Claude, Antigravity, OmniRouter, Codex, or another agent.
+
+> The most current overview of what's live is **[docs/FEATURE_STATUS.md](FEATURE_STATUS.md)** (updated 2026-09-15). The notes below remain accurate for repository/deploy topology; the app is now a **true native React Native app** (`native/`), not the earlier Capacitor wrapper.
 
 ## Repository
 
 - Workspace: `D:\office\Appu-landing-page`
 - Remote: `https://github.com/QuantumWeaveDev26/Appu-landing-page`
 - Branch: `main`
-- Frontend: shared vanilla JS/HTML/CSS in `frontend/`; same source powers website and Capacitor Android app.
-- Backend: Fastify/TypeScript in `backend/`; Hostinger application root is `backend`.
+- Frontend (website): vanilla JS/HTML/CSS in `frontend/`.
+- Native app: React Native + Expo (SDK 57) in `native/`; built via EAS (packages `online.appuai.appudev` / `online.appuai.appu`). Separate client, same backend. Supersedes the earlier Capacitor Android wrapper.
+- Backend: Fastify/TypeScript in `backend/`; Hostinger application root is `backend`. Prod build installs with `--omit=dev`, so build-time type packages must be in `dependencies`.
 - Website deployment: `.github/workflows/deploy-frontend.yml` publishes `frontend/` to orphan branch `frontend-production`; Hostinger serves `https://appuai.online` from that branch.
-- Backend deployment: Hostinger git integration follows `main` and redeploys automatically after pushes.
+- Backend deployment: Hostinger git integration follows `main` and rebuilds after pushes; a failed build or new env var needs a Deploy/Restart in hPanel. Live backend is `https://api.appuai.online`.
 - n8n workflow: `drr7AUOcj1VrU0j8` at `https://n8n.srv1871828.hstgr.cloud`.
 
 ## Verified completed work
