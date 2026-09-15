@@ -2570,3 +2570,16 @@ body.policy-page {
   }
 }
 
+
+/* ===== Parent Reports + Feedback gate ===== */
+.reports-sheet { max-width: 480px; }
+.report-view { display: flex; flex-direction: column; gap: 12px; }
+.report-fb-block { margin-top: 4px; }
+.report-fb-label { display: block; font-weight: 600; margin-bottom: 6px; }
+.report-rating { display: flex; gap: 6px; }
+.report-star { background: none; border: none; cursor: pointer; font-size: 26px; line-height: 1; color: #c3c2b7; padding: 2px; transition: color .12s ease, transform .12s ease; }
+.report-star:hover { transform: scale(1.08); }
+.report-star.is-on { color: #eda100; }
+.report-fb-field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.report-fb-field textarea { resize: vertical; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(11,11,11,0.18); background: rgba(255,255,255,0.04); color: inherit; }
+.report-note { min-height: 18px; font-size: 13px; color: #0EA5C4; margin: 0; }
