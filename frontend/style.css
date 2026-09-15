@@ -2602,3 +2602,8 @@ body.policy-page {
 /* Topbar Report button: visible on desktop, hidden on mobile (drawer entry covers mobile) */
 .topbar-reports-btn i { color: #0EA5C4; }
 @media (max-width: 768px) { .topbar-reports-btn { display: none !important; } }
+
+/* Parent feedback: preset positive dropdowns (no free typing) */
+.report-fb-select { font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(11,11,11,0.18); background: rgba(255,255,255,0.06); color: inherit; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%230EA5C4' stroke-width='2' stroke-linecap='round'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
+.report-fb-select:focus-visible { outline: 2px solid #0EA5C4; outline-offset: 1px; }
+.report-fb-select option { color: #0e1c2b; }

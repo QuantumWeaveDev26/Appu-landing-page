@@ -99,8 +99,8 @@
     const working = (elWorking.value || '').trim();
     const improve = (elImprove.value || '').trim();
     if (currentRating < 1) { flashLocked('Please pick a star rating first.'); return; }
-    if (!working) { flashLocked("Please tell us what's working well."); elWorking.focus(); return; }
-    if (!improve) { flashLocked('Please tell us what we should improve.'); elImprove.focus(); return; }
+    if (!working) { flashLocked("Please choose what's working well."); elWorking.focus(); return; }
+    if (!improve) { flashLocked('Please choose one option for what would make it better.'); elImprove.focus(); return; }
     const token = parentToken();
     if (!token) { flashLocked('Please sign in first.'); return; }
     elSubmit.disabled = true;
