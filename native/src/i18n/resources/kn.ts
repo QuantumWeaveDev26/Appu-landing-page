@@ -59,6 +59,10 @@ export const kn: TranslationKeys = {
     errorGeneric: 'ಸಂದೇಶ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
     learnerContext: 'ಇವರೊಂದಿಗೆ ಕಲಿಯುತ್ತಿದ್ದೀರಿ: {{name}}',
     setupLearnerPrompt: 'ಪೋಷಕರ ವಲಯದಲ್ಲಿ ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಹೊಂದಿಸಿ →',
+    feedbackGateTitle: 'ಪೋಷಕರ ಪ್ರತಿಕ್ರಿಯೆ ಅಗತ್ಯವಿದೆ',
+    feedbackGatePill: 'ಮುಂದುವರಿಯಲು ಅಗತ್ಯವಿದೆ',
+    feedbackGateNote: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ನಿಮ್ಮ ಅನುಭವ ಉತ್ತಮವಾಗಿದೆ! ಸಂಭಾಷಣೆ ಮುಂದುವರಿಸಲು ದಯವಿಟ್ಟು ತ್ವರಿತ ಪ್ರತಿಕ್ರಿಯೆ ನೀಡಿ.',
+    feedbackGatePlaceholder: 'ಮುಂದುವರಿಯಲು ಪ್ರತಿಕ್ರಿಯೆ ನೀಡಿ',
   },
   voice: {
     title: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಧ್ವನಿ ಸಂಭಾಷಣೆ',

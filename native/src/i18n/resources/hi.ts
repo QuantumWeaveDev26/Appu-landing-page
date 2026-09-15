@@ -59,6 +59,10 @@ export const hi: TranslationKeys = {
     errorGeneric: 'संदेश नहीं भेजा जा सका। कृपया पुनः प्रयास करें।',
     learnerContext: '{{name}} के साथ सीख रहे हैं',
     setupLearnerPrompt: 'पेरेंट ज़ोन में शिक्षार्थी प्रोफ़ाइल सेट करें →',
+    feedbackGateTitle: 'अभिभावक फ़ीडबैक आवश्यक',
+    feedbackGatePill: 'जारी रखने के लिए आवश्यक',
+    feedbackGateNote: 'अप्पू के साथ आपका अनुभव शानदार रहा है! बातचीत जारी रखने के लिए कृपया त्वरित फ़ीडबैक साझा करें।',
+    feedbackGatePlaceholder: 'बातचीत जारी रखने के लिए फ़ीडबैक दें',
   },
   voice: {
     title: 'अप्पू के साथ वॉयस बातचीत',
