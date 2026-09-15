@@ -15,3 +15,5 @@ export * from './whatsapp-onboarding.js';
 export * from './whatsapp-proactive.js';
 export * from './prompts.js';
 export * from './study-schedules.js';
+export * from './whatsapp-reports.js';
+

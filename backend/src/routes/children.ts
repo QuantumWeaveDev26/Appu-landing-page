@@ -14,6 +14,7 @@ import {
   ResponseStyles,
   ThemePreferences
 } from '../domain/personalisation/index.js';
+import { ReportService } from '../domain/report/index.js';
 import { BadRequestError, NotFoundError } from '../errors/index.js';
 
 export interface ChildrenRouteOptions {
@@ -21,6 +22,7 @@ export interface ChildrenRouteOptions {
   authVerifier: AuthVerifier;
   betaMode?: boolean;
   betaChatLimit?: number;
+  openaiApiKey?: string;
 }
 
 const safeStringPattern = /^[^<>`$]*$/;
@@ -451,5 +453,54 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
     return reply.status(200).send({
       personalisation: updated
     });
+  });
+
+  /**
+   * POST /api/children/:childId/report
+   * Generates a cumulative child performance report (PDF attachment by default, or JSON with ?format=json).
+   * GATED: Requires prior family feedback submission to unlock reports.
+   */
+  fastify.post('/api/children/:childId/report', { preHandler: requireAuth }, async (request, reply) => {
+    const principal = request.principal!;
+    const paramsResult = paramsSchema.safeParse(request.params);
+    if (!paramsResult.success) {
+      throw new BadRequestError('Invalid childId parameter', {
+        errors: paramsResult.error.flatten().fieldErrors
+      });
+    }
+
+    const { childId } = paramsResult.data;
+    const query = (request.query as Record<string, unknown>) || {};
+    const format = query.format === 'json' ? 'json' : 'pdf';
+
+    const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
+      opts.db,
+      principal.userId
+    );
+
+    const child = await TenancyRepository.getChildProfile(opts.db, household.id, childId);
+    if (!child) {
+      throw new NotFoundError('Child profile not found');
+    }
+
+    if (format === 'json') {
+      const report = await ReportService.generateReport(opts.db, household.id, child.id, {
+        apiKey: opts.openaiApiKey
+      });
+      return reply.status(200).send(report);
+    }
+
+    const { report, pdfBuffer, filename } = await ReportService.generateReportPdf(
+      opts.db,
+      household.id,
+      child.id,
+      {
+        apiKey: opts.openaiApiKey
+      }
+    );
+
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return reply.status(200).send(pdfBuffer);
   });
 };

@@ -194,3 +194,18 @@ export class GuestLimitReachedError extends AppError {
   }
 }
 
+export class FeedbackRequiredError extends AppError {
+  constructor(message = 'Parent feedback is required to unlock child performance reports.') {
+    super({
+      code: ErrorCodes.FORBIDDEN,
+      message,
+      statusCode: 403,
+      details: {
+        reason: 'feedback_required'
+      }
+    });
+    this.name = 'FeedbackRequiredError';
+  }
+}
+
+

@@ -26,7 +26,8 @@ import {
   whatsappOnboardingRoutes,
   whatsappProactiveRoutes,
   promptsRoutes,
-  studySchedulesRoutes
+  studySchedulesRoutes,
+  whatsappReportsRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -266,6 +267,13 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
       signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS
     });
+
+    app.register(whatsappReportsRoutes, {
+      db: options.database,
+      signingSecret: config.N8N_APPU_CALLBACK_HMAC_SECRET,
+      signatureMaxAgeSeconds: config.N8N_APPU_HMAC_MAX_AGE_SECONDS,
+      openaiApiKey: config.OPENAI_API_KEY
+    });
   }
 
   // Register public plans route if database is available
@@ -291,7 +299,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       db: options.database,
       authVerifier,
       betaMode: config.APPU_BETA_MODE,
-      betaChatLimit: config.APPU_BETA_CHAT_LIMIT
+      betaChatLimit: config.APPU_BETA_CHAT_LIMIT,
+      openaiApiKey: config.OPENAI_API_KEY
     });
 
     app.register(promptsRoutes, {

@@ -93,6 +93,9 @@ export const envSchema = z
       .optional(),
     ELEVENLABS_VOICE_ID: z
       .string()
+      .optional(),
+    OPENAI_API_KEY: z
+      .string()
       .optional()
   })
   .superRefine((data, ctx) => {

@@ -6,6 +6,7 @@ import { createAuthPreHandler } from '../middleware/auth.js';
 import { TenancyService } from '../domain/tenancy/service.js';
 import { TenancyRepository } from '../domain/tenancy/repository.js';
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
+import { FamilyFeedbackService } from '../domain/feedback/index.js';
 import { BadRequestError } from '../errors/index.js';
 
 export interface HouseholdRouteOptions {
@@ -20,6 +21,12 @@ const onboardSchema = z.object({
 const updateNotificationSchema = z.object({
   parentPhone: z.string().nullable().optional(),
   whatsappConsent: z.boolean().optional()
+});
+
+const submitFeedbackSchema = z.object({
+  rating: z.number().int().min(1, 'Rating must be between 1 and 5').max(5, 'Rating must be between 1 and 5'),
+  whatsWorking: z.string().max(2000).optional().nullable(),
+  whatsToImprove: z.string().max(2000).optional().nullable()
 });
 
 export const householdRoutes: FastifyPluginAsync<HouseholdRouteOptions> = async (fastify, opts) => {
@@ -110,5 +117,48 @@ export const householdRoutes: FastifyPluginAsync<HouseholdRouteOptions> = async 
       throw new BadRequestError(err.message || 'Invalid notification preferences');
     }
   });
+
+  /**
+   * POST /api/household/feedback
+   * Submits structured parent feedback for the authenticated parent's household, unlocking performance reports.
+   */
+  fastify.post('/api/household/feedback', { preHandler: requireAuth }, async (request, reply) => {
+    const principal = request.principal!;
+    const parseResult = submitFeedbackSchema.safeParse(request.body ?? {});
+    if (!parseResult.success) {
+      throw new BadRequestError('Invalid feedback payload', {
+        errors: parseResult.error.flatten().fieldErrors
+      });
+    }
+
+    const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
+      opts.db,
+      principal.userId
+    );
+
+    const result = await FamilyFeedbackService.saveFeedback(
+      opts.db,
+      household.id,
+      parseResult.data
+    );
+
+    return reply.status(200).send(result);
+  });
+
+  /**
+   * GET /api/household/feedback
+   * Retrieves feedback status and unlock state for the authenticated parent's household.
+   */
+  fastify.get('/api/household/feedback', { preHandler: requireAuth }, async (request, reply) => {
+    const principal = request.principal!;
+    const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
+      opts.db,
+      principal.userId
+    );
+
+    const result = await FamilyFeedbackService.getStatus(opts.db, household.id);
+    return reply.status(200).send(result);
+  });
 };
+
 

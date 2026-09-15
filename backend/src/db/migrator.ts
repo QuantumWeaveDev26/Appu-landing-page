@@ -203,10 +203,23 @@ export async function runMigrations(
       try {
         await transactionDb.query(migration.sql);
       } catch (err: any) {
-        // Mock parser compatibility (e.g. pg-mem) for PostgreSQL 15+ partial SET NULL syntax: ON DELETE SET NULL (col)
-        const errMsg = String(err?.message || err?.data?.error || err);
-        if (errMsg.includes('SET NULL') || errMsg.includes('set null')) {
-          const compatSql = migration.sql.replace(/ON DELETE SET NULL\s*\([^)]+\)/gi, 'ON DELETE SET NULL');
+        // Mock parser compatibility (e.g. pg-mem) for PostgreSQL 15+ syntax or features not supported by pg-mem:
+        // 1. Partial SET NULL syntax: ON DELETE SET NULL (col)
+        // 2. Row level security: ALTER TABLE ... ENABLE ROW LEVEL SECURITY
+        let compatSql = migration.sql;
+        let modified = false;
+
+        if (compatSql.includes('ON DELETE SET NULL') || compatSql.includes('on delete set null')) {
+          compatSql = compatSql.replace(/ON DELETE SET NULL\s*\([^)]+\)/gi, 'ON DELETE SET NULL');
+          modified = true;
+        }
+
+        if (compatSql.includes('ROW LEVEL SECURITY') || compatSql.includes('row level security')) {
+          compatSql = compatSql.replace(/ALTER TABLE[^\n;]+ENABLE ROW LEVEL SECURITY;?/gi, '');
+          modified = true;
+        }
+
+        if (modified) {
           await transactionDb.query(compatSql);
         } else {
           throw err;
