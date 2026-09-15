@@ -42,3 +42,6 @@ mobile/android/app/debug/
 *.keystore
 *.jks
 mobile/android/keystore.properties
+
+# October (generated — context bus / browser MCP)
+.agents/mcp_config.json

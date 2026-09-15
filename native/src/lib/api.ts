@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { config } from '../config';
 
 const GUEST_TOKEN_KEY = 'appu_guest_token';
@@ -956,5 +958,184 @@ export async function deleteConversation(
     return false;
   }
 }
+
+export interface FamilyFeedbackData {
+  id: string;
+  rating: number;
+  whatsWorking: string | null;
+  whatsToImprove: string | null;
+  createdAt: string;
+}
+
+export interface FamilyFeedbackStatus {
+  submitted: boolean;
+  reportsUnlocked: boolean;
+  feedback: FamilyFeedbackData | null;
+}
+
+export interface SubmitFamilyFeedbackInput {
+  rating: number;
+  whatsWorking?: string;
+  whatsToImprove?: string;
+}
+
+export interface ChildPerformanceReport {
+  childName: string;
+  grade: string;
+  period: 'cumulative';
+  generatedAt: string;
+  overallScore: number;
+  scoreLabel: string;
+  summary: string;
+  subjects: Array<{ subject: string; score: number; note: string }>;
+  strengths: string[];
+  improvements: string[];
+  topicsCovered: string[];
+  recommendations: string[];
+  engagement: {
+    totalChats: number;
+    activeDays: number;
+    topSubject: string;
+  };
+}
+
+/**
+ * Fetches family feedback and report unlock status.
+ * GET /api/household/feedback
+ */
+export async function fetchFamilyFeedback(accessToken: string): Promise<FamilyFeedbackStatus> {
+  const url = `${config.apiBaseUrl}/api/household/feedback`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken.trim()}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, 'FETCH_FEEDBACK_FAILED', 'Failed to fetch family feedback status');
+  }
+
+  return response.json();
+}
+
+/**
+ * Submits structured family feedback to unlock performance reports.
+ * POST /api/household/feedback
+ */
+export async function submitFamilyFeedback(
+  accessToken: string,
+  input: SubmitFamilyFeedbackInput
+): Promise<{ reportsUnlocked: boolean; feedback: FamilyFeedbackData }> {
+  const url = `${config.apiBaseUrl}/api/household/feedback`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken.trim()}`
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      errorBody.code || 'SUBMIT_FEEDBACK_FAILED',
+      errorBody.message || 'Failed to submit parent feedback'
+    );
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches cumulative performance report in JSON format for preview/display.
+ * POST /api/children/:childId/report?format=json
+ */
+export async function fetchChildReportJson(
+  accessToken: string,
+  childId: string
+): Promise<ChildPerformanceReport> {
+  const url = `${config.apiBaseUrl}/api/children/${encodeURIComponent(childId)}/report?format=json`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken.trim()}`
+    }
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.reason || err.code || 'FETCH_REPORT_FAILED',
+      err.message || 'Failed to generate child performance report'
+    );
+  }
+
+  return response.json();
+}
+
+/**
+ * Downloads and shares child performance report as a PDF using expo-file-system and expo-sharing.
+ * POST /api/children/:childId/report (format=pdf)
+ */
+export async function downloadAndShareChildReport(
+  accessToken: string,
+  childId: string,
+  childName: string
+): Promise<string> {
+  const url = `${config.apiBaseUrl}/api/children/${encodeURIComponent(childId)}/report`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/pdf',
+      Authorization: `Bearer ${accessToken.trim()}`
+    }
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      err.reason || err.code || 'REPORT_DOWNLOAD_FAILED',
+      err.message || 'Failed to download report PDF'
+    );
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+
+  const cleanName = childName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `appu-progress-report-${cleanName}-${dateStr}.pdf`;
+  const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+
+  await FileSystem.writeAsStringAsync(fileUri, base64, {
+    encoding: FileSystem.EncodingType.Base64
+  });
+
+  const isAvailable = await Sharing.isAvailableAsync();
+  if (isAvailable) {
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/pdf',
+      dialogTitle: `${childName}'s Learning Progress Report`,
+      UTI: 'com.adobe.pdf'
+    });
+  }
+
+  return fileUri;
+}
+
 
 

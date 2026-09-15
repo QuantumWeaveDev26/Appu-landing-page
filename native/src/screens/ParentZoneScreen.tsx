@@ -39,11 +39,17 @@ import {
   ThemePreference,
   CurrentSubscriptionResponse,
   UsageSummaryResponse,
+  fetchFamilyFeedback,
+  submitFamilyFeedback,
+  fetchChildReportJson,
+  downloadAndShareChildReport,
+  FamilyFeedbackStatus,
+  ChildPerformanceReport,
 } from '../lib/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ParentZone'>;
 
-type ParentTab = 'learners' | 'personalization' | 'subscription';
+type ParentTab = 'learners' | 'personalization' | 'subscription' | 'reports';
 
 const GRADE_OPTIONS = [
   'Grade 5',
@@ -111,6 +117,21 @@ export function ParentZoneScreen({ navigation, route }: Props) {
   const [subData, setSubData] = useState<CurrentSubscriptionResponse | null>(null);
   const [usageData, setUsageData] = useState<UsageSummaryResponse | null>(null);
   const [loadingSub, setLoadingSub] = useState(false);
+
+  // Parent Feedback & Performance Report state
+  const [feedbackStatus, setFeedbackStatus] = useState<FamilyFeedbackStatus | null>(null);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<number>(5);
+  const [feedbackWorking, setFeedbackWorking] = useState<string>('');
+  const [feedbackImprove, setFeedbackImprove] = useState<string>('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  // Report generation state
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [loadingReportPreview, setLoadingReportPreview] = useState(false);
+  const [reportData, setReportData] = useState<ChildPerformanceReport | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   const accessToken = session?.access_token;
 
@@ -224,6 +245,105 @@ export function ParentZoneScreen({ navigation, route }: Props) {
       void loadSubscriptionAndUsage();
     }
   }, [activeTab, accessToken, loadSubscriptionAndUsage]);
+
+  // Load feedback status
+  const loadFeedback = useCallback(async () => {
+    if (!accessToken) return;
+    setLoadingFeedback(true);
+    try {
+      const status = await fetchFamilyFeedback(accessToken);
+      setFeedbackStatus(status);
+      if (status.feedback?.rating) {
+        setFeedbackRating(status.feedback.rating);
+      }
+      if (status.feedback?.whatsWorking) {
+        setFeedbackWorking(status.feedback.whatsWorking);
+      }
+      if (status.feedback?.whatsToImprove) {
+        setFeedbackImprove(status.feedback.whatsToImprove);
+      }
+    } catch (err) {
+      console.warn('[ParentZone] Failed to load feedback status:', err);
+    } finally {
+      setLoadingFeedback(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (activeTab === 'reports' && accessToken) {
+      void loadFeedback();
+    }
+  }, [activeTab, accessToken, loadFeedback]);
+
+  // Submit Feedback Handler
+  const handleSubmitFeedback = async () => {
+    if (!accessToken) return;
+    setSubmittingFeedback(true);
+    try {
+      const result = await submitFamilyFeedback(accessToken, {
+        rating: feedbackRating,
+        whatsWorking: feedbackWorking.trim() || undefined,
+        whatsToImprove: feedbackImprove.trim() || undefined,
+      });
+      setFeedbackStatus({
+        submitted: true,
+        reportsUnlocked: true,
+        feedback: result.feedback,
+      });
+      setIsFeedbackModalVisible(false);
+      Alert.alert(
+        t('parent.feedbackModalTitle'),
+        t('parent.reportsUnlockedBadge') + '! You can now download and view child performance reports.'
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Submission Failed',
+        err.message || 'Could not submit feedback. Please try again.'
+      );
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
+  // Download & Share PDF Handler
+  const handleDownloadPdf = async (child: ChildProfile) => {
+    if (!accessToken) return;
+    setDownloadingPdf(true);
+    try {
+      await downloadAndShareChildReport(accessToken, child.id, child.preferredName);
+    } catch (err: any) {
+      if (err.details?.reason === 'feedback_required' || err.message?.includes('feedback_required') || err.message?.includes('403')) {
+        setIsFeedbackModalVisible(true);
+      } else {
+        Alert.alert('Download Error', err.message || 'Unable to generate report PDF.');
+      }
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Toggle On-Screen Preview Handler
+  const handleTogglePreview = async (child: ChildProfile) => {
+    if (reportData) {
+      setReportData(null);
+      return;
+    }
+    if (!accessToken) return;
+    setLoadingReportPreview(true);
+    setReportError(null);
+    try {
+      const data = await fetchChildReportJson(accessToken, child.id);
+      setReportData(data);
+    } catch (err: any) {
+      if (err.details?.reason === 'feedback_required' || err.message?.includes('feedback_required') || err.message?.includes('403')) {
+        setIsFeedbackModalVisible(true);
+      } else {
+        setReportError(err.message || 'Could not load report preview.');
+      }
+    } finally {
+      setLoadingReportPreview(false);
+    }
+  };
 
   // Handle open Add child modal (Single learner per account rule)
   const openAddChildModal = () => {
@@ -609,6 +729,24 @@ export function ParentZoneScreen({ navigation, route }: Props) {
             ]}
           >
             📊 {t('parent.tabs.subscription')}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tabBtn,
+            activeTab === 'reports' && styles.tabBtnActive,
+          ]}
+          onPress={() => setActiveTab('reports')}
+          activeOpacity={0.8}
+        >
+          <Text
+            style={[
+              styles.tabBtnText,
+              activeTab === 'reports' && styles.tabBtnTextActive,
+            ]}
+          >
+            📈 {t('parent.tabs.reports')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -1227,6 +1365,258 @@ export function ParentZoneScreen({ navigation, route }: Props) {
             )}
           </View>
         )}
+
+        {/* ========================================== */}
+        {/* TAB 4: REPORTS                             */}
+        {/* ========================================== */}
+        {activeTab === 'reports' && (
+          <View>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.sectionTitle}>{t('parent.reportsTitle')}</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {t('parent.reportsSubtitle')}
+                </Text>
+              </View>
+            </View>
+
+            {loadingFeedback ? (
+              <View style={styles.loaderWrap}>
+                <ActivityIndicator color={theme.colors.cyan} size="large" />
+                <Text style={styles.loaderText}>{t('parent.loadingLearners')}</Text>
+              </View>
+            ) : (
+              <View>
+                {/* Gating Banner or Unlocked Badge */}
+                {!feedbackStatus?.reportsUnlocked ? (
+                  <View style={styles.reportLockedCard}>
+                    <View style={styles.reportLockedHeader}>
+                      <Text style={styles.reportLockedIcon}>🔒</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.reportLockedTitle}>{t('parent.unlockReportsTitle')}</Text>
+                        <Text style={styles.reportLockedDesc}>
+                          {t('parent.unlockReportsDesc')}
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.giveFeedbackBtn}
+                      onPress={() => setIsFeedbackModalVisible(true)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.giveFeedbackBtnText}>⭐ {t('parent.giveFeedbackBtn')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.reportUnlockedCard}>
+                    <View style={styles.reportUnlockedHeader}>
+                      <Text style={styles.reportUnlockedBadge}>✓ {t('parent.reportsUnlockedBadge')}</Text>
+                      <TouchableOpacity
+                        onPress={() => setIsFeedbackModalVisible(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.updateFeedbackLink}>Edit Feedback</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {feedbackStatus.feedback ? (
+                      <View style={styles.feedbackSummaryRow}>
+                        <Text style={styles.feedbackStarsText}>
+                          {'★'.repeat(feedbackStatus.feedback.rating)}{'☆'.repeat(5 - feedbackStatus.feedback.rating)}
+                        </Text>
+                        {feedbackStatus.feedback.whatsWorking ? (
+                          <Text style={styles.feedbackQuoteText} numberOfLines={2}>
+                            "{feedbackStatus.feedback.whatsWorking}"
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+
+                {/* Learners Reports */}
+                {children.length === 0 ? (
+                  <View style={styles.emptyWrap}>
+                    <Text style={styles.emptyText}>{t('parent.noLearners')}</Text>
+                  </View>
+                ) : (
+                  children.map((child) => (
+                    <View key={child.id} style={styles.childReportCard}>
+                      <View style={styles.childCardHeader}>
+                        <View style={styles.childAvatarCircle}>
+                          <Text style={styles.childAvatarLetter}>
+                            {child.preferredName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.childMetaWrap}>
+                          <View style={styles.childNameRow}>
+                            <Text style={styles.childNameText}>{child.preferredName}</Text>
+                            {child.nickname ? (
+                              <Text style={styles.childNicknameBadge}>({child.nickname})</Text>
+                            ) : null}
+                          </View>
+                          <View style={styles.childBadgesRow}>
+                            <View style={styles.gradeBadge}>
+                              <Text style={styles.gradeBadgeText}>{child.gradeBand}</Text>
+                            </View>
+                            <Text style={styles.dobBadgeText}>Cumulative Progress</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Action buttons */}
+                      <View style={styles.reportActionsRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.downloadPdfBtn,
+                            (!feedbackStatus?.reportsUnlocked || downloadingPdf) && styles.btnDisabled,
+                          ]}
+                          onPress={() => handleDownloadPdf(child)}
+                          disabled={downloadingPdf}
+                          activeOpacity={0.8}
+                        >
+                          {downloadingPdf ? (
+                            <ActivityIndicator size="small" color="#030c1e" />
+                          ) : (
+                            <Text style={styles.downloadPdfBtnText}>
+                              📄 {t('parent.downloadPdfBtn')}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.previewReportBtn,
+                            !feedbackStatus?.reportsUnlocked && styles.btnDisabled,
+                          ]}
+                          onPress={() => handleTogglePreview(child)}
+                          disabled={loadingReportPreview}
+                          activeOpacity={0.8}
+                        >
+                          {loadingReportPreview ? (
+                            <ActivityIndicator size="small" color={theme.colors.cyan} />
+                          ) : (
+                            <Text style={styles.previewReportBtnText}>
+                              {reportData ? '✕ Hide Summary' : `👁️ ${t('parent.previewReportBtn')}`}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Error banner if preview failed */}
+                      {reportError ? (
+                        <View style={styles.reportErrorBanner}>
+                          <Text style={styles.reportErrorText}>{reportError}</Text>
+                        </View>
+                      ) : null}
+
+                      {/* On-Screen Preview */}
+                      {reportData && (
+                        <View style={styles.reportPreviewContainer}>
+                          {/* Score Header */}
+                          <View style={styles.scoreDialHeader}>
+                            <View style={styles.scoreCircle}>
+                              <Text style={styles.scoreNumber}>{reportData.overallScore}</Text>
+                              <Text style={styles.scoreSub}>/ 100</Text>
+                            </View>
+                            <View style={styles.scoreMeta}>
+                              <View style={styles.statusPill}>
+                                <Text style={styles.statusPillText}>{reportData.scoreLabel}</Text>
+                              </View>
+                              <Text style={styles.reportHeadline}>{reportData.childName} — Cumulative Progress</Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.reportParagraph}>{reportData.summary}</Text>
+
+                          {/* Engagement Tiles */}
+                          <View style={styles.engagementGrid}>
+                            <View style={styles.engagementTile}>
+                              <Text style={styles.engagementValue}>{reportData.engagement.totalChats}</Text>
+                              <Text style={styles.engagementLabel}>Total Chats</Text>
+                            </View>
+                            <View style={styles.engagementTile}>
+                              <Text style={styles.engagementValue}>{reportData.engagement.activeDays}</Text>
+                              <Text style={styles.engagementLabel}>Active Days</Text>
+                            </View>
+                            <View style={styles.engagementTile}>
+                              <Text style={styles.engagementValue} numberOfLines={1}>{reportData.engagement.topSubject}</Text>
+                              <Text style={styles.engagementLabel}>Top Subject</Text>
+                            </View>
+                          </View>
+
+                          {/* Subject Mastery */}
+                          {reportData.subjects?.length > 0 && (
+                            <View style={styles.previewSection}>
+                              <Text style={styles.previewSectionTitle}>Subject Mastery</Text>
+                              {reportData.subjects.map((sb, idx) => (
+                                <View key={idx} style={styles.subjectItem}>
+                                  <View style={styles.subjectHeaderRow}>
+                                    <Text style={styles.subjectName}>{sb.subject}</Text>
+                                    <Text style={styles.subjectScore}>{sb.score}%</Text>
+                                  </View>
+                                  <View style={styles.progressTrack}>
+                                    <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(5, sb.score))}%` }]} />
+                                  </View>
+                                  <Text style={styles.subjectNarrative}>{sb.note}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+
+                          {/* Strengths & Growth Areas */}
+                          <View style={styles.twoColumnGrid}>
+                            {reportData.strengths?.length > 0 && (
+                              <View style={styles.columnBox}>
+                                <Text style={styles.columnTitleGreen}>✨ Key Strengths</Text>
+                                {reportData.strengths.map((st, idx) => (
+                                  <Text key={idx} style={styles.bulletItem}>• {st}</Text>
+                                ))}
+                              </View>
+                            )}
+                            {reportData.improvements?.length > 0 && (
+                              <View style={styles.columnBox}>
+                                <Text style={styles.columnTitleAmber}>🎯 Growth Areas</Text>
+                                {reportData.improvements.map((im, idx) => (
+                                  <Text key={idx} style={styles.bulletItem}>• {im}</Text>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Topics Covered */}
+                          {reportData.topicsCovered?.length > 0 && (
+                            <View style={styles.previewSection}>
+                              <Text style={styles.previewSectionTitle}>Topics Covered</Text>
+                              <View style={styles.topicsCloud}>
+                                {reportData.topicsCovered.map((top, idx) => (
+                                  <View key={idx} style={styles.topicChip}>
+                                    <Text style={styles.topicChipText}>{top}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Recommendations */}
+                          {reportData.recommendations?.length > 0 && (
+                            <View style={styles.previewSection}>
+                              <Text style={styles.previewSectionTitle}>Actionable Recommendations</Text>
+                              {reportData.recommendations.map((rec, idx) => (
+                                <View key={idx} style={styles.recItem}>
+                                  <Text style={styles.bulletItem}>• {rec}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* ========================================== */}
@@ -1357,6 +1747,111 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================== */}
+      {/* MODAL: PARENT FEEDBACK GATING              */}
+      {/* ========================================== */}
+      <Modal
+        visible={isFeedbackModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsFeedbackModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('parent.feedbackModalTitle')}</Text>
+              <TouchableOpacity
+                onPress={() => setIsFeedbackModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalSubtitle}>
+                {t('parent.unlockReportsDesc')}
+              </Text>
+
+              {/* Star Rating */}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>{t('parent.feedbackRatingLabel')} *</Text>
+                <View style={styles.starRatingRow}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setFeedbackRating(star)}
+                      style={styles.starBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.starIcon, feedbackRating >= star && styles.starIconActive]}>
+                        ★
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <Text style={styles.starRatingText}>{feedbackRating} / 5</Text>
+                </View>
+              </View>
+
+              {/* What is working */}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>{t('parent.whatsWorkingLabel')}</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  value={feedbackWorking}
+                  onChangeText={setFeedbackWorking}
+                  placeholder={t('parent.whatsWorkingPlaceholder')}
+                  placeholderTextColor="#64748b"
+                  multiline
+                  numberOfLines={3}
+                  maxLength={1000}
+                />
+              </View>
+
+              {/* What could we improve */}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.fieldLabel}>{t('parent.whatsToImproveLabel')}</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  value={feedbackImprove}
+                  onChangeText={setFeedbackImprove}
+                  placeholder={t('parent.whatsToImprovePlaceholder')}
+                  placeholderTextColor="#64748b"
+                  multiline
+                  numberOfLines={3}
+                  maxLength={1000}
+                />
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={() => setIsFeedbackModalVisible(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalCancelText}>{t('parent.cancel')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, submittingFeedback && { opacity: 0.6 }]}
+                  onPress={handleSubmitFeedback}
+                  disabled={submittingFeedback}
+                  activeOpacity={0.8}
+                >
+                  {submittingFeedback ? (
+                    <ActivityIndicator color="#030c1e" />
+                  ) : (
+                    <Text style={styles.modalSubmitText}>
+                      {t('parent.submitFeedbackBtn')}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -2159,5 +2654,366 @@ const styles = StyleSheet.create({
     color: '#fde68a',
     fontSize: 12,
     lineHeight: 17,
+  },
+  // Reports & Feedback Styles
+  reportLockedCard: {
+    backgroundColor: '#0c1a30',
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.3)',
+    borderRadius: theme.radius.lg,
+    padding: 16,
+    marginBottom: 16,
+  },
+  reportLockedHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 14,
+  },
+  reportLockedIcon: {
+    fontSize: 24,
+  },
+  reportLockedTitle: {
+    color: '#facc15',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  reportLockedDesc: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  giveFeedbackBtn: {
+    backgroundColor: '#eab308',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  giveFeedbackBtnText: {
+    color: '#030c1e',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  reportUnlockedCard: {
+    backgroundColor: '#081e2b',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderRadius: theme.radius.lg,
+    padding: 14,
+    marginBottom: 16,
+  },
+  reportUnlockedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reportUnlockedBadge: {
+    color: '#4ade80',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  updateFeedbackLink: {
+    color: theme.colors.cyan,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  feedbackSummaryRow: {
+    marginTop: 8,
+    gap: 4,
+  },
+  feedbackStarsText: {
+    color: '#facc15',
+    fontSize: 16,
+    letterSpacing: 2,
+  },
+  feedbackQuoteText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  childReportCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.line,
+  },
+  reportActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+  downloadPdfBtn: {
+    flex: 1,
+    backgroundColor: theme.colors.cyan,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadPdfBtnText: {
+    color: '#030c1e',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  previewReportBtn: {
+    flex: 1,
+    backgroundColor: '#0c2242',
+    borderWidth: 1,
+    borderColor: theme.colors.line,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewReportBtnText: {
+    color: theme.colors.cyan,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  reportErrorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: theme.radius.md,
+    padding: 10,
+    marginTop: 12,
+  },
+  reportErrorText: {
+    color: '#f87171',
+    fontSize: 12,
+  },
+  reportPreviewContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 14,
+  },
+  scoreDialHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  scoreCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#071830',
+    borderWidth: 2,
+    borderColor: theme.colors.cyan,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreNumber: {
+    color: theme.colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 24,
+  },
+  scoreSub: {
+    color: '#64748b',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  scoreMeta: {
+    flex: 1,
+    gap: 4,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
+  },
+  statusPillText: {
+    color: theme.colors.cyan,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  reportHeadline: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  reportParagraph: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  engagementGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  engagementTile: {
+    flex: 1,
+    backgroundColor: '#061427',
+    borderRadius: theme.radius.md,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.line,
+    alignItems: 'center',
+  },
+  engagementValue: {
+    color: theme.colors.cyan,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  engagementLabel: {
+    color: '#64748b',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  previewSection: {
+    gap: 8,
+  },
+  previewSectionTitle: {
+    color: theme.colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  subjectItem: {
+    backgroundColor: '#061427',
+    padding: 10,
+    borderRadius: theme.radius.md,
+    gap: 6,
+  },
+  subjectHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  subjectName: {
+    color: theme.colors.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  subjectScore: {
+    color: theme.colors.cyan,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  subjectNarrative: {
+    color: '#94a3b8',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  twoColumnGrid: {
+    gap: 10,
+  },
+  columnBox: {
+    backgroundColor: '#061427',
+    borderRadius: theme.radius.md,
+    padding: 12,
+    gap: 6,
+  },
+  columnTitleGreen: {
+    color: '#4ade80',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  columnTitleAmber: {
+    color: '#facc15',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  bulletItem: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  topicsCloud: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  topicChip: {
+    backgroundColor: '#0c2242',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  topicChipText: {
+    color: theme.colors.cyan,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  recItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#061427',
+    padding: 10,
+    borderRadius: theme.radius.md,
+  },
+  recPriorityBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 2,
+  },
+  recPriorityText: {
+    color: theme.colors.cyan,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  recArea: {
+    color: theme.colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  recSuggestion: {
+    color: '#94a3b8',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  modalSubtitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  starRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  starBtn: {
+    padding: 4,
+  },
+  starIcon: {
+    fontSize: 28,
+    color: '#334155',
+  },
+  starIconActive: {
+    color: '#facc15',
+  },
+  starRatingText: {
+    color: '#facc15',
+    fontSize: 14,
+    fontWeight: '800',
+    marginLeft: 8,
+  },
+  textArea: {
+    minHeight: 70,
+    textAlignVertical: 'top',
   },
 });
