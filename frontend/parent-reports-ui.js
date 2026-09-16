@@ -24,19 +24,36 @@
     return (window.AppuSession && window.AppuSession.childId) || null;
   }
 
-  let modal, elLoading, elLocked, elUnlocked, elError, elRating, elWorking, elImprove, elSubmit, elDownload, elDownloadStatus;
+  let modal, elLoading, elLocked, elUnlocked, elError, elRating, elWorking, elImprove, elWorkingOther, elImproveOther, elSubmit, elDownload, elDownloadStatus;
   let currentRating = 0;
   let feedbackUnlocked = false;
   let statusChecked = false;
   let forcedMode = false;
   const CHAT_COUNT_KEY = 'appu_authed_chats';
+  const SNOOZE_CHATS = 8; // after "Maybe later", re-ask this many chats later
 
-  function chatCount() { try { return parseInt(localStorage.getItem(CHAT_COUNT_KEY) || '0', 10) || 0; } catch (e) { return 0; } }
+  // Scope the chat counter to the signed-in parent so a fresh account starts at 0
+  // (localStorage is per-browser, so a global key would leak an old count into new accounts).
+  function parentUserId() {
+    const shell = window.ParentOnboardingShell;
+    const u = shell && shell.state && shell.state.session && shell.state.session.user;
+    return (u && (u.id || u.email)) || (window.AppuSession && window.AppuSession.userId) || null;
+  }
+  function chatCountKey() { const uid = parentUserId(); return uid ? CHAT_COUNT_KEY + ':' + uid : CHAT_COUNT_KEY; }
+
+  function chatCount() { try { return parseInt(localStorage.getItem(chatCountKey()) || '0', 10) || 0; } catch (e) { return 0; } }
   function noteAuthedChat() {
     if (!parentToken() || feedbackUnlocked) return;
-    try { localStorage.setItem(CHAT_COUNT_KEY, String(chatCount() + 1)); } catch (e) {}
+    try { localStorage.setItem(chatCountKey(), String(chatCount() + 1)); } catch (e) {}
   }
   function threshold() { return (window.APPU_CONFIG && Number(window.APPU_CONFIG.feedbackChatThreshold)) || 12; }
+  function snoozeGate() {
+    try { localStorage.setItem(chatCountKey(), String(Math.max(0, threshold() - SNOOZE_CHATS))); } catch (e) {}
+  }
+  function fieldValue(sel, other) {
+    if (sel && sel.value === '__other__') return ((other && other.value) || '').trim();
+    return ((sel && sel.value) || '').trim();
+  }
 
   async function refreshUnlockStatus() {
     const token = parentToken();
@@ -96,11 +113,11 @@
   }
 
   async function submitFeedback() {
-    const working = (elWorking.value || '').trim();
-    const improve = (elImprove.value || '').trim();
+    const working = fieldValue(elWorking, elWorkingOther);
+    const improve = fieldValue(elImprove, elImproveOther);
     if (currentRating < 1) { flashLocked('Please pick a star rating first.'); return; }
-    if (!working) { flashLocked("Please choose what's working well."); elWorking.focus(); return; }
-    if (!improve) { flashLocked('Please choose one option for what would make it better.'); elImprove.focus(); return; }
+    if (!working) { flashLocked("Please tell us what's working well."); (elWorking.value === '__other__' ? elWorkingOther : elWorking).focus(); return; }
+    if (!improve) { flashLocked('Please tell us what would make it better.'); (elImprove.value === '__other__' ? elImproveOther : elImprove).focus(); return; }
     const token = parentToken();
     if (!token) { flashLocked('Please sign in first.'); return; }
     elSubmit.disabled = true;
@@ -112,8 +129,8 @@
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           rating: currentRating,
-          whatsWorking: (elWorking.value || '').trim(),
-          whatsToImprove: (elImprove.value || '').trim()
+          whatsWorking: working,
+          whatsToImprove: improve
         })
       });
       if (!res.ok) throw new Error(`status ${res.status}`);
@@ -135,15 +152,16 @@
     }
   }
 
-  // Open the modal as a hard gate: feedback form only, no way to dismiss until submitted.
+  // Open the modal as a gate after enough chats. Dismissible ("Maybe later" / X) so parents
+  // are never trapped; dismissing snoozes it, so it gently re-asks a few chats later.
   function openForced() {
     if (!modal) return;
     forcedMode = true;
     modal.classList.add('is-visible');
     modal.setAttribute('aria-hidden', 'false');
-    modal.querySelectorAll('[data-close-reports]').forEach((b) => { b.hidden = true; });
+    modal.querySelectorAll('[data-close-reports]').forEach((b) => { b.hidden = false; });
     setView('locked');
-    flashLocked("You've had a great run with Appu! Please share quick feedback to keep chatting.");
+    flashLocked("You've had a great run with Appu! Share quick feedback to unlock your child's report.");
   }
 
   function flashLocked(msg) {
@@ -200,9 +218,13 @@
 
   function close() {
     if (!modal) return;
-    if (forcedMode) return; // hard gate — must submit feedback first
     modal.classList.remove('is-visible');
     modal.setAttribute('aria-hidden', 'true');
+    if (forcedMode) {
+      // Dismissed the gate without feedback → snooze so it re-asks later, don't trap them.
+      forcedMode = false;
+      snoozeGate();
+    }
   }
 
   function init() {
@@ -215,6 +237,8 @@
     elRating = modal.querySelector('#report-rating');
     elWorking = modal.querySelector('#report-fb-working');
     elImprove = modal.querySelector('#report-fb-improve');
+    elWorkingOther = modal.querySelector('#report-fb-working-other');
+    elImproveOther = modal.querySelector('#report-fb-improve-other');
     elSubmit = modal.querySelector('#report-fb-submit');
     elDownload = modal.querySelector('#report-download-btn');
     elDownloadStatus = modal.querySelector('#report-download-status');
@@ -224,6 +248,19 @@
         star.addEventListener('click', () => { currentRating = i + 1; paintStars(); flashLocked(''); });
       });
     }
+    // "Other" reveals a free-text box for that field.
+    function wireOther(sel, other) {
+      if (!sel || !other) return;
+      sel.addEventListener('change', () => {
+        const isOther = sel.value === '__other__';
+        other.hidden = !isOther;
+        if (isOther) other.focus();
+        flashLocked('');
+      });
+    }
+    wireOther(elWorking, elWorkingOther);
+    wireOther(elImprove, elImproveOther);
+
     if (elSubmit) elSubmit.addEventListener('click', submitFeedback);
     if (elDownload) elDownload.addEventListener('click', downloadReport);
     const retry = modal.querySelector('#report-retry-btn');

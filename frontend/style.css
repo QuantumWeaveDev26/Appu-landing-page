@@ -2606,4 +2606,10 @@ body.policy-page {
 /* Parent feedback: preset positive dropdowns (no free typing) */
 .report-fb-select { font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(11,11,11,0.18); background: rgba(255,255,255,0.06); color: inherit; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%230EA5C4' stroke-width='2' stroke-linecap='round'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
 .report-fb-select:focus-visible { outline: 2px solid #0EA5C4; outline-offset: 1px; }
-.report-fb-select option { color: #0e1c2b; }
+.report-fb-select option { color: #eaf6ff; background: #0f1b2b; }
+.report-fb-select option[disabled] { color: rgba(234,246,255,0.55); }
+.report-fb-other { width: 100%; margin-top: 6px; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(14,165,196,0.45); background: rgba(255,255,255,0.06); color: inherit; }
+.report-fb-other::placeholder { color: rgba(255,255,255,0.5); }
+.report-fb-other:focus-visible { outline: 2px solid #0EA5C4; outline-offset: 1px; }
+.report-later-btn { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: rgba(255,255,255,0.6); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
+.report-later-btn:hover { color: rgba(255,255,255,0.9); }

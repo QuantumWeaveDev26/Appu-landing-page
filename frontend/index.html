@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260916-1">
+  <link rel="stylesheet" href="style.css?v=20260916-2">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -573,7 +573,9 @@
             <option>It keeps my child engaged and curious</option>
             <option>The voice and interactive features are great</option>
             <option>Homework and exam help are genuinely useful</option>
+            <option value="__other__">Other — tell us in your words</option>
           </select>
+          <input type="text" id="report-fb-working-other" class="report-fb-other" maxlength="200" placeholder="Tell us what you like most about Appu…" hidden />
         </label>
         <label class="report-fb-field"><span>What would make it even better?</span>
           <select id="report-fb-improve" class="report-fb-select">
@@ -583,10 +585,13 @@
             <option>More real-world examples and stories</option>
             <option>More activities in my preferred language</option>
             <option>Honestly, it's great as it is!</option>
+            <option value="__other__">Other — tell us in your words</option>
           </select>
+          <input type="text" id="report-fb-improve-other" class="report-fb-other" maxlength="200" placeholder="Tell us what would make Appu even better…" hidden />
         </label>
         <p id="report-feedback-note" class="report-note" role="alert"></p>
         <button id="report-fb-submit" class="primary-modal-btn" type="button">Submit feedback & unlock report</button>
+        <button id="report-fb-later" class="report-later-btn" type="button" data-close-reports>Maybe later</button>
       </div>
 
       <div id="report-view-unlocked" class="report-view" hidden>
@@ -607,18 +612,18 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260916-1"></script>
-  <script src="appu-config.js?v=20260916-1"></script>
-  <script src="appu-session.js?v=20260916-1"></script>
-  <script src="appu-backend-client.js?v=20260916-1"></script>
-  <script src="parent-onboarding-shell.js?v=20260916-1"></script>
-  <script src="parent-setup-ui.js?v=20260916-1"></script>
-  <script src="prompt-library-ui.js?v=20260916-1"></script>
-  <script src="avatar-stage.js?v=20260916-1"></script>
-  <script src="voice-engine.js?v=20260916-1"></script>
-  <script src="chat-history.js?v=20260916-1"></script>
-  <script src="chat-agent.js?v=20260916-1"></script>
-  <script src="parent-reports-ui.js?v=20260916-1"></script>
-  <script src="app.js?v=20260916-1"></script>
+  <script src="voice-contract.js?v=20260916-2"></script>
+  <script src="appu-config.js?v=20260916-2"></script>
+  <script src="appu-session.js?v=20260916-2"></script>
+  <script src="appu-backend-client.js?v=20260916-2"></script>
+  <script src="parent-onboarding-shell.js?v=20260916-2"></script>
+  <script src="parent-setup-ui.js?v=20260916-2"></script>
+  <script src="prompt-library-ui.js?v=20260916-2"></script>
+  <script src="avatar-stage.js?v=20260916-2"></script>
+  <script src="voice-engine.js?v=20260916-2"></script>
+  <script src="chat-history.js?v=20260916-2"></script>
+  <script src="chat-agent.js?v=20260916-2"></script>
+  <script src="parent-reports-ui.js?v=20260916-2"></script>
+  <script src="app.js?v=20260916-2"></script>
 </body>
 </html>
