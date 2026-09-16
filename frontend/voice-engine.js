@@ -256,8 +256,11 @@ class VoiceEngine {
         if (!this.micButton) return;
         this.micButton.classList.toggle('active', this.liveSessionActive || this.isListening);
         this.micButton.setAttribute('aria-pressed', String(this.liveSessionActive));
-        this.micButton.setAttribute('aria-label', this.liveSessionActive ? 'Stop listening' : 'Ask Appu with your voice');
-        if (this.micLabel) this.micLabel.textContent = this.liveSessionActive ? 'Listening now' : 'Ask Appu';
+        this.micButton.setAttribute('aria-label', this.liveSessionActive ? 'Stop listening' : 'Tap to speak to Appu');
+        if (this.micLabel) {
+            const idleLabel = this.micLabel.dataset.idleLabel || 'Tap to speak';
+            this.micLabel.textContent = this.liveSessionActive ? 'Listening now' : idleLabel;
+        }
     }
 
     updateSpeakingUI(speaking) {
@@ -289,7 +292,7 @@ class VoiceEngine {
             return true;
         } catch (error) {
             console.warn('Backend audio playback was blocked.', error);
-            this.streamSubtitles(text || 'Tap Ask Appu again to hear the answer.');
+            this.streamSubtitles(text || 'Tap the mic again to hear the answer.');
             this.handleSpeechFinish();
             return false;
         }

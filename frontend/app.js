@@ -426,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitlesGreeting: 'English selected. Ask Appu anything!',
       typeInstead: 'Type instead',
       askAppu: 'Ask Appu',
+      micCta: 'Tap to speak',
       parentSetup: 'Parent Setup',
       chatTitle: 'Chat with Appu',
       chatSubtitle: 'Ask, explore, understand',
@@ -509,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitlesGreeting: 'ಕನ್ನಡ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ. ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳಿ!',
       typeInstead: 'ಬರೆಯಿರಿ',
       askAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      micCta: 'ಮಾತನಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
       parentSetup: 'ಪೋಷಕರ ವಲಯ',
       chatTitle: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಸಂಭಾಷಣೆ',
       chatSubtitle: 'ಕೇಳಿ, ಅನ್ವೇಷಿಸಿ, ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
@@ -592,6 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitlesGreeting: 'हिंदी चुनी गई। अप्पू से कुछ भी पूछें!',
       typeInstead: 'टाइप करें',
       askAppu: 'अप्पू से पूछें',
+      micCta: 'बोलने के लिए टैप करें',
       parentSetup: 'पेरेंट सेटअप',
       chatTitle: 'अप्पू से बातचीत',
       chatSubtitle: 'पूछें, सीखें, समझें',
@@ -717,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeBtnSpan) typeBtnSpan.textContent = t.typeInstead;
 
     const micLabel = document.querySelector('.mic-label');
-    if (micLabel) micLabel.textContent = t.askAppu;
+    if (micLabel) { micLabel.textContent = t.micCta; micLabel.dataset.idleLabel = t.micCta; }
 
     const parentBtnSpan = document.querySelector('#btn-parent-setup span');
     if (parentBtnSpan) parentBtnSpan.textContent = t.parentSetup;
@@ -1296,6 +1299,18 @@ document.addEventListener('DOMContentLoaded', () => {
     btnToggleChat.addEventListener('click', () => {
       if (!ensureChatSessionReady()) return;
       toggleChatDrawer(true);
+    });
+  }
+  // Tapping the center "Appu says" card also opens the typing window.
+  const responseCard = document.getElementById('response-card');
+  if (responseCard) {
+    const openTyping = () => {
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
+    };
+    responseCard.addEventListener('click', openTyping);
+    responseCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTyping(); }
     });
   }
   if (btnCloseChat) {

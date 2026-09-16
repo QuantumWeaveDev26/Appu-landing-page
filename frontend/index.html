@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260916-2">
+  <link rel="stylesheet" href="style.css?v=20260916-3">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -166,14 +166,14 @@
     </div>
 
     <section class="response-dock" aria-label="Talk to Appu">
-      <div class="response-card">
+      <div class="response-card" id="response-card" role="button" tabindex="0" aria-label="Tap to type a message to Appu">
         <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong id="appu-says-label">Appu says</strong><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
         <p id="subtitles-text">Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.</p>
       </div>
       <div class="control-dock">
         <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span>Type instead</span></button>
-        <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Ask Appu with your voice"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
-        <span class="mic-label">Ask Appu</span>
+        <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Tap to speak to Appu"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
+        <span class="mic-label">Tap to speak</span>
       </div>
     </section>
   </div>
@@ -612,18 +612,18 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260916-2"></script>
-  <script src="appu-config.js?v=20260916-2"></script>
-  <script src="appu-session.js?v=20260916-2"></script>
-  <script src="appu-backend-client.js?v=20260916-2"></script>
-  <script src="parent-onboarding-shell.js?v=20260916-2"></script>
-  <script src="parent-setup-ui.js?v=20260916-2"></script>
-  <script src="prompt-library-ui.js?v=20260916-2"></script>
-  <script src="avatar-stage.js?v=20260916-2"></script>
-  <script src="voice-engine.js?v=20260916-2"></script>
-  <script src="chat-history.js?v=20260916-2"></script>
-  <script src="chat-agent.js?v=20260916-2"></script>
-  <script src="parent-reports-ui.js?v=20260916-2"></script>
-  <script src="app.js?v=20260916-2"></script>
+  <script src="voice-contract.js?v=20260916-3"></script>
+  <script src="appu-config.js?v=20260916-3"></script>
+  <script src="appu-session.js?v=20260916-3"></script>
+  <script src="appu-backend-client.js?v=20260916-3"></script>
+  <script src="parent-onboarding-shell.js?v=20260916-3"></script>
+  <script src="parent-setup-ui.js?v=20260916-3"></script>
+  <script src="prompt-library-ui.js?v=20260916-3"></script>
+  <script src="avatar-stage.js?v=20260916-3"></script>
+  <script src="voice-engine.js?v=20260916-3"></script>
+  <script src="chat-history.js?v=20260916-3"></script>
+  <script src="chat-agent.js?v=20260916-3"></script>
+  <script src="parent-reports-ui.js?v=20260916-3"></script>
+  <script src="app.js?v=20260916-3"></script>
 </body>
 </html>
