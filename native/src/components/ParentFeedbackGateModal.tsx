@@ -14,6 +14,11 @@ import { theme } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { submitFamilyFeedback } from '../lib/api';
 import { setCachedFeedbackUnlocked } from '../lib/feedbackGate';
+import { FeedbackDropdown } from './FeedbackDropdown';
+import {
+  WHATS_WORKING_PRESETS,
+  WHATS_TO_IMPROVE_PRESETS,
+} from '../lib/feedbackPresets';
 
 interface Props {
   visible: boolean;
@@ -26,7 +31,7 @@ export function ParentFeedbackGateModal({
   accessToken,
   onFeedbackSubmitted,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const [rating, setRating] = useState(5);
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsToImprove, setWhatsToImprove] = useState('');
@@ -124,34 +129,24 @@ export function ParentFeedbackGateModal({
             </View>
 
             {/* What is working */}
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>{t('parent.whatsWorkingLabel')} *</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                value={whatsWorking}
-                onChangeText={setWhatsWorking}
-                placeholder={t('parent.whatsWorkingPlaceholder')}
-                placeholderTextColor="#64748b"
-                multiline
-                numberOfLines={3}
-                maxLength={1000}
-              />
-            </View>
+            <FeedbackDropdown
+              label={t('parent.whatsWorkingLabel')}
+              placeholder={t('parent.whatsWorkingPlaceholder')}
+              options={WHATS_WORKING_PRESETS}
+              selectedValue={whatsWorking}
+              onSelect={setWhatsWorking}
+              language={currentLanguage}
+            />
 
-            {/* What could we improve */}
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>{t('parent.whatsToImproveLabel')} *</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                value={whatsToImprove}
-                onChangeText={setWhatsToImprove}
-                placeholder={t('parent.whatsToImprovePlaceholder')}
-                placeholderTextColor="#64748b"
-                multiline
-                numberOfLines={3}
-                maxLength={1000}
-              />
-            </View>
+            {/* What would make it even better */}
+            <FeedbackDropdown
+              label={t('parent.whatsToImproveLabel')}
+              placeholder={t('parent.whatsToImprovePlaceholder')}
+              options={WHATS_TO_IMPROVE_PRESETS}
+              selectedValue={whatsToImprove}
+              onSelect={setWhatsToImprove}
+              language={currentLanguage}
+            />
 
             {/* Actions: submit only (non-dismissable) */}
             <View style={styles.modalActions}>

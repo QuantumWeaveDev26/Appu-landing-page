@@ -46,6 +46,11 @@ import {
   FamilyFeedbackStatus,
   ChildPerformanceReport,
 } from '../lib/api';
+import { FeedbackDropdown } from '../components/FeedbackDropdown';
+import {
+  WHATS_WORKING_PRESETS,
+  WHATS_TO_IMPROVE_PRESETS,
+} from '../lib/feedbackPresets';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ParentZone'>;
 
@@ -1173,15 +1178,25 @@ export function ParentZoneScreen({ navigation, route }: Props) {
 
                 {/* Parent WhatsApp Section */}
                 <View style={styles.whatsappCard}>
-                  <Text style={styles.whatsappTitle}>
-                    📱 {t('parent.whatsappTitle')}
-                  </Text>
+                  <View style={styles.whatsappHeaderRow}>
+                    <Text style={styles.whatsappTitle}>
+                      📱 {t('parent.whatsappTitle')}
+                    </Text>
+                    <View style={styles.whatsappRecommendedBadge}>
+                      <Text style={styles.whatsappRecommendedBadgeText}>
+                        {t('parent.whatsappRecommendedBadge')}
+                      </Text>
+                    </View>
+                  </View>
                   <Text style={styles.whatsappRationale}>
                     {t('parent.whatsappRationale')}
                   </Text>
 
+                  <Text style={[styles.fieldLabel, { marginTop: 12, marginBottom: 4 }]}>
+                    {t('parent.parentPhone')}
+                  </Text>
                   <TextInput
-                    style={[styles.textInput, { marginTop: 8 }]}
+                    style={styles.textInput}
                     value={parentPhone}
                     onChangeText={setParentPhone}
                     placeholder={t('parent.parentPhonePlaceholder')}
@@ -1809,34 +1824,24 @@ export function ParentZoneScreen({ navigation, route }: Props) {
               </View>
 
               {/* What is working */}
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>{t('parent.whatsWorkingLabel')} *</Text>
-                <TextInput
-                  style={[styles.textInput, styles.textArea]}
-                  value={feedbackWorking}
-                  onChangeText={setFeedbackWorking}
-                  placeholder={t('parent.whatsWorkingPlaceholder')}
-                  placeholderTextColor="#64748b"
-                  multiline
-                  numberOfLines={3}
-                  maxLength={1000}
-                />
-              </View>
+              <FeedbackDropdown
+                label={t('parent.whatsWorkingLabel')}
+                placeholder={t('parent.whatsWorkingPlaceholder')}
+                options={WHATS_WORKING_PRESETS}
+                selectedValue={feedbackWorking}
+                onSelect={setFeedbackWorking}
+                language={currentLanguage}
+              />
 
-              {/* What could we improve */}
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>{t('parent.whatsToImproveLabel')} *</Text>
-                <TextInput
-                  style={[styles.textInput, styles.textArea]}
-                  value={feedbackImprove}
-                  onChangeText={setFeedbackImprove}
-                  placeholder={t('parent.whatsToImprovePlaceholder')}
-                  placeholderTextColor="#64748b"
-                  multiline
-                  numberOfLines={3}
-                  maxLength={1000}
-                />
-              </View>
+              {/* What would make it even better */}
+              <FeedbackDropdown
+                label={t('parent.whatsToImproveLabel')}
+                placeholder={t('parent.whatsToImprovePlaceholder')}
+                options={WHATS_TO_IMPROVE_PRESETS}
+                selectedValue={feedbackImprove}
+                onSelect={setFeedbackImprove}
+                language={currentLanguage}
+              />
 
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -2310,23 +2315,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   whatsappCard: {
-    backgroundColor: '#061427',
+    backgroundColor: '#071d34',
     borderRadius: theme.radius.lg,
     padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.5)',
     marginBottom: 16,
   },
+  whatsappHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   whatsappTitle: {
-    color: '#4ade80',
-    fontSize: 14,
-    fontWeight: '700',
+    color: '#38bdf8',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  whatsappRecommendedBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.45)',
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  whatsappRecommendedBadgeText: {
+    color: '#38bdf8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   whatsappRationale: {
-    color: '#64748b',
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 4,
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2,
   },
   switchRow: {
     flexDirection: 'row',
