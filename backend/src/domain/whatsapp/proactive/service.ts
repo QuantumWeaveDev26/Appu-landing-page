@@ -3,11 +3,13 @@ import { ProactiveWhatsAppRepository } from './repository.js';
 import {
   BirthdayWishGenerator,
   DailyTipGenerator,
+  SessionAlertGenerator,
   WeeklyDigestGenerator
 } from './generators.js';
 import {
   DEFAULT_TEMPLATE_LANGUAGE,
-  type ProactiveTargetPayload
+  type ProactiveTargetPayload,
+  type SessionAlertTargetPayload
 } from './types.js';
 
 export interface ProactiveGenerateOptions {
@@ -116,6 +118,86 @@ export class ProactiveWhatsAppService {
         templateLanguage: DEFAULT_TEMPLATE_LANGUAGE,
         parameters
       });
+    }
+
+    return payloads;
+  }
+
+  /**
+   * Generates proactive payloads for Child Study Session Alerts:
+   * - 'start': sessions created within the last ~8 minutes
+   * - 'thirty': sessions created 30 to 40 minutes ago
+   * Deduplicates strictly via `session_alerts` table.
+   */
+  public static async generateChildSessionAlerts(
+    db: Queryable,
+    options?: ProactiveGenerateOptions
+  ): Promise<SessionAlertTargetPayload[]> {
+    const referenceDate = options?.referenceDate || new Date();
+    const limit = options?.limit ?? 200;
+    const dryRun = Boolean(options?.dryRun);
+
+    const candidates = await ProactiveWhatsAppRepository.findSessionAlertCandidates(db, {
+      referenceDate,
+      limit
+    });
+
+    const payloads: SessionAlertTargetPayload[] = [];
+    const seenAlertKeys = new Set<string>();
+
+    const refTime = referenceDate.getTime();
+    const startMinTime = refTime - 8 * 60 * 1000;
+    const thirtyMinTime = refTime - 40 * 60 * 1000;
+    const thirtyMaxTime = refTime - 30 * 60 * 1000;
+
+    for (const row of candidates) {
+      const startedAt = row.started_at instanceof Date ? row.started_at : new Date(row.started_at);
+      const startedTime = startedAt.getTime();
+
+      let alertType: 'start' | 'thirty' | null = null;
+      if (startedTime >= startMinTime && startedTime <= refTime && !row.start_sent_at) {
+        alertType = 'start';
+      } else if (startedTime >= thirtyMinTime && startedTime <= thirtyMaxTime && !row.thirty_sent_at) {
+        alertType = 'thirty';
+      }
+
+      if (!alertType) continue;
+
+      const alertKey = `${row.session_id}:${alertType}`;
+      if (seenAlertKeys.has(alertKey)) continue;
+      seenAlertKeys.add(alertKey);
+
+      const recipientPhone = row.parent_phone.replace(/\D/g, '');
+      if (!recipientPhone) continue;
+
+      const templateName = alertType === 'start' ? 'appu_child_session_start' : 'appu_child_session_30min';
+      const parameters = SessionAlertGenerator.generate(
+        row.household_name,
+        row.nickname,
+        row.preferred_name
+      );
+
+      const payload: SessionAlertTargetPayload = {
+        alertType,
+        sessionId: row.session_id,
+        recipientPhone,
+        templateName,
+        templateLanguage: DEFAULT_TEMPLATE_LANGUAGE,
+        parameters
+      };
+
+      if (!dryRun) {
+        await ProactiveWhatsAppRepository.recordSessionAlertSent(db, {
+          sessionId: row.session_id,
+          householdId: row.household_id,
+          childId: row.child_id,
+          startedAt,
+          alertType,
+          sentAt: referenceDate
+        });
+      }
+
+      payloads.push(payload);
     }
 
     return payloads;

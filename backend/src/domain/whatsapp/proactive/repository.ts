@@ -231,4 +231,105 @@ export class ProactiveWhatsAppRepository {
       dob: formatDateString(row.dob) ?? ''
     }));
   }
+
+  /**
+   * Finds candidate sessions for start and 30-minute study alerts:
+   * - Households with whatsapp_consent = TRUE and non-null parent_phone
+   * - Child profile is ACTIVE
+   * - Either:
+   *     a) Session started within last 8 min AND (no session_alerts row or start_sent_at IS NULL)
+   *     b) Session started 30 to 40 min ago AND thirty_sent_at IS NULL
+   */
+  public static async findSessionAlertCandidates(
+    db: Queryable,
+    options?: { referenceDate?: Date; limit?: number }
+  ): Promise<SessionAlertCandidateRow[]> {
+    const now = options?.referenceDate ?? new Date();
+    const startWindowMin = new Date(now.getTime() - 8 * 60 * 1000);
+    const thirtyWindowMax = new Date(now.getTime() - 30 * 60 * 1000);
+    const thirtyWindowMin = new Date(now.getTime() - 40 * 60 * 1000);
+    const limit = options?.limit ?? 200;
+
+    const result = await db.query<SessionAlertCandidateRow>(
+      `SELECT 
+         cs.id::text AS session_id,
+         cs.household_id,
+         cs.child_id,
+         cs.created_at AS started_at,
+         h.name AS household_name,
+         h.parent_phone,
+         c.preferred_name,
+         c.nickname,
+         sa.start_sent_at,
+         sa.thirty_sent_at
+       FROM conversation_sessions cs
+       JOIN households h ON cs.household_id = h.id
+       JOIN child_profiles c ON cs.child_id = c.id
+       LEFT JOIN session_alerts sa ON sa.session_id = cs.id::text
+       WHERE h.whatsapp_consent = TRUE
+         AND h.parent_phone IS NOT NULL
+         AND h.parent_phone != ''
+         AND c.status = 'ACTIVE'
+         AND (
+           (cs.created_at >= $1 AND cs.created_at <= $2 AND sa.start_sent_at IS NULL)
+           OR
+           (cs.created_at >= $3 AND cs.created_at <= $4 AND sa.thirty_sent_at IS NULL)
+         )
+       ORDER BY cs.created_at DESC
+       LIMIT $5;`,
+      [startWindowMin, now, thirtyWindowMin, thirtyWindowMax, limit]
+    );
+
+    return result.rows;
+  }
+
+  /**
+   * Records that a session alert ('start' or 'thirty') was emitted for a session,
+   * deduping strictly via conditional update.
+   */
+  public static async recordSessionAlertSent(
+    db: Queryable,
+    alert: {
+      sessionId: string;
+      householdId: string;
+      childId: string;
+      startedAt: Date;
+      alertType: 'start' | 'thirty';
+      sentAt?: Date;
+    }
+  ): Promise<void> {
+    const sentAt = alert.sentAt ?? new Date();
+    if (alert.alertType === 'start') {
+      await db.query(
+        `INSERT INTO session_alerts (session_id, household_id, child_id, started_at, start_sent_at, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (session_id) DO UPDATE
+         SET start_sent_at = EXCLUDED.start_sent_at
+         WHERE session_alerts.start_sent_at IS NULL;`,
+        [alert.sessionId, alert.householdId, alert.childId, alert.startedAt, sentAt]
+      );
+    } else if (alert.alertType === 'thirty') {
+      await db.query(
+        `INSERT INTO session_alerts (session_id, household_id, child_id, started_at, thirty_sent_at, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (session_id) DO UPDATE
+         SET thirty_sent_at = EXCLUDED.thirty_sent_at
+         WHERE session_alerts.thirty_sent_at IS NULL;`,
+        [alert.sessionId, alert.householdId, alert.childId, alert.startedAt, sentAt]
+      );
+    }
+  }
+}
+
+export interface SessionAlertCandidateRow {
+  session_id: string;
+  household_id: string;
+  child_id: string;
+  started_at: Date | string;
+  household_name: string | null;
+  parent_phone: string;
+  preferred_name: string;
+  nickname: string | null;
+  start_sent_at: Date | string | null;
+  thirty_sent_at: Date | string | null;
 }

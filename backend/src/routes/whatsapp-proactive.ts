@@ -136,4 +136,33 @@ export const whatsappProactiveRoutes: FastifyPluginAsync<WhatsAppProactiveRouteO
       });
     }
   });
+
+  /**
+   * POST /api/appu/whatsapp/proactive/child-session-alert
+   * Generates session-start and 30-minute study alerts for parents with active WhatsApp consent.
+   */
+  fastify.post('/api/appu/whatsapp/proactive/child-session-alert', async (request, reply) => {
+    verifyHmacAuth(request, opts);
+    const { dryRun, limit } = parseRequestBody(request);
+
+    try {
+      const targets = await ProactiveWhatsAppService.generateChildSessionAlerts(opts.db, { dryRun, limit });
+      return reply.status(200).send({
+        success: true,
+        jobType: 'child-session-alert',
+        generatedAt: new Date().toISOString(),
+        count: targets.length,
+        targets
+      });
+    } catch (err) {
+      request.log.error({ err }, 'Error in child-session-alert route');
+      return reply.status(200).send({
+        success: false,
+        jobType: 'child-session-alert',
+        generatedAt: new Date().toISOString(),
+        count: 0,
+        targets: []
+      });
+    }
+  });
 };

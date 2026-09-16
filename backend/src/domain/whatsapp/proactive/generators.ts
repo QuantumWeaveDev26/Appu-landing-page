@@ -138,3 +138,46 @@ export class BirthdayWishGenerator {
     return [{ type: 'text', text: childName }];
   }
 }
+
+export class SessionAlertGenerator {
+  public static resolveParentName(householdName: string | null | undefined): string {
+    if (!householdName) return 'there';
+    const trimmed = householdName.trim();
+    const lower = trimmed.toLowerCase();
+    if (
+      lower === 'family' ||
+      lower === 'learner household' ||
+      lower === 'household' ||
+      lower === ''
+    ) {
+      return 'there';
+    }
+    return sanitizeMetaParam(trimmed, 40) || 'there';
+  }
+
+  public static resolveChildName(
+    nickname: string | null | undefined,
+    preferredName: string | null | undefined
+  ): string {
+    const name =
+      nickname && nickname.trim().length > 0
+        ? nickname.trim()
+        : preferredName && preferredName.trim().length > 0
+        ? preferredName.trim()
+        : 'your child';
+    return sanitizeMetaParam(name, 40) || 'your child';
+  }
+
+  public static generate(
+    householdName: string | null | undefined,
+    nickname: string | null | undefined,
+    preferredName: string | null | undefined
+  ): MetaTemplateParameter[] {
+    const parentName = this.resolveParentName(householdName);
+    const childName = this.resolveChildName(nickname, preferredName);
+    return [
+      { type: 'text', text: parentName },
+      { type: 'text', text: childName }
+    ];
+  }
+}

@@ -56,3 +56,22 @@ export interface ProactiveJobResponse {
   count: number;
   targets: ProactiveTargetPayload[];
 }
+
+export type SessionAlertType = 'start' | 'thirty';
+
+export interface SessionAlertTargetPayload {
+  alertType: SessionAlertType;
+  sessionId: string;
+  recipientPhone: string;
+  templateName: string;
+  templateLanguage: string;
+  parameters: MetaTemplateParameter[];
+}
+
+export interface SessionAlertJobResponse {
+  success: boolean;
+  jobType: 'child-session-alert';
+  generatedAt: string;
+  count: number;
+  targets: SessionAlertTargetPayload[];
+}
