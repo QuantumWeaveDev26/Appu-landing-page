@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
@@ -10,6 +11,8 @@ import {
   FeedbackPresetOption,
   getFeedbackOptionLabel,
   findFeedbackOptionByValue,
+  OTHER_OPTION_ID,
+  OTHER_PRESET_OPTION,
 } from '../lib/feedbackPresets';
 import { theme } from '../theme';
 
@@ -21,6 +24,8 @@ interface FeedbackDropdownProps {
   onSelect: (value: string) => void;
   language?: string;
   containerStyle?: ViewStyle;
+  allowOther?: boolean;
+  otherPlaceholder?: string;
 }
 
 export function FeedbackDropdown({
@@ -31,21 +36,51 @@ export function FeedbackDropdown({
   onSelect,
   language = 'en',
   containerStyle,
+  allowOther = true,
+  otherPlaceholder,
 }: FeedbackDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isOtherMode, setIsOtherMode] = useState(false);
+  const [customText, setCustomText] = useState('');
 
   const matchedOption = findFeedbackOptionByValue(options, selectedValue);
-  const displayLabel = matchedOption
+
+  // Sync state if selectedValue is set externally
+  useEffect(() => {
+    if (!selectedValue) {
+      if (!isOtherMode) {
+        setCustomText('');
+      }
+    } else if (matchedOption) {
+      setIsOtherMode(false);
+    } else if (selectedValue === OTHER_PRESET_OPTION.en) {
+      setIsOtherMode(true);
+    } else {
+      // It's a custom typed string
+      setIsOtherMode(true);
+      setCustomText(selectedValue);
+    }
+  }, [selectedValue, matchedOption]);
+
+  const displayLabel = isOtherMode
+    ? getFeedbackOptionLabel(OTHER_PRESET_OPTION, language)
+    : matchedOption
     ? getFeedbackOptionLabel(matchedOption, language)
-    : selectedValue
-    ? selectedValue
-    : '';
+    : selectedValue || '';
 
   const handleSelectOption = (option: FeedbackPresetOption) => {
-    // Send the canonical English option text for backend & Google Sheets parity
-    onSelect(option.en);
-    setIsOpen(false);
+    if (option.id === OTHER_OPTION_ID) {
+      setIsOtherMode(true);
+      setIsOpen(false);
+      onSelect(customText);
+    } else {
+      setIsOtherMode(false);
+      onSelect(option.en);
+      setIsOpen(false);
+    }
   };
+
+  const allOptions = allowOther ? [...options, OTHER_PRESET_OPTION] : options;
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -72,14 +107,12 @@ export function FeedbackDropdown({
 
       {isOpen && (
         <View style={styles.dropdownContainer}>
-          {options.map((option, index) => {
-            const isSelected =
-              matchedOption?.id === option.id ||
-              selectedValue.toLowerCase() === option.en.toLowerCase() ||
-              selectedValue.toLowerCase() === option.hi.toLowerCase() ||
-              selectedValue.toLowerCase() === option.kn.toLowerCase();
+          {allOptions.map((option, index) => {
+            const isSelected = isOtherMode
+              ? option.id === OTHER_OPTION_ID
+              : matchedOption?.id === option.id;
             const optionLabel = getFeedbackOptionLabel(option, language);
-            const isLast = index === options.length - 1;
+            const isLast = index === allOptions.length - 1;
 
             return (
               <TouchableOpacity
@@ -107,6 +140,22 @@ export function FeedbackDropdown({
             );
           })}
         </View>
+      )}
+
+      {isOtherMode && (
+        <TextInput
+          style={styles.otherInput}
+          value={customText}
+          onChangeText={(text) => {
+            setCustomText(text);
+            onSelect(text);
+          }}
+          placeholder={otherPlaceholder || 'Tell us in your words…'}
+          placeholderTextColor="#64748b"
+          maxLength={200}
+          multiline={false}
+          autoFocus={true}
+        />
       )}
     </View>
   );
@@ -196,4 +245,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
+  otherInput: {
+    backgroundColor: '#061325',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.45)',
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: theme.colors.text,
+    fontSize: 13,
+    marginTop: 8,
+  },
 });
+

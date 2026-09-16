@@ -30,6 +30,7 @@ import {
   FEEDBACK_CHAT_THRESHOLD,
   getAuthedChatCount,
   incrementAuthedChatCount,
+  snoozeAuthedChatCount,
   isCachedFeedbackUnlocked,
   checkFeedbackStatus,
 } from '../lib/feedbackGate';
@@ -99,20 +100,21 @@ export function ChatScreen({ navigation, route }: Props) {
   // Check unlock status and authed chat count for signed-in parents
   useEffect(() => {
     let isMounted = true;
-    if (!isGuest && session?.access_token) {
-      void isCachedFeedbackUnlocked().then((cached) => {
+    const userId = session?.user?.id;
+    if (!isGuest && session?.access_token && userId) {
+      void isCachedFeedbackUnlocked(userId).then((cached) => {
         if (!isMounted) return;
         if (cached) {
           setFeedbackUnlocked(true);
         } else {
-          void checkFeedbackStatus(session.access_token).then((unlocked) => {
+          void checkFeedbackStatus(session.access_token, userId).then((unlocked) => {
             if (!isMounted) return;
             setFeedbackUnlocked(unlocked);
           });
         }
       });
 
-      void getAuthedChatCount().then((count) => {
+      void getAuthedChatCount(userId).then((count) => {
         if (!isMounted) return;
         setAuthedChatCount(count);
       });
@@ -120,7 +122,7 @@ export function ChatScreen({ navigation, route }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [isGuest, session?.access_token]);
+  }, [isGuest, session?.access_token, session?.user?.id]);
 
   // Force open the feedback gate modal if user reaches the threshold
   useEffect(() => {
@@ -242,8 +244,9 @@ export function ChatScreen({ navigation, route }: Props) {
     setInputText('');
 
     // Count authed chat if not already unlocked
-    if (!isGuest && session?.access_token && !feedbackUnlocked) {
-      void incrementAuthedChatCount().then((nextCount) => {
+    const userId = session?.user?.id;
+    if (!isGuest && session?.access_token && !feedbackUnlocked && userId) {
+      void incrementAuthedChatCount(userId).then((nextCount) => {
         setAuthedChatCount(nextCount);
       });
     }
@@ -796,8 +799,9 @@ export function ChatScreen({ navigation, route }: Props) {
             if (newConvId) {
               setConversationId(newConvId);
             }
-            if (!isGuest && session?.access_token && !feedbackUnlocked) {
-              void incrementAuthedChatCount().then((nextCount) => {
+            const userId = session?.user?.id;
+            if (!isGuest && session?.access_token && !feedbackUnlocked && userId) {
+              void incrementAuthedChatCount(userId).then((nextCount) => {
                 setAuthedChatCount(nextCount);
               });
             }
@@ -833,13 +837,21 @@ export function ChatScreen({ navigation, route }: Props) {
           childId={activeChild?.id}
         />
 
-        {/* Non-Dismissable Parent Feedback Gate Modal (after 12 chats) */}
+        {/* Parent Feedback Gate Modal (after 12 chats, dismissible with snooze) */}
         <ParentFeedbackGateModal
           visible={isFeedbackGateModalVisible}
           accessToken={session?.access_token}
+          userId={session?.user?.id}
           onFeedbackSubmitted={() => {
             setFeedbackUnlocked(true);
             setIsFeedbackGateModalVisible(false);
+          }}
+          onDismiss={() => {
+            const uid = session?.user?.id;
+            void snoozeAuthedChatCount(uid).then((newCount) => {
+              setAuthedChatCount(newCount);
+              setIsFeedbackGateModalVisible(false);
+            });
           }}
         />
       </KeyboardAvoidingView>

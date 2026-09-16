@@ -63,6 +63,9 @@ export const kn: TranslationKeys = {
     feedbackGatePill: 'ಮುಂದುವರಿಯಲು ಅಗತ್ಯವಿದೆ',
     feedbackGateNote: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ನಿಮ್ಮ ಅನುಭವ ಉತ್ತಮವಾಗಿದೆ! ಸಂಭಾಷಣೆ ಮುಂದುವರಿಸಲು ದಯವಿಟ್ಟು ತ್ವರಿತ ಪ್ರತಿಕ್ರಿಯೆ ನೀಡಿ.',
     feedbackGatePlaceholder: 'ಮುಂದುವರಿಯಲು ಪ್ರತಿಕ್ರಿಯೆ ನೀಡಿ',
+    feedbackGateMaybeLater: 'ನಂತರ ನೋಡೋಣ',
+    feedbackOtherWorkingPlaceholder: 'ಅಪ್ಪುವಿನಲ್ಲಿ ನಿಮಗೆ ಹೆಚ್ಚು ಇಷ್ಟವಾದದ್ದನ್ನು ತಿಳಿಸಿ…',
+    feedbackOtherImprovePlaceholder: 'ಅಪ್ಪುವನ್ನು ಇನ್ನಷ್ಟು ಉತ್ತಮಗೊಳಿಸಲು ಏನು ಬೇಕು ಎಂದು ತಿಳಿಸಿ…',
   },
   voice: {
     title: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಧ್ವನಿ ಸಂಭಾಷಣೆ',

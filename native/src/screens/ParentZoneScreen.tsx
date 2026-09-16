@@ -47,6 +47,7 @@ import {
   ChildPerformanceReport,
 } from '../lib/api';
 import { FeedbackDropdown } from '../components/FeedbackDropdown';
+import { setCachedFeedbackUnlocked } from '../lib/feedbackGate';
 import {
   WHATS_WORKING_PRESETS,
   WHATS_TO_IMPROVE_PRESETS,
@@ -306,6 +307,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
         reportsUnlocked: true,
         feedback: result.feedback,
       });
+      await setCachedFeedbackUnlocked(user?.id);
       setIsFeedbackModalVisible(false);
       Alert.alert(
         t('parent.feedbackModalTitle'),
@@ -1827,6 +1829,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
               <FeedbackDropdown
                 label={t('parent.whatsWorkingLabel')}
                 placeholder={t('parent.whatsWorkingPlaceholder')}
+                otherPlaceholder={t('chat.feedbackOtherWorkingPlaceholder')}
                 options={WHATS_WORKING_PRESETS}
                 selectedValue={feedbackWorking}
                 onSelect={setFeedbackWorking}
@@ -1837,6 +1840,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
               <FeedbackDropdown
                 label={t('parent.whatsToImproveLabel')}
                 placeholder={t('parent.whatsToImprovePlaceholder')}
+                otherPlaceholder={t('chat.feedbackOtherImprovePlaceholder')}
                 options={WHATS_TO_IMPROVE_PRESETS}
                 selectedValue={feedbackImprove}
                 onSelect={setFeedbackImprove}

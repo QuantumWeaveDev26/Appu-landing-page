@@ -61,6 +61,9 @@ export const en = {
     feedbackGatePill: 'Required to continue',
     feedbackGateNote: "You've had a great run with Appu! Please share quick feedback to keep chatting.",
     feedbackGatePlaceholder: 'Submit feedback to keep chatting',
+    feedbackGateMaybeLater: 'Maybe later',
+    feedbackOtherWorkingPlaceholder: 'Tell us what you like most about Appu…',
+    feedbackOtherImprovePlaceholder: 'Tell us what would make Appu even better…',
   },
   voice: {
     title: 'Voice Session with Appu',

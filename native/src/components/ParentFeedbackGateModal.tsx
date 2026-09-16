@@ -23,13 +23,17 @@ import {
 interface Props {
   visible: boolean;
   accessToken?: string;
+  userId?: string;
   onFeedbackSubmitted: () => void;
+  onDismiss?: () => void;
 }
 
 export function ParentFeedbackGateModal({
   visible,
   accessToken,
+  userId,
   onFeedbackSubmitted,
+  onDismiss,
 }: Props) {
   const { t, currentLanguage } = useLanguage();
   const [rating, setRating] = useState(5);
@@ -64,7 +68,7 @@ export function ParentFeedbackGateModal({
         whatsToImprove: improveTrimmed,
       });
 
-      await setCachedFeedbackUnlocked();
+      await setCachedFeedbackUnlocked(userId);
       onFeedbackSubmitted();
 
       Alert.alert(
@@ -86,9 +90,7 @@ export function ParentFeedbackGateModal({
       visible={visible}
       animationType="fade"
       transparent={true}
-      onRequestClose={() => {
-        // Non-dismissable hard gate: do nothing on Android hardware back button
-      }}
+      onRequestClose={onDismiss || (() => {})}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -101,6 +103,17 @@ export function ParentFeedbackGateModal({
               </View>
               <Text style={styles.modalTitle}>{t('chat.feedbackGateTitle')}</Text>
             </View>
+            {onDismiss && (
+              <TouchableOpacity
+                onPress={onDismiss}
+                activeOpacity={0.7}
+                style={styles.closeBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -132,6 +145,7 @@ export function ParentFeedbackGateModal({
             <FeedbackDropdown
               label={t('parent.whatsWorkingLabel')}
               placeholder={t('parent.whatsWorkingPlaceholder')}
+              otherPlaceholder={t('chat.feedbackOtherWorkingPlaceholder')}
               options={WHATS_WORKING_PRESETS}
               selectedValue={whatsWorking}
               onSelect={setWhatsWorking}
@@ -142,13 +156,14 @@ export function ParentFeedbackGateModal({
             <FeedbackDropdown
               label={t('parent.whatsToImproveLabel')}
               placeholder={t('parent.whatsToImprovePlaceholder')}
+              otherPlaceholder={t('chat.feedbackOtherImprovePlaceholder')}
               options={WHATS_TO_IMPROVE_PRESETS}
               selectedValue={whatsToImprove}
               onSelect={setWhatsToImprove}
               language={currentLanguage}
             />
 
-            {/* Actions: submit only (non-dismissable) */}
+            {/* Actions: submit & maybe later */}
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[
@@ -167,6 +182,18 @@ export function ParentFeedbackGateModal({
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {onDismiss && (
+                <TouchableOpacity
+                  style={styles.modalLaterBtn}
+                  onPress={onDismiss}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalLaterText}>
+                    {t('chat.feedbackGateMaybeLater')}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -191,7 +218,19 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  closeBtn: {
+    padding: 6,
+    borderRadius: theme.radius.sm,
+  },
+  modalCloseText: {
+    color: '#94a3b8',
+    fontSize: 18,
+    fontWeight: '700',
   },
   badgeRow: {
     flexDirection: 'row',
@@ -289,4 +328,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  modalLaterBtn: {
+    marginTop: 12,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  modalLaterText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
 });
+

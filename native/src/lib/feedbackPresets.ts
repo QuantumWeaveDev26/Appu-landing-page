@@ -107,3 +107,13 @@ export function findFeedbackOptionByValue(
       opt.kn.toLowerCase() === trimmed
   );
 }
+
+export const OTHER_OPTION_ID = '__other__';
+
+export const OTHER_PRESET_OPTION: FeedbackPresetOption = {
+  id: OTHER_OPTION_ID,
+  en: 'Other — tell us in your words',
+  hi: 'अन्य — अपने शब्दों में बताएं',
+  kn: 'ಇತರ — ನಿಮ್ಮ ಮಾತುಗಳಲ್ಲಿ ತಿಳಿಸಿ',
+};
+

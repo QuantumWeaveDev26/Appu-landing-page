@@ -63,6 +63,9 @@ export const hi: TranslationKeys = {
     feedbackGatePill: 'जारी रखने के लिए आवश्यक',
     feedbackGateNote: 'अप्पू के साथ आपका अनुभव शानदार रहा है! बातचीत जारी रखने के लिए कृपया त्वरित फ़ीडबैक साझा करें।',
     feedbackGatePlaceholder: 'बातचीत जारी रखने के लिए फ़ीडबैक दें',
+    feedbackGateMaybeLater: 'बाद में',
+    feedbackOtherWorkingPlaceholder: 'बताएं कि आपको अप्पू में सबसे अच्छा क्या लगता है…',
+    feedbackOtherImprovePlaceholder: 'बताएं कि क्या अप्पू को और बेहतर बना सकता है…',
   },
   voice: {
     title: 'अप्पू के साथ वॉयस बातचीत',
