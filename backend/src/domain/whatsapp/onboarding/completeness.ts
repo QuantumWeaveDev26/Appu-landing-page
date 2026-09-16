@@ -118,7 +118,12 @@ export function evaluateCompleteness(
     }
   }
 
-  const complete = missingFields.length === 0;
+  // A profile counts as "complete" (personalised, no forced onboarding) once the
+  // ESSENTIALS are present — name + grade. The remaining fields are still reported
+  // in missingFields so the agent can enrich them conversationally, but they no
+  // longer block a returning learner or force a full re-onboarding.
+  const ESSENTIAL_FIELDS: WhatsAppRequiredField[] = ['name', 'grade'];
+  const complete = ESSENTIAL_FIELDS.every((f) => !missingFields.includes(f));
   const nextPromptField = missingFields.length > 0 ? missingFields[0] : null;
 
   return {

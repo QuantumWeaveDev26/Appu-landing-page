@@ -537,9 +537,12 @@ export class TenancyRepository {
       created_at: Date | string;
       updated_at: Date | string;
     }>(
+      // Recognition keys on the saved parent phone only. WhatsApp consent gates
+      // proactive/marketing sends (handled by separate consent-filtered queries),
+      // NOT whether we recognise a returning parent and load their child's profile.
       `SELECT id, name, parent_phone, whatsapp_consent, whatsapp_consent_at, created_at, updated_at
        FROM households
-       WHERE parent_phone = $1 AND whatsapp_consent = TRUE
+       WHERE parent_phone = $1
        ORDER BY updated_at DESC, created_at DESC
        LIMIT 1;`,
       [normalized]
