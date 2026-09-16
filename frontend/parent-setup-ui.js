@@ -28,9 +28,14 @@
       authEmailLabel: 'Parent / Guardian Email',
       authPasswordLabel: 'Password',
       authHouseholdLabel: 'Household / Family Name',
+      authDobLabel: 'Your date of birth (parent / guardian)',
+      authAttestText: 'I confirm I am the parent or guardian and 18 years or older, creating this account for my child.',
       btnAuthSubmitSignIn: 'Sign In to Parent Zone',
       btnAuthSubmitSignUp: 'Create Parent Account',
       alertEnterBoth: 'Please enter both email and password.',
+      alertDobRequired: 'Please enter your date of birth.',
+      alertAttestRequired: 'Please confirm you are the parent or guardian (18+).',
+      alertUnder18: 'You must be 18 or older to create a parent account. Please ask a parent or guardian to sign up.',
       authCreatingAccount: 'Creating Account...',
       authenticating: 'Authenticating...',
       authFailedDefault: 'Authentication failed. Please check your credentials.',
@@ -118,9 +123,14 @@
       authEmailLabel: 'ಪೋಷಕ / ಪಾಲಕರ ಇಮೇಲ್',
       authPasswordLabel: 'ಪಾಸ್‌ವರ್ಡ್',
       authHouseholdLabel: 'ಕುಟುಂಬದ ಹೆಸರು',
+      authDobLabel: 'ನಿಮ್ಮ ಜನ್ಮ ದಿನಾಂಕ (ಪೋಷಕ / ಪಾಲಕ)',
+      authAttestText: 'ನಾನು ಪೋಷಕ ಅಥವಾ ಪಾಲಕ ಮತ್ತು 18 ವರ್ಷ ಅಥವಾ ಹೆಚ್ಚಿನ ವಯಸ್ಸಿನವನು, ನನ್ನ ಮಗುವಿಗಾಗಿ ಈ ಖಾತೆಯನ್ನು ರಚಿಸುತ್ತಿದ್ದೇನೆ ಎಂದು ದೃಢೀಕರಿಸುತ್ತೇನೆ.',
       btnAuthSubmitSignIn: 'ಪೋಷಕರ ವಲಯಕ್ಕೆ ಸೈನ್ ಇನ್ ಮಾಡಿ',
       btnAuthSubmitSignUp: 'ಪೋಷಕರ ಖಾತೆ ರಚಿಸಿ',
       alertEnterBoth: 'ದಯವಿಟ್ಟು ಇಮೇಲ್ ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ಎರಡನ್ನೂ ನಮೂದಿಸಿ.',
+      alertDobRequired: 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಜನ್ಮ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ.',
+      alertAttestRequired: 'ನೀವು ಪೋಷಕ ಅಥವಾ ಪಾಲಕ (18+) ಎಂದು ದೃಢೀಕರಿಸಿ.',
+      alertUnder18: 'ಪೋಷಕರ ಖಾತೆ ರಚಿಸಲು ನೀವು 18 ವರ್ಷ ಅಥವಾ ಹೆಚ್ಚಿನವರಾಗಿರಬೇಕು. ದಯವಿಟ್ಟು ಪೋಷಕ ಅಥವಾ ಪಾಲಕರನ್ನು ಸೈನ್ ಅಪ್ ಮಾಡಲು ಕೇಳಿ.',
       authCreatingAccount: 'ಖಾತೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...',
       authenticating: 'ಪ್ರಮಾಣೀಕರಿಸಲಾಗುತ್ತಿದೆ...',
       authFailedDefault: 'ಪ್ರಮಾಣೀಕರಣ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ರುಜುವಾತುಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.',
@@ -208,9 +218,14 @@
       authEmailLabel: 'माता-पिता / अभिभावक ईमेल',
       authPasswordLabel: 'पासवर्ड',
       authHouseholdLabel: 'परिवार का नाम',
+      authDobLabel: 'आपकी जन्म तिथि (माता-पिता / अभिभावक)',
+      authAttestText: 'मैं पुष्टि करता/करती हूँ कि मैं माता-पिता या अभिभावक हूँ और 18 वर्ष या उससे अधिक का/की हूँ, तथा अपने बच्चे के लिए यह खाता बना रहा/रही हूँ।',
       btnAuthSubmitSignIn: 'पेरेंट ज़ोन में साइन इन करें',
       btnAuthSubmitSignUp: 'पेरेंट खाता बनाएं',
       alertEnterBoth: 'कृपया ईमेल और पासवर्ड दोनों दर्ज करें।',
+      alertDobRequired: 'कृपया अपनी जन्म तिथि दर्ज करें।',
+      alertAttestRequired: 'कृपया पुष्टि करें कि आप माता-पिता या अभिभावक (18+) हैं।',
+      alertUnder18: 'पेरेंट खाता बनाने के लिए आपकी आयु 18 वर्ष या अधिक होनी चाहिए। कृपया किसी माता-पिता या अभिभावक से साइन अप करने को कहें।',
       authCreatingAccount: 'खाता बनाया जा रहा है...',
       authenticating: 'प्रमाणीकरण हो रहा है...',
       authFailedDefault: 'प्रमाणीकरण विफल हुआ। कृपया अपनी जानकारी जांचें।',
@@ -395,6 +410,10 @@
       if (authPasswordLabel) authPasswordLabel.textContent = t('authPasswordLabel');
       const authHouseholdLabel = document.getElementById('pos-auth-household-label');
       if (authHouseholdLabel) authHouseholdLabel.textContent = t('authHouseholdLabel');
+      const authDobLabel = document.getElementById('pos-auth-dob-label');
+      if (authDobLabel) authDobLabel.textContent = t('authDobLabel');
+      const authAttestText = document.getElementById('pos-auth-attest-text');
+      if (authAttestText) authAttestText.textContent = t('authAttestText');
       if (btnAuthSubmit && !btnAuthSubmit.disabled) {
         btnAuthSubmit.textContent = isSignUpMode ? t('btnAuthSubmitSignUp') : t('btnAuthSubmitSignIn');
       }
@@ -832,6 +851,16 @@
       });
     }
 
+    function ageFromDob(dobStr) {
+      const dob = new Date(dobStr);
+      if (isNaN(dob.getTime())) return NaN;
+      const now = new Date();
+      let age = now.getFullYear() - dob.getFullYear();
+      const m = now.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+      return age;
+    }
+
     if (authForm) {
       authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -846,6 +875,17 @@
           return;
         }
 
+        // Adult / parent age gate — only enforced when creating a new account.
+        let parentDob = null;
+        if (isSignUpMode) {
+          const dobEl = document.getElementById('pos-auth-dob');
+          const attestEl = document.getElementById('pos-auth-attest');
+          parentDob = dobEl?.value || '';
+          if (!parentDob) { showAlert(t('alertDobRequired')); dobEl?.focus(); return; }
+          if (!attestEl?.checked) { showAlert(t('alertAttestRequired')); return; }
+          if (ageFromDob(parentDob) < 18) { showAlert(t('alertUnder18')); return; }
+        }
+
         try {
           if (btnAuthSubmit) {
             btnAuthSubmit.disabled = true;
@@ -856,7 +896,9 @@
             email,
             password,
             isSignUp: isSignUpMode,
-            householdName
+            householdName,
+            parentDob: isSignUpMode ? parentDob : undefined,
+            adultAttested: isSignUpMode ? true : undefined
           });
 
           if (authState.status === 'VERIFICATION_REQUIRED' || authState.needsVerification) {
