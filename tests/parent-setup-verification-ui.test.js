@@ -74,6 +74,8 @@ function setupDomMock() {
     'pos-auth-email',
     'pos-auth-password',
     'pos-auth-household',
+    'pos-auth-dob',
+    'pos-auth-attest',
     'pos-household-wrap',
     'pos-btn-auth-submit',
     'pos-plans-container',
@@ -157,6 +159,9 @@ describe('ParentSetupUI Verification & Success Flow Tests', () => {
 
     authEmail.value = 'parent@example.com';
     authPassword.value = 'SecretPass123!';
+    // Satisfy the adult/parent age gate
+    dom.elements.get('pos-auth-dob').value = '1990-01-01';
+    dom.elements.get('pos-auth-attest').checked = true;
 
     // Click signup tab
     await tabSignup.dispatchEvent({ type: 'click' });
@@ -200,6 +205,9 @@ describe('ParentSetupUI Verification & Success Flow Tests', () => {
 
     authEmail.value = 'duplicate@example.com';
     authPassword.value = 'Password123!';
+    // Satisfy the adult/parent age gate so the flow reaches signInParent
+    dom.elements.get('pos-auth-dob').value = '1990-01-01';
+    dom.elements.get('pos-auth-attest').checked = true;
 
     await tabSignup.dispatchEvent({ type: 'click' });
 

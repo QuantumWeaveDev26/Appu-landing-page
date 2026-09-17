@@ -62,7 +62,7 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
     assert.ok(indexContent.includes('contact-us.html'), 'index.html must link to contact-us.html');
 
     // Footer is strictly outside the response-dock and response-card
-    const responseCardMatch = indexContent.match(/<div class="response-card">([\s\S]*?)<\/div>/i);
+    const responseCardMatch = indexContent.match(/<div class="response-card"[^>]*>([\s\S]*?)<\/div>/i);
     assert.ok(responseCardMatch, 'response-card must exist');
     assert.ok(!responseCardMatch[1].includes('landing-footer-strip'), 'landing-footer-strip must NOT be inside response-card');
 
