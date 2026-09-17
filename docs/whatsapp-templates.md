@@ -53,16 +53,15 @@ Happy Birthday, {{1}}! 🎉🎂 Wishing you a wonderful year full of learning an
 ## 5. `appu_study_note` — Utility — In-Chat "Send note to WhatsApp"
 Dispatched directly from the chat UI when a parent or learner clicks "Send note to WhatsApp". Server-sends to the registered parent's number.
 ```
-Hi! 📝 Here is a study note from {{1}}'s learning session with APPU:
+📝 A study note from {{1}}'s APPU learning session:
 
 {{2}}
-
-Keep encouraging {{1}}'s curiosity! — Team APPU
 ```
 - Category: **Utility**
 - Variables:
   - `{{1}}` child nickname / name (max 40 chars) · Sample: `Aarav`
   - `{{2}}` note text / key concept (max 1024 chars) · Sample: `Photosynthesis is the process by which green plants turn sunlight, water, and CO2 into food and oxygen.`
+- ⚠️ Meta note: keep the body purely transactional. The earlier version's promotional sign-off ("Keep encouraging… — Team APPU") gets a Utility template **rejected** for marketing tone. Only the variables `{{1}}` (name) and `{{2}}` (note) matter to the backend — reword the rest freely as long as those two stay in that order.
 
 ## 6. `appu_parent_otp` — Authentication — 30-Min Session Hard Lock Unlock
 Dispatched when the 30-minute study window hard locks and the parent requests an unlock OTP.
@@ -81,15 +80,14 @@ Your APPU parent unlock code is {{1}}. Valid for 10 minutes. Do not share this c
 ## 7. `appu_usage_report` — Utility — Parental Session Screen Time Report
 Dispatched alongside the OTP to provide parents full visibility into session active vs away duration.
 ```
-📊 APPU Study Session Update:
-{{1}} has been studying actively for {{2}} minutes (away/paused: {{3}} minutes).
-To extend screen time by another 30 minutes, enter the parent verification code in the app.
+📊 APPU study session update for {{1}}: {{2}} minutes actively learning, {{3}} minutes away or paused. The session is now paused for a parent screen-time check.
 ```
 - Category: **Utility**
 - Variables:
   - `{{1}}` child nickname / name · Sample: `Aarav`
   - `{{2}}` active minutes · Sample: `30`
   - `{{3}}` away/paused minutes · Sample: `5`
+- ⚠️ Meta note: the body must **NOT** mention a "verification code" / OTP. Any reference to a code forces Meta to reclassify the template as **Authentication** (and then reject it as Utility) — this is why the earlier version failed. The unlock code is delivered by the separate `appu_parent_otp` (Authentication) template. Keep only the 3 variables `{{1}}` (name), `{{2}}` (active min), `{{3}}` (away min) in that order; reword the rest freely.
 
 ---
 
