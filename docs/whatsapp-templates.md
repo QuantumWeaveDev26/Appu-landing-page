@@ -50,6 +50,49 @@ Happy Birthday, {{1}}! 🎉🎂 Wishing you a wonderful year full of learning an
 
 ---
 
+## 5. `appu_study_note` — Utility — In-Chat "Send note to WhatsApp"
+Dispatched directly from the chat UI when a parent or learner clicks "Send note to WhatsApp". Server-sends to the registered parent's number.
+```
+Hi! 📝 Here is a study note from {{1}}'s learning session with APPU:
+
+{{2}}
+
+Keep encouraging {{1}}'s curiosity! — Team APPU
+```
+- Category: **Utility**
+- Variables:
+  - `{{1}}` child nickname / name (max 40 chars) · Sample: `Aarav`
+  - `{{2}}` note text / key concept (max 1024 chars) · Sample: `Photosynthesis is the process by which green plants turn sunlight, water, and CO2 into food and oxygen.`
+
+## 6. `appu_parent_otp` — Authentication — 30-Min Session Hard Lock Unlock
+Dispatched when the 30-minute study window hard locks and the parent requests an unlock OTP.
+```
+Your APPU parent unlock code is {{1}}. Valid for 10 minutes. Do not share this code.
+```
+- Category: **Authentication**
+- Template Type: **One-time password (OTP)** / Code verification
+- Button:
+  - Type: **Copy code** (`copy_code`)
+  - Label: `Copy code`
+  - Parameter: `{{1}}`
+- Variables:
+  - `{{1}}` 6-digit numeric OTP · Sample: `482910`
+
+## 7. `appu_usage_report` — Utility — Parental Session Screen Time Report
+Dispatched alongside the OTP to provide parents full visibility into session active vs away duration.
+```
+📊 APPU Study Session Update:
+{{1}} has been studying actively for {{2}} minutes (away/paused: {{3}} minutes).
+To extend screen time by another 30 minutes, enter the parent verification code in the app.
+```
+- Category: **Utility**
+- Variables:
+  - `{{1}}` child nickname / name · Sample: `Aarav`
+  - `{{2}}` active minutes · Sample: `30`
+  - `{{3}}` away/paused minutes · Sample: `5`
+
+---
+
 ## After approval
 Send the coordinator the **exact approved names + language codes** (e.g. `appu_birthday_wish|en_US`). The variable **order must match** what the backend/n8n sends, so the send logic will be wired to these exact bodies.
 
