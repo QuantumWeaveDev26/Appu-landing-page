@@ -534,12 +534,12 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
       assert.match(otpCall.payload.components[0].parameters[0].text, /^\d{6}$/);
       const sentCode = otpCall.payload.components[0].parameters[0].text;
 
-      // Also verify copy_code button component
+      // Also verify url button component
       assert.deepEqual(otpCall.payload.components[1], {
         type: 'button',
-        sub_type: 'copy_code',
+        sub_type: 'url',
         index: '0',
-        parameters: [{ type: 'coupon_code', coupon_code: sentCode }]
+        parameters: [{ type: 'text', text: sentCode }]
       });
 
       assert.ok(reportCall);

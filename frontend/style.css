@@ -2715,6 +2715,49 @@ body.policy-page {
 .lock-view .primary-modal-btn {
   width: 100%;
 }
+#lock-btn-add-phone,
+.secondary-modal-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 10px;
+  padding: 0 20px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  background: rgba(14, 165, 196, 0.12);
+  border: 1.5px solid rgba(104, 240, 255, 0.45);
+  color: #68f0ff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+#lock-btn-add-phone:hover,
+.secondary-modal-btn:hover {
+  background: rgba(14, 165, 196, 0.24);
+  border-color: #68f0ff;
+  color: #ffffff;
+  box-shadow: 0 6px 24px rgba(104, 240, 255, 0.25);
+  transform: translateY(-1px);
+}
+#lock-btn-add-phone:active,
+.secondary-modal-btn:active {
+  transform: translateY(0);
+}
+#lock-btn-add-phone i,
+.secondary-modal-btn i {
+  font-size: 15px;
+  color: #68f0ff;
+  transition: transform 0.2s;
+}
+#lock-btn-add-phone:hover i,
+.secondary-modal-btn:hover i {
+  transform: scale(1.1);
+}
 .lock-actions {
   display: flex;
   flex-direction: column;

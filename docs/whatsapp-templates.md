@@ -73,8 +73,7 @@ Your APPU parent unlock code is {{1}}. Valid for 10 minutes. Do not share this c
 - Category: **Authentication**
 - Template Type: **One-time password (OTP)** / Code verification
 - Button:
-  - Type: **Copy code** (`copy_code`)
-  - Label: `Copy code`
+  - Type: **URL** (`url`)
   - Parameter: `{{1}}`
 - Variables:
   - `{{1}}` 6-digit numeric OTP · Sample: `482910`
