@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import type { Queryable } from '../../db/types.js';
+import { createAppuHmacSignature } from '../gateway/hmac.js';
 import { TenancyRepository } from '../tenancy/repository.js';
 import { ParentalControlsRepository } from './repository.js';
 import type {
@@ -19,6 +20,7 @@ export interface ParentalControlsServiceOptions {
   lockIntervalSeconds?: number;
   n8nWebhookUrl?: string;
   fetchFn?: typeof fetch;
+  requestSigningSecret?: string | null;
   logger?: {
     warn: (objOrMsg: any, msg?: string) => void;
     info?: (objOrMsg: any, msg?: string) => void;
@@ -37,9 +39,13 @@ async function sendMetaTemplateViaN8n(
   webhookUrl: string | undefined,
   recipientPhone: string,
   templateName: string,
-  parameters: Array<{ type: 'text'; text: string }>,
+  payloadData: {
+    parameters?: Array<{ type: 'text'; text: string }>;
+    components?: any[];
+  },
   fetchFn: typeof fetch,
-  logger?: any
+  logger?: any,
+  requestSigningSecret?: string | null
 ): Promise<boolean> {
   if (!webhookUrl) {
     logger?.warn?.(
@@ -51,15 +57,33 @@ async function sendMetaTemplateViaN8n(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const bodyObj: Record<string, any> = {
+      recipientPhone,
+      templateName,
+      templateLanguage: 'en'
+    };
+    if (payloadData.components) {
+      bodyObj.components = payloadData.components;
+    } else if (payloadData.parameters) {
+      bodyObj.parameters = payloadData.parameters;
+    }
+
+    const rawBody = JSON.stringify(bodyObj);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    if (requestSigningSecret && requestSigningSecret.trim().length > 0) {
+      const timestamp = String(Math.floor(Date.now() / 1000));
+      headers['X-APPU-Timestamp'] = timestamp;
+      headers['X-APPU-Signature'] = createAppuHmacSignature(rawBody, timestamp, requestSigningSecret.trim());
+    }
+
     const res = await fetchFn(webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        recipientPhone,
-        templateName,
-        templateLanguage: 'en',
-        parameters
-      }),
+      headers,
+      body: rawBody,
       signal: controller.signal
     });
     clearTimeout(timeout);
@@ -229,9 +253,23 @@ export class ParentalControlsService {
       options?.n8nWebhookUrl,
       notifPrefs.parentPhone,
       'appu_parent_otp',
-      [{ type: 'text', text: otp }],
+      {
+        components: [
+          {
+            type: 'body',
+            parameters: [{ type: 'text', text: otp }]
+          },
+          {
+            type: 'button',
+            sub_type: 'copy_code',
+            index: '0',
+            parameters: [{ type: 'coupon_code', coupon_code: otp }]
+          }
+        ]
+      },
       fetchClient,
-      options?.logger
+      options?.logger,
+      options?.requestSigningSecret
     );
 
     // Dispatch Usage Report template: appu_usage_report
@@ -244,13 +282,16 @@ export class ParentalControlsService {
       options?.n8nWebhookUrl,
       notifPrefs.parentPhone,
       'appu_usage_report',
-      [
-        { type: 'text', text: childName },
-        { type: 'text', text: activeMin },
-        { type: 'text', text: awayMin }
-      ],
+      {
+        parameters: [
+          { type: 'text', text: childName },
+          { type: 'text', text: activeMin },
+          { type: 'text', text: awayMin }
+        ]
+      },
       fetchClient,
-      options?.logger
+      options?.logger,
+      options?.requestSigningSecret
     );
 
     return {
@@ -329,12 +370,15 @@ export class ParentalControlsService {
       options?.n8nWebhookUrl,
       notifPrefs.parentPhone,
       'appu_study_note',
-      [
-        { type: 'text', text: childName },
-        { type: 'text', text: noteFlattened }
-      ],
+      {
+        parameters: [
+          { type: 'text', text: childName },
+          { type: 'text', text: noteFlattened }
+        ]
+      },
       fetchClient,
-      options?.logger
+      options?.logger,
+      options?.requestSigningSecret
     );
 
     return { sent };

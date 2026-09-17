@@ -126,7 +126,7 @@ export const envSchema = z
     N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: z
       .string()
       .url('N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL must be a valid URL')
-      .optional(),
+      .default('https://n8n.srv1871828.hstgr.cloud/webhook/appu-whatsapp-template'),
     APPU_UNLIMITED_EMAILS: z
       .string()
       .default('ceo@brandmintai.io,vishak.b7@gmail.com,naveenreddy95190@gmail.com,kaaranji@brandmintai.io')

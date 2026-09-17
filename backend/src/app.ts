@@ -323,7 +323,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       authVerifier,
       enabled: config.APPU_PARENTAL_CONTROLS_ENABLED,
       lockIntervalSeconds: config.APPU_PARENTAL_LOCK_INTERVAL_SECONDS,
-      n8nWebhookUrl: config.N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL
+      n8nWebhookUrl: config.N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL,
+      requestSigningSecret: config.N8N_APPU_REQUEST_HMAC_SECRET
     });
 
     // Subscriptions and webhooks require RazorpayClient

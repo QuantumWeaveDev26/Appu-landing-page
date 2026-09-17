@@ -123,13 +123,19 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
   const parentUserId = crypto.randomUUID();
   const foreignUserId = crypto.randomUUID();
   const authHeaders = { authorization: 'Bearer token_parent_owner' };
-  const foreignAuthHeaders = { authorization: 'Bearer token_foreign_owner' };
-  let capturedWebhooks: Array<{ url: string; payload: any }> = [];
+  let capturedWebhooks: Array<{
+    url: string;
+    payload: any;
+    headers?: Record<string, string>;
+    rawBody?: string;
+  }> = [];
 
   const mockFetch = (async (url: any, init: any) => {
     capturedWebhooks.push({
       url: String(url),
-      payload: JSON.parse(init?.body || '{}')
+      payload: JSON.parse(init?.body || '{}'),
+      headers: init?.headers,
+      rawBody: init?.body
     });
     return {
       ok: true,
@@ -281,7 +287,8 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
     const config = loadConfig({
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',
-      N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: 'https://n8n.test/webhook/whatsapp-send'
+      N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: 'https://n8n.test/webhook/whatsapp-send',
+      N8N_APPU_REQUEST_HMAC_SECRET: 'test_secret_that_is_at_least_32_characters_long_for_hmac'
     });
 
     const app = buildApp(config, {
@@ -356,6 +363,8 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
         { type: 'text', text: 'Aarav' },
         { type: 'text', text: 'Step 1: Solve the denominator. Step 2: Multiply across.' }
       ]);
+      assert.ok(capturedWebhooks[0].headers?.['X-APPU-Timestamp']);
+      assert.ok(capturedWebhooks[0].headers?.['X-APPU-Signature']?.startsWith('v1='));
     } finally {
       globalThis.fetch = origFetch;
     }
@@ -459,7 +468,8 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
       LOG_LEVEL: 'silent',
       APPU_PARENTAL_CONTROLS_ENABLED: 'true',
       APPU_PARENTAL_LOCK_INTERVAL_SECONDS: '100',
-      N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: 'https://n8n.test/webhook/whatsapp-send'
+      N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: 'https://n8n.test/webhook/whatsapp-send',
+      N8N_APPU_REQUEST_HMAC_SECRET: 'test_secret_that_is_at_least_32_characters_long_for_hmac'
     });
 
     const app = buildApp(config, {
@@ -515,10 +525,26 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
       const reportCall = capturedWebhooks.find((w) => w.payload.templateName === 'appu_usage_report');
 
       assert.ok(otpCall);
-      assert.match(otpCall.payload.parameters[0].text, /^\d{6}$/);
-      const sentCode = otpCall.payload.parameters[0].text;
+      assert.ok(otpCall.headers?.['X-APPU-Timestamp']);
+      assert.ok(otpCall.headers?.['X-APPU-Signature']?.startsWith('v1='));
+      assert.equal(otpCall.payload.recipientPhone, '+919876543210');
+      assert.equal(otpCall.payload.templateLanguage, 'en');
+      assert.equal(otpCall.payload.components.length, 2);
+      assert.equal(otpCall.payload.components[0].type, 'body');
+      assert.match(otpCall.payload.components[0].parameters[0].text, /^\d{6}$/);
+      const sentCode = otpCall.payload.components[0].parameters[0].text;
+
+      // Also verify copy_code button component
+      assert.deepEqual(otpCall.payload.components[1], {
+        type: 'button',
+        sub_type: 'copy_code',
+        index: '0',
+        parameters: [{ type: 'coupon_code', coupon_code: sentCode }]
+      });
 
       assert.ok(reportCall);
+      assert.ok(reportCall.headers?.['X-APPU-Timestamp']);
+      assert.ok(reportCall.headers?.['X-APPU-Signature']?.startsWith('v1='));
       assert.deepEqual(reportCall.payload.parameters, [
         { type: 'text', text: 'Aarav' },
         { type: 'text', text: '2' }, // 120s = 2 min

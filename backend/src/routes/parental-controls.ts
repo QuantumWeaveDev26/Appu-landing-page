@@ -15,6 +15,7 @@ export interface ParentalControlsRouteOptions {
   lockIntervalSeconds?: number;
   n8nWebhookUrl?: string;
   fetchFn?: typeof fetch;
+  requestSigningSecret?: string | null;
 }
 
 const heartbeatSchema = z.object({
@@ -57,6 +58,7 @@ export const parentalControlsRoutes: FastifyPluginAsync<ParentalControlsRouteOpt
     lockIntervalSeconds: opts.lockIntervalSeconds,
     n8nWebhookUrl: opts.n8nWebhookUrl,
     fetchFn: opts.fetchFn,
+    requestSigningSecret: opts.requestSigningSecret,
     logger: fastify.log
   };
 
