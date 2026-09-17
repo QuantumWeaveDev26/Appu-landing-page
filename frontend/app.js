@@ -913,6 +913,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
       window.ParentSetupUI.applyTranslations(lang);
     }
+
+    // Parental Controls modal (delegated to its own module with its own translation dictionary)
+    if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.applyTranslations === 'function') {
+      window.ParentalControlsUI.applyTranslations(lang);
+    }
   }
 
   // ==========================================
@@ -1916,14 +1921,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     if (e.key === 'Escape') {
-      // Do not allow dismissing modals if parental controls hard lock is active
-      if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
-        return;
-      }
-
-      closeDiscoveryModal();
-      closeSettingsModal();
-      closeGuestGateModal();
       if (parentSetupModal && parentSetupModal.classList.contains('is-visible')) {
         if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
           window.ParentSetupUI.closeModal();
@@ -1936,7 +1933,17 @@ document.addEventListener('DOMContentLoaded', () => {
           parentSetupModal.classList.remove('is-visible');
           parentSetupModal.setAttribute('aria-hidden', 'true');
         }
+        return;
       }
+
+      // Do not allow dismissing other modals or app shell if parental controls hard lock is active
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
+        return;
+      }
+
+      closeDiscoveryModal();
+      closeSettingsModal();
+      closeGuestGateModal();
       toggleChatDrawer(false);
       closeNavDrawer();
       closeWelcomeGate();

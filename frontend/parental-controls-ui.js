@@ -58,6 +58,92 @@
   let verifyStatusEl = null;
   let timerBadgeEl = null;
   let timerTextEl = null;
+  let btnAddPhoneEl = null;
+  let currentLanguage = 'en';
+
+  const LOCALIZATION = {
+    en: {
+      kicker: 'Parent Zone • Study Time Limit',
+      title: 'Study Time Complete! 🌟',
+      lead: "You've completed 30 minutes of focused learning with Appu! It's a great time to stretch, hydrate, or take a quick break. To continue learning, ask your parent to unlock this session with a WhatsApp verification code.",
+      labelActive: 'Active Learning',
+      labelAway: 'Break / Away',
+      statActiveMins: (m) => `${m} min${m === 1 ? '' : 's'}`,
+      statAwayMins: (m) => `${m} min${m === 1 ? '' : 's'}`,
+      instruction: "Click below to send a 6-digit unlock code and learning summary to your parent's registered WhatsApp.",
+      btnSendOtp: 'Send Unlock Code to Parent WhatsApp',
+      btnAddPhone: 'Add Parent WhatsApp Number',
+      needsPhoneNotice: 'Parent WhatsApp number is not configured. Please add your WhatsApp number in Parent Setup to receive the unlock code.',
+      sendingCode: 'Sending WhatsApp Code...',
+      rateLimited: (min) => `Too many requests. Please wait ${min} minute${min === 1 ? '' : 's'} before requesting another code.`,
+      sendFailed: 'Unable to send WhatsApp code right now. Please try again.',
+      networkError: 'Network error. Please try again.',
+      bannerSent: "A 6-digit code has been sent to your parent's WhatsApp!",
+      fieldEnterCode: 'Enter 6-Digit Parent Code',
+      btnVerify: 'Verify & Continue Learning',
+      btnResend: 'Resend Code',
+      resendIn: (s) => `Resend Code (${s}s)`,
+      verifyingCode: 'Verifying...',
+      invalidLength: 'Please enter a 6-digit verification code.',
+      verifyFailed: 'Verification failed or code expired. Please request a new code.',
+      successTitle: 'Session Unlocked!',
+      successDesc: '30 minutes of study time has been added. Resuming your lesson now...'
+    },
+    kn: {
+      kicker: 'ಪೋಷಕರ ವಲಯ • ಕಲಿಕೆಯ ಸಮಯದ ಮಿತಿ',
+      title: 'ಕಲಿಕೆಯ ಸಮಯ ಮುಗಿದಿದೆ! 🌟',
+      lead: 'ನೀವು ಅಪ್ಪುವಿನೊಂದಿಗೆ 30 ನಿಮಿಷಗಳ ಕೇಂದ್ರೀಕೃತ ಕಲಿಕೆಯನ್ನು ಪೂರ್ಣಗೊಳಿಸಿದ್ದೀರಿ! ವಿಶ್ರಾಂತಿ ಪಡೆಯಲು ಇದು ಉತ್ತಮ ಸಮಯ. ಕಲಿಯುವುದನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪೋಷಕರ ವಾಟ್ಸಾಪ್ ಪರಿಶೀಲನಾ ಕೋಡ್‌ನೊಂದಿಗೆ ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಕೇಳಿ.',
+      labelActive: 'ಸಕ್ರಿಯ ಕಲಿಕೆ',
+      labelAway: 'ವಿಶ್ರಾಂತಿ ಸಮಯ',
+      statActiveMins: (m) => `${m} ನಿಮಿಷ`,
+      statAwayMins: (m) => `${m} ನಿಮಿಷ`,
+      instruction: 'ನಿಮ್ಮ ಪೋಷಕರ ವಾಟ್ಸಾಪ್‌ಗೆ 6-ಅಂಕಿಯ ಅನ್‌ಲಾಕ್ ಕೋಡ್ ಮತ್ತು ಕಲಿಕೆಯ ಸಾರಾಂಶವನ್ನು ಕಳುಹಿಸಲು ಕೆಳಗೆ ಕ್ಲಿಕ್ ಮಾಡಿ.',
+      btnSendOtp: 'ಪೋಷಕರ ವಾಟ್ಸಾಪ್‌ಗೆ ಅನ್‌ಲಾಕ್ ಕೋಡ್ ಕಳುಹಿಸಿ',
+      btnAddPhone: 'ಪೋಷಕರ ವಾಟ್ಸಾಪ್ ಸಂಖ್ಯೆ ಸೇರಿಸಿ',
+      needsPhoneNotice: 'ಪೋಷಕರ ವಾಟ್ಸಾಪ್ ಸಂಖ್ಯೆ ಕಾನ್ಫಿಗರ್ ಆಗಿಲ್ಲ. ಅನ್‌ಲಾಕ್ ಕೋಡ್ ಪಡೆಯಲು ದಯವಿಟ್ಟು ಪೋಷಕರ ಸೆಟಪ್‌ನಲ್ಲಿ ವಾಟ್ಸಾಪ್ ಸಂಖ್ಯೆಯನ್ನು ಸೇರಿಸಿ.',
+      sendingCode: 'ವಾಟ್ಸಾಪ್ ಕೋಡ್ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...',
+      rateLimited: (min) => `ಹೆಚ್ಚಿನ ವಿನಂತಿಗಳು. ಇನ್ನೊಂದು ಕೋಡ್ ವಿನಂತಿಸುವ ಮೊದಲು ದಯವಿಟ್ಟು ${min} ನಿಮಿಷ ಕಾಯಿರಿ.`,
+      sendFailed: 'ಈಗ ವಾಟ್ಸಾಪ್ ಕೋಡ್ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+      networkError: 'ನೆಟ್‌ವರ್ಕ್ ದೋಷ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+      bannerSent: 'ನಿಮ್ಮ ಪೋಷಕರ ವಾಟ್ಸಾಪ್‌ಗೆ 6-ಅಂಕಿಯ ಕೋಡ್ ಕಳುಹಿಸಲಾಗಿದೆ!',
+      fieldEnterCode: '6-ಅಂಕಿಯ ಪೋಷಕರ ಕೋಡ್ ನಮೂದಿಸಿ',
+      btnVerify: 'ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮುಂದುವರಿಯಿರಿ',
+      btnResend: 'ಕೋಡ್ ಮತ್ತೆ ಕಳುಹಿಸಿ',
+      resendIn: (s) => `ಮತ್ತೆ ಕಳುಹಿಸಿ (${s}ಸೆ)`,
+      verifyingCode: 'ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...',
+      invalidLength: 'ದಯವಿಟ್ಟು 6-ಅಂಕಿಯ ಪರಿಶೀಲನಾ ಕೋಡ್ ನಮೂದಿಸಿ.',
+      verifyFailed: 'ಪರಿಶೀಲನೆ ವಿಫಲವಾಗಿದೆ ಅಥವಾ ಕೋಡ್ ಅವಧಿ ಮೀರಿದೆ. ದಯವಿಟ್ಟು ಹೊಸ ಕೋಡ್ ವಿನಂತಿಸಿ.',
+      successTitle: 'ಸೆಷನ್ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ!',
+      successDesc: '30 ನಿಮಿಷಗಳ ಅಧ್ಯಯನ ಸಮಯವನ್ನು ಸೇರಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ಪಾಠ ಮುಂದುವರಿಯುತ್ತಿದೆ...'
+    },
+    hi: {
+      kicker: 'अभिभावक क्षेत्र • अध्ययन समय सीमा',
+      title: 'अध्ययन का समय समाप्त! 🌟',
+      lead: 'आपने अप्पू के साथ 30 मिनट का ध्यानपूर्वक अध्ययन पूरा कर लिया है! थोड़ा आराम करने का यह अच्छा समय है। पढ़ाई जारी रखने के लिए, अपने माता-पिता से व्हाट्सएप सत्यापन कोड से इसे अनलॉक करने को कहें।',
+      labelActive: 'सक्रिय अध्ययन',
+      labelAway: 'विश्राम समय',
+      statActiveMins: (m) => `${m} मिनट`,
+      statAwayMins: (m) => `${m} मिनट`,
+      instruction: 'अपने माता-पिता के पंजीकृत व्हाट्सएप पर 6-अंकीय अनलॉक कोड और अध्ययन सारांश भेजने के लिए नीचे क्लिक करें।',
+      btnSendOtp: 'माता-पिता के व्हाट्सएप पर अनलॉक कोड भेजें',
+      btnAddPhone: 'माता-पिता का व्हाट्सएप नंबर जोड़ें',
+      needsPhoneNotice: 'माता-पिता का व्हाट्सएप नंबर कॉन्फ़िगर नहीं है। अनलॉक कोड प्राप्त करने के लिए कृपया पेरेंट सेटअप में व्हाट्सएप नंबर जोड़ें।',
+      sendingCode: 'व्हाट्सएप कोड भेजा जा रहा है...',
+      rateLimited: (min) => `बहुत सारे अनुरोध। कृपया दूसरा कोड मांगने से पहले ${min} मिनट प्रतीक्षा करें।`,
+      sendFailed: 'अभी व्हाट्सएप कोड नहीं भेजा जा सका। कृपया पुनः प्रयास करें।',
+      networkError: 'नेटवर्क त्रुटि। कृपया पुनः प्रयास करें।',
+      bannerSent: 'आपके माता-पिता के व्हाट्सएप पर 6-अंकीय कोड भेजा गया है!',
+      fieldEnterCode: '6-अंकों का अभिभावक कोड दर्ज करें',
+      btnVerify: 'सत्यापित करें और सीखना जारी रखें',
+      btnResend: 'कोड पुनः भेजें',
+      resendIn: (s) => `पुनः भेजें (${s}से)`,
+      verifyingCode: 'सत्यापित किया जा रहा है...',
+      invalidLength: 'कृपया 6 अंकों का सत्यापन कोड दर्ज करें।',
+      verifyFailed: 'सत्यापन विफल रहा या कोड समाप्त हो गया। कृपया नया कोड मांगें।',
+      successTitle: 'सत्र अनलॉक हो गया!',
+      successDesc: '30 मिनट का अध्ययन समय जोड़ दिया गया है। आपका पाठ पुनः शुरू हो रहा है...'
+    }
+  };
 
   function getClient() {
     return (typeof window !== 'undefined' && window.AppuBackendClient) ? window.AppuBackendClient : null;
@@ -202,6 +288,73 @@
     }
   }
 
+  function applyTranslations(lang) {
+    if (lang && LOCALIZATION[lang]) {
+      currentLanguage = lang;
+    } else if (typeof window !== 'undefined') {
+      if (window.currentLang && LOCALIZATION[window.currentLang]) {
+        currentLanguage = window.currentLang;
+      } else if (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang && LOCALIZATION[document.documentElement.lang]) {
+        currentLanguage = document.documentElement.lang;
+      }
+    }
+    const dict = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
+
+    if (modalEl) {
+      const kicker = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.modal-kicker') : null;
+      if (kicker) kicker.innerHTML = `<i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> ${dict.kicker}`;
+      const title = document.getElementById('parental-lock-title');
+      if (title) title.textContent = dict.title;
+      const lead = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.modal-lead') : null;
+      if (lead) lead.textContent = dict.lead;
+
+      const statLabels = typeof modalEl.querySelectorAll === 'function' ? modalEl.querySelectorAll('.lock-stat-label') : [];
+      if (statLabels[0]) statLabels[0].textContent = dict.labelActive;
+      if (statLabels[1]) statLabels[1].textContent = dict.labelAway;
+
+      const instruction = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.lock-instruction') : null;
+      if (instruction) instruction.textContent = dict.instruction;
+
+      if (btnRequestOtpEl) {
+        const span = typeof btnRequestOtpEl.querySelector === 'function' ? btnRequestOtpEl.querySelector('span') : null;
+        if (span && !btnRequestOtpEl.disabled) span.textContent = dict.btnSendOtp;
+      }
+      if (btnAddPhoneEl) {
+        const span = typeof btnAddPhoneEl.querySelector === 'function' ? btnAddPhoneEl.querySelector('span') : null;
+        if (span) span.textContent = dict.btnAddPhone;
+      }
+
+      const otpSentBanner = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.otp-sent-banner span') : null;
+      if (otpSentBanner) otpSentBanner.textContent = dict.bannerSent;
+
+      const fieldSpan = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.lock-field > span') : null;
+      if (fieldSpan) fieldSpan.textContent = dict.fieldEnterCode;
+
+      if (btnVerifyOtpEl) {
+        const span = typeof btnVerifyOtpEl.querySelector === 'function' ? btnVerifyOtpEl.querySelector('span') : null;
+        if (span && !btnVerifyOtpEl.disabled) span.textContent = dict.btnVerify;
+      }
+      if (btnResendOtpEl && !resendCooldownTimerId) {
+        const span = typeof btnResendOtpEl.querySelector === 'function' ? btnResendOtpEl.querySelector('span') : null;
+        if (span) span.textContent = dict.btnResend;
+      }
+
+      const successTitle = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.success-view h3') : null;
+      if (successTitle) successTitle.textContent = dict.successTitle;
+      const successDesc = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.success-view p') : null;
+      if (successDesc) successDesc.textContent = dict.successDesc;
+    }
+
+    if (statActiveEl) {
+      const activeMin = Math.max(1, Math.round(activeSeconds / 60));
+      statActiveEl.textContent = dict.statActiveMins(activeMin);
+    }
+    if (statAwayEl) {
+      const awayMin = Math.round(awaySeconds / 60);
+      statAwayEl.textContent = dict.statAwayMins(awayMin);
+    }
+  }
+
   function triggerLock() {
     isLocked = true;
     updateTimerBadge();
@@ -211,17 +364,34 @@
       window.VoiceEngine.stopSpeech();
     }
 
+    applyTranslations();
+
     // Populate active & away metrics
+    const dict = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
     if (statActiveEl) {
       const activeMin = Math.max(1, Math.round(activeSeconds / 60));
-      statActiveEl.textContent = `${activeMin} min${activeMin === 1 ? '' : 's'}`;
+      statActiveEl.textContent = dict.statActiveMins(activeMin);
     }
     if (statAwayEl) {
       const awayMin = Math.round(awaySeconds / 60);
-      statAwayEl.textContent = `${awayMin} min${awayMin === 1 ? '' : 's'}`;
+      statAwayEl.textContent = dict.statAwayMins(awayMin);
     }
 
     showView('request');
+
+    // Check if parent phone is missing or unconsented
+    const session = getSession();
+    const p = session?.personalisation;
+    if (btnAddPhoneEl) {
+      if (p && (!p.parentPhone || !p.whatsappConsent)) {
+        btnAddPhoneEl.style.display = 'inline-flex';
+        const span = typeof btnAddPhoneEl.querySelector === 'function' ? btnAddPhoneEl.querySelector('span') : null;
+        if (span) span.textContent = dict.btnAddPhone;
+      } else {
+        btnAddPhoneEl.style.display = 'none';
+      }
+    }
+
     if (modalEl) {
       modalEl.classList.add('is-visible');
       modalEl.setAttribute('aria-hidden', 'false');
@@ -246,6 +416,10 @@
     if (viewVerifyEl) viewVerifyEl.hidden = viewName !== 'verify';
     if (viewSuccessEl) viewSuccessEl.hidden = viewName !== 'success';
 
+    if (viewName !== 'request' && btnAddPhoneEl) {
+      btnAddPhoneEl.style.display = 'none';
+    }
+
     if (requestStatusEl) requestStatusEl.textContent = '';
     if (verifyStatusEl) verifyStatusEl.textContent = '';
   }
@@ -255,9 +429,11 @@
     const client = getClient();
     if (!session || !client) return;
 
+    const dict = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
+
     if (btnRequestOtpEl) {
       btnRequestOtpEl.disabled = true;
-      btnRequestOtpEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Sending WhatsApp Code...</span>';
+      btnRequestOtpEl.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>${dict.sendingCode}</span>`;
     }
     if (requestStatusEl) requestStatusEl.textContent = '';
 
@@ -269,6 +445,7 @@
       });
 
       if (res && res.requested) {
+        if (btnAddPhoneEl) btnAddPhoneEl.style.display = 'none';
         showView('verify');
         startResendCooldown(60);
         if (otpInputEl) {
@@ -280,7 +457,12 @@
 
       if (res && res.needsPhone) {
         if (requestStatusEl) {
-          requestStatusEl.textContent = 'Parent WhatsApp number is not configured. Please ask parent to configure WhatsApp in Parent Setup.';
+          requestStatusEl.textContent = dict.needsPhoneNotice;
+        }
+        if (btnAddPhoneEl) {
+          btnAddPhoneEl.style.display = 'inline-flex';
+          const span = typeof btnAddPhoneEl.querySelector === 'function' ? btnAddPhoneEl.querySelector('span') : null;
+          if (span) span.textContent = dict.btnAddPhone;
         }
         return;
       }
@@ -288,22 +470,22 @@
       if (res && res.error === 'rate_limited') {
         const waitMin = Math.ceil((res.retryAfterSeconds || 300) / 60);
         if (requestStatusEl) {
-          requestStatusEl.textContent = `Too many requests. Please wait ${waitMin} minutes before requesting another code.`;
+          requestStatusEl.textContent = dict.rateLimited(waitMin);
         }
         return;
       }
 
       if (requestStatusEl) {
-        requestStatusEl.textContent = 'Unable to send WhatsApp code right now. Please try again.';
+        requestStatusEl.textContent = dict.sendFailed;
       }
     } catch (err) {
       if (requestStatusEl) {
-        requestStatusEl.textContent = 'Network error. Please try again.';
+        requestStatusEl.textContent = dict.networkError;
       }
     } finally {
       if (btnRequestOtpEl) {
         btnRequestOtpEl.disabled = false;
-        btnRequestOtpEl.innerHTML = '<i class="fa-brands fa-whatsapp"></i> <span>Send Unlock Code to Parent WhatsApp</span>';
+        btnRequestOtpEl.innerHTML = `<i class="fa-brands fa-whatsapp"></i> <span>${dict.btnSendOtp}</span>`;
       }
     }
   }
@@ -311,22 +493,24 @@
   function startResendCooldown(seconds) {
     if (resendCooldownTimerId) clearInterval(resendCooldownTimerId);
     let remaining = seconds;
+    const dict = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
     if (btnResendOtpEl) {
       btnResendOtpEl.disabled = true;
-      btnResendOtpEl.innerHTML = `<i class="fa-solid fa-clock"></i> <span>Resend Code (${remaining}s)</span>`;
+      btnResendOtpEl.innerHTML = `<i class="fa-solid fa-clock"></i> <span>${dict.resendIn(remaining)}</span>`;
     }
 
     resendCooldownTimerId = setInterval(() => {
       remaining -= 1;
+      const d = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
       if (remaining <= 0) {
         clearInterval(resendCooldownTimerId);
         resendCooldownTimerId = null;
         if (btnResendOtpEl) {
           btnResendOtpEl.disabled = false;
-          btnResendOtpEl.innerHTML = '<i class="fa-solid fa-arrow-rotate-right"></i> <span>Resend Code</span>';
+          btnResendOtpEl.innerHTML = `<i class="fa-solid fa-arrow-rotate-right"></i> <span>${d.btnResend}</span>`;
         }
       } else if (btnResendOtpEl) {
-        btnResendOtpEl.innerHTML = `<i class="fa-solid fa-clock"></i> <span>Resend Code (${remaining}s)</span>`;
+        btnResendOtpEl.innerHTML = `<i class="fa-solid fa-clock"></i> <span>${d.resendIn(remaining)}</span>`;
       }
     }, 1000);
   }
@@ -336,16 +520,17 @@
     const client = getClient();
     if (!session || !client || !otpInputEl) return;
 
+    const dict = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
     const code = otpInputEl.value.trim();
     if (!code || code.length < 4) {
-      if (verifyStatusEl) verifyStatusEl.textContent = 'Please enter the complete 6-digit code.';
+      if (verifyStatusEl) verifyStatusEl.textContent = dict.invalidLength;
       otpInputEl.focus();
       return;
     }
 
     if (btnVerifyOtpEl) {
       btnVerifyOtpEl.disabled = true;
-      btnVerifyOtpEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Verifying...</span>';
+      btnVerifyOtpEl.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>${dict.verifyingCode}</span>`;
     }
     if (verifyStatusEl) verifyStatusEl.textContent = '';
 
@@ -382,16 +567,16 @@
       }
 
       if (verifyStatusEl) {
-        verifyStatusEl.textContent = 'Verification failed or code expired. Please request a new code.';
+        verifyStatusEl.textContent = dict.verifyFailed;
       }
     } catch (err) {
       if (verifyStatusEl) {
-        verifyStatusEl.textContent = 'Network error. Please try again.';
+        verifyStatusEl.textContent = dict.networkError;
       }
     } finally {
       if (btnVerifyOtpEl && !isLocked) {
         btnVerifyOtpEl.disabled = false;
-        btnVerifyOtpEl.innerHTML = '<i class="fa-solid fa-lock-open"></i> <span>Verify & Continue Learning</span>';
+        btnVerifyOtpEl.innerHTML = `<i class="fa-solid fa-lock-open"></i> <span>${dict.btnVerify}</span>`;
       }
     }
   }
@@ -408,6 +593,7 @@
     btnRequestOtpEl = document.getElementById('lock-btn-request-otp');
     btnVerifyOtpEl = document.getElementById('lock-btn-verify-otp');
     btnResendOtpEl = document.getElementById('lock-btn-resend-otp');
+    btnAddPhoneEl = document.getElementById('lock-btn-add-phone');
     otpInputEl = document.getElementById('lock-otp-input');
     requestStatusEl = document.getElementById('lock-request-status');
     verifyStatusEl = document.getElementById('lock-verify-status');
@@ -422,6 +608,13 @@
     }
     if (btnResendOtpEl) {
       btnResendOtpEl.onclick = handleRequestOtp;
+    }
+    if (btnAddPhoneEl) {
+      btnAddPhoneEl.onclick = () => {
+        if (typeof window !== 'undefined' && window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+          window.ParentSetupUI.openModal(4);
+        }
+      };
     }
 
     if (otpInputEl) {
@@ -495,6 +688,7 @@
     triggerLock,
     unlockSession,
     sendHeartbeat,
+    applyTranslations,
     get isLocked() { return isLocked; },
     get isEnabled() { return isEnabled; },
     get timeRemainingSeconds() { return timeRemainingSeconds; },

@@ -718,6 +718,7 @@ select option:checked, .discovery-form select option:checked {
    PARENT SETUP & ONBOARDING SHELL (PHASE 2)
    ========================================================================== */
 .modal-overlay#parent-setup-modal {
+  z-index: 10005 !important;
   display: grid;
   place-items: center;
   padding: 24px;

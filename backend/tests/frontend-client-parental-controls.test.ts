@@ -154,6 +154,7 @@ describe('Frontend ParentalControlsUI Controller Suite', () => {
         domElements[id] = {
           id,
           hidden: false,
+          style: {},
           classList: {
             classes: new Set<string>(),
             add(c: string) { this.classes.add(c); },
@@ -164,9 +165,12 @@ describe('Frontend ParentalControlsUI Controller Suite', () => {
           setAttribute(k: string, v: string) { this.attributes.set(k, v); },
           getAttribute(k: string) { return this.attributes.get(k); },
           textContent: '',
+          innerHTML: '',
           value: '',
           focus: () => {},
           addEventListener: () => {},
+          querySelector: () => null,
+          querySelectorAll: () => [],
           onclick: null as any
         };
       }
@@ -175,6 +179,7 @@ describe('Frontend ParentalControlsUI Controller Suite', () => {
 
     const elementIds = [
       'parental-lock-modal',
+      'parental-lock-title',
       'lock-stat-active',
       'lock-stat-away',
       'lock-view-request',
@@ -183,6 +188,7 @@ describe('Frontend ParentalControlsUI Controller Suite', () => {
       'lock-btn-request-otp',
       'lock-btn-verify-otp',
       'lock-btn-resend-otp',
+      'lock-btn-add-phone',
       'lock-otp-input',
       'lock-request-status',
       'lock-verify-status',
@@ -210,6 +216,7 @@ describe('Frontend ParentalControlsUI Controller Suite', () => {
       Date,
       sessionStorage,
       document: {
+        documentElement: { lang: 'en' },
         getElementById: (id: string) => domElements[id] || null,
         visibilityState: 'visible'
       },
@@ -262,24 +269,26 @@ describe('Frontend ParentalControlsUI Controller Suite', () => {
     const { ui, domElements } = createUIEnvironment();
     assert.ok(ui, 'ParentalControlsUI must be defined');
 
-    ui.init();
-    assert.equal(ui.isLocked, false);
+    try {
+      ui.init();
+      assert.equal(ui.isLocked, false);
 
-    // Trigger lock explicitly
-    ui.triggerLock();
-    assert.equal(ui.isLocked, true);
-    assert.equal(domElements['parental-lock-modal'].classList.contains('is-visible'), true);
-    assert.equal(domElements['parental-lock-modal'].attributes.get('aria-hidden'), 'false');
-    assert.equal(domElements['lock-view-request'].hidden, false);
-    assert.equal(domElements['lock-view-verify'].hidden, true);
+      // Trigger lock explicitly
+      ui.triggerLock();
+      assert.equal(ui.isLocked, true);
+      assert.equal(domElements['parental-lock-modal'].classList.contains('is-visible'), true);
+      assert.equal(domElements['parental-lock-modal'].attributes.get('aria-hidden'), 'false');
+      assert.equal(domElements['lock-view-request'].hidden, false);
+      assert.equal(domElements['lock-view-verify'].hidden, true);
 
-    // Unlock session
-    ui.unlockSession();
-    assert.equal(ui.isLocked, false);
-    assert.equal(domElements['parental-lock-modal'].classList.contains('is-visible'), false);
-    assert.equal(domElements['parental-lock-modal'].attributes.get('aria-hidden'), 'true');
-
-    ui.destroy();
+      // Unlock session
+      ui.unlockSession();
+      assert.equal(ui.isLocked, false);
+      assert.equal(domElements['parental-lock-modal'].classList.contains('is-visible'), false);
+      assert.equal(domElements['parental-lock-modal'].attributes.get('aria-hidden'), 'true');
+    } finally {
+      ui.destroy();
+    }
   });
 });
 
