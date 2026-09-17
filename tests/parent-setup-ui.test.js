@@ -220,10 +220,11 @@ describe('Parent Personalization UI & WhatsApp Consent Flow', () => {
       assert.equal(savedData.data.whatsappConsent, true);
     });
 
-    test('entering phone without checking consent sends whatsappConsent: false', async () => {
+    test('entering phone without checking consent blocks setup with consent required alert', async () => {
       const persForm = dom.elements.get('pos-pers-form');
       const phoneInput = dom.elements.get('pos-parent-phone');
       const consentBox = dom.elements.get('pos-whatsapp-consent');
+      const alertBox = dom.elements.get('pos-alert');
 
       phoneInput.value = '+919876543210';
       consentBox.checked = false;
@@ -233,15 +234,16 @@ describe('Parent Personalization UI & WhatsApp Consent Flow', () => {
         preventDefault() {}
       });
 
-      assert.ok(savedData, 'savePersonalisation must have been called');
-      assert.equal(savedData.data.parentPhone, '+919876543210');
-      assert.equal(savedData.data.whatsappConsent, false);
+      assert.equal(savedData, null, 'savePersonalisation must NOT be called without consent');
+      assert.equal(alertBox.style.display, 'block');
+      assert.ok(alertBox.textContent.length > 0);
     });
 
-    test('empty phone without consent sends parentPhone: null and whatsappConsent: false', async () => {
+    test('empty phone without consent blocks setup with phone required alert', async () => {
       const persForm = dom.elements.get('pos-pers-form');
       const phoneInput = dom.elements.get('pos-parent-phone');
       const consentBox = dom.elements.get('pos-whatsapp-consent');
+      const alertBox = dom.elements.get('pos-alert');
 
       phoneInput.value = '';
       consentBox.checked = false;
@@ -251,9 +253,9 @@ describe('Parent Personalization UI & WhatsApp Consent Flow', () => {
         preventDefault() {}
       });
 
-      assert.ok(savedData, 'savePersonalisation must have been called');
-      assert.equal(savedData.data.parentPhone, null);
-      assert.equal(savedData.data.whatsappConsent, false);
+      assert.equal(savedData, null, 'savePersonalisation must NOT be called with empty phone');
+      assert.equal(alertBox.style.display, 'block');
+      assert.ok(alertBox.textContent.length > 0);
     });
 
     test('invalid phone triggers user-friendly validation banner without submitting', async () => {

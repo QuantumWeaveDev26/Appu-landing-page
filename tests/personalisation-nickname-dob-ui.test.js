@@ -188,6 +188,11 @@ describe('Personalisation Step 4 Nickname & DOB UI (Phase-B Task 4)', () => {
         launchAppuSession() {}
       };
 
+      const phoneInput = dom.elements.get('pos-parent-phone');
+      const consentBox = dom.elements.get('pos-whatsapp-consent');
+      if (phoneInput) phoneInput.value = '9876543210';
+      if (consentBox) consentBox.checked = true;
+
       delete require.cache[require.resolve('../frontend/parent-setup-ui.js')];
       ParentSetupUI = require('../frontend/parent-setup-ui.js');
       ParentSetupUI.init();

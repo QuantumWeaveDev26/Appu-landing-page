@@ -98,11 +98,14 @@
       nicknameTooLongAlert: 'Learner nickname must not exceed 50 characters.',
       nicknameInvalidAlert: 'Learner nickname contains forbidden characters.',
       posWhatsappTitle: 'Connect your WhatsApp',
+      posWhatsappBadgeRequired: 'Required',
       posParentPhoneLabel: 'Parent WhatsApp Number',
       posParentPhonePlaceholder: '+91 98765 43210',
       posWhatsappConsentLabel: 'Send me occasional learning milestones, daily study summaries, and study notes for my child on WhatsApp.',
       posWhatsappRationale: 'Add the number you use on WhatsApp so Appu recognises your child when you message there — no setting up again. We use it only for your child’s learning, never share it, and you can opt out anytime.',
+      phoneRequiredAlert: 'Parent WhatsApp number is required to complete setup and enable parental controls.',
       phoneInvalidAlert: 'Please enter a valid phone number (e.g., 9876543210 or +919876543210).',
+      whatsappConsentRequiredAlert: 'Please check the WhatsApp consent box to receive unlock codes and study summaries.',
       phoneRequiredForConsentAlert: 'Please enter your phone number to receive WhatsApp updates, or uncheck the box.',
       btnPersSubmit: 'Save Preferences & Launch',
       alertNoChildSelected: 'No child selected',
@@ -193,11 +196,14 @@
       nicknameTooLongAlert: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು 50 ಅಕ್ಷರಗಳನ್ನು ಮೀರಬಾರದು.',
       nicknameInvalidAlert: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು ನಿಷೇಧಿತ ಅಕ್ಷರಗಳನ್ನು ಒಳಗೊಂಡಿದೆ.',
       posWhatsappTitle: 'ನಿಮ್ಮ WhatsApp ಸಂಪರ್ಕಿಸಿ',
+      posWhatsappBadgeRequired: 'ಅಗತ್ಯವಿದೆ',
       posParentPhoneLabel: 'ಪಾಲಕರ WhatsApp ಸಂಖ್ಯೆ',
       posParentPhonePlaceholder: '+91 98765 43210',
       posWhatsappConsentLabel: 'ನನ್ನ ಮಗುವಿನ ಕಲಿಕೆಯ ಮೈಲಿಗಲ್ಲುಗಳು ಮತ್ತು ದಿನನಿತ್ಯದ ಅಧ್ಯಯನ ಸಾರಾಂಶಗಳನ್ನು WhatsApp ನಲ್ಲಿ ಕಳುಹಿಸಿ.',
       posWhatsappRationale: 'ಏಕೆ ಕೇಳುತ್ತಿದ್ದೇವೆ: ನಿಮ್ಮ ಸಂಖ್ಯೆಯನ್ನು ಕೇವಲ ಅಧ್ಯಯನ ಸಾರಾಂಶ ಮತ್ತು ಕಲಿಕೆಯ ಮೈಲಿಗಲ್ಲುಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಲು ಬಳಸಲಾಗುತ್ತದೆ. ಮೂರನೇ ವ್ಯಕ್ತಿಗಳೊಂದಿಗೆ ಎಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳುವುದಿಲ್ಲ. ಯಾವುದೇ ಸಮಯದಲ್ಲಿ ರದ್ದುಗೊಳಿಸಬಹುದು.',
+      phoneRequiredAlert: 'ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಲು ಮತ್ತು ಪೋಷಕರ ನಿಯಂತ್ರಣಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲು ಪೋಷಕರ WhatsApp ಸಂಖ್ಯೆ ಅಗತ್ಯವಿದೆ.',
       phoneInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ (ಉದಾ: 9876543210 ಅಥವಾ +919876543210).',
+      whatsappConsentRequiredAlert: 'ಅನ್‌ಲಾಕ್ ಕೋಡ್‌ಗಳು ಮತ್ತು ಅಧ್ಯಯನ ಸಾರಾಂಶಗಳನ್ನು ಪಡೆಯಲು ದಯವಿಟ್ಟು WhatsApp ಸಮ್ಮತಿ ಪೆಟ್ಟಿಗೆಯನ್ನು ಗುರುತಿಸಿ.',
       phoneRequiredForConsentAlert: 'WhatsApp ಅಪ್‌ಡೇಟ್‌ಗಳನ್ನು ಪಡೆಯಲು ದಯವಿಟ್ಟು ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ, ಅಥವಾ ಬಾಕ್ಸ್ ಅನ್ನು ಗುರುತಿಸಬೇಡಿ.',
       btnPersSubmit: 'ಆದ್ಯತೆಗಳನ್ನು ಉಳಿಸಿ ಮತ್ತು ಪ್ರಾರಂಭಿಸಿ',
       alertNoChildSelected: 'ಯಾವುದೇ ಮಗುವನ್ನು ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ',
@@ -288,11 +294,14 @@
       nicknameTooLongAlert: 'शिक्षार्थी का उपनाम 50 अक्षरों से अधिक नहीं होना चाहिए।',
       nicknameInvalidAlert: 'शिक्षार्थी के उपनाम में अमान्य वर्ण हैं।',
       posWhatsappTitle: 'अपना WhatsApp कनेक्ट करें',
+      posWhatsappBadgeRequired: 'आवश्यक',
       posParentPhoneLabel: 'अभिभावक WhatsApp नंबर',
       posParentPhonePlaceholder: '+91 98765 43210',
       posWhatsappConsentLabel: 'मुझे WhatsApp पर मेरे बच्चे की सीखने की प्रगति और दैनिक अध्ययन नोट्स भेजें।',
       posWhatsappRationale: 'हम क्यों पूछ रहे हैं: आपके नंबर का उपयोग केवल अध्ययन सारांश और सीखने के मील के पत्थर साझा करने के लिए किया जाता है। तीसरे पक्ष के साथ कभी साझा नहीं किया जाता। आप कभी भी ऑप्ट-आउट कर सकते हैं।',
+      phoneRequiredAlert: 'सेटअप पूरा करने और अभिभावक नियंत्रण सक्षम करने के लिए अभिभावक WhatsApp नंबर आवश्यक है।',
       phoneInvalidAlert: 'कृपया एक मान्य फ़ोन नंबर दर्ज करें (उदा: 9876543210 या +919876543210)।',
+      whatsappConsentRequiredAlert: 'अनलॉक कोड और अध्ययन सारांश प्राप्त करने के लिए कृपया WhatsApp सहमति बॉक्स को चेक करें।',
       phoneRequiredForConsentAlert: 'WhatsApp अपडेट प्राप्त करने के लिए कृपया अपना फ़ोन नंबर दर्ज करें, या चेकबॉक्स को अनचेक करें।',
       btnPersSubmit: 'प्राथमिकताएं सहेजें और शुरू करें',
       alertNoChildSelected: 'कोई बच्चा चयनित नहीं है',
@@ -489,6 +498,8 @@
       // WhatsApp section labels
       const posWhatsappTitleEl = document.getElementById('pos-whatsapp-title');
       if (posWhatsappTitleEl) posWhatsappTitleEl.textContent = t('posWhatsappTitle');
+      const posWhatsappBadgeEl = document.getElementById('pos-whatsapp-badge');
+      if (posWhatsappBadgeEl) posWhatsappBadgeEl.textContent = t('posWhatsappBadgeRequired') || 'Required';
       const posParentPhoneLabelEl = document.getElementById('pos-parent-phone-label');
       if (posParentPhoneLabelEl) posParentPhoneLabelEl.textContent = t('posParentPhoneLabel');
       if (posParentPhone) posParentPhone.placeholder = t('posParentPhonePlaceholder');
@@ -1709,29 +1720,31 @@
           }
         }
 
-        // Validate optional parent phone and WhatsApp consent
+        // Validate COMPULSORY parent phone and WhatsApp consent
         const rawPhone = posParentPhone?.value?.trim() || '';
         const consentChecked = Boolean(posWhatsappConsent?.checked);
 
-        let parentPhone = null;
-        let whatsappConsent = false;
-
-        if (rawPhone) {
-          const normalized = normalizeClientPhone(rawPhone);
-          if (normalized === false) {
-            showAlert(t('phoneInvalidAlert') || 'Please enter a valid phone number (e.g., 9876543210 or +919876543210).');
-            return;
-          }
-          parentPhone = normalized;
-          whatsappConsent = consentChecked;
-        } else {
-          if (consentChecked) {
-            showAlert(t('phoneRequiredForConsentAlert') || 'Please enter your phone number to receive WhatsApp updates, or uncheck the box.');
-            return;
-          }
-          parentPhone = null;
-          whatsappConsent = false;
+        if (!rawPhone) {
+          showAlert(t('phoneRequiredAlert') || 'Parent WhatsApp number is required to complete setup and enable parental controls.');
+          if (posParentPhone) posParentPhone.focus();
+          return;
         }
+
+        const normalized = normalizeClientPhone(rawPhone);
+        if (normalized === false) {
+          showAlert(t('phoneInvalidAlert') || 'Please enter a valid phone number (e.g., 9876543210 or +919876543210).');
+          if (posParentPhone) posParentPhone.focus();
+          return;
+        }
+
+        if (!consentChecked) {
+          showAlert(t('whatsappConsentRequiredAlert') || 'Please check the WhatsApp consent box to receive unlock codes and study summaries.');
+          if (posWhatsappConsent) posWhatsappConsent.focus();
+          return;
+        }
+
+        const parentPhone = normalized;
+        const whatsappConsent = true;
 
         const parseList = (str) =>
           str

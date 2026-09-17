@@ -953,6 +953,12 @@ select option:checked, .discovery-form select option:checked {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.pos-optional-badge.required {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
 .pos-whatsapp-consent-row {
   display: flex;
   align-items: flex-start;
