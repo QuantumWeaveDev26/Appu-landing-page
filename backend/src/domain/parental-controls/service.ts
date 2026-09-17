@@ -272,7 +272,7 @@ export class ParentalControlsService {
       options?.requestSigningSecret
     );
 
-    // Dispatch Usage Report template: appu_usage_report
+    // Dispatch Usage Report template: appu_screentime_report
     const child = await TenancyRepository.getChildProfile(db, householdId, input.childId).catch(() => null);
     const childName = sanitizeMetaParam(child?.nickname || child?.preferredName || 'Learner', 40);
     const activeMin = String(Math.max(1, Math.round(activeSec / 60)));
@@ -281,7 +281,7 @@ export class ParentalControlsService {
     await sendMetaTemplateViaN8n(
       options?.n8nWebhookUrl,
       notifPrefs.parentPhone,
-      'appu_usage_report',
+      'appu_screentime_report',
       {
         parameters: [
           { type: 'text', text: childName },

@@ -79,8 +79,9 @@ Your APPU parent unlock code is {{1}}. Valid for 10 minutes. Do not share this c
 - Variables:
   - `{{1}}` 6-digit numeric OTP · Sample: `482910`
 
-## 7. `appu_usage_report` — Utility — Parental Session Screen Time Report
+## 7. `appu_screentime_report` — Utility — Parental Session Screen Time Report
 Dispatched alongside the OTP to provide parents full visibility into session active vs away duration.
+*(Renamed from `appu_usage_report` to avoid Meta deletion delay cooldown)*
 ```
 📊 APPU study session update for {{1}}: {{2}} minutes actively learning, {{3}} minutes away or paused. The session is now paused for a parent screen-time check.
 ```

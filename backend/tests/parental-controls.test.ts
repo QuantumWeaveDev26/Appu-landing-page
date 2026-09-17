@@ -519,10 +519,10 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
       assert.equal(reqData.code, undefined);
       assert.equal(reqData.otp, undefined);
 
-      // Verify two templates were dispatched: appu_parent_otp and appu_usage_report
+      // Verify two templates were dispatched: appu_parent_otp and appu_screentime_report
       assert.equal(capturedWebhooks.length, 2);
       const otpCall = capturedWebhooks.find((w) => w.payload.templateName === 'appu_parent_otp');
-      const reportCall = capturedWebhooks.find((w) => w.payload.templateName === 'appu_usage_report');
+      const reportCall = capturedWebhooks.find((w) => w.payload.templateName === 'appu_screentime_report');
 
       assert.ok(otpCall);
       assert.ok(otpCall.headers?.['X-APPU-Timestamp']);
