@@ -7,6 +7,12 @@ import type { Queryable, TransactionalQueryable } from '../src/db/types.js';
 import { TenancyService } from '../src/domain/tenancy/service.js';
 import { TenancyRepository } from '../src/domain/tenancy/repository.js';
 import { WhatsAppContextService } from '../src/domain/whatsapp/context-service.js';
+import { buildApp } from '../src/app.js';
+import { loadConfig } from '../src/config/index.js';
+import { MockN8nClient } from '../src/domain/gateway/index.js';
+import { SubscriptionService } from '../src/domain/subscription/service.js';
+import { SubscriptionRepository } from '../src/domain/subscription/repository.js';
+import type { AuthVerifier, AuthenticatedPrincipal } from '../src/domain/auth/types.js';
 import {
   ConversationRepository,
   compactSessionMemory,
@@ -378,5 +384,219 @@ describe('APPU Conversation Rolling Summary & Memory Compaction Suite', () => {
     );
     assert.match(result.formattedTranscript, /Recent user question 1/);
     assert.match(result.formattedTranscript, /Recent assistant answer 2/);
+  });
+});
+
+class TestAuthVerifier implements AuthVerifier {
+  private users = new Map<string, AuthenticatedPrincipal>();
+  registerUser(token: string, principal: AuthenticatedPrincipal) {
+    this.users.set(token, principal);
+  }
+  async verifyAccessToken(token: string): Promise<AuthenticatedPrincipal> {
+    const user = this.users.get(token);
+    if (!user) {
+      throw new Error('Unauthorized');
+    }
+    return user;
+  }
+}
+
+describe('APPU 15-Turn Gateway Integration Suite (End-to-End Behavioral Recall)', () => {
+  let db: TransactionalQueryable;
+  let authVerifier: TestAuthVerifier;
+  let n8nClient: MockN8nClient;
+  let app: any;
+  let householdId: string;
+  let childId: string;
+  const parentToken = 'Bearer token_15_turn_parent';
+  const authHeaders = { authorization: parentToken };
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(async () => {
+    db = createTestDatabase();
+    await runMigrations(db);
+
+    await SubscriptionService.syncPlans(db, {
+      evolve_monthly: 'plan_evolve_mo_test',
+      evolve_annual: 'plan_evolve_yr_test',
+      evolve_plus_monthly: 'plan_evolve_plus_mo_test',
+      evolve_plus_annual: 'plan_evolve_plus_yr_test',
+      genesis_monthly: 'plan_genesis_mo_test',
+      genesis_annual: 'plan_genesis_yr_test'
+    });
+
+    authVerifier = new TestAuthVerifier();
+    const parentUserId = crypto.randomUUID();
+    authVerifier.registerUser('token_15_turn_parent', {
+      userId: parentUserId,
+      email: 'turn15_parent@test.com'
+    });
+
+    const { household } = await TenancyService.createHouseholdWithOwner(db, {
+      userId: parentUserId,
+      email: 'turn15_parent@test.com',
+      householdName: '15-Turn Test Household'
+    });
+    householdId = household.id;
+
+    const plan = await SubscriptionRepository.getPlanByCode(db, 'evolve_plus_monthly');
+    await SubscriptionRepository.createSubscription(db, {
+      householdId,
+      planId: plan!.id,
+      provider: 'razorpay',
+      providerSubscriptionId: `sub_rzp_${crypto.randomUUID()}`,
+      status: 'ACTIVE',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: new Date(Date.now() + 30 * 86400000)
+    });
+
+    const cRes = await db.query<{ id: string }>(
+      `INSERT INTO child_profiles (household_id, preferred_name, grade_band)
+       VALUES ($1, $2, $3) RETURNING id`,
+      [householdId, 'Aarav', 'Grade 5']
+    );
+    childId = cRes.rows[0].id;
+
+    n8nClient = new MockN8nClient();
+
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'silent',
+      N8N_APPU_WEBHOOK_URL: 'https://n8n.example.com/webhook/test',
+      OPENAI_API_KEY: 'test-openai-key'
+    });
+
+    app = buildApp(config, {
+      database: db as any,
+      authVerifier,
+      n8nClient
+    });
+  });
+
+  test('15-turn session: turn 1 facts are compacted into sessionSummary and recalled at turn 15 after rolling out of tail', async () => {
+    let compactionCallCount = 0;
+    let interceptedPrompt = '';
+
+    globalThis.fetch = (async (input: any, init: any) => {
+      const url = typeof input === 'string' ? input : input?.url;
+      if (url === 'https://api.openai.com/v1/chat/completions') {
+        compactionCallCount++;
+        const parsedBody = JSON.parse(init.body);
+        interceptedPrompt = parsedBody.messages[1].content;
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content:
+                    'Learner Aarav favorite dinosaur is Ankylosaurus. Learning goal is prime numbers (2, 3, 5, 7).'
+                }
+              }
+            ]
+          })
+        };
+      }
+      return originalFetch(input, init);
+    }) as typeof fetch;
+
+    try {
+      // 1. Send Turn 1 establishing a specific memorable fact (Ankylosaurus)
+      n8nClient.nextResponse = {
+        text: 'Hello Aarav! Ankylosaurus is an armored giant! Ready to learn about prime numbers?',
+        audioSource: null,
+        audioDurationMs: null
+      };
+
+      const turn1Res = await app.inject({
+        method: 'POST',
+        url: '/api/appu/message',
+        headers: authHeaders,
+        payload: {
+          childId,
+          message: 'My favorite dinosaur is Ankylosaurus and today I want to master prime numbers!'
+        }
+      });
+      assert.equal(turn1Res.statusCode, 200);
+      const conversationId = turn1Res.json().conversationId;
+      assert.ok(conversationId);
+
+      // At turn 1, sessionSummary should be empty (fits in tail of 20)
+      assert.equal(n8nClient.lastEnvelope?.sessionSummary, '');
+      assert.equal(n8nClient.lastEnvelope?.conversationHistory?.length, 0);
+
+      // 2. Send Turns 2 through 14 (each turn adds 2 messages to history)
+      for (let turn = 2; turn <= 14; turn++) {
+        n8nClient.nextResponse = {
+          text: `Appu reply for turn ${turn}: continuing lesson on factors and primes.`,
+          audioSource: null,
+          audioDurationMs: null
+        };
+
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/appu/message',
+          headers: authHeaders,
+          payload: {
+            childId,
+            conversationId,
+            message: `Learner question for turn ${turn}: what about number ${turn}?`
+          }
+        });
+        assert.equal(res.statusCode, 200);
+      }
+
+      // At this point, 14 turns have been completed (28 messages in DB).
+      // Compaction must have run when history exceeded 20 messages.
+      assert.ok(compactionCallCount >= 1, 'Compaction should have been triggered');
+      assert.match(interceptedPrompt, /Ankylosaurus/);
+
+      // 3. Send Turn 15: Recall question asking about Turn 1
+      n8nClient.nextResponse = {
+        text: 'Your favorite dinosaur is the armored Ankylosaurus!',
+        audioSource: null,
+        audioDurationMs: null
+      };
+
+      const turn15Res = await app.inject({
+        method: 'POST',
+        url: '/api/appu/message',
+        headers: authHeaders,
+        payload: {
+          childId,
+          conversationId,
+          message: 'Which dinosaur did I say was my favorite back at the start?'
+        }
+      });
+      assert.equal(turn15Res.statusCode, 200);
+
+      // 4. Verify Turn 15 Envelope delivered to n8n
+      const env = n8nClient.lastEnvelope!;
+      assert.ok(env);
+      assert.equal(env.conversationId, conversationId);
+
+      // A. conversationHistory tail is bounded to 20 messages (turns 5-14)
+      assert.equal(env.conversationHistory?.length, 20);
+
+      // B. Turn 1 text is NOT in conversationHistory because it rolled out of the 20-message tail
+      const turn1InTail = env.conversationHistory?.some((m) => m.text.includes('Ankylosaurus'));
+      assert.equal(turn1InTail, false, 'Turn 1 must have rolled out of the 20-message tail');
+
+      // C. Turn 1 fact IS preserved in sessionSummary!
+      assert.ok(env.sessionSummary);
+      assert.match(env.sessionSummary, /Ankylosaurus/);
+      assert.match(env.sessionSummary, /prime numbers/i);
+
+      // D. Verify n8n normalized transcript assembly
+      const n8nAssembledTranscript =
+        `Session memory summary:\n${env.sessionSummary}\n\n` +
+        `Prior conversation transcript:\n` +
+        env.conversationHistory?.map((m) => `${m.role}: ${m.text}`).join('\n');
+
+      assert.match(n8nAssembledTranscript, /Session memory summary:/);
+      assert.match(n8nAssembledTranscript, /Ankylosaurus/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
