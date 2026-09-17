@@ -1019,6 +1019,12 @@ document.addEventListener('DOMContentLoaded', () => {
       window.ParentOnboardingShell.isParentAuthenticated();
 
     if (isAuthed) {
+      // If parental controls 30-min hard lock is active, block chatting and trigger lock modal
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
+        window.ParentalControlsUI.triggerLock();
+        return false;
+      }
+
       // After enough chats, a signed-in parent must give feedback before continuing.
       if (window.ParentReportsUI && typeof window.ParentReportsUI.enforceFeedbackGate === 'function') {
         if (window.ParentReportsUI.enforceFeedbackGate()) return false;
@@ -1910,6 +1916,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     if (e.key === 'Escape') {
+      // Do not allow dismissing modals if parental controls hard lock is active
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
+        return;
+      }
+
       closeDiscoveryModal();
       closeSettingsModal();
       closeGuestGateModal();
@@ -1935,4 +1946,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // ==========================================
+  // PARENTAL CONTROLS & TIME LIMITS INITIALIZATION
+  // ==========================================
+  if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.init === 'function') {
+    window.ParentalControlsUI.init();
+  }
 });

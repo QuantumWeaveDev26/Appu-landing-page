@@ -213,8 +213,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .msg-actions-bar { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, .06); }
 .btn-share-whatsapp { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid rgba(37, 211, 102, .25); border-radius: 20px; background: rgba(37, 211, 102, .08); color: #a7f3d0; font: 600 11px/1.2 'Plus Jakarta Sans', system-ui, sans-serif; cursor: pointer; backdrop-filter: blur(8px); transition: all .2s cubic-bezier(.2, .9, .2, 1); }
 .btn-share-whatsapp i { color: #25d366; font-size: 13px; }
-.btn-share-whatsapp:hover { background: rgba(37, 211, 102, .18); border-color: #25d366; color: #ffffff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(37, 211, 102, .2); }
 .btn-share-whatsapp:active { transform: translateY(0); }
+.btn-share-whatsapp.is-sent { background: rgba(37, 211, 102, .28); border-color: #25d366; color: #ffffff; pointer-events: none; }
+.btn-share-whatsapp.is-sent i { color: #ffffff; }
 
 .voice-reply-popup { position: relative; width: min(720px, calc(100% - 24px)); margin: 0 auto 10px; padding: 14px 18px 16px; border: 1px solid rgba(34, 211, 238, .35); border-radius: 18px; background: rgba(6, 20, 38, .92); box-shadow: 0 16px 40px rgba(0, 0, 0, .45), 0 0 24px rgba(34, 211, 238, .12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 50; transition: opacity .25s ease, transform .25s ease; opacity: 0; transform: translateY(8px); pointer-events: none; }
 .voice-reply-popup.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
@@ -2618,3 +2619,171 @@ body.policy-page {
 .report-fb-other:focus-visible { outline: 2px solid #0EA5C4; outline-offset: 1px; }
 .report-later-btn { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: rgba(255,255,255,0.6); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
 .report-later-btn:hover { color: rgba(255,255,255,0.9); }
+
+/* ===== Parental Controls 30-Min Lock & OTP Verification ===== */
+.parental-lock-overlay {
+  z-index: 10000 !important;
+  backdrop-filter: blur(24px) !important;
+  background: rgba(2, 8, 20, 0.88) !important;
+}
+.parental-lock-sheet {
+  max-width: 520px !important;
+  text-align: center;
+  border-color: rgba(14, 165, 196, 0.4) !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.75), 0 0 40px rgba(14, 165, 196, 0.15) !important;
+}
+.parental-lock-sheet .modal-kicker {
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.parental-lock-sheet h2 {
+  max-width: 100% !important;
+  font-size: clamp(24px, 3.5vw, 30px);
+  margin-bottom: 8px;
+}
+.parental-lock-sheet .modal-lead {
+  margin-inline: auto;
+  max-width: 440px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(234, 246, 255, 0.78);
+}
+.parental-lock-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+.lock-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(14, 165, 196, 0.25);
+  background: rgba(14, 165, 196, 0.06);
+  text-align: left;
+}
+.lock-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(14, 165, 196, 0.18);
+  color: #0EA5C4;
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+.lock-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+.lock-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(234, 246, 255, 0.6);
+  font-weight: 600;
+}
+.lock-stat-info strong {
+  font-size: 16px;
+  color: #f8fafc;
+}
+.lock-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.lock-view[hidden] {
+  display: none !important;
+}
+.lock-instruction {
+  font-size: 13px;
+  color: rgba(234, 246, 255, 0.7);
+  margin: 0;
+  max-width: 380px;
+}
+.lock-view .primary-modal-btn {
+  width: 100%;
+}
+.lock-actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 8px;
+}
+.otp-sent-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(37, 211, 102, 0.12);
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  color: #a7f3d0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.otp-sent-banner i {
+  color: #25d366;
+  font-size: 16px;
+}
+.lock-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(234, 246, 255, 0.85);
+}
+.lock-otp-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid rgba(14, 165, 196, 0.4);
+  background: rgba(10, 26, 48, 0.95);
+  color: #68f0ff;
+  font: 700 24px/1 'Space Grotesk', monospace, sans-serif;
+  letter-spacing: 0.35em;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.lock-otp-input:focus {
+  border-color: #68f0ff;
+  box-shadow: 0 0 0 3px rgba(104, 240, 255, 0.25);
+}
+.lock-note {
+  min-height: 20px;
+  font-size: 13px;
+  color: #f87171;
+  margin: 0;
+}
+.parental-timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(14, 165, 196, 0.3);
+  background: rgba(14, 165, 196, 0.1);
+  color: #68f0ff;
+  font: 700 12px/1 'Space Grotesk', sans-serif;
+}
+.parental-timer-pill i {
+  font-size: 12px;
+  color: #0EA5C4;
+}
+.parental-timer-pill.is-warning {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+.parental-timer-pill.is-warning i {
+  color: #f59e0b;
+}

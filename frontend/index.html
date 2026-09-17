@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260916-5">
+  <link rel="stylesheet" href="style.css?v=20260917-1">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -98,6 +98,7 @@
       </div>
       <div class="topbar-actions">
         <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
+        <div id="parental-timer-badge" class="parental-timer-pill" role="status" title="Parental study timer" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span id="parental-timer-text">30m</span></div>
         <button id="btn-main-auth" class="auth-pill-btn" type="button"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i><span>Sign in / Sign up</span></button>
         <div class="language-switch" aria-label="Choose language" role="radiogroup">
           <button id="lang-en" class="lang-btn is-active" type="button" role="radio" aria-checked="true">ENG</button>
@@ -609,23 +610,90 @@
     </div>
   </section>
 
+  <!-- PARENTAL CONTROLS 30-MINUTE HARD LOCK & OTP UNLOCK MODAL -->
+  <section id="parental-lock-modal" class="modal-overlay parental-lock-overlay" role="dialog" aria-modal="true" aria-labelledby="parental-lock-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet parental-lock-sheet">
+      <div class="modal-kicker"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Parent Zone • Study Time Limit</div>
+      <h2 id="parental-lock-title">Study Time Complete! 🌟</h2>
+      <p class="modal-lead">You've completed 30 minutes of focused learning with Appu! It's a great time to stretch, hydrate, or take a quick break. To continue learning, ask your parent to unlock this session with a WhatsApp verification code.</p>
+
+      <div class="parental-lock-stats">
+        <div class="lock-stat-card">
+          <span class="lock-stat-icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
+          <div class="lock-stat-info">
+            <span class="lock-stat-label">Active Learning</span>
+            <strong id="lock-stat-active">30 mins</strong>
+          </div>
+        </div>
+        <div class="lock-stat-card">
+          <span class="lock-stat-icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
+          <div class="lock-stat-info">
+            <span class="lock-stat-label">Break / Away</span>
+            <strong id="lock-stat-away">0 mins</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 1: REQUEST OTP -->
+      <div id="lock-view-request" class="lock-view">
+        <p class="lock-instruction">Click below to send a 6-digit unlock code and learning summary to your parent's registered WhatsApp.</p>
+        <button id="lock-btn-request-otp" class="primary-modal-btn" type="button">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          <span>Send Unlock Code to Parent WhatsApp</span>
+        </button>
+        <p id="lock-request-status" class="lock-note" role="alert"></p>
+      </div>
+
+      <!-- VIEW 2: VERIFY OTP -->
+      <div id="lock-view-verify" class="lock-view" hidden>
+        <div class="otp-sent-banner">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          <span>A 6-digit code has been sent to your parent's WhatsApp!</span>
+        </div>
+        <label class="lock-field">
+          <span>Enter 6-Digit Parent Code</span>
+          <input id="lock-otp-input" class="lock-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="• • • • • •" autocomplete="one-time-code" />
+        </label>
+        <div class="lock-actions">
+          <button id="lock-btn-verify-otp" class="primary-modal-btn" type="button">
+            <i class="fa-solid fa-lock-open" aria-hidden="true"></i>
+            <span>Verify & Continue Learning</span>
+          </button>
+          <button id="lock-btn-resend-otp" class="secondary-modal-btn" type="button">
+            <i class="fa-solid fa-arrow-rotate-right" aria-hidden="true"></i>
+            <span>Resend Code</span>
+          </button>
+        </div>
+        <p id="lock-verify-status" class="lock-note" role="alert"></p>
+      </div>
+
+      <!-- VIEW 3: UNLOCKED SUCCESS -->
+      <div id="lock-view-success" class="lock-view success-view" hidden>
+        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        <h3>Session Unlocked!</h3>
+        <p>30 minutes of study time has been added. Resuming your lesson now...</p>
+      </div>
+    </div>
+  </section>
+
   <!-- External SDKs for Phase 2 Integration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260916-5"></script>
-  <script src="appu-config.js?v=20260916-5"></script>
-  <script src="appu-session.js?v=20260916-5"></script>
-  <script src="appu-backend-client.js?v=20260916-5"></script>
-  <script src="parent-onboarding-shell.js?v=20260916-5"></script>
-  <script src="parent-setup-ui.js?v=20260916-5"></script>
-  <script src="prompt-library-ui.js?v=20260916-5"></script>
-  <script src="avatar-stage.js?v=20260916-5"></script>
-  <script src="voice-engine.js?v=20260916-5"></script>
-  <script src="chat-history.js?v=20260916-5"></script>
-  <script src="chat-agent.js?v=20260916-5"></script>
-  <script src="parent-reports-ui.js?v=20260916-5"></script>
-  <script src="app.js?v=20260916-5"></script>
+  <script src="voice-contract.js?v=20260917-1"></script>
+  <script src="appu-config.js?v=20260917-1"></script>
+  <script src="appu-session.js?v=20260917-1"></script>
+  <script src="appu-backend-client.js?v=20260917-1"></script>
+  <script src="parent-onboarding-shell.js?v=20260917-1"></script>
+  <script src="parent-setup-ui.js?v=20260917-1"></script>
+  <script src="prompt-library-ui.js?v=20260917-1"></script>
+  <script src="avatar-stage.js?v=20260917-1"></script>
+  <script src="voice-engine.js?v=20260917-1"></script>
+  <script src="chat-history.js?v=20260917-1"></script>
+  <script src="chat-agent.js?v=20260917-1"></script>
+  <script src="parent-reports-ui.js?v=20260917-1"></script>
+  <script src="parental-controls-ui.js?v=20260917-1"></script>
+  <script src="app.js?v=20260917-1"></script>
 </body>
 </html>

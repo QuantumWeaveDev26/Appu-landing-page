@@ -99,7 +99,70 @@ class ChatAgent {
           || '';
 
         const client = (typeof window !== 'undefined' && window.AppuBackendClient) || (typeof AppuBackendClient !== 'undefined' ? AppuBackendClient : null);
-        if (client && typeof client.buildWhatsAppShareUrl === 'function') {
+        if (!client) return;
+
+        // If authenticated parent session exists: SERVER-SEND note to parent's OWN WhatsApp number
+        if (session && typeof session.isAuthenticated === 'function' && session.isAuthenticated()) {
+          const originalHTML = shareBtn.innerHTML;
+          shareBtn.disabled = true;
+          shareBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> <span>Sending note...</span>';
+
+          try {
+            const result = await client.sendStudyNoteToWhatsApp({
+              childId: session.childId,
+              note: msg.text,
+              accessToken: session.accessToken
+            });
+
+            if (result && result.sent) {
+              shareBtn.classList.add('is-sent');
+              shareBtn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> <span>Sent to WhatsApp!</span>';
+              setTimeout(() => {
+                shareBtn.classList.remove('is-sent');
+                shareBtn.innerHTML = originalHTML;
+                shareBtn.disabled = false;
+              }, 4000);
+              return;
+            }
+
+            if (result && result.needsPhone) {
+              shareBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span>Add WhatsApp in Parent Zone</span>';
+              setTimeout(() => {
+                shareBtn.innerHTML = originalHTML;
+                shareBtn.disabled = false;
+              }, 4000);
+
+              if (typeof window !== 'undefined' && window.ParentSetupUI && typeof window.ParentSetupUI.open === 'function') {
+                window.ParentSetupUI.open();
+              }
+              return;
+            }
+
+            // Fallback if server returned other error
+            if (typeof client.buildWhatsAppShareUrl === 'function') {
+              const url = client.buildWhatsAppShareUrl('919740595677', msg.text, childName);
+              if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
+                window.open(url, '_blank');
+              }
+            }
+          } catch (err) {
+            if (typeof client.buildWhatsAppShareUrl === 'function') {
+              const url = client.buildWhatsAppShareUrl('919740595677', msg.text, childName);
+              if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
+                window.open(url, '_blank');
+              }
+            }
+          } finally {
+            if (!shareBtn.classList.contains('is-sent')) {
+              shareBtn.disabled = false;
+              shareBtn.innerHTML = originalHTML;
+            }
+          }
+          return;
+        }
+
+        // Guest fallback: open companion number deep link
+        if (typeof client.buildWhatsAppShareUrl === 'function') {
           const url = client.buildWhatsAppShareUrl('919740595677', msg.text, childName);
           if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
             window.open(url, '_blank');

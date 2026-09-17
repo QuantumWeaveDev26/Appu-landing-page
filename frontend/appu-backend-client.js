@@ -700,6 +700,149 @@
     });
   }
 
+  /**
+   * Sends an educational study note to the parent's verified WhatsApp number.
+   * POST /api/appu/notes/send-whatsapp
+   */
+  async function sendStudyNoteToWhatsApp(params = {}) {
+    let { childId, note, accessToken, baseUrl } = params;
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!note || typeof note !== 'string' || !note.trim()) {
+      return { error: 'invalid_request', message: 'Missing note' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: '/api/appu/notes/send-whatsapp',
+      method: 'POST',
+      body: { childId: childId.trim(), note: note.trim() },
+      baseUrl
+    });
+  }
+
+  /**
+   * Records periodic child session activity heartbeat.
+   * POST /api/appu/session/heartbeat
+   */
+  async function recordSessionHeartbeat(params = {}) {
+    let { sessionId, childId, activeMsSinceLast = 0, awayMsSinceLast = 0, visibility = 'visible', accessToken, baseUrl } = params;
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+      return { error: 'invalid_request', message: 'Missing sessionId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: '/api/appu/session/heartbeat',
+      method: 'POST',
+      body: {
+        sessionId: sessionId.trim(),
+        childId: childId.trim(),
+        activeMsSinceLast: Math.max(0, Math.round(Number(activeMsSinceLast) || 0)),
+        awayMsSinceLast: Math.max(0, Math.round(Number(awayMsSinceLast) || 0)),
+        visibility: visibility === 'hidden' ? 'hidden' : 'visible'
+      },
+      baseUrl
+    });
+  }
+
+  /**
+   * Retrieves active session usage and lock state.
+   * GET /api/appu/session/usage
+   */
+  async function getSessionUsage(params = {}) {
+    let { sessionId, childId, accessToken, baseUrl } = params;
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+      return { error: 'invalid_request', message: 'Missing sessionId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/session/usage?sessionId=${encodeURIComponent(sessionId.trim())}&childId=${encodeURIComponent(childId.trim())}`,
+      method: 'GET',
+      baseUrl
+    });
+  }
+
+  /**
+   * Requests a 6-digit session unlock OTP delivered to parent WhatsApp.
+   * POST /api/appu/session/otp/request
+   */
+  async function requestSessionOtp(params = {}) {
+    let { sessionId, childId, accessToken, baseUrl } = params;
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+      return { error: 'invalid_request', message: 'Missing sessionId' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: '/api/appu/session/otp/request',
+      method: 'POST',
+      body: { sessionId: sessionId.trim(), childId: childId.trim() },
+      baseUrl
+    });
+  }
+
+  /**
+   * Verifies the 6-digit session unlock OTP.
+   * POST /api/appu/session/otp/verify
+   */
+  async function verifySessionOtp(params = {}) {
+    let { sessionId, childId, code, accessToken, baseUrl } = params;
+    if (!childId && typeof globalThis !== 'undefined' && globalThis.AppuSession?.childId) {
+      childId = globalThis.AppuSession.childId;
+    }
+    if (!accessToken && typeof globalThis !== 'undefined' && globalThis.AppuSession?.accessToken) {
+      accessToken = globalThis.AppuSession.accessToken;
+    }
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+      return { error: 'invalid_request', message: 'Missing sessionId' };
+    }
+    if (!code || typeof code !== 'string' || !code.trim()) {
+      return { error: 'invalid_request', message: 'Missing code' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: '/api/appu/session/otp/verify',
+      method: 'POST',
+      body: { sessionId: sessionId.trim(), childId: childId.trim(), code: code.trim() },
+      baseUrl
+    });
+  }
+
   return {
     getApiBaseUrl,
     resolveAudioStreamUrl,
@@ -715,6 +858,11 @@
     formatWhatsAppStudyNote,
     buildWhatsAppShareUrl,
     fetchChildPrompts,
-    regenerateChildPrompts
+    regenerateChildPrompts,
+    sendStudyNoteToWhatsApp,
+    recordSessionHeartbeat,
+    getSessionUsage,
+    requestSessionOtp,
+    verifySessionOtp
   };
 });
