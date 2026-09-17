@@ -17,7 +17,7 @@ import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
 import { detectLanguageIntent } from '../domain/language/index.js';
-import { ConversationRepository, ConversationService } from '../domain/conversation/index.js';
+import { ConversationRepository, ConversationService, compactSessionMemory } from '../domain/conversation/index.js';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -54,6 +54,7 @@ export interface AppuGatewayRouteOptions {
   guestSessionSecret?: string;
   betaMode?: boolean;
   betaChatLimit?: number;
+  openaiApiKey?: string;
 }
 
 const authenticatedMessageSchema = z.object({
@@ -341,18 +342,26 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       const effectiveLanguage = languageIntent.language;
 
       let conversationHistory: Array<{ role: 'user' | 'assistant'; text: string }> = [];
+      let sessionSummary = '';
       if (conversation) {
         try {
-          conversationHistory = await ConversationRepository.listContext(
+          const compacted = await compactSessionMemory(
             opts.db,
             household.id,
             child.id,
             conversation.id,
-            8
+            {
+              tailLimit: 20,
+              openaiApiKey: opts.openaiApiKey,
+              logger: request.log
+            }
           );
+          conversationHistory = compacted.conversationHistory;
+          sessionSummary = compacted.sessionSummary;
         } catch (err) {
           request.log.warn({ err, requestId: lifecycle.id }, 'Loading conversation context failed; sending empty history');
           conversationHistory = [];
+          sessionSummary = '';
         }
       }
 
@@ -377,6 +386,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         childId: child.id,
         conversationId: conversation?.id,
         conversationHistory,
+        sessionSummary,
         includeAudio: n8nIncludeAudio,
         ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
         mentorContext,

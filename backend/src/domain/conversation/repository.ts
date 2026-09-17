@@ -16,6 +16,9 @@ function mapSessionRow(row: {
   created_at: Date;
   updated_at: Date;
   expires_at: Date;
+  rolling_summary?: string | null;
+  summarized_up_to_message_id?: string | null;
+  summarized_at?: Date | null;
 }): ConversationSession {
   return {
     id: row.id,
@@ -24,7 +27,10 @@ function mapSessionRow(row: {
     title: row.title,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    expiresAt: row.expires_at
+    expiresAt: row.expires_at,
+    rollingSummary: row.rolling_summary ?? null,
+    summarizedUpToMessageId: row.summarized_up_to_message_id ?? null,
+    summarizedAt: row.summarized_at ?? null
   };
 }
 
@@ -44,10 +50,13 @@ export class ConversationRepository {
       created_at: Date;
       updated_at: Date;
       expires_at: Date;
+      rolling_summary?: string | null;
+      summarized_up_to_message_id?: string | null;
+      summarized_at?: Date | null;
     }>(
       `INSERT INTO conversation_sessions (id, household_id, child_id, title)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, household_id, child_id, title, created_at, updated_at, expires_at`,
+       RETURNING id, household_id, child_id, title, created_at, updated_at, expires_at, rolling_summary, summarized_up_to_message_id, summarized_at`,
       [id, householdId, childId, title]
     );
     return mapSessionRow(res.rows[0]);
@@ -67,8 +76,12 @@ export class ConversationRepository {
       created_at: Date;
       updated_at: Date;
       expires_at: Date;
+      rolling_summary?: string | null;
+      summarized_up_to_message_id?: string | null;
+      summarized_at?: Date | null;
     }>(
-      `SELECT id, household_id, child_id, title, created_at, updated_at, expires_at
+      `SELECT id, household_id, child_id, title, created_at, updated_at, expires_at,
+              rolling_summary, summarized_up_to_message_id, summarized_at
        FROM conversation_sessions
        WHERE id = $1 AND household_id = $2 AND child_id = $3 AND expires_at > NOW()`,
       [conversationId, householdId, childId]
@@ -92,8 +105,12 @@ export class ConversationRepository {
       created_at: Date;
       updated_at: Date;
       expires_at: Date;
+      rolling_summary?: string | null;
+      summarized_up_to_message_id?: string | null;
+      summarized_at?: Date | null;
     }>(
-      `SELECT id, household_id, child_id, title, created_at, updated_at, expires_at
+      `SELECT id, household_id, child_id, title, created_at, updated_at, expires_at,
+              rolling_summary, summarized_up_to_message_id, summarized_at
        FROM conversation_sessions
        WHERE household_id = $1 AND child_id = $2 AND expires_at > NOW()
        ORDER BY updated_at DESC, created_at DESC
@@ -284,5 +301,61 @@ export class ConversationRepository {
       count += delRes.rowCount ?? 0;
     }
     return count;
+  }
+
+  static async updateRollingSummary(
+    db: Queryable,
+    householdId: string,
+    childId: string,
+    conversationId: string,
+    rollingSummary: string,
+    summarizedUpToMessageId: string
+  ): Promise<void> {
+    await db.query(
+      `UPDATE conversation_sessions
+       SET rolling_summary = $1,
+           summarized_up_to_message_id = $2,
+           summarized_at = NOW(),
+           updated_at = NOW()
+       WHERE id = $3 AND household_id = $4 AND child_id = $5`,
+      [rollingSummary, summarizedUpToMessageId, conversationId, householdId, childId]
+    );
+  }
+
+  static async listAllMessages(
+    db: Queryable,
+    householdId: string,
+    childId: string,
+    conversationId: string
+  ): Promise<ConversationMessage[]> {
+    const res = await db.query<{
+      id: string;
+      conversation_id: string;
+      request_id: string | null;
+      role: ConversationRole;
+      text: string;
+      has_image_attachment: boolean;
+      created_at: Date;
+    }>(
+      `SELECT m.id, m.conversation_id, m.request_id, m.role, m.text, m.has_image_attachment, m.created_at
+       FROM conversation_messages m
+       JOIN conversation_sessions s ON s.id = m.conversation_id
+       WHERE m.conversation_id = $1
+         AND s.household_id = $2
+         AND s.child_id = $3
+         AND s.expires_at > NOW()
+       ORDER BY m.created_at ASC, m.id ASC`,
+      [conversationId, householdId, childId]
+    );
+
+    return res.rows.map((row) => ({
+      id: row.id,
+      conversationId: row.conversation_id,
+      requestId: row.request_id,
+      role: row.role,
+      text: row.text,
+      hasImageAttachment: Boolean(row.has_image_attachment),
+      createdAt: row.created_at
+    }));
   }
 }

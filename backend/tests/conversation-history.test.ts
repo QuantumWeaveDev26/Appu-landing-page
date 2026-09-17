@@ -603,7 +603,8 @@ describe('APPU Conversation Gateway Suite', () => {
     assert.equal(n8nClient.lastEnvelope.sessionId, `appu_request_${body.requestId}`);
     assert.equal(n8nClient.lastEnvelope.conversationId, session.id);
     assert.ok(Array.isArray(n8nClient.lastEnvelope.conversationHistory));
-    assert.equal(n8nClient.lastEnvelope.conversationHistory.length, 16);
+    assert.equal(n8nClient.lastEnvelope.conversationHistory.length, 20);
+    assert.equal(typeof n8nClient.lastEnvelope.sessionSummary, 'string');
 
     const messages = await ConversationRepository.listMessages(db, householdId, childId, session.id, 100);
     assert.equal(messages.length, 22);

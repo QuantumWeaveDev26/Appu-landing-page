@@ -17,6 +17,7 @@ export interface WhatsAppContextResult {
   childId?: string;
   mentorContext?: AuthenticatedMentorContext;
   conversationHistory?: WhatsAppConversationTurn[];
+  sessionSummary?: string;
   formattedTranscript?: string;
   linkNudge?: string;
   onboarding?: WhatsAppOnboardingContextSummary;

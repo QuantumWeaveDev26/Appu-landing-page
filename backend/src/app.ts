@@ -344,7 +344,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         n8nClient,
         guestSessionSecret: config.GUEST_SESSION_SECRET,
         betaMode: config.APPU_BETA_MODE,
-        betaChatLimit: config.APPU_BETA_CHAT_LIMIT
+        betaChatLimit: config.APPU_BETA_CHAT_LIMIT,
+        openaiApiKey: config.OPENAI_API_KEY
       });
     }
 

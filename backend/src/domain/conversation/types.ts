@@ -8,6 +8,14 @@ export interface ConversationSession {
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date;
+  rollingSummary?: string | null;
+  summarizedUpToMessageId?: string | null;
+  summarizedAt?: Date | null;
+}
+
+export interface CompactedSessionContext {
+  conversationHistory: ConversationHistoryEntry[];
+  sessionSummary: string;
 }
 
 export interface ConversationSummary {
