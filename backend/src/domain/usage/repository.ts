@@ -300,7 +300,7 @@ export class UsageRepository {
       period.endsAt
     );
 
-    if (used + input.quantity > input.quotaLimit) {
+    if (input.quotaLimit < 999_999_000 && used + input.quantity > input.quotaLimit) {
       throw new QuotaExceededError(input.metric, input.quotaLimit, used);
     }
 

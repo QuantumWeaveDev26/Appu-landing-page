@@ -7,6 +7,7 @@ import { createAuthPreHandler } from '../middleware/auth.js';
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
 import { SubscriptionService } from '../domain/subscription/service.js';
 import { SubscriptionRepository } from '../domain/subscription/repository.js';
+import { isUnlimitedEmail, ensureUnlimitedSubscription } from '../domain/entitlements/index.js';
 import { BadRequestError, NotFoundError } from '../errors/index.js';
 
 export interface SubscriptionsRouteOptions {
@@ -14,6 +15,7 @@ export interface SubscriptionsRouteOptions {
   authVerifier: AuthVerifier;
   razorpayClient: RazorpayClient;
   razorpayKeyId?: string;
+  unlimitedEmails?: string;
 }
 
 const createSubscriptionSchema = z.object({
@@ -170,6 +172,10 @@ export const subscriptionsRoutes: FastifyPluginAsync<SubscriptionsRouteOptions> 
       opts.db,
       principal.userId
     );
+
+    if (isUnlimitedEmail(principal.email, opts.unlimitedEmails)) {
+      await ensureUnlimitedSubscription(opts.db, household.id);
+    }
 
     const subscription = await SubscriptionRepository.getLatestSubscriptionForHousehold(
       opts.db,

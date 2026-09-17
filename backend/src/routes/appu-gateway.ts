@@ -8,6 +8,7 @@ import { TenancyRepository } from '../domain/tenancy/repository.js';
 import { SubscriptionRepository } from '../domain/subscription/repository.js';
 import { ensureBetaSubscription } from '../domain/subscription/beta-service.js';
 import { EntitlementEnforcementService } from '../domain/entitlements/enforcement-service.js';
+import { isUnlimitedEmail, ensureUnlimitedSubscription } from '../domain/entitlements/index.js';
 import { UsageService } from '../domain/usage/service.js';
 import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
@@ -55,10 +56,11 @@ export interface AppuGatewayRouteOptions {
   betaMode?: boolean;
   betaChatLimit?: number;
   openaiApiKey?: string;
+  unlimitedEmails?: string;
 }
 
 const authenticatedMessageSchema = z.object({
-  childId: z.string().uuid('Invalid childId format. Must be a valid UUID'),
+  childId: z.string().uuid('Invalid childId format. Must be a valid UUID').optional(),
   conversationId: z.string().uuid().optional(),
   newConversation: z.boolean().optional(),
   message: z
@@ -133,6 +135,27 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       request.ip ||
       '127.0.0.1'
     ).trim();
+
+    const authPrincipal = await tryResolveAuth(request, opts.authVerifier);
+    if (authPrincipal && isUnlimitedEmail(authPrincipal.email, opts.unlimitedEmails)) {
+      reply.header('x-guest-session-token', 'unlimited');
+      return reply.status(200).send({
+        guestLimit: 999999999,
+        limit: 999999999,
+        used: 0,
+        remaining: 999999999,
+        loginRequired: false,
+        token: 'unlimited',
+        isUnlimited: true,
+        guest: {
+          limit: 999999999,
+          used: 0,
+          remaining: 999999999,
+          token: 'unlimited',
+          loginRequired: false
+        }
+      });
+    }
 
     const status = await GuestSessionService.getGuestStatus(
       opts.db,
@@ -210,6 +233,27 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       );
       const tHouseholdEnd = performance.now();
 
+      const isUnlimited = isUnlimitedEmail(principal.email, opts.unlimitedEmails);
+
+      let effectiveChildId = childId;
+      if (!effectiveChildId) {
+        if (isUnlimited) {
+          const existingChildren = await TenancyRepository.listChildProfilesByHousehold(opts.db, household.id);
+          if (existingChildren.length > 0) {
+            effectiveChildId = existingChildren[0].id;
+          } else {
+            const defaultChild = await TenancyRepository.createChildProfile(opts.db, {
+              householdId: household.id,
+              preferredName: 'Admin Learner',
+              gradeBand: 'Grade 8'
+            });
+            effectiveChildId = defaultChild.id;
+          }
+        } else {
+          throw new BadRequestError('childId is required for authenticated chat');
+        }
+      }
+
       // 2. Parallelize independent pre-n8n domain reads in ONE round-trip batch
       // (child profile verification, subscription with validated entitlements, voice usage, personalisation)
       const tContextStart = performance.now();
@@ -220,10 +264,10 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         personalisation,
         notificationPreferences
       ] = await Promise.all([
-        TenancyRepository.getChildProfile(opts.db, household.id, childId),
+        TenancyRepository.getChildProfile(opts.db, household.id, effectiveChildId),
         SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(opts.db, household.id),
         UsageService.getHouseholdVoiceUsageMs(opts.db, household.id),
-        PersonalisationRepository.getPersonalisation(opts.db, household.id, childId),
+        PersonalisationRepository.getPersonalisation(opts.db, household.id, effectiveChildId),
         TenancyRepository.getNotificationPreferences(opts.db, household.id).catch((err) => {
           request.log.warn({ err, householdId: household.id }, 'Failed to load household notification preferences; failing open');
           return { parentPhone: null, whatsappConsent: false, whatsappConsentAt: null };
@@ -237,9 +281,13 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       let subscriptionContext = initialSubscriptionContext;
 
-      // BETA: lazily provision a free beta subscription instead of requiring Razorpay checkout.
-      // Reversible -- stops firing as soon as APPU_BETA_MODE is turned off.
-      if (opts.betaMode && (!subscriptionContext || subscriptionContext.subscription.status !== 'ACTIVE')) {
+      if (isUnlimited) {
+        await ensureUnlimitedSubscription(opts.db, household.id);
+        subscriptionContext = await SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(
+          opts.db,
+          household.id
+        );
+      } else if (opts.betaMode && (!subscriptionContext || subscriptionContext.subscription.status !== 'ACTIVE')) {
         await ensureBetaSubscription(opts.db, household.id, opts.betaChatLimit ?? 30);
         subscriptionContext = await SubscriptionRepository.getLatestSubscriptionWithEntitlementsForHousehold(
           opts.db,
@@ -271,10 +319,10 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         conversation = null;
       }
 
-      const aiQuotaLimit = Number(entitlements?.monthly_ai_sessions ?? 100);
-      const voiceQuotaLimitMinutes = Number(entitlements?.monthly_voice_minutes ?? 30);
+      const aiQuotaLimit = isUnlimited ? 999_999_999 : Number(entitlements?.monthly_ai_sessions ?? 100);
+      const voiceQuotaLimitMinutes = isUnlimited ? 999_999_999 : Number(entitlements?.monthly_voice_minutes ?? 30);
       const voiceQuotaLimitMs = voiceQuotaLimitMinutes * 60 * 1000;
-      const isVoiceQuotaExhausted = currentVoiceUsageMs >= voiceQuotaLimitMs;
+      const isVoiceQuotaExhausted = isUnlimited ? false : (currentVoiceUsageMs >= voiceQuotaLimitMs);
 
       // Extract and validate optional client idempotency key
       const rawIdempotencyKey = (

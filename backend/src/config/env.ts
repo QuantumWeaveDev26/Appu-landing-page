@@ -126,7 +126,10 @@ export const envSchema = z
     N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: z
       .string()
       .url('N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL must be a valid URL')
-      .optional()
+      .optional(),
+    APPU_UNLIMITED_EMAILS: z
+      .string()
+      .default('ceo@brandmintai.io,vishak.b7@gmail.com,naveenreddy95190@gmail.com,kaaranji@brandmintai.io')
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {

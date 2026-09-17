@@ -295,7 +295,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     app.register(householdRoutes, {
       db: options.database,
       authVerifier,
-      n8nFeedbackWebhookUrl: config.N8N_FEEDBACK_WEBHOOK_URL
+      n8nFeedbackWebhookUrl: config.N8N_FEEDBACK_WEBHOOK_URL,
+      unlimitedEmails: config.APPU_UNLIMITED_EMAILS
     });
 
     app.register(childrenRoutes, {
@@ -303,7 +304,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       authVerifier,
       betaMode: config.APPU_BETA_MODE,
       betaChatLimit: config.APPU_BETA_CHAT_LIMIT,
-      openaiApiKey: config.OPENAI_API_KEY
+      openaiApiKey: config.OPENAI_API_KEY,
+      unlimitedEmails: config.APPU_UNLIMITED_EMAILS
     });
 
     app.register(promptsRoutes, {
@@ -330,7 +332,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         db: options.database,
         authVerifier,
         razorpayClient,
-        razorpayKeyId: config.RAZORPAY_KEY_ID
+        razorpayKeyId: config.RAZORPAY_KEY_ID,
+        unlimitedEmails: config.APPU_UNLIMITED_EMAILS
       });
 
       app.register(webhooksRoutes, {
@@ -354,7 +357,8 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         guestSessionSecret: config.GUEST_SESSION_SECRET,
         betaMode: config.APPU_BETA_MODE,
         betaChatLimit: config.APPU_BETA_CHAT_LIMIT,
-        openaiApiKey: config.OPENAI_API_KEY
+        openaiApiKey: config.OPENAI_API_KEY,
+        unlimitedEmails: config.APPU_UNLIMITED_EMAILS
       });
     }
 

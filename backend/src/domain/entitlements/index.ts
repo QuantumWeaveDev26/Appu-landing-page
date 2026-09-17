@@ -3,3 +3,4 @@ export * from './definitions.js';
 export * from './validator.js';
 export * from './resolver.js';
 export * from './enforcement-service.js';
+export * from './unlimited-service.js';

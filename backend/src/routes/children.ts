@@ -6,6 +6,7 @@ import { createAuthPreHandler } from '../middleware/auth.js';
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
 import { TenancyRepository } from '../domain/tenancy/repository.js';
 import { EntitlementEnforcementService } from '../domain/entitlements/enforcement-service.js';
+import { isUnlimitedEmail, ensureUnlimitedSubscription } from '../domain/entitlements/index.js';
 import { ensureBetaSubscription } from '../domain/subscription/beta-service.js';
 import {
   PersonalisationRepository,
@@ -23,6 +24,7 @@ export interface ChildrenRouteOptions {
   betaMode?: boolean;
   betaChatLimit?: number;
   openaiApiKey?: string;
+  unlimitedEmails?: string;
 }
 
 const safeStringPattern = /^[^<>`$]*$/;
@@ -172,14 +174,19 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       principal.userId
     );
 
-    // BETA: lazily provision a free beta subscription before the entitlement check below,
-    // so a fresh signup can create a child profile without going through Razorpay checkout.
-    if (opts.betaMode) {
+    const isUnlimited = isUnlimitedEmail(principal.email, opts.unlimitedEmails);
+
+    // Unlimited or Beta: ensure active subscription before the entitlement check below
+    if (isUnlimited) {
+      await ensureUnlimitedSubscription(opts.db, household.id);
+    } else if (opts.betaMode) {
       await ensureBetaSubscription(opts.db, household.id, opts.betaChatLimit ?? 30);
     }
 
-    // 2. Enforce active subscription and max_children limit
-    await EntitlementEnforcementService.enforceChildCreationLimit(opts.db, household.id);
+    // 2. Enforce active subscription and max_children limit (bypassed for unlimited admin accounts)
+    if (!isUnlimited) {
+      await EntitlementEnforcementService.enforceChildCreationLimit(opts.db, household.id);
+    }
 
     // 3. Create child profile bound strictly to the derived household ID
     const child = await TenancyRepository.createChildProfile(opts.db, {

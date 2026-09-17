@@ -7,12 +7,14 @@ import { TenancyService } from '../domain/tenancy/service.js';
 import { TenancyRepository } from '../domain/tenancy/repository.js';
 import { HouseholdAuthorizationService } from '../domain/authorization/household-auth-service.js';
 import { FamilyFeedbackService } from '../domain/feedback/index.js';
+import { isUnlimitedEmail, ensureUnlimitedSubscription } from '../domain/entitlements/index.js';
 import { BadRequestError } from '../errors/index.js';
 
 export interface HouseholdRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
   n8nFeedbackWebhookUrl?: string;
+  unlimitedEmails?: string;
 }
 
 const onboardSchema = z.object({
@@ -59,6 +61,10 @@ export const householdRoutes: FastifyPluginAsync<HouseholdRouteOptions> = async 
       userId: principal.userId,
       householdName: parseResult.data.householdName
     });
+
+    if (isUnlimitedEmail(principal.email, opts.unlimitedEmails)) {
+      await ensureUnlimitedSubscription(opts.db, household.id);
+    }
 
     const statusCode = isNew ? 201 : 200;
 
