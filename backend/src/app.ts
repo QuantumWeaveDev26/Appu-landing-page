@@ -27,7 +27,8 @@ import {
   whatsappProactiveRoutes,
   promptsRoutes,
   studySchedulesRoutes,
-  whatsappReportsRoutes
+  whatsappReportsRoutes,
+  parentalControlsRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -313,6 +314,14 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     app.register(conversationRoutes, {
       db: options.database,
       authVerifier
+    });
+
+    app.register(parentalControlsRoutes, {
+      db: options.database,
+      authVerifier,
+      enabled: config.APPU_PARENTAL_CONTROLS_ENABLED,
+      lockIntervalSeconds: config.APPU_PARENTAL_LOCK_INTERVAL_SECONDS,
+      n8nWebhookUrl: config.N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL
     });
 
     // Subscriptions and webhooks require RazorpayClient

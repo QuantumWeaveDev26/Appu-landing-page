@@ -86,7 +86,17 @@ export const envSchema = z
       .default('https://n8n.srv1871828.hstgr.cloud/webhook/appu-parent-feedback'),
     // BETA: toggle to bypass the ACTIVE-subscription gate for signed-up users, capped at
     // APPU_BETA_CHAT_LIMIT free AI sessions. Turn off (or unset) to restore normal paid gating.
-    APPU_BETA_MODE: z.coerce.boolean().default(false),
+    APPU_BETA_MODE: z
+      .preprocess((val) => {
+        if (typeof val === 'boolean') return val;
+        if (typeof val === 'string') {
+          const lower = val.trim().toLowerCase();
+          if (lower === 'true' || lower === '1') return true;
+          if (lower === 'false' || lower === '0' || lower === '') return false;
+        }
+        return false;
+      }, z.boolean())
+      .default(false),
     APPU_BETA_CHAT_LIMIT: z.coerce.number().int().min(1).max(1000).default(30),
     GUEST_SESSION_SECRET: z
       .string()
@@ -100,6 +110,22 @@ export const envSchema = z
       .optional(),
     OPENAI_API_KEY: z
       .string()
+      .optional(),
+    APPU_PARENTAL_CONTROLS_ENABLED: z
+      .preprocess((val) => {
+        if (typeof val === 'boolean') return val;
+        if (typeof val === 'string') {
+          const lower = val.trim().toLowerCase();
+          if (lower === 'true' || lower === '1') return true;
+          if (lower === 'false' || lower === '0' || lower === '') return false;
+        }
+        return false;
+      }, z.boolean())
+      .default(false),
+    APPU_PARENTAL_LOCK_INTERVAL_SECONDS: z.coerce.number().int().min(60).max(86400).default(1800),
+    N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL: z
+      .string()
+      .url('N8N_WHATSAPP_TEMPLATE_WEBHOOK_URL must be a valid URL')
       .optional()
   })
   .superRefine((data, ctx) => {
