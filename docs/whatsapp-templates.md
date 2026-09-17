@@ -56,12 +56,14 @@ Dispatched directly from the chat UI when a parent or learner clicks "Send note 
 📝 A study note from {{1}}'s APPU learning session:
 
 {{2}}
+
+This note was shared from APPU.
 ```
 - Category: **Utility**
 - Variables:
   - `{{1}}` child nickname / name (max 40 chars) · Sample: `Aarav`
   - `{{2}}` note text / key concept (max 1024 chars) · Sample: `Photosynthesis is the process by which green plants turn sunlight, water, and CO2 into food and oxygen.`
-- ⚠️ Meta note: keep the body purely transactional. The earlier version's promotional sign-off ("Keep encouraging… — Team APPU") gets a Utility template **rejected** for marketing tone. Only the variables `{{1}}` (name) and `{{2}}` (note) matter to the backend — reword the rest freely as long as those two stay in that order.
+- ⚠️ Meta notes: (1) a variable **can't be at the start or end** of the body — that's why `{{2}}` needs a line of text after it. (2) Keep it purely transactional; the earlier promotional sign-off ("Keep encouraging… — Team APPU") gets a Utility template **rejected** for marketing tone. Only the variables `{{1}}` (name) and `{{2}}` (note) matter to the backend — reword the rest freely as long as those two stay in that order.
 
 ## 6. `appu_parent_otp` — Authentication — 30-Min Session Hard Lock Unlock
 Dispatched when the 30-minute study window hard locks and the parent requests an unlock OTP.
