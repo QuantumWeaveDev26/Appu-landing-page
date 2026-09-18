@@ -200,7 +200,6 @@ describe('Public Legal & Policy Pages (Razorpay Compliance)', () => {
 
     // Title and bullets
     assert.ok(indexContent.includes('Appu — Your AI Learning Companion'), 'Title must contain clean em dash');
-    assert.ok(indexContent.includes('Dr. Puneeth Rajkumar • Tribute'), 'Tribute must contain clean bullet');
     assert.ok(indexContent.includes('Parent Zone • Setup'), 'Kicker must contain clean bullet');
     assert.ok(indexContent.includes('••••••••'), 'Password placeholder must contain clean dots');
   });

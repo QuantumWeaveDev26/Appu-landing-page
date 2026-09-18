@@ -5,120 +5,19 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ==========================================
-  // ENTRANCE LOADER CHOREOGRAPHY (Tribute Video at 2x Speed)
-  // ==========================================
-  const loader = document.getElementById('loader');
-  const loaderBar = document.getElementById('loader-bar');
-  const loaderCount = document.getElementById('loader-count');
-  const loaderEnterBtn = document.getElementById('loader-enter-btn');
-  const loaderSkipBtn = document.getElementById('loader-skip-btn');
-  const loaderSoundBtn = document.getElementById('loader-sound-btn');
-  const loaderSoundIcon = document.getElementById('loader-sound-icon');
-  const loaderVideoPlayer = document.getElementById('loader-video-player');
-
-  if (loaderVideoPlayer) {
-    loaderVideoPlayer.muted = true;
-    loaderVideoPlayer.playbackRate = 2.0; // 2x playback speed
-    loaderVideoPlayer.addEventListener('loadedmetadata', () => {
-      loaderVideoPlayer.playbackRate = 2.0;
-    });
-    loaderVideoPlayer.addEventListener('play', () => {
-      loaderVideoPlayer.playbackRate = 2.0;
-    });
-    loaderVideoPlayer.play().catch(() => {});
-  }
-
-  let isLoaderDismissed = false;
-
-  // Native app only: once the loader has visually finished AND we know whether a
-  // session already exists, show the sign-in/sign-up gate for guests instead of
-  // leaving auth tucked inside the topbar/drawer. Two async signals (loader fade,
-  // session restore) converge here rather than racing on an arbitrary timeout.
-  let loaderVisualsDone = false;
+  // Native app only: once we know whether a session already exists, show the
+  // sign-in/sign-up gate for guests instead of leaving auth tucked inside the topbar/drawer.
   let sessionCheckDone = false;
   let sessionIsAuthenticated = false;
 
   function maybeShowNativeWelcomeGate() {
-    if (!loaderVisualsDone || !sessionCheckDone) return;
+    if (!sessionCheckDone) return;
     if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) return;
     if (sessionIsAuthenticated || window.__APPU_AUTH_REDIRECT__) return;
     openWelcomeGate();
   }
 
-  function dismissLoader() {
-    if (isLoaderDismissed || !loader) return;
-    isLoaderDismissed = true;
-    loader.classList.add('is-done');
-
-    setTimeout(() => {
-      if (loaderVideoPlayer) {
-        try { loaderVideoPlayer.pause(); } catch(e) {}
-      }
-      loaderVisualsDone = true;
-      maybeShowNativeWelcomeGate();
-    }, 800);
-  }
-
-  // Sound toggle for tribute video
-  if (loaderSoundBtn && loaderVideoPlayer && loaderSoundIcon) {
-    loaderSoundBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      loaderVideoPlayer.muted = !loaderVideoPlayer.muted;
-      if (loaderVideoPlayer.muted) {
-        loaderSoundIcon.className = 'fa-solid fa-volume-xmark';
-      } else {
-        loaderSoundIcon.className = 'fa-solid fa-volume-high text-cyan';
-        loaderVideoPlayer.play().catch(() => {});
-      }
-    });
-  }
-
-  if (loaderEnterBtn) {
-    loaderEnterBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dismissLoader();
-    });
-  }
-
-  if (loaderSkipBtn) {
-    loaderSkipBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dismissLoader();
-    });
-  }
-
-  // Progress counter synchronized with 2x video
-  if (loader && loaderBar && loaderCount) {
-    let progress = 0;
-    const fallbackDuration = 3800; // ~3.8s at 2x speed
-    const startTime = performance.now();
-
-    function tick() {
-      if (isLoaderDismissed) return;
-
-      let t = 0;
-      if (loaderVideoPlayer && loaderVideoPlayer.duration && !isNaN(loaderVideoPlayer.duration) && loaderVideoPlayer.duration > 0) {
-        t = Math.min(Math.max(loaderVideoPlayer.currentTime / loaderVideoPlayer.duration, 0), 1);
-      } else {
-        const elapsed = performance.now() - startTime;
-        t = Math.min(Math.max(elapsed / fallbackDuration, 0), 1);
-      }
-
-      progress = Math.min(100, Math.max(0, Math.floor(t * 100)));
-      loaderBar.style.width = progress + '%';
-      loaderCount.textContent = String(progress).padStart(3, '0') + '%';
-
-      if (progress < 100) {
-        requestAnimationFrame(tick);
-      } else {
-        setTimeout(() => {
-          dismissLoader();
-        }, 400);
-      }
-    }
-    requestAnimationFrame(tick);
-  }
+  function dismissLoader() {}
 
   // ==========================================
   // CONFIGURATION & PERSISTED PREFERENCES

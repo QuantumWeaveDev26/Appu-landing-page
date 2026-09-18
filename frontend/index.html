@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260918-1">
+  <link rel="stylesheet" href="style.css?v=20260918-2">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -27,35 +27,8 @@
     </div>
     <button id="beta-banner-cta" type="button" class="beta-banner-cta">Try Beta — Sign Up Free</button>
   </div>
-  <div id="loader" class="entrance-loader" role="dialog" aria-modal="true" aria-labelledby="loader-title">
-    <video id="loader-video-player" class="loader-bg-fullscreen-video" autoplay muted playsinline preload="auto">
-      <source src="assets/tribute-intro.mp4" type="video/mp4">
-    </video>
-    <div class="loader-fullscreen-scrim" aria-hidden="true"></div>
 
-    <div class="loader-top-controls">
-      <button id="loader-sound-btn" class="loader-control" type="button" aria-label="Turn on tribute video sound">
-        <i id="loader-sound-icon" class="fa-solid fa-volume-xmark" aria-hidden="true"></i><span>Sound</span>
-      </button>
-      <button id="loader-skip-btn" class="loader-control" type="button">
-        <span>Skip intro</span><i class="fa-solid fa-forward-step" aria-hidden="true"></i>
-      </button>
-    </div>
-
-    <div class="loader-center-content">
-      <div class="loader-tribute-badge"><i class="fa-solid fa-heart" aria-hidden="true"></i><span>Dr. Puneeth Rajkumar • Tribute</span></div>
-      <h2 id="loader-title" class="loader-brand-title">IGR <span>Academy</span></h2>
-      <div class="loader-progress-assembly" aria-label="Loading Appu's learning stage">
-        <div class="loader-bar-track" aria-hidden="true"><div id="loader-bar" class="loader-bar-fill"></div></div>
-        <span id="loader-count" class="loader-count" role="status">000%</span>
-      </div>
-      <button id="loader-enter-btn" class="loader-enter-cta" type="button">
-        <span>Enter Appu's Learning Stage</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-      </button>
-    </div>
-  </div>
-
-  <!-- NATIVE APP WELCOME GATE: shown once per cold start, after the loader, only when
+  <!-- NATIVE APP WELCOME GATE: shown once per cold start, only when
        no session exists yet. Log in/sign up reuses the existing parent-setup-modal. -->
   <div id="welcome-gate" class="welcome-gate" role="dialog" aria-modal="true" aria-labelledby="welcome-gate-title" aria-hidden="true">
     <div class="welcome-gate-inner">
@@ -685,19 +658,19 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260918-1"></script>
-  <script src="appu-config.js?v=20260918-1"></script>
-  <script src="appu-session.js?v=20260918-1"></script>
-  <script src="appu-backend-client.js?v=20260918-1"></script>
-  <script src="parent-onboarding-shell.js?v=20260918-1"></script>
-  <script src="parent-setup-ui.js?v=20260918-1"></script>
-  <script src="prompt-library-ui.js?v=20260918-1"></script>
-  <script src="avatar-stage.js?v=20260918-1"></script>
-  <script src="voice-engine.js?v=20260918-1"></script>
-  <script src="chat-history.js?v=20260918-1"></script>
-  <script src="chat-agent.js?v=20260918-1"></script>
-  <script src="parent-reports-ui.js?v=20260918-1"></script>
-  <script src="parental-controls-ui.js?v=20260918-1"></script>
-  <script src="app.js?v=20260918-1"></script>
+  <script src="voice-contract.js?v=20260918-2"></script>
+  <script src="appu-config.js?v=20260918-2"></script>
+  <script src="appu-session.js?v=20260918-2"></script>
+  <script src="appu-backend-client.js?v=20260918-2"></script>
+  <script src="parent-onboarding-shell.js?v=20260918-2"></script>
+  <script src="parent-setup-ui.js?v=20260918-2"></script>
+  <script src="prompt-library-ui.js?v=20260918-2"></script>
+  <script src="avatar-stage.js?v=20260918-2"></script>
+  <script src="voice-engine.js?v=20260918-2"></script>
+  <script src="chat-history.js?v=20260918-2"></script>
+  <script src="chat-agent.js?v=20260918-2"></script>
+  <script src="parent-reports-ui.js?v=20260918-2"></script>
+  <script src="parental-controls-ui.js?v=20260918-2"></script>
+  <script src="app.js?v=20260918-2"></script>
 </body>
 </html>

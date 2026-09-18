@@ -72,8 +72,8 @@ class LandingPageStructureTests(unittest.TestCase):
     def test_has_one_clear_page_heading(self):
         self.assertEqual(self.parser.h1_count, 1)
 
-    def test_tribute_video_entrance_is_available_before_the_landing_page(self):
-        required_ids = {
+    def test_entrance_loader_is_removed_for_immediate_app_shell(self):
+        loader_ids = {
             "loader",
             "loader-video-player",
             "loader-sound-btn",
@@ -83,20 +83,8 @@ class LandingPageStructureTests(unittest.TestCase):
             "loader-count",
             "loader-enter-btn",
         }
-        self.assertTrue(required_ids.issubset(self.parser.elements_by_id))
-
-        video_tag, video_attrs = self.parser.elements_by_id["loader-video-player"]
-        self.assertEqual(video_tag, "video")
-        for autoplay_attribute in ("autoplay", "muted", "playsinline"):
-            self.assertIn(autoplay_attribute, video_attrs)
-
-        source = next(
-            attrs for video_id, attrs in self.parser.video_sources
-            if video_id == "loader-video-player"
-        )
-        self.assertEqual(source.get("src"), "assets/tribute-intro.mp4")
-        self.assertEqual(source.get("type"), "video/mp4")
-        self.assertGreater((FRONTEND / source["src"]).stat().st_size, 0)
+        self.assertTrue(loader_ids.isdisjoint(self.parser.elements_by_id))
+        self.assertIn("app-shell", self.parser.elements_by_id)
 
     def test_has_exactly_four_learning_missions(self):
         self.assertEqual(len(self.parser.mission_cards), 4)
@@ -162,7 +150,7 @@ class LandingPageStructureTests(unittest.TestCase):
         version_matches = re.findall(r'(?:href|src)=["\'][^"\']+\?v=([^"\']+)["\']', HTML)
         self.assertGreater(len(version_matches), 0)
         for v in version_matches:
-            self.assertEqual(v, "20260918-1")
+            self.assertEqual(v, "20260918-2")
 
 
 if __name__ == "__main__":
