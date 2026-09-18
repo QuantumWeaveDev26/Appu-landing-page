@@ -4,11 +4,52 @@
  * This client only handles microphone input, playback, subtitles, and sound cues.
  */
 class VoiceEngine {
+    static isVoiceSupported() {
+        const hasRecognition = typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+        const hasMediaDevices = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+        return Boolean(hasRecognition && hasMediaDevices);
+    }
+
+    static get VOICE_MESSAGES() {
+        return {
+            en: {
+                unsupported: "Voice isn't available on this screen — tap 'Type instead' to chat",
+                permissionDenied: "Microphone access was denied. Please allow microphone permissions or tap 'Type instead' to chat.",
+                noMic: "No microphone found on this device. Tap 'Type instead' to chat.",
+                micUnavailableLabel: "Voice unavailable"
+            },
+            kn: {
+                unsupported: "ಈ ಪರದೆಯಲ್ಲಿ ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ — ಚಾಟ್ ಮಾಡಲು 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ",
+                permissionDenied: "ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ. ದಯವಿಟ್ಟು ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಅನುಮತಿ ನೀಡಿ ಅಥವಾ 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ.",
+                noMic: "ಈ ಸಾಧನದಲ್ಲಿ ಮೈಕ್ರೊಫೋನ್ ಕಂಡುಬಂದಿಲ್ಲ. ಚಾಟ್ ಮಾಡಲು 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ.",
+                micUnavailableLabel: "ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ"
+            },
+            hi: {
+                unsupported: "इस स्क्रीन पर वॉइस उपलब्ध नहीं है — चैट करने के लिए 'टाइप करें' पर टैप करें",
+                permissionDenied: "माइक्रोफ़ोन अनुमति अस्वीकृत है। कृपया ब्राउज़र में अनुमति दें या 'टाइप करें' पर टैप करें.",
+                noMic: "इस डिवाइस पर कोई माइक्रोफ़ोन नहीं मिला। 'टाइप करें' पर टैप करें.",
+                micUnavailableLabel: "वॉइस अनुपलब्ध"
+            }
+        };
+    }
+
+    getLocalizedVoiceNotice(type) {
+        const lang = this.currentLanguage || 'en';
+        const dict = VoiceEngine.VOICE_MESSAGES[lang] || VoiceEngine.VOICE_MESSAGES.en;
+        if (type === 'unsupported') return dict.unsupported;
+        if (type === 'permission-denied') return dict.permissionDenied;
+        if (type === 'no-mic') return dict.noMic;
+        if (type === 'micUnavailableLabel') return dict.micUnavailableLabel;
+        return dict.unsupported;
+    }
+
     constructor(options = {}) {
         this.onSpeechStart = options.onSpeechStart || (() => {});
         this.onSpeechEnd = options.onSpeechEnd || (() => {});
         this.onTranscript = options.onTranscript || (() => {});
         this.onInterimTranscript = options.onInterimTranscript || (() => {});
+        this.onVoiceUnavailable = options.onVoiceUnavailable || (() => {});
+        this.onPermissionDenied = options.onPermissionDenied || (() => {});
 
         this.soundEnabled = true;
         this.autoSpeak = true;
@@ -20,6 +61,7 @@ class VoiceEngine {
         this.liveSessionActive = false;
         this.subtitleTimer = null;
         this.audioContext = null;
+        this.isVoiceSupported = VoiceEngine.isVoiceSupported();
 
         this.micButton = document.getElementById('btn-mic');
         this.micLabel = document.querySelector('.mic-label');
@@ -115,9 +157,12 @@ class VoiceEngine {
 
     initSpeechRecognition() {
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!Recognition) {
+        const hasMediaDevices = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+        this.isVoiceSupported = Boolean(Recognition && hasMediaDevices);
+
+        if (!this.isVoiceSupported || !Recognition) {
             this.recognition = null;
-            if (this.micButton) this.micButton.classList.add('recognition-unavailable');
+            this.applyVoiceUnavailableState();
             return;
         }
 
@@ -166,6 +211,20 @@ class VoiceEngine {
                 this.awaitingResponse = false;
             }
             this.updateLiveSessionUI();
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                this.stopLiveSession();
+                const notice = this.getLocalizedVoiceNotice('permission-denied');
+                this.streamSubtitles(notice);
+                this.onPermissionDenied(notice);
+                return;
+            }
+            if (event.error === 'audio-capture') {
+                this.stopLiveSession();
+                const notice = this.getLocalizedVoiceNotice('no-mic');
+                this.streamSubtitles(notice);
+                this.onVoiceUnavailable(notice);
+                return;
+            }
             if (this.lastErrorFatal) {
                 this.streamSubtitles('I missed that. Tap the microphone and try again.');
             }
@@ -201,6 +260,29 @@ class VoiceEngine {
         };
     }
 
+    applyVoiceUnavailableState() {
+        if (this.micButton) {
+            this.micButton.classList.add('recognition-unavailable', 'voice-unavailable');
+            this.micButton.setAttribute('aria-disabled', 'true');
+            this.micButton.setAttribute('title', this.getLocalizedVoiceNotice('unsupported'));
+        }
+        if (this.micLabel) {
+            const unavail = this.getLocalizedVoiceNotice('micUnavailableLabel');
+            this.micLabel.dataset.idleLabel = unavail;
+            this.micLabel.textContent = unavail;
+        }
+        if (typeof document !== 'undefined') {
+            const controlDock = document.querySelector('.control-dock');
+            if (controlDock) controlDock.classList.add('voice-unsupported');
+            const btnChatMic = document.getElementById('btn-chat-mic');
+            if (btnChatMic) {
+                btnChatMic.classList.add('voice-unavailable');
+                btnChatMic.style.display = 'none';
+            }
+        }
+        this.onVoiceUnavailable(this.getLocalizedVoiceNotice('unsupported'));
+    }
+
     setLanguage(language) {
         if (language === 'kn') {
             this.currentLanguage = 'kn';
@@ -212,17 +294,35 @@ class VoiceEngine {
             this.currentLanguage = 'en';
             if (this.recognition) this.recognition.lang = 'en-IN';
         }
+        if (!this.isVoiceSupported) {
+            if (this.micLabel) {
+                const unavail = this.getLocalizedVoiceNotice('micUnavailableLabel');
+                this.micLabel.dataset.idleLabel = unavail;
+                this.micLabel.textContent = unavail;
+            }
+            if (this.micButton) {
+                this.micButton.setAttribute('title', this.getLocalizedVoiceNotice('unsupported'));
+            }
+        }
     }
 
     toggleLiveSession() {
         this.initWebAudio();
+        if (!this.isVoiceSupported || !this.recognition) {
+            const notice = this.getLocalizedVoiceNotice('unsupported');
+            this.streamSubtitles(notice);
+            this.onVoiceUnavailable(notice);
+            return;
+        }
         if (this.liveSessionActive) this.stopLiveSession();
         else this.startLiveSession();
     }
 
     startLiveSession() {
-        if (!this.recognition) {
-            this.streamSubtitles('Voice input is not supported here. Open chat to type your question.');
+        if (!this.isVoiceSupported || !this.recognition) {
+            const notice = this.getLocalizedVoiceNotice('unsupported');
+            this.streamSubtitles(notice);
+            this.onVoiceUnavailable(notice);
             return;
         }
         this.liveSessionActive = true;

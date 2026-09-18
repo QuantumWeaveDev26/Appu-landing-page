@@ -138,6 +138,21 @@ document.addEventListener('DOMContentLoaded', () => {
     onInterimTranscript: (transcript) => {
       const subtitlesText = document.getElementById('subtitles-text');
       if (subtitlesText) subtitlesText.textContent = transcript;
+    },
+    onVoiceUnavailable: (notice) => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      const drawer = document.getElementById('chat-drawer');
+      if (subtitlesText && (!drawer || !drawer.classList.contains('is-open'))) {
+        subtitlesText.textContent = notice;
+      }
+      const typeBtn = document.getElementById('btn-toggle-chat');
+      if (typeBtn) typeBtn.classList.add('pulse-highlight');
+    },
+    onPermissionDenied: (notice) => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) subtitlesText.textContent = notice;
+      const typeBtn = document.getElementById('btn-toggle-chat');
+      if (typeBtn) typeBtn.classList.add('pulse-highlight');
     }
   });
 
@@ -427,6 +442,10 @@ document.addEventListener('DOMContentLoaded', () => {
       typeInstead: 'Type instead',
       askAppu: 'Ask Appu',
       micCta: 'Tap to speak',
+      voiceUnavailableNotice: "Voice isn't available on this screen — tap 'Type instead' to chat",
+      micPermissionDeniedNotice: "Microphone access was denied. Please allow microphone permissions or tap 'Type instead' to chat.",
+      noMicFoundNotice: "No microphone found on this device. Tap 'Type instead' to chat.",
+      micUnavailableLabel: 'Voice unavailable',
       parentSetup: 'Parent Setup',
       chatTitle: 'Chat with Appu',
       chatSubtitle: 'Ask, explore, understand',
@@ -511,6 +530,10 @@ document.addEventListener('DOMContentLoaded', () => {
       typeInstead: 'ಬರೆಯಿರಿ',
       askAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
       micCta: 'ಮಾತನಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
+      voiceUnavailableNotice: "ಈ ಪರದೆಯಲ್ಲಿ ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ — ಚಾಟ್ ಮಾಡಲು 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ",
+      micPermissionDeniedNotice: "ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ. ದಯವಿಟ್ಟು ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಅನುಮತಿ ನೀಡಿ ಅಥವಾ 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      noMicFoundNotice: "ಈ ಸಾಧನದಲ್ಲಿ ಮೈಕ್ರೊಫೋನ್ ಕಂಡುಬಂದಿಲ್ಲ. ಚಾಟ್ ಮಾಡಲು 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      micUnavailableLabel: 'ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ',
       parentSetup: 'ಪೋಷಕರ ವಲಯ',
       chatTitle: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಸಂಭಾಷಣೆ',
       chatSubtitle: 'ಕೇಳಿ, ಅನ್ವೇಷಿಸಿ, ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
@@ -595,6 +618,10 @@ document.addEventListener('DOMContentLoaded', () => {
       typeInstead: 'टाइप करें',
       askAppu: 'अप्पू से पूछें',
       micCta: 'बोलने के लिए टैप करें',
+      voiceUnavailableNotice: "इस स्क्रीन पर वॉइस उपलब्ध नहीं है — चैट करने के लिए 'टाइप करें' पर टैप करें",
+      micPermissionDeniedNotice: "माइक्रोफ़ोन अनुमति अस्वीकृत है। कृपया ब्राउज़र में अनुमति दें या 'टाइप करें' पर टैप करें.",
+      noMicFoundNotice: "इस डिवाइस पर कोई माइक्रोफ़ोन नहीं मिला। 'टाइप करें' पर टैप करें.",
+      micUnavailableLabel: 'वॉइस अनुपलब्ध',
       parentSetup: 'पेरेंट सेटअप',
       chatTitle: 'अप्पू से बातचीत',
       chatSubtitle: 'पूछें, सीखें, समझें',
@@ -720,7 +747,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeBtnSpan) typeBtnSpan.textContent = t.typeInstead;
 
     const micLabel = document.querySelector('.mic-label');
-    if (micLabel) { micLabel.textContent = t.micCta; micLabel.dataset.idleLabel = t.micCta; }
+    if (micLabel) {
+      const isVoiceOk = !voiceEngine || voiceEngine.isVoiceSupported;
+      const labelText = isVoiceOk ? t.micCta : (t.micUnavailableLabel || 'Voice unavailable');
+      micLabel.dataset.idleLabel = labelText;
+      if (!voiceEngine || !voiceEngine.liveSessionActive) {
+        micLabel.textContent = labelText;
+      }
+    }
 
     const parentBtnSpan = document.querySelector('#btn-parent-setup span');
     if (parentBtnSpan) parentBtnSpan.textContent = t.parentSetup;
@@ -951,12 +985,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (announce && voiceEngine) {
       const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
-      voiceEngine.streamSubtitles(t.subtitlesGreeting);
+      if (!voiceEngine.isVoiceSupported) {
+        voiceEngine.streamSubtitles(t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat");
+      } else {
+        voiceEngine.streamSubtitles(t.subtitlesGreeting);
+      }
     }
   }
 
   // Initialize UI language state on load
   setLanguage(currentLang, false);
+  if (voiceEngine && !voiceEngine.isVoiceSupported) {
+    const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+    }
+  }
 
   if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
   if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
@@ -1140,6 +1185,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnHeroTalk) {
     btnHeroTalk.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        const msg = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+        voiceEngine.streamSubtitles(msg);
+        toggleChatDrawer(true);
+        return;
+      }
       if (!ensureChatSessionReady()) return;
       voiceEngine.toggleLiveSession();
     });
@@ -1147,6 +1199,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnMic) {
     btnMic.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        const msg = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+        voiceEngine.streamSubtitles(msg);
+        toggleChatDrawer(true);
+        return;
+      }
       if (!ensureChatSessionReady()) return;
       voiceEngine.toggleLiveSession();
     });
@@ -1499,6 +1558,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnChatMic) {
     btnChatMic.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        const msg = t.voiceUnavailableNotice || "Voice isn't available on this screen — type your question here";
+        if (chatInput) {
+          chatInput.placeholder = msg;
+          chatInput.focus();
+        }
+        return;
+      }
       if (!ensureChatSessionReady()) return;
       voiceEngine.toggleLiveSession();
     });

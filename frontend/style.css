@@ -2837,3 +2837,581 @@ body.policy-page {
 .parental-timer-pill.is-warning i {
   color: #f59e0b;
 }
+
+/* ==========================================================================
+   VOICE CAPABILITY FALLBACK (TVs & Unsupported Browsers)
+   ========================================================================== */
+.control-dock.voice-unsupported {
+  grid-template-columns: 1fr;
+  padding-left: 14px;
+}
+.control-dock.voice-unsupported .mic-button,
+.control-dock.voice-unsupported .mic-label,
+.control-dock.voice-unsupported .mic-rings {
+  display: none !important;
+}
+.control-dock.voice-unsupported .dock-btn {
+  width: 100%;
+  min-height: 52px;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(88, 233, 255, 0.08));
+  border-color: rgba(88, 233, 255, 0.45);
+  color: var(--cyan-bright);
+  font-size: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 14px rgba(34, 211, 238, 0.15);
+}
+.control-dock.voice-unsupported .dock-btn:hover {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.28), rgba(88, 233, 255, 0.16));
+  border-color: var(--cyan-bright);
+  transform: translateY(-2px);
+}
+.composer-mic.voice-unavailable {
+  display: none !important;
+}
+.pulse-highlight {
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(34, 211, 238, 0); }
+}
+
+/* ==========================================================================
+   LARGE DISPLAY & SMART TV RESPONSIVE TIERS (1920, 2560, 3840)
+   Preserves Phone/Laptop/Desktop layouts (<1800px) completely untouched.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Tier 1: 1080p Smart TVs & Large Full-HD Displays (min-width: 1800px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 1800px) {
+  .app-shell {
+    width: min(1680px, calc(100vw - 80px));
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 20px max(40px, env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(40px, env(safe-area-inset-left));
+    grid-template-rows: 78px minmax(0, 1fr) 136px;
+    gap: 16px;
+  }
+  .topbar {
+    padding: 10px 20px;
+    border-radius: 24px;
+  }
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+  }
+  .brand-copy strong {
+    font-size: 20px;
+  }
+  .brand-copy small {
+    font-size: 11px;
+  }
+  .status-pill {
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .lang-btn {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+  .auth-pill-btn,
+  .parent-zone-btn {
+    min-height: 42px;
+    font-size: 13.5px;
+  }
+  .mission-intro {
+    top: 24px;
+    width: min(840px, 72%);
+  }
+  .mission-intro h1 {
+    font-size: clamp(36px, 2.6vw, 46px);
+  }
+  .mission-intro #mission-subtitle,
+  .mission-intro > p:last-child {
+    font-size: 14.5px;
+    margin-top: 8px;
+  }
+  .avatar-stage {
+    bottom: -3%;
+    width: min(660px, 42vw);
+    height: 84%;
+  }
+  .appu-nameplate {
+    bottom: 6%;
+    padding: 10px 18px;
+  }
+  .appu-nameplate strong {
+    font-size: 13px;
+  }
+  .appu-nameplate small {
+    font-size: 11px;
+  }
+  .mission-deck {
+    top: 52%;
+    grid-template-columns: minmax(250px, 300px) minmax(250px, 300px);
+    gap: 16px;
+    padding: 0 clamp(40px, 5.5vw, 110px);
+  }
+  .mission-card {
+    min-height: 70px;
+    padding: 10px 20px 10px 12px;
+    border-radius: 999px;
+    grid-template-columns: 48px 1fr;
+  }
+  .mission-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  .mission-copy strong {
+    font-size: 15px;
+  }
+  .response-dock {
+    width: min(1280px, 100%);
+    grid-template-columns: minmax(0, 1fr) 230px;
+    padding: 10px;
+    border-radius: 24px;
+  }
+  .response-card {
+    padding: 14px 22px;
+  }
+  .response-card p {
+    font-size: 16.5px;
+  }
+  .control-dock {
+    grid-template-columns: 1fr 78px;
+    padding-left: 18px;
+  }
+  .dock-btn {
+    min-height: 56px;
+    font-size: 13.5px;
+  }
+  .mic-button {
+    width: 68px;
+    height: 68px;
+    font-size: 23px;
+  }
+  .chat-drawer {
+    width: min(480px, calc(100% - 48px));
+    top: 20px;
+    right: 20px;
+    bottom: 20px;
+  }
+  .modal-sheet {
+    width: min(760px, 100%);
+    padding: 36px;
+    border-radius: 28px;
+  }
+  .parental-lock-sheet {
+    width: min(720px, 100%);
+  }
+  .pos-sheet {
+    width: min(1240px, calc(100vw - 80px));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tier 2: 2K / 1440p / Ultrawide Displays (min-width: 2400px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 2400px) {
+  .app-shell {
+    width: min(2000px, calc(100vw - 120px));
+    max-width: 2000px;
+    margin: 0 auto;
+    padding: 28px max(60px, env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(60px, env(safe-area-inset-left));
+    grid-template-rows: 90px minmax(0, 1fr) 154px;
+    gap: 20px;
+  }
+  .topbar {
+    padding: 14px 24px;
+    border-radius: 28px;
+  }
+  .brand-mark {
+    width: 56px;
+    height: 56px;
+  }
+  .brand-copy strong {
+    font-size: 23px;
+  }
+  .brand-copy small {
+    font-size: 12px;
+  }
+  .status-pill {
+    min-height: 46px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+  .lang-btn {
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+  .auth-pill-btn,
+  .parent-zone-btn {
+    min-height: 48px;
+    padding: 0 22px;
+    font-size: 15px;
+  }
+  .icon-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+    border-radius: 16px;
+  }
+  .mission-intro {
+    top: 32px;
+    width: min(1000px, 72%);
+  }
+  .mission-intro h1 {
+    font-size: clamp(44px, 2.3vw, 56px);
+  }
+  .mission-intro #mission-subtitle,
+  .mission-intro > p:last-child {
+    font-size: 17px;
+    margin-top: 10px;
+  }
+  .avatar-stage {
+    bottom: -3%;
+    width: min(800px, 39vw);
+    height: 85%;
+  }
+  .appu-nameplate {
+    bottom: 6%;
+    padding: 12px 22px;
+  }
+  .appu-nameplate strong {
+    font-size: 15px;
+  }
+  .appu-nameplate small {
+    font-size: 12px;
+  }
+  .mission-deck {
+    top: 52%;
+    grid-template-columns: minmax(290px, 360px) minmax(290px, 360px);
+    gap: 20px;
+    padding: 0 clamp(60px, 6.5vw, 150px);
+  }
+  .mission-card {
+    min-height: 82px;
+    padding: 12px 24px 12px 14px;
+    border-radius: 999px;
+    grid-template-columns: 56px 1fr;
+  }
+  .mission-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 23px;
+  }
+  .mission-copy strong {
+    font-size: 17px;
+  }
+  .response-dock {
+    width: min(1460px, 100%);
+    grid-template-columns: minmax(0, 1fr) 265px;
+    padding: 12px;
+    border-radius: 28px;
+  }
+  .response-card {
+    padding: 16px 26px;
+  }
+  .response-card-head {
+    font-size: 13px;
+  }
+  .response-card p {
+    font-size: 19px;
+  }
+  .control-dock {
+    grid-template-columns: 1fr 88px;
+    padding-left: 24px;
+  }
+  .dock-btn {
+    min-height: 64px;
+    font-size: 15px;
+    border-radius: 18px;
+  }
+  .mic-button {
+    width: 80px;
+    height: 80px;
+    font-size: 27px;
+  }
+  .mic-label {
+    font-size: 12px;
+  }
+  .chat-drawer {
+    width: min(560px, calc(100% - 64px));
+    top: 24px;
+    right: 24px;
+    bottom: 24px;
+    border-radius: 28px;
+  }
+  .chat-messages .msg-bubble {
+    font-size: 15px;
+  }
+  .chat-composer input {
+    height: 48px;
+    font-size: 15px;
+  }
+  .modal-sheet {
+    width: min(880px, 100%);
+    padding: 44px;
+    border-radius: 32px;
+  }
+  .modal-sheet h2 {
+    font-size: 34px;
+  }
+  .modal-lead {
+    font-size: 16px;
+  }
+  .parental-lock-sheet {
+    width: min(820px, 100%);
+  }
+  .pos-sheet {
+    width: min(1400px, calc(100vw - 120px));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tier 3: 4K UHD Smart TVs & Massive Displays (min-width: 3600px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 3600px) {
+  .app-shell {
+    width: min(2500px, calc(100vw - 180px));
+    max-width: 2500px;
+    margin: 0 auto;
+    padding: 40px max(80px, env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(80px, env(safe-area-inset-left));
+    grid-template-rows: 114px minmax(0, 1fr) 184px;
+    gap: 28px;
+  }
+  .topbar {
+    padding: 18px 32px;
+    border-radius: 34px;
+  }
+  .brand-mark {
+    width: 72px;
+    height: 72px;
+  }
+  .brand-copy strong {
+    font-size: 29px;
+  }
+  .brand-copy small {
+    font-size: 15px;
+  }
+  .status-pill {
+    min-height: 56px;
+    padding: 0 28px;
+    font-size: 18px;
+  }
+  .status-dot, .online-dot {
+    width: 12px;
+    height: 12px;
+  }
+  .lang-btn {
+    min-height: 54px;
+    padding: 0 24px;
+    font-size: 18px;
+  }
+  .auth-pill-btn,
+  .parent-zone-btn {
+    min-height: 60px;
+    padding: 0 28px;
+    font-size: 19px;
+  }
+  .icon-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 22px;
+    border-radius: 20px;
+  }
+  .mission-intro {
+    top: 40px;
+    width: min(1300px, 72%);
+  }
+  .mission-intro .eyebrow {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  .mission-intro h1 {
+    font-size: clamp(56px, 2.2vw, 72px);
+  }
+  .mission-intro #mission-subtitle,
+  .mission-intro > p:last-child {
+    font-size: 22px;
+    margin-top: 14px;
+  }
+  .explore-prompts-pill {
+    min-height: 52px;
+    padding: 0 26px;
+    font-size: 18px;
+  }
+  .avatar-stage {
+    bottom: -3%;
+    width: min(1000px, 38vw);
+    height: 86%;
+  }
+  .appu-nameplate {
+    bottom: 6%;
+    padding: 16px 28px;
+  }
+  .appu-nameplate strong {
+    font-size: 19px;
+  }
+  .appu-nameplate small {
+    font-size: 15px;
+  }
+  .mission-deck {
+    top: 52%;
+    grid-template-columns: minmax(380px, 470px) minmax(380px, 470px);
+    gap: 28px;
+    padding: 0 clamp(80px, 7vw, 220px);
+  }
+  .mission-card {
+    min-height: 104px;
+    padding: 16px 30px 16px 18px;
+    border-radius: 999px;
+    grid-template-columns: 70px 1fr;
+  }
+  .mission-icon {
+    width: 70px;
+    height: 70px;
+    font-size: 30px;
+  }
+  .mission-copy strong {
+    font-size: 22px;
+  }
+  .response-dock {
+    width: min(1800px, 100%);
+    grid-template-columns: minmax(0, 1fr) 330px;
+    padding: 16px;
+    border-radius: 36px;
+  }
+  .response-card {
+    padding: 20px 32px;
+  }
+  .response-card-head {
+    font-size: 16px;
+  }
+  .response-card p {
+    font-size: 24px;
+    line-height: 1.5;
+    max-width: 1400px;
+  }
+  .control-dock {
+    grid-template-columns: 1fr 108px;
+    padding-left: 32px;
+  }
+  .dock-btn {
+    min-height: 80px;
+    font-size: 19px;
+    border-radius: 22px;
+    padding: 0 26px;
+  }
+  .dock-btn i {
+    font-size: 22px;
+    margin-right: 10px;
+  }
+  .mic-button {
+    width: 98px;
+    height: 98px;
+    font-size: 34px;
+  }
+  .mic-label {
+    font-size: 15px;
+  }
+  .chat-drawer {
+    width: min(720px, calc(100% - 96px));
+    top: 36px;
+    right: 36px;
+    bottom: 36px;
+    border-radius: 34px;
+  }
+  .chat-drawer h2 {
+    font-size: 26px;
+  }
+  .chat-messages {
+    padding: 28px;
+    gap: 20px;
+  }
+  .chat-messages .msg-bubble {
+    font-size: 19px;
+    padding: 18px 22px;
+    border-radius: 22px 22px 22px 8px;
+    line-height: 1.6;
+  }
+  .chat-composer {
+    padding: 12px;
+    margin: 0 24px 24px;
+    border-radius: 22px;
+  }
+  .chat-composer input {
+    height: 58px;
+    font-size: 19px;
+  }
+  .composer-attach,
+  .composer-mic,
+  .composer-send {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+    border-radius: 16px;
+  }
+  .voice-reply-popup {
+    width: min(1000px, calc(100% - 48px));
+    padding: 22px 28px 24px;
+    border-radius: 26px;
+  }
+  .voice-popup-title strong {
+    font-size: 18px;
+  }
+  .voice-popup-body {
+    font-size: 20px;
+    max-height: 260px;
+  }
+  .modal-sheet {
+    width: min(1080px, 100%);
+    padding: 56px;
+    border-radius: 38px;
+  }
+  .modal-sheet h2 {
+    font-size: 44px;
+  }
+  .modal-lead {
+    font-size: 20px;
+    line-height: 1.6;
+    max-width: 820px;
+  }
+  .modal-kicker {
+    font-size: 15px;
+  }
+  .parental-lock-sheet {
+    width: min(980px, 100%);
+  }
+  .parental-lock-stats .lock-stat-card {
+    padding: 22px 28px;
+    border-radius: 22px;
+  }
+  .lock-stat-info strong {
+    font-size: 28px;
+  }
+  .lock-stat-label {
+    font-size: 16px;
+  }
+  .primary-modal-btn,
+  .secondary-modal-btn {
+    min-height: 66px;
+    font-size: 19px;
+    border-radius: 20px;
+  }
+  .lock-otp-input {
+    height: 72px;
+    font-size: 36px;
+    letter-spacing: 0.4em;
+  }
+  .pos-sheet {
+    width: min(1680px, calc(100vw - 160px));
+  }
+  .landing-footer-strip {
+    font-size: 16px;
+    padding: 22px 48px;
+  }
+}
