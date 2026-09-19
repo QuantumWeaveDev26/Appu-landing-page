@@ -947,6 +947,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showVoicePopup(text, lessonCard = null) {
     if (!voiceReplyPopup || (!text && !lessonCard)) return;
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      missionStage.classList.add('has-lesson-active');
+    }
     if (voicePopupContent) {
       if (lessonCard && typeof LessonCardRenderer !== 'undefined') {
         voicePopupContent.innerHTML = '';
@@ -984,6 +988,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (voicePopupTimer) {
       clearTimeout(voicePopupTimer);
       voicePopupTimer = null;
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      missionStage.classList.remove('has-lesson-active');
     }
     if (voiceReplyPopup) {
       voiceReplyPopup.classList.remove('is-visible');
