@@ -15,9 +15,9 @@
   <title>Appu — Your AI Learning Companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260919-9">
+  <link rel="stylesheet" href="style.css?v=20260919-10">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -70,6 +70,24 @@
         <span class="status-dot" aria-hidden="true"></span><span id="status-label">Appu is ready</span>
       </div>
       <div class="topbar-actions">
+        <div id="gamification-widget" class="gamification-bar" role="region" aria-label="Learning Progress">
+          <button id="btn-streak-badge" class="game-pill game-streak" type="button" title="3-day learning streak!" aria-label="Learning Streak: 3 days">
+            <span class="game-icon" aria-hidden="true">🔥</span>
+            <strong id="game-streak-count">3</strong>
+            <span class="game-label">Streak</span>
+          </button>
+          <button id="btn-xp-badge" class="game-pill game-xp" type="button" title="120 Learning Stars! Click to view achievements" aria-label="XP Stars: 120">
+            <span class="game-icon" aria-hidden="true">⭐</span>
+            <strong id="game-xp-count">120</strong>
+            <span class="game-label">XP</span>
+          </button>
+          <div class="game-level-pill" title="Level 2: Curious Explorer">
+            <span id="game-level-tag" class="level-tag">Lvl 2</span>
+            <div class="level-progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">
+              <div id="game-xp-fill" class="level-progress-fill" style="width: 70%;"></div>
+            </div>
+          </div>
+        </div>
         <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
         <div id="parental-timer-badge" class="parental-timer-pill" role="status" title="Parental study timer" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span id="parental-timer-text">30m</span></div>
         <button id="btn-main-auth" class="auth-pill-btn" type="button"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i><span>Sign in / Sign up</span></button>
@@ -663,27 +681,97 @@
     </div>
   </section>
 
+  <!-- GAMIFICATION QUEST & ACHIEVEMENTS MODAL -->
+  <div id="gamification-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="game-modal-title" hidden>
+    <div class="game-modal-overlay" id="gamification-modal-overlay"></div>
+    <div class="game-modal-card">
+      <header class="game-modal-header">
+        <div class="game-modal-title-wrap">
+          <span class="game-modal-trophy">🏆</span>
+          <div>
+            <h3 id="game-modal-title">Learning Quest</h3>
+            <p id="game-level-subtitle">Level 2: Curious Explorer 🚀</p>
+          </div>
+        </div>
+        <button id="btn-close-gamification" class="icon-btn close-btn" type="button" aria-label="Close Quest Modal"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </header>
+      <div class="game-modal-body">
+        <div class="game-stats-grid">
+          <div class="stat-card">
+            <span class="stat-emoji">🔥</span>
+            <strong id="stat-streak-val">3 Days</strong>
+            <small>Daily Streak</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-emoji">⭐</span>
+            <strong id="stat-xp-val">120 XP</strong>
+            <small>Total Stars</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-emoji">🎯</span>
+            <strong id="stat-badges-val">3 Badges</strong>
+            <small>Unlocked</small>
+          </div>
+        </div>
+        <div class="game-progress-section">
+          <div class="progress-labels">
+            <span>Next: Level 3</span>
+            <strong id="game-progress-text">70 / 100 XP</strong>
+          </div>
+          <div class="modal-progress-bar">
+            <div id="modal-xp-fill" class="modal-progress-fill" style="width: 70%;"></div>
+          </div>
+        </div>
+        <div class="game-badges-section">
+          <h4>Badges Earned</h4>
+          <div class="badges-grid">
+            <div class="badge-item is-unlocked" title="Unlocked: Solved a Science Lesson!">
+              <span class="badge-icon">🌿</span>
+              <span class="badge-name">Plant Detective</span>
+            </div>
+            <div class="badge-item is-unlocked" title="Unlocked: Quick on the Quiz!">
+              <span class="badge-icon">⚡</span>
+              <span class="badge-name">Quick Thinker</span>
+            </div>
+            <div class="badge-item is-unlocked" title="Unlocked: Asked your first question!">
+              <span class="badge-icon">🚀</span>
+              <span class="badge-name">Curious Mind</span>
+            </div>
+            <div class="badge-item is-locked" title="Ask 5 questions to unlock!">
+              <span class="badge-icon">🪐</span>
+              <span class="badge-name">Space Cadet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas & XP Toast Container -->
+  <canvas id="game-confetti-canvas" class="game-confetti-canvas" aria-hidden="true"></canvas>
+  <div id="game-toast-container" class="game-toast-container" aria-live="polite" aria-atomic="true"></div>
+
   <!-- External SDKs for Phase 2 Integration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260919-9"></script>
-  <script src="appu-config.js?v=20260919-9"></script>
-  <script src="appu-session.js?v=20260919-9"></script>
-  <script src="appu-backend-client.js?v=20260919-9"></script>
-  <script src="parent-onboarding-shell.js?v=20260919-9"></script>
-  <script src="parent-setup-ui.js?v=20260919-9"></script>
-  <script src="prompt-library-ui.js?v=20260919-9"></script>
-  <script src="avatar-stage.js?v=20260919-9"></script>
-  <script src="mascot-avatar.js?v=20260919-9"></script>
-  <script src="lesson-card-renderer.js?v=20260919-9"></script>
-  <script src="voice-engine.js?v=20260919-9"></script>
-  <script src="chat-history.js?v=20260919-9"></script>
-  <script src="chat-agent.js?v=20260919-9"></script>
-  <script src="parent-reports-ui.js?v=20260919-9"></script>
-  <script src="parental-controls-ui.js?v=20260919-9"></script>
-  <script src="app.js?v=20260919-9"></script>
+  <script src="voice-contract.js?v=20260919-10"></script>
+  <script src="appu-config.js?v=20260919-10"></script>
+  <script src="appu-session.js?v=20260919-10"></script>
+  <script src="appu-backend-client.js?v=20260919-10"></script>
+  <script src="parent-onboarding-shell.js?v=20260919-10"></script>
+  <script src="parent-setup-ui.js?v=20260919-10"></script>
+  <script src="prompt-library-ui.js?v=20260919-10"></script>
+  <script src="avatar-stage.js?v=20260919-10"></script>
+  <script src="mascot-avatar.js?v=20260919-10"></script>
+  <script src="lesson-card-renderer.js?v=20260919-10"></script>
+  <script src="voice-engine.js?v=20260919-10"></script>
+  <script src="chat-history.js?v=20260919-10"></script>
+  <script src="chat-agent.js?v=20260919-10"></script>
+  <script src="parent-reports-ui.js?v=20260919-10"></script>
+  <script src="parental-controls-ui.js?v=20260919-10"></script>
+  <script src="app.js?v=20260919-10"></script>
 </body>
 </html>

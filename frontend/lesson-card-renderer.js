@@ -172,13 +172,33 @@
       return `<div class="diagram-spec-fallback"><pre>${escapeHTML(spec)}</pre></div>`;
     }
 
+    const nodeIcons = {
+      sun: { icon: '☀️', cls: 'node-sun' },
+      water: { icon: '💧', cls: 'node-water' },
+      leaf: { icon: '🍃', cls: 'node-leaf' },
+      sugar: { icon: '🍬', cls: 'node-sugar' },
+      oxygen: { icon: '🫧', cls: 'node-oxygen' },
+      co2: { icon: '💨', cls: 'node-co2' },
+      soil: { icon: '🌱', cls: 'node-soil' },
+      roots: { icon: '🪴', cls: 'node-roots' },
+      energy: { icon: '⚡', cls: 'node-energy' },
+      light: { icon: '💡', cls: 'node-light' },
+      planet: { icon: '🪐', cls: 'node-planet' },
+      star: { icon: '⭐', cls: 'node-star' }
+    };
+    function renderNode(name, posClass) {
+      const lower = (name || '').toLowerCase().trim();
+      const meta = nodeIcons[lower] || { icon: '✨', cls: 'node-default' };
+      return `<span class="flow-node ${posClass} ${meta.cls}"><span class="node-icon" aria-hidden="true">${meta.icon}</span> <span class="node-label">${escapeHTML(name)}</span></span>`;
+    }
+
     return `
       <div class="diagram-flow-fallback" role="figure" aria-label="Concept Flow">
         ${links.map(l => `
           <div class="flow-link-item">
-            <span class="flow-node from-node">${escapeHTML(l.from)}</span>
+            ${renderNode(l.from, 'from-node')}
             <i class="fa-solid fa-arrow-right flow-arrow" aria-hidden="true"></i>
-            <span class="flow-node to-node">${escapeHTML(l.to)}</span>
+            ${renderNode(l.to, 'to-node')}
           </div>
         `).join('')}
       </div>
@@ -195,6 +215,7 @@
    */
   function render(card, options = {}) {
     const data = parse(card);
+
     const container = document.createElement('div');
     container.className = `appu-lesson-card grade-${data.gradeTone || 'junior'}`;
     container.setAttribute('data-grade-tone', data.gradeTone || 'junior');
@@ -296,7 +317,11 @@
           const checkDiv = document.createElement('div');
           checkDiv.className = 'lesson-block lesson-block-check';
           checkDiv.innerHTML = `
-            <div class="check-header"><i class="fa-solid fa-circle-question text-cyan" aria-hidden="true"></i> <span>Quick Check!</span></div>
+            <div class="check-header">
+              <i class="fa-solid fa-circle-question text-cyan" aria-hidden="true"></i>
+              <span>Quick Check!</span>
+              <span class="quiz-xp-badge">+20 XP ⭐</span>
+            </div>
             <p class="check-question">${escapeHTML(block.q || '')}</p>
             <div class="check-interaction">
               <button type="button" class="check-reveal-btn">
@@ -308,7 +333,7 @@
                   <span class="answer-label">Answer:</span>
                   <strong class="answer-text">${escapeHTML(block.a || '')}</strong>
                 </div>
-                <div class="check-celebrate-badge"><i class="fa-solid fa-star text-amber" aria-hidden="true"></i> Nailed it! 🎉</div>
+                <div class="check-celebrate-badge"><i class="fa-solid fa-star text-amber" aria-hidden="true"></i> Nailed it! +20 XP 🎉</div>
               </div>
             </div>
           `;
@@ -323,6 +348,10 @@
                 answerBox.removeAttribute('hidden');
                 revealBtn.classList.add('is-revealed');
                 revealBtn.innerHTML = '<i class="fa-solid fa-check text-green" aria-hidden="true"></i> <span>Answer Shown</span>';
+                const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+                if (g && g.AppuGamification && typeof g.AppuGamification.awardXP === 'function') {
+                  g.AppuGamification.awardXP(20, 'Quiz Solved! 🎉');
+                }
                 if (typeof options.onCelebrate === 'function') {
                   options.onCelebrate();
                 }

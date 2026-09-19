@@ -2026,6 +2026,288 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
+  // PLAYFUL GAMIFICATION ENGINE & QUEST MODAL
+  // ==========================================
+  const GAMIFICATION_STORAGE_KEY = 'appu_gamification_v1';
+  const LEVEL_THRESHOLDS = [
+    { level: 1, title: 'Seedling Scholar 🌱', minXp: 0, maxXp: 50 },
+    { level: 2, title: 'Curious Explorer 🚀', minXp: 50, maxXp: 150 },
+    { level: 3, title: 'Brain Booster 💡', minXp: 150, maxXp: 300 },
+    { level: 4, title: 'Star Student 🌟', minXp: 300, maxXp: 500 },
+    { level: 5, title: 'Master Mind 🏆', minXp: 500, maxXp: 1000 }
+  ];
+
+  function playChime(type = 'xp') {
+    try {
+      if (voiceEngine && !voiceEngine.soundEnabled) return;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'level-up') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.38);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.14);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      }
+    } catch (_) {}
+  }
+
+  function launchGameConfetti() {
+    const canvas = document.getElementById('game-confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = 'block';
+
+    const colors = ['#06b6d4', '#f59e0b', '#f43f5e', '#10b981', '#8b5cf6', '#3b82f6'];
+    const particles = [];
+    const count = 48;
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 260,
+        y: canvas.height / 2 + (Math.random() - 0.5) * 120,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 1.1) * 13,
+        size: Math.random() * 8 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        alpha: 1,
+        shape: Math.random() > 0.4 ? 'rect' : 'circle'
+      });
+    }
+
+    let startTime = null;
+    const duration = 2000;
+
+    function frame(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = elapsed / duration;
+
+      if (progress >= 1) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35;
+        p.rotation += p.rotSpeed;
+        p.alpha = Math.max(0, 1 - progress);
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function getGamificationState() {
+    try {
+      const raw = localStorage.getItem(GAMIFICATION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          xp: typeof parsed.xp === 'number' ? parsed.xp : 120,
+          streak: typeof parsed.streak === 'number' ? parsed.streak : 3,
+          badges: Array.isArray(parsed.badges) ? parsed.badges : ['plant-detective', 'quick-thinker', 'curious-mind']
+        };
+      }
+    } catch (_) {}
+    return {
+      xp: 120,
+      streak: 3,
+      badges: ['plant-detective', 'quick-thinker', 'curious-mind']
+    };
+  }
+
+  function saveGamificationState(state) {
+    try {
+      localStorage.setItem(GAMIFICATION_STORAGE_KEY, JSON.stringify(state));
+    } catch (_) {}
+  }
+
+  function calculateLevel(xp) {
+    for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+      if (xp >= LEVEL_THRESHOLDS[i].minXp) {
+        return LEVEL_THRESHOLDS[i];
+      }
+    }
+    return LEVEL_THRESHOLDS[0];
+  }
+
+  function showXpToast(amount, reason) {
+    const container = document.getElementById('game-toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'game-xp-toast';
+    toast.innerHTML = `<span class="toast-star">⭐</span><strong>+${amount} XP</strong><span class="toast-reason">${reason || 'Great job!'}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('is-floating');
+    }, 20);
+
+    setTimeout(() => {
+      toast.classList.add('is-fadeout');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 400);
+    }, 2200);
+  }
+
+  function updateGamificationUI() {
+    const state = getGamificationState();
+    const currentLvlInfo = calculateLevel(state.xp);
+    const span = currentLvlInfo.maxXp - currentLvlInfo.minXp;
+    const progressInLvl = state.xp - currentLvlInfo.minXp;
+    const pct = Math.min(100, Math.max(5, Math.round((progressInLvl / span) * 100)));
+
+    // Topbar Widgets
+    const streakCountEl = document.getElementById('game-streak-count');
+    const xpCountEl = document.getElementById('game-xp-count');
+    const levelTagEl = document.getElementById('game-level-tag');
+    const xpFillEl = document.getElementById('game-xp-fill');
+    const streakBtn = document.getElementById('btn-streak-badge');
+    const xpBtn = document.getElementById('btn-xp-badge');
+
+    if (streakCountEl) streakCountEl.textContent = state.streak;
+    if (xpCountEl) xpCountEl.textContent = state.xp;
+    if (levelTagEl) levelTagEl.textContent = `Lvl ${currentLvlInfo.level}`;
+    if (xpFillEl) xpFillEl.style.width = `${pct}%`;
+    if (streakBtn) streakBtn.title = `${state.streak}-day learning streak!`;
+    if (xpBtn) xpBtn.title = `${state.xp} Learning Stars! Click to view achievements`;
+
+    // Modal Details
+    const modalStreakEl = document.getElementById('stat-streak-val');
+    const modalXpEl = document.getElementById('stat-xp-val');
+    const modalBadgesEl = document.getElementById('stat-badges-val');
+    const modalLevelSubtitle = document.getElementById('game-level-subtitle');
+    const modalProgressText = document.getElementById('game-progress-text');
+    const modalXpFill = document.getElementById('modal-xp-fill');
+
+    if (modalStreakEl) modalStreakEl.textContent = `${state.streak} Days`;
+    if (modalXpEl) modalXpEl.textContent = `${state.xp} XP`;
+    if (modalBadgesEl) modalBadgesEl.textContent = `${state.badges.length} Badges`;
+    if (modalLevelSubtitle) modalLevelSubtitle.textContent = `Level ${currentLvlInfo.level}: ${currentLvlInfo.title}`;
+    if (modalProgressText) modalProgressText.textContent = `${progressInLvl} / ${span} XP`;
+    if (modalXpFill) modalXpFill.style.width = `${pct}%`;
+  }
+
+  const AppuGamification = {
+    awardXP(amount, reason) {
+      const state = getGamificationState();
+      const prevLvl = calculateLevel(state.xp);
+      state.xp += amount;
+      const nextLvl = calculateLevel(state.xp);
+      saveGamificationState(state);
+      updateGamificationUI();
+
+      showXpToast(amount, reason);
+      launchGameConfetti();
+
+      if (nextLvl.level > prevLvl.level) {
+        playChime('level-up');
+        if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+          window.appMascot.celebrate(3000);
+        }
+      } else {
+        playChime('xp');
+      }
+    },
+    getState: getGamificationState,
+    updateUI: updateGamificationUI,
+    launchConfetti: launchGameConfetti
+  };
+
+  // Expose to window and globalThis
+  window.AppuGamification = AppuGamification;
+  if (typeof globalThis !== 'undefined') {
+    globalThis.AppuGamification = AppuGamification;
+  }
+
+  // Hook up Gamification Modal Open / Close
+  const gameModal = document.getElementById('gamification-modal');
+  const gameModalOverlay = document.getElementById('gamification-modal-overlay');
+  const btnCloseGamification = document.getElementById('btn-close-gamification');
+  const btnStreakBadge = document.getElementById('btn-streak-badge');
+  const btnXpBadge = document.getElementById('btn-xp-badge');
+
+  function openGamificationModal() {
+    updateGamificationUI();
+    if (gameModal) {
+      gameModal.removeAttribute('hidden');
+      gameModal.classList.add('is-open');
+    }
+  }
+
+  function closeGamificationModal() {
+    if (gameModal) {
+      gameModal.setAttribute('hidden', '');
+      gameModal.classList.remove('is-open');
+    }
+  }
+
+  btnStreakBadge?.addEventListener('click', openGamificationModal);
+  btnXpBadge?.addEventListener('click', openGamificationModal);
+  btnCloseGamification?.addEventListener('click', closeGamificationModal);
+  gameModalOverlay?.addEventListener('click', closeGamificationModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && gameModal && !gameModal.hasAttribute('hidden')) {
+      closeGamificationModal();
+    }
+  });
+
+  // Initial UI refresh
+  updateGamificationUI();
+
+  // ==========================================
   // DEV-ONLY VISUALS DEMO HARNESS (?demo=1)
   // ==========================================
   function initVisualsDemo() {
@@ -2061,7 +2343,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-demo-celebrate')?.addEventListener('click', () => {
-      if (window.appMascot) {
+      if (window.AppuGamification) {
+        window.AppuGamification.awardXP(25, 'Super Learner! 🚀');
+      } else if (window.appMascot) {
         window.appMascot.celebrate(3500);
       }
     });
