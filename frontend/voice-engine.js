@@ -46,6 +46,8 @@ class VoiceEngine {
     constructor(options = {}) {
         this.onSpeechStart = options.onSpeechStart || (() => {});
         this.onSpeechEnd = options.onSpeechEnd || (() => {});
+        this.onListeningStart = options.onListeningStart || (() => {});
+        this.onListeningEnd = options.onListeningEnd || (() => {});
         this.onTranscript = options.onTranscript || (() => {});
         this.onInterimTranscript = options.onInterimTranscript || (() => {});
         this.onVoiceUnavailable = options.onVoiceUnavailable || (() => {});
@@ -179,6 +181,7 @@ class VoiceEngine {
             this.updateLiveSessionUI();
             this.playListenStart();
             this.streamSubtitles('Listening — tell me what you want to learn.');
+            this.onListeningStart();
         };
 
         this.recognition.onresult = event => {
@@ -233,6 +236,7 @@ class VoiceEngine {
         this.recognition.onend = () => {
             this.isListening = false;
             this.updateLiveSessionUI();
+            this.onListeningEnd();
             // Some devices (seen on certain Android Chrome builds) end recognition almost
             // instantly without capturing anything. Auto-restarting then produces a rapid
             // on/off/on/off flicker loop. Detect these empty, sub-second cycles and, after a

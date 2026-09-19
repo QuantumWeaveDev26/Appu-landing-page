@@ -24,6 +24,8 @@ const expectedScripts = [
   'parent-onboarding-shell.js',
   'parent-setup-ui.js',
   'avatar-stage.js',
+  'mascot-avatar.js',
+  'lesson-card-renderer.js',
   'voice-engine.js',
   'chat-history.js',
   'chat-agent.js',

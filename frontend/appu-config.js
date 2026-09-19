@@ -42,6 +42,8 @@
     betaMode: true,
     betaChatLimit: 5,
     // After this many chats, a signed-in parent must submit feedback before continuing.
-    feedbackChatThreshold: 12
+    feedbackChatThreshold: 12,
+    // Presentation Mode: 'rich' enables next-level visual lesson-cards and mascot reactions (develop/staging)
+    presentationMode: 'rich'
   };
 });

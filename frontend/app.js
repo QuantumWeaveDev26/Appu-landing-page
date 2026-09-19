@@ -30,9 +30,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize Core Subsystems
   const avatarStage = new AvatarStage();
+
+  // Initialize Mascot Avatar
+  let appMascot = null;
+  if (typeof MascotAvatar !== 'undefined') {
+    appMascot = new MascotAvatar('#appu-mascot-container', {
+      initialMood: 'idle'
+    });
+    window.appMascot = appMascot;
+  }
+
   const voiceEngine = new VoiceEngine({
-    onSpeechStart: () => avatarStage.setState('speaking'),
-    onSpeechEnd: () => avatarStage.setState('idle'),
+    onSpeechStart: () => {
+      avatarStage.setState('speaking');
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('explaining');
+      }
+    },
+    onSpeechEnd: () => {
+      avatarStage.setState('idle');
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('idle');
+      }
+    },
+    onListeningStart: () => {
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('listening');
+      }
+    },
+    onListeningEnd: () => {
+      if (window.appMascot && window.appMascot.mood === 'listening') {
+        window.appMascot.setMood('idle');
+      }
+    },
     onTranscript: (transcript) => handleUserInteraction(transcript),
     onInterimTranscript: (transcript) => {
       const subtitlesText = document.getElementById('subtitles-text');
@@ -102,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     voiceEngine,
     chatAgent,
     chatHistoryController,
+    mascot: appMascot,
     openDiscoveryModal,
     closeDiscoveryModal,
     openSettingsModal,
@@ -914,10 +945,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const voicePopupContent = document.getElementById('voice-popup-content');
   const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
 
-  function showVoicePopup(text) {
-    if (!voiceReplyPopup || !text) return;
+  function showVoicePopup(text, lessonCard = null) {
+    if (!voiceReplyPopup || (!text && !lessonCard)) return;
     if (voicePopupContent) {
-      voicePopupContent.textContent = text;
+      if (lessonCard && typeof LessonCardRenderer !== 'undefined') {
+        voicePopupContent.innerHTML = '';
+        const cardEl = LessonCardRenderer.render(lessonCard, {
+          onCelebrate: () => {
+            if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+              window.appMascot.celebrate(3200);
+            }
+          }
+        });
+        voicePopupContent.appendChild(cardEl);
+      } else {
+        voicePopupContent.textContent = text || '';
+      }
     }
     voiceReplyPopup.hidden = false;
     voiceReplyPopup.removeAttribute('hidden');
@@ -928,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
       voicePopupTimer = null;
     }
 
-    const wordCount = String(text).trim().split(/\s+/).filter(Boolean).length;
+    const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
     const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
     const timeoutMs = Math.max(30000, readingDurationMs);
 
@@ -1033,6 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     voiceEngine.playClick();
     avatarStage.setState('thinking');
+    if (window.appMascot) window.appMascot.setMood('thinking');
 
     // Update Subtitles HUD to show user's query
     const subtitlesText = document.getElementById('subtitles-text');
@@ -1042,13 +1086,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const result = await chatAgent.sendMessage(
       text,
-      () => avatarStage.setState('thinking'),
-      async (reply, audioData, audioStreamUrl, accessToken) => {
+      () => {
+        avatarStage.setState('thinking');
+        if (window.appMascot) window.appMascot.setMood('thinking');
+      },
+      async (reply, audioData, audioStreamUrl, accessToken, fullResult) => {
         avatarStage.setState('speaking');
+        const mood = (fullResult && fullResult.mood) || 'explaining';
+        if (window.appMascot) window.appMascot.setMood(mood);
         if (typeof showVoicePopup === 'function') {
           const chatDrawer = document.getElementById('chat-drawer');
           if (!chatDrawer || !chatDrawer.classList.contains('is-open')) {
-            showVoicePopup(reply);
+            showVoicePopup(reply, fullResult ? fullResult.lessonCard : null);
           }
         }
         await voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
@@ -1059,6 +1108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!result) {
       avatarStage.setState('idle');
+      if (window.appMascot) window.appMascot.setMood('idle');
     }
   }
 

@@ -210,6 +210,14 @@
       payload.imageBase64 = imageBase64.trim();
     }
 
+    // Presentation mode (rich lesson-cards for DEV frontend)
+    const presentationMode = params.presentationMode
+      || (typeof globalThis !== 'undefined' && globalThis.APPU_CONFIG && globalThis.APPU_CONFIG.presentationMode)
+      || undefined;
+    if (presentationMode) {
+      payload.presentationMode = presentationMode;
+    }
+
     if (isAuthenticated) {
       if (!childId || typeof childId !== 'string' || !childId.trim()) {
         throw new Error('Child context required: missing childId');
@@ -396,9 +404,43 @@
       };
     }
 
+    let lessonCard = null;
+    let resolvedText = typeof data.text === 'string' ? data.text : '';
+
+    if (data.lessonCard && typeof data.lessonCard === 'object') {
+      lessonCard = data.lessonCard;
+    } else if (data.blocks && Array.isArray(data.blocks)) {
+      lessonCard = {
+        mood: data.mood || 'explaining',
+        gradeTone: data.gradeTone || 'junior',
+        blocks: data.blocks,
+        plainText: data.plainText || resolvedText
+      };
+    } else if (typeof data.text === 'string' && data.text.trim().startsWith('{') && data.text.includes('"blocks"')) {
+      try {
+        const parsedCard = JSON.parse(data.text.trim());
+        if (parsedCard && Array.isArray(parsedCard.blocks)) {
+          lessonCard = parsedCard;
+          if (parsedCard.plainText) {
+            resolvedText = parsedCard.plainText;
+          }
+        }
+      } catch {
+        // Not valid JSON, keep as plain text
+      }
+    }
+
+    const plainText = (lessonCard && typeof lessonCard.plainText === 'string' && lessonCard.plainText.trim())
+      ? lessonCard.plainText.trim()
+      : resolvedText;
+
     return {
       requestId: data.requestId || null,
-      text: typeof data.text === 'string' ? data.text : '',
+      text: resolvedText,
+      plainText,
+      lessonCard,
+      mood: (lessonCard && lessonCard.mood) || data.mood || null,
+      gradeTone: (lessonCard && lessonCard.gradeTone) || data.gradeTone || null,
       audioSource: data.audioSource || null,
       audioStreamUrl: resolveAudioStreamUrl(data.audioStreamUrl, baseUrl),
       audioDurationMs: data.audioDurationMs || null,
