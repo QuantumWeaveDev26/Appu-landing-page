@@ -70,6 +70,18 @@ class AvatarStage {
     if (this.wrapper) {
       this.wrapper.classList.remove('state-idle', 'state-listening', 'state-thinking', 'state-speaking', 'state-success');
       this.wrapper.classList.add(`state-${state}`);
+
+      const moodMap = {
+        idle: 'mood-idle',
+        listening: 'mood-listening',
+        thinking: 'mood-thinking',
+        speaking: 'mood-explaining',
+        success: 'mood-celebrating'
+      };
+      this.wrapper.classList.remove('mood-idle', 'mood-listening', 'mood-thinking', 'mood-explaining', 'mood-celebrating');
+      if (moodMap[state]) {
+        this.wrapper.classList.add(moodMap[state]);
+      }
     }
     if (this.halo) {
       this.halo.classList.remove('state-idle', 'state-listening', 'state-thinking', 'state-speaking', 'state-success');

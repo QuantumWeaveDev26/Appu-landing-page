@@ -41,11 +41,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     appMascot = {
       get mood() {
-        return (heroMascot || dockMascot)?.mood || 'idle';
+        return (heroMascot || dockMascot)?.mood || window.__heroMood || 'idle';
       },
       setMood(mood, durationMs) {
+        window.__heroMood = mood;
         if (heroMascot) heroMascot.setMood(mood, durationMs);
         if (dockMascot) dockMascot.setMood(mood, durationMs);
+        const heroWrapper = document.getElementById('avatar-3d-wrapper');
+        if (heroWrapper) {
+          heroWrapper.classList.remove('mood-idle', 'mood-listening', 'mood-thinking', 'mood-explaining', 'mood-celebrating');
+          heroWrapper.classList.add(`mood-${mood}`);
+        }
+        if (durationMs && durationMs > 0 && mood !== 'idle') {
+          setTimeout(() => {
+            if (window.__heroMood === mood) {
+              this.setMood('idle');
+            }
+          }, durationMs);
+        }
         return this;
       },
       idle() { return this.setMood('idle'); },

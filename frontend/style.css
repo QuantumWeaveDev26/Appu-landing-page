@@ -118,10 +118,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 65% 55% at 50% 50%, rgba(34, 211, 238, 0.16) 0%, transparent 70%),
-    radial-gradient(ellipse 45% 35% at 50% 85%, rgba(245, 158, 11, 0.09) 0%, transparent 60%),
-    linear-gradient(180deg, #051428 0%, #030a16 100%);
+    linear-gradient(90deg, rgba(3, 9, 20, .6), rgba(3, 10, 21, .15) 44%, rgba(3, 9, 20, .55)),
+    linear-gradient(180deg, rgba(4, 11, 24, .15), rgba(4, 10, 22, .7)),
+    url('assets/stage-backdrop.jpg') center 38%/cover;
   opacity: 1;
+  filter: brightness(1.1) saturate(1.05);
 }
 .stage-grid { position: absolute; inset: 0; opacity: .14; background-image: linear-gradient(rgba(68, 215, 255, .2) 1px, transparent 1px), linear-gradient(90deg, rgba(68, 215, 255, .16) 1px, transparent 1px); background-size: 68px 68px; mask-image: linear-gradient(to bottom, transparent 0, black 35%, black); transform: perspective(450px) rotateX(58deg) scale(1.6) translateY(29%); transform-origin: bottom; }
 .mission-intro { position: absolute; z-index: 6; top: 24px; left: 50%; width: min(700px, 70%); text-align: center; transform: translateX(-50%); transition: opacity .35s ease, transform .35s cubic-bezier(.2, .9, .2, 1); }
@@ -130,26 +131,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mission-intro h1 span { color: var(--cyan-bright); }
 .mission-intro #mission-subtitle, .mission-intro > p:last-child { margin: 8px 0 0; color: #b6c4d9; font-size: 13px; }
 
-.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -3%; width: min(560px, 41vw); height: 90%; transform: translateX(-50%); transition: transform .45s cubic-bezier(.2, .9, .2, 1), opacity .35s ease; }
-.avatar-interactive-figure { position: absolute; z-index: 3; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; outline: none; }
-.hero-mascot-stage {
-  width: min(320px, 30vw);
-  height: min(320px, 30vw);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transition: transform .35s cubic-bezier(.2, .9, .2, 1);
-  margin-bottom: 24px;
+.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -3%; width: min(560px, 41vw); height: 90%; transform: translateX(-50%); transition: transform .45s cubic-bezier(.2, .9, .2, 1), opacity .35s ease; display: flex; align-items: center; justify-content: center; }
+.avatar-interactive-figure { position: absolute; z-index: 3; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; outline: none; }
+.hero-appu-photo {
+  display: block;
+  width: auto;
+  height: 92%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 16px rgba(34, 211, 238, 0.15));
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1), filter 0.35s ease;
+  pointer-events: auto;
 }
-.hero-mascot-stage .appu-mascot-wrapper { width: 100%; height: 100%; }
-.hero-mascot-stage .appu-mascot-svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 20px 38px rgba(14, 165, 196, 0.45)) drop-shadow(0 0 28px rgba(34, 211, 238, 0.25));
-}
-.avatar-glow { position: absolute; z-index: -1; left: 50%; top: 46%; width: 78%; height: 60%; border-radius: 50%; background: radial-gradient(circle, rgba(34, 211, 238, .26), rgba(245, 158, 11, .08) 50%, transparent 70%); transform: translate(-50%, -50%); filter: blur(24px); }
-.stage-halo { position: absolute; left: 50%; bottom: 6%; width: 84%; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%) perspective(500px) rotateX(69deg); border: 1px solid rgba(67, 222, 255, .45); box-shadow: 0 0 30px rgba(34, 211, 238, .16), inset 0 0 28px rgba(34, 211, 238, .16); }
+.avatar-glow { position: absolute; z-index: -1; left: 50%; top: 50%; width: 82%; height: 65%; border-radius: 50%; background: radial-gradient(circle, rgba(34, 211, 238, .28), rgba(245, 158, 11, .08) 50%, transparent 72%); transform: translate(-50%, -50%); filter: blur(28px); transition: all 0.4s ease; }
+.stage-halo { position: absolute; left: 50%; bottom: 6%; width: 84%; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%) perspective(500px) rotateX(69deg); border: 1px solid rgba(67, 222, 255, .45); box-shadow: 0 0 30px rgba(34, 211, 238, .16), inset 0 0 28px rgba(34, 211, 238, .16); transition: border-color 0.3s ease, box-shadow 0.3s ease; }
 .stage-halo::before, .stage-halo::after { content: ''; position: absolute; border-radius: inherit; border: 1px solid rgba(55, 224, 255, .28); }
 .stage-halo::before { inset: 12%; }.stage-halo::after { inset: 28%; box-shadow: 0 0 28px rgba(34, 211, 238, .15); }
 .orbit { position: absolute; inset: 5%; border-radius: 50%; border-top: 2px solid var(--cyan); animation: orbit-spin 8s linear infinite; }.orbit-two { inset: 20%; border-top-color: var(--violet); animation-direction: reverse; animation-duration: 6s; }
@@ -191,15 +188,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   pointer-events: auto;
 }
-.mission-stage.has-lesson-active .hero-mascot-stage {
-  width: min(320px, 30vw) !important;
-  height: min(320px, 30vw) !important;
-  margin-bottom: 24px !important;
-  filter: drop-shadow(0 20px 38px rgba(14, 165, 196, 0.45)) drop-shadow(0 0 28px rgba(34, 211, 238, 0.25));
+.mission-stage.has-lesson-active .hero-appu-photo {
+  height: 92% !important;
+  display: block !important;
 }
 .mission-stage.has-lesson-active .stage-halo {
   display: block !important;
@@ -476,10 +471,8 @@ select option:checked, .discovery-form select option:checked {
     align-items: center;
     justify-content: center;
   }
-  .mission-stage.has-lesson-active .hero-mascot-stage {
-    width: min(240px, 26vw) !important;
-    height: min(240px, 26vw) !important;
-    margin-bottom: 16px !important;
+  .mission-stage.has-lesson-active .hero-appu-photo {
+    height: 90% !important;
   }
   .mission-stage.has-lesson-active .stage-halo {
     display: block !important;
@@ -632,10 +625,15 @@ select option:checked, .discovery-form select option:checked {
     transform: scale(1.08);
     padding: 0;
   }
-  .hero-mascot-stage {
-    width: min(220px, 58vw);
-    height: min(220px, 58vw);
-    margin-bottom: 12px;
+  .avatar-interactive-figure .hero-appu-photo {
+    display: block;
+    width: auto;
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: bottom center;
+    filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.55));
   }
   .avatar-glow {
     position: absolute;
@@ -723,10 +721,20 @@ select option:checked, .discovery-form select option:checked {
     z-index: 20;
     display: flex !important;
   }
-  .mission-stage.has-lesson-active .hero-mascot-stage {
-    width: 86px;
-    height: 86px;
-    margin-bottom: 0;
+  .mission-stage.has-lesson-active .avatar-interactive-figure {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transform: none !important;
+  }
+  .mission-stage.has-lesson-active .hero-appu-photo {
+    height: 86px !important;
+    max-height: 86px !important;
+    width: auto !important;
+    animation: none !important;
   }
   .voice-reply-popup {
     top: 8px;
@@ -3766,6 +3774,175 @@ body.policy-page {
 .mood-celebrating .sp-2 { animation: sparkleBurst 0.9s ease-in-out infinite 0.45s; transform-origin: 102px 22px; }
 
 /* ==========================================================================
+   APPU HERO PRESENTER PHOTO MOODS (5 CANONICAL MOODS)
+   ========================================================================== */
+@keyframes photoIdleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes photoListeningPulse {
+  0%, 100% {
+    transform: translateY(-4px) scale(1.015);
+    filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 20px rgba(34, 211, 238, 0.45));
+  }
+  50% {
+    transform: translateY(-7px) scale(1.025);
+    filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 32px rgba(56, 189, 248, 0.7));
+  }
+}
+@keyframes photoThinkingShimmer {
+  0%, 100% {
+    transform: translateY(-4px) rotate(-0.75deg);
+    filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 18px rgba(251, 191, 36, 0.35));
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.75deg);
+    filter: drop-shadow(0 22px 34px rgba(0, 0, 0, 0.54)) drop-shadow(0 0 30px rgba(245, 158, 11, 0.55));
+  }
+}
+@keyframes photoExplainingNod {
+  0% {
+    transform: translateY(-2px) scale(1.01);
+    filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 24px rgba(34, 211, 238, 0.4));
+  }
+  30% {
+    transform: translateY(-7px) scale(1.025);
+    filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 30px rgba(56, 189, 248, 0.6));
+  }
+  60% {
+    transform: translateY(-4px) scale(1.015);
+    filter: drop-shadow(0 20px 34px rgba(0, 0, 0, 0.53)) drop-shadow(0 0 22px rgba(34, 211, 238, 0.45));
+  }
+  80% {
+    transform: translateY(-8px) scale(1.03);
+    filter: drop-shadow(0 24px 38px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 34px rgba(56, 189, 248, 0.65));
+  }
+  100% {
+    transform: translateY(-2px) scale(1.01);
+    filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 24px rgba(34, 211, 238, 0.4));
+  }
+}
+@keyframes photoCelebrateBounce {
+  0%, 100% {
+    transform: translateY(-2px) scale(1.02);
+    filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 28px rgba(251, 191, 36, 0.55));
+  }
+  50% {
+    transform: translateY(-14px) scale(1.055);
+    filter: drop-shadow(0 26px 42px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 40px rgba(251, 191, 36, 0.85));
+  }
+}
+
+/* 1. Idle */
+.mood-idle .hero-appu-photo,
+.state-idle .hero-appu-photo {
+  animation: photoIdleFloat 4s ease-in-out infinite;
+}
+.mood-idle .avatar-glow,
+.state-idle .avatar-glow {
+  background: radial-gradient(circle, rgba(34, 211, 238, .25), rgba(245, 158, 11, .06) 50%, transparent 70%);
+  opacity: 0.85;
+}
+
+/* 2. Listening */
+.mood-listening .hero-appu-photo,
+.state-listening .hero-appu-photo {
+  animation: photoListeningPulse 2.2s ease-in-out infinite;
+}
+.mood-listening .avatar-glow,
+.state-listening .avatar-glow {
+  background: radial-gradient(circle, rgba(34, 211, 238, .45), rgba(6, 182, 212, .18) 50%, transparent 72%);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.12);
+}
+.mood-listening .stage-halo,
+.state-listening .stage-halo {
+  border-color: var(--cyan-bright);
+  box-shadow: 0 0 36px rgba(34, 211, 238, .3), inset 0 0 30px rgba(34, 211, 238, .25);
+}
+
+/* 3. Thinking */
+.mood-thinking .hero-appu-photo,
+.state-thinking .hero-appu-photo {
+  animation: photoThinkingShimmer 3s ease-in-out infinite;
+}
+.mood-thinking .avatar-glow,
+.state-thinking .avatar-glow {
+  background: radial-gradient(circle, rgba(251, 191, 36, .38), rgba(168, 85, 247, .18) 52%, transparent 74%);
+  opacity: 0.95;
+  transform: translate(-50%, -50%) scale(1.08);
+}
+.mood-thinking .stage-halo,
+.state-thinking .stage-halo {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 32px rgba(251, 191, 36, 0.25), inset 0 0 25px rgba(251, 191, 36, 0.2);
+}
+
+/* 4. Explaining */
+.mood-explaining .hero-appu-photo,
+.state-speaking .hero-appu-photo {
+  animation: photoExplainingNod 2.2s ease-in-out infinite;
+}
+.mood-explaining .avatar-glow,
+.state-speaking .avatar-glow {
+  background: radial-gradient(circle, rgba(34, 211, 238, .4), rgba(245, 158, 11, .15) 50%, transparent 72%);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.15);
+}
+.mood-explaining .stage-halo,
+.state-speaking .stage-halo {
+  border-color: var(--cyan-bright);
+  animation: halo-pulse 1.2s ease-in-out infinite;
+}
+
+/* 5. Celebrating */
+.mood-celebrating .hero-appu-photo,
+.state-success .hero-appu-photo {
+  animation: photoCelebrateBounce 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+.mood-celebrating .avatar-glow,
+.state-success .avatar-glow {
+  background: radial-gradient(circle, rgba(251, 191, 36, .55), rgba(245, 158, 11, .2) 50%, transparent 74%);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.25);
+}
+.mood-celebrating .stage-halo,
+.state-success .stage-halo {
+  border-color: #fbbf24;
+  box-shadow: 0 0 40px rgba(251, 191, 36, 0.4), inset 0 0 32px rgba(251, 191, 36, 0.3);
+  animation: halo-pulse 0.75s ease-in-out infinite;
+}
+
+/* Photo Sparkles */
+.photo-sparkles {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 4;
+}
+.mood-celebrating .photo-sparkles,
+.state-success .photo-sparkles {
+  opacity: 1;
+}
+.psp {
+  position: absolute;
+  color: #fbbf24;
+  font-size: 20px;
+  filter: drop-shadow(0 0 8px #fef08a);
+  animation: sparkleBurst 1s ease-in-out infinite;
+}
+.psp-1 { top: 12%; left: 16%; animation-delay: 0s; }
+.psp-2 { top: 18%; right: 18%; animation-delay: 0.25s; font-size: 24px; color: #67e8f9; }
+.psp-3 { top: 38%; left: 10%; animation-delay: 0.5s; font-size: 18px; }
+.psp-4 { top: 42%; right: 12%; animation-delay: 0.75s; font-size: 22px; color: #fef08a; }
+
+/* ==========================================================================
    LESSON-CARD RICH VISUAL RENDERER (SMARTBOARD DISPLAY)
    ========================================================================== */
 .appu-lesson-card {
@@ -4174,21 +4351,15 @@ body.policy-page {
 }
 
 @media (min-width: 1800px) {
-  .hero-mascot-stage {
-    width: 440px;
-    height: 440px;
-    margin-bottom: 32px;
+  .hero-appu-photo,
+  .mission-stage.has-lesson-active .hero-appu-photo {
+    height: 94% !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
     bottom: -3% !important;
     transform: translateX(-50%) !important;
     width: min(800px, 45vw) !important;
-  }
-  .mission-stage.has-lesson-active .hero-mascot-stage {
-    width: 440px !important;
-    height: 440px !important;
-    margin-bottom: 32px !important;
   }
   .mission-stage.has-lesson-active .voice-reply-popup {
     inset: 0;
@@ -4224,21 +4395,15 @@ body.policy-page {
 }
 
 @media (min-width: 2400px) {
-  .hero-mascot-stage {
-    width: 560px;
-    height: 560px;
-    margin-bottom: 40px;
+  .hero-appu-photo,
+  .mission-stage.has-lesson-active .hero-appu-photo {
+    height: 94% !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
     bottom: -3% !important;
     transform: translateX(-50%) !important;
     width: min(1000px, 45vw) !important;
-  }
-  .mission-stage.has-lesson-active .hero-mascot-stage {
-    width: 560px !important;
-    height: 560px !important;
-    margin-bottom: 40px !important;
   }
   .appu-mascot-container {
     width: 112px;
@@ -4285,21 +4450,15 @@ body.policy-page {
 }
 
 @media (min-width: 3600px) {
-  .hero-mascot-stage {
-    width: 700px;
-    height: 700px;
-    margin-bottom: 50px;
+  .hero-appu-photo,
+  .mission-stage.has-lesson-active .hero-appu-photo {
+    height: 94% !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
     bottom: -3% !important;
     transform: translateX(-50%) !important;
     width: min(1200px, 45vw) !important;
-  }
-  .mission-stage.has-lesson-active .hero-mascot-stage {
-    width: 700px !important;
-    height: 700px !important;
-    margin-bottom: 50px !important;
   }
   .appu-mascot-container {
     width: 136px;
@@ -4347,6 +4506,9 @@ body.policy-page {
 
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
+  .hero-appu-photo,
+  .photo-sparkles,
+  .psp,
   .hero-mascot-stage,
   .hero-mascot-stage *,
   .mascot-floater,
