@@ -123,6 +123,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     url('assets/keynote-stage.jpg') center 38%/cover;
   opacity: 1;
   filter: brightness(1.16) saturate(1.08);
+  transition: opacity 0.45s ease, filter 0.45s ease;
 }
 .stage-grid { position: absolute; inset: 0; opacity: .14; background-image: linear-gradient(rgba(68, 215, 255, .2) 1px, transparent 1px), linear-gradient(90deg, rgba(68, 215, 255, .16) 1px, transparent 1px); background-size: 68px 68px; mask-image: linear-gradient(to bottom, transparent 0, black 35%, black); transform: perspective(450px) rotateX(58deg) scale(1.6) translateY(29%); transform-origin: bottom; }
 .mission-intro { position: absolute; z-index: 6; top: 24px; left: 50%; width: min(700px, 70%); text-align: center; transform: translateX(-50%); transition: opacity .35s ease, transform .35s cubic-bezier(.2, .9, .2, 1); }
@@ -157,6 +158,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .mission-deck { position: absolute; z-index: 7; top: 50%; left: 0; right: 0; display: grid; grid-template-columns: minmax(220px, 294px) minmax(220px, 294px); justify-content: space-between; gap: 16px; padding: 0 clamp(30px, 5.3vw, 86px); transform: translateY(-37%); pointer-events: none; transition: opacity .35s ease, transform .35s cubic-bezier(.2, .9, .2, 1); }
 /* Stage presentation reflow when a lesson or voice reply is active */
+.mission-stage.has-lesson-active .stage-backdrop {
+  opacity: 0.32;
+  filter: brightness(0.48) blur(8px) saturate(0.8);
+}
+.mission-stage.has-lesson-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse at 50% 35%, rgba(2, 6, 23, 0.55) 0%, rgba(2, 6, 23, 0.88) 100%);
+  pointer-events: none;
+  animation: stageScrimFadeIn 0.35s ease forwards;
+}
+@keyframes stageScrimFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 .mission-stage.has-lesson-active .mission-intro {
   opacity: 0;
   transform: translate(-50%, -14px);
@@ -3973,20 +3991,33 @@ body.policy-page {
   pointer-events: auto;
 }
 
+.lesson-block-plain {
+  padding: 18px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(3, 10, 26, 0.92), rgba(6, 18, 42, 0.88));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+}
 .lesson-block-plain p {
   margin: 0;
-  color: #e2e8f0;
-  font-size: 15px;
+  color: #ffffff;
+  font-size: 15.5px;
+  font-weight: 600;
   line-height: 1.6;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
 }
 
-/* Hook */
+/* 1. Hook ("Did You Know?") - Soft Dark Scrim & Vivid Golden/White Contrast */
 .lesson-block-hook {
-  padding: 12px 18px;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.04));
-  border: 1px solid rgba(251, 191, 36, 0.32);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 14px 22px;
+  background: linear-gradient(135deg, rgba(3, 10, 26, 0.92), rgba(16, 26, 48, 0.88));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(251, 191, 36, 0.5);
+  border-radius: 18px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(251, 191, 36, 0.15);
   animation: stageElementPop 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both;
   animation-delay: 0.05s;
 }
@@ -3994,21 +4025,23 @@ body.policy-page {
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 800 11.5px/1 'Space Grotesk', sans-serif;
-  letter-spacing: 0.09em;
+  font: 800 12px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #fbbf24;
-  margin-bottom: 6px;
+  color: #fcd34d;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 7px;
 }
 .hook-text {
   margin: 0;
-  font-size: 15.5px;
+  font-size: 16.5px;
   font-weight: 700;
-  color: #fef08a;
-  line-height: 1.45;
+  color: #ffffff;
+  line-height: 1.5;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 3px rgba(0, 0, 0, 0.9);
 }
 
-/* Diagram (Mermaid / Fallback) */
+/* 2. Diagram (Mermaid / Fallback) */
 .lesson-block-diagram {
   display: flex;
   flex-direction: column;
@@ -4020,21 +4053,25 @@ body.policy-page {
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 800 11.5px/1 'Space Grotesk', sans-serif;
-  letter-spacing: 0.09em;
+  font: 800 12px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #38bdf8;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
 }
 .diagram-canvas-wrap {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px 14px;
-  border-radius: 16px;
-  background: rgba(2, 8, 20, 0.88);
-  border: 1.5px solid rgba(34, 211, 238, 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 0 20px rgba(34, 211, 238, 0.05);
+  padding: 18px 16px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(2, 8, 24, 0.92), rgba(6, 18, 42, 0.88));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(34, 211, 238, 0.08);
   overflow-x: auto;
   text-align: center;
   min-height: 130px;
@@ -4042,8 +4079,36 @@ body.policy-page {
 .diagram-canvas-wrap svg {
   max-width: 100%;
   height: auto;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
 }
+/* Crisp high-contrast Mermaid node labels */
+.diagram-canvas-wrap svg text,
+.diagram-canvas-wrap .nodeLabel,
+.diagram-canvas-wrap .label text {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95) !important;
+}
+.diagram-canvas-wrap .node rect,
+.diagram-canvas-wrap .node circle,
+.diagram-canvas-wrap .node polygon {
+  fill: #092e4a !important;
+  stroke: #38bdf8 !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7)) !important;
+}
+.diagram-canvas-wrap .edgePath path {
+  stroke: #38bdf8 !important;
+  stroke-width: 2.5px !important;
+}
+.diagram-canvas-wrap .marker {
+  fill: #38bdf8 !important;
+  stroke: #38bdf8 !important;
+}
+
+/* Fallback Diagram Nodes */
 .diagram-flow-fallback {
   display: flex;
   flex-wrap: wrap;
@@ -4056,29 +4121,31 @@ body.policy-page {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(14, 165, 196, 0.08);
-  padding: 4px 8px;
+  background: rgba(3, 10, 26, 0.85);
+  padding: 6px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(34, 211, 238, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 .flow-node {
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
-  background: linear-gradient(135deg, rgba(8, 51, 68, 0.9), rgba(14, 165, 196, 0.25));
-  border: 1.5px solid rgba(34, 211, 238, 0.5);
-  color: #ecfeff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, rgba(8, 51, 68, 0.98), rgba(14, 116, 144, 0.95));
+  border: 1.5px solid #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.35);
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
 }
 .flow-arrow {
   color: #38bdf8;
-  font-size: 13px;
-  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+  font-size: 14px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 8px #38bdf8);
 }
 
-/* Step by Step */
+/* 3. Step by Step - Soft Dark Frosted Scrims & High Contrast Text */
 .lesson-block-steps {
   display: flex;
   flex-direction: column;
@@ -4090,10 +4157,12 @@ body.policy-page {
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 800 11.5px/1 'Space Grotesk', sans-serif;
-  letter-spacing: 0.09em;
+  font: 800 12px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #22d3ee;
+  color: #38bdf8;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
 }
 .lesson-steps-list {
   list-style: none;
@@ -4117,40 +4186,45 @@ body.policy-page {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(34, 211, 238, 0.18);
+  padding: 11px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(2, 8, 24, 0.92), rgba(6, 18, 42, 0.88));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(34, 211, 238, 0.08);
   animation: stepRevealSlide 0.35s ease forwards;
   animation-delay: calc(var(--step-index, 0) * 0.12s);
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 .lesson-step-item:hover {
-  background: rgba(34, 211, 238, 0.09);
+  background: rgba(8, 22, 50, 0.95);
+  border-color: rgba(56, 189, 248, 0.55);
   transform: translateX(3px);
 }
 .step-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, #22d3ee, #0284c7);
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
   color: #00131e;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
 }
 .step-body {
-  font-size: 14px;
-  font-weight: 500;
-  color: #f1f5f9;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #ffffff;
   line-height: 1.45;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
 }
 
-/* Analogy */
+/* 4. Analogy - Soft Dark Frosted Scrim with Amber Glow */
 .lesson-block-analogy {
   display: flex;
   flex-direction: column;
@@ -4162,32 +4236,45 @@ body.policy-page {
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 800 11.5px/1 'Space Grotesk', sans-serif;
-  letter-spacing: 0.09em;
+  font: 800 12px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #fbbf24;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
 }
 .analogy-body {
   margin: 0;
-  padding: 12px 16px;
-  border-left: 3.5px solid #fbbf24;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.03));
-  border-radius: 0 12px 12px 0;
+  padding: 14px 18px;
+  border-left: 4px solid #fbbf24;
+  background: linear-gradient(135deg, rgba(2, 8, 24, 0.92), rgba(28, 19, 4, 0.88));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 0 14px 14px 0;
+  border-top: 1px solid rgba(251, 191, 36, 0.3);
+  border-right: 1px solid rgba(251, 191, 36, 0.3);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
   font-style: italic;
-  font-size: 14px;
+  font-size: 14.5px;
+  font-weight: 600;
   line-height: 1.5;
-  color: #fef3c7;
+  color: #fef08a;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
 }
 
-/* Check / Interactive Concept Quiz */
+/* 5. Check / Interactive Concept Quiz - Soft Dark Scrim & Crisp Text */
 .lesson-block-check {
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.09), rgba(6, 182, 212, 0.03));
-  border: 1.5px solid rgba(34, 211, 238, 0.3);
+  background: linear-gradient(135deg, rgba(2, 8, 24, 0.92), rgba(4, 24, 46, 0.88));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(34, 211, 238, 0.4);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 20px rgba(34, 211, 238, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   animation: stageElementPop 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) both;
   animation-delay: 0.42s;
 }
@@ -4195,17 +4282,20 @@ body.policy-page {
   display: flex;
   align-items: center;
   gap: 7px;
-  font: 800 11.5px/1 'Space Grotesk', sans-serif;
-  letter-spacing: 0.09em;
+  font: 800 12px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #22d3ee;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
 }
 .check-question {
   margin: 0;
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 700;
-  color: #f8fafc;
-  line-height: 1.4;
+  color: #ffffff;
+  line-height: 1.45;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
 }
 .check-interaction {
   display: flex;
@@ -4217,32 +4307,33 @@ body.policy-page {
   align-items: center;
   gap: 8px;
   align-self: flex-start;
-  padding: 8px 18px;
+  padding: 9px 20px;
   border-radius: 999px;
   border: 0;
   background: linear-gradient(135deg, #0ea5c4, #0284c7);
   color: #ffffff;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(14, 165, 196, 0.35);
+  box-shadow: 0 4px 14px rgba(14, 165, 196, 0.4);
   transition: all 0.2s ease;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 .check-reveal-btn:hover {
   filter: brightness(1.15);
   transform: translateY(-1px);
 }
 .check-reveal-btn.is-revealed {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: none;
   cursor: default;
 }
 .check-answer-box {
   padding: 10px 14px;
   border-radius: 12px;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1.5px solid rgba(34, 197, 94, 0.4);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1.5px solid rgba(16, 185, 129, 0.5);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -4257,10 +4348,12 @@ body.policy-page {
 .answer-label {
   color: #86efac;
   font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 .answer-text {
   color: #ffffff;
   font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 .check-celebrate-badge {
   display: inline-flex;
