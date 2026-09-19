@@ -255,74 +255,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   position: absolute;
   top: 14px;
   bottom: 14px;
-  left: clamp(210px, 21vw, 290px);
+  left: clamp(210px, 20vw, 280px);
   right: clamp(16px, 2.5vw, 36px);
   width: auto;
   max-width: none;
   max-height: calc(100% - 28px);
   margin: 0;
-  padding: 16px 22px;
-  border: 1.5px solid rgba(34, 211, 238, .4);
-  border-radius: 24px;
-  background: linear-gradient(135deg, rgba(6, 22, 44, 0.96) 0%, rgba(3, 12, 26, 0.98) 100%);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 44px rgba(34, 211, 238, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   z-index: 25;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   opacity: 0;
-  transform: translateY(16px) scale(0.98);
   pointer-events: none;
-  transition: opacity .35s cubic-bezier(.2, .9, .2, 1), transform .35s cubic-bezier(.2, .9, .2, 1);
+  transition: opacity .35s cubic-bezier(.2, .9, .2, 1);
 }
 .voice-reply-popup.is-visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 .voice-reply-popup[hidden] {
   display: none !important;
 }
 .voice-popup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
-  flex-shrink: 0;
-}
-.voice-popup-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.voice-popup-title strong {
-  color: var(--cyan-bright);
-  font: 700 13px/1.2 Space Grotesk, sans-serif;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-.voice-popup-close {
-  width: 30px;
-  height: 30px;
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .05);
-  color: var(--muted);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  transition: all .2s cubic-bezier(.2, .9, .2, 1);
-}
-.voice-popup-close:hover {
-  border-color: var(--cyan-bright);
-  color: #fff;
-  background: rgba(34, 211, 238, .18);
-  transform: scale(1.08);
+  display: none !important;
 }
 .voice-popup-body {
   color: #e2e8f0;
@@ -331,18 +293,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   word-break: break-word;
   white-space: pre-wrap;
   scrollbar-width: thin;
-  scrollbar-color: rgba(34, 211, 238, .35) transparent;
-  padding-right: 4px;
+  scrollbar-color: rgba(34, 211, 238, .25) transparent;
+  padding: 2px 4px 8px 0;
+  background: transparent;
 }
 .voice-popup-body .appu-lesson-card {
   max-width: 100%;
   margin-top: 0;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(8, 32, 54, 0.4);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .chat-history-panel { position: absolute; top: 68px; bottom: 68px; left: 0; width: min(320px, 80vw); z-index: 15; display: flex; flex-direction: column; background: rgba(6, 17, 34, .98); border-right: 1px solid var(--line); box-shadow: 10px 0 30px rgba(0, 0, 0, .45); backdrop-filter: blur(12px); padding: 14px; box-sizing: border-box; transition: transform .25s cubic-bezier(.2, .9, .2, 1), opacity .2s; }
@@ -523,7 +489,10 @@ select option:checked, .discovery-form select option:checked {
     right: 14px;
     width: auto;
     max-height: calc(100% - 24px);
-    padding: 14px 18px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 }
 
@@ -756,20 +725,33 @@ select option:checked, .discovery-form select option:checked {
     bottom: 8px;
     width: auto;
     max-height: calc(100% - 16px);
-    padding: 12px 14px;
-    border-radius: 16px;
-    transform: translateY(12px);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transform: none;
   }
   .mission-stage.has-lesson-active .voice-reply-popup {
     top: 94px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
     max-height: calc(100% - 102px);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .voice-reply-popup.is-visible {
-    transform: translateY(0);
+    transform: none;
   }
   .voice-popup-body {
     max-height: none;
     font-size: 13.5px;
+    padding: 0;
   }
 
   .response-dock {
@@ -3819,6 +3801,21 @@ body.policy-page {
   }
 }
 
+@keyframes stageElementPop {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Lesson Blocks */
 .lesson-block {
   width: 100%;
@@ -3838,6 +3835,8 @@ body.policy-page {
   border: 1px solid rgba(251, 191, 36, 0.32);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: stageElementPop 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation-delay: 0.05s;
 }
 .hook-kicker {
   display: flex;
@@ -3862,6 +3861,8 @@ body.policy-page {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  animation: stageElementPop 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation-delay: 0.15s;
 }
 .diagram-header {
   display: flex;
@@ -3930,6 +3931,8 @@ body.policy-page {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  animation: stageElementPop 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation-delay: 0.25s;
 }
 .steps-header {
   display: flex;
@@ -4000,6 +4003,8 @@ body.policy-page {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  animation: stageElementPop 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation-delay: 0.35s;
 }
 .analogy-header {
   display: flex;
@@ -4031,6 +4036,8 @@ body.policy-page {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  animation: stageElementPop 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation-delay: 0.42s;
 }
 .check-header {
   display: flex;
@@ -4154,8 +4161,10 @@ body.policy-page {
     right: 48px;
     width: auto;
     max-height: calc(100% - 48px);
-    padding: 24px 32px;
-    border-radius: 30px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .appu-mascot-container {
     width: 96px;
@@ -4163,7 +4172,7 @@ body.policy-page {
   }
   .appu-lesson-card {
     max-width: 100%;
-    padding: 8px;
+    padding: 0;
     gap: 20px;
   }
   .hook-text { font-size: 22px; }
@@ -4198,7 +4207,7 @@ body.policy-page {
   }
   .appu-lesson-card {
     max-width: 100%;
-    padding: 12px;
+    padding: 0;
     gap: 24px;
   }
   .hook-text { font-size: 26px; }
@@ -4216,8 +4225,10 @@ body.policy-page {
     right: 64px;
     width: auto;
     max-height: calc(100% - 64px);
-    padding: 30px 40px;
-    border-radius: 36px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .voice-popup-title strong {
     font-size: 22px;
@@ -4254,7 +4265,7 @@ body.policy-page {
   }
   .appu-lesson-card {
     max-width: 100%;
-    padding: 16px;
+    padding: 0;
     gap: 30px;
   }
   .hook-text { font-size: 32px; }
@@ -4272,8 +4283,10 @@ body.policy-page {
     right: 80px;
     width: auto;
     max-height: calc(100% - 96px);
-    padding: 40px 52px;
-    border-radius: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .voice-popup-title strong {
     font-size: 28px;
@@ -4307,6 +4320,12 @@ body.policy-page {
   .mood-thinking .td-3,
   .mood-celebrating .sp-1,
   .mood-celebrating .sp-2,
+  .lesson-block-hook,
+  .lesson-block-diagram,
+  .lesson-block-steps,
+  .lesson-block-analogy,
+  .lesson-block-check,
+  .lesson-block-plain,
   .lesson-step-item,
   .check-answer-box {
     animation: none !important;
