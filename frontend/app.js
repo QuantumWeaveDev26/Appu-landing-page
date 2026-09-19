@@ -1018,6 +1018,12 @@ document.addEventListener('DOMContentLoaded', () => {
       voiceReplyPopup.hidden = true;
       voiceReplyPopup.setAttribute('hidden', 'true');
     }
+    if (window.appMascot && (window.appMascot.mood === 'explaining' || window.appMascot.mood === 'celebrating')) {
+      window.appMascot.setMood('idle');
+    }
+    if (avatarStage && avatarStage.state === 'speaking') {
+      avatarStage.setState('idle');
+    }
   }
 
   if (btnCloseVoicePopup) {
