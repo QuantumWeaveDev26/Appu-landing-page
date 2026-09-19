@@ -22,6 +22,187 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  /**
+   * ==============================================================================
+   * STUDY OUTPUT MODES DATA SHAPES CONTRACT (for n8n AI agent payload)
+   * ==============================================================================
+   *
+   * 1) quizItems: Array of MCQ question objects
+   *    [
+   *      {
+   *        id: string,
+   *        question: string,
+   *        options: string[],
+   *        correctIndex: number, // 0-based
+   *        explanation: string,  // Reason why it's correct
+   *        citation: string      // e.g. "From Class 8 Science, Ch. 1"
+   *      }
+   *    ]
+   *
+   * 2) flashcards: Array of flipcard objects
+   *    [
+   *      {
+   *        id: string,
+   *        front: string,      // Term or question
+   *        back: string,       // Definition or answer
+   *        explanation: string // Deep-dive hint/detail
+   *      }
+   *    ]
+   *
+   * 3) studyGuide: Structured summary object
+   *    {
+   *      topic: string,
+   *      grade: string,
+   *      keyPoints: string[],
+   *      definitions: Array<{ term: string, definition: string }>,
+   *      mustRemember: string[]
+   *    }
+   *
+   * 4) mindMap: Rich diagram flowchart spec or node graph
+   *    {
+   *      title: string,
+   *      spec: string,
+   *      summary: string
+   *    }
+   *
+   * 5) podcastScript: Audio overview object
+   *    {
+   *      title: string,
+   *      duration: string,    // e.g. "0:45"
+   *      caption: string,     // Key summary subtitle line
+   *      script: string       // Full spoken narrative for SpeechSynthesis
+   *    }
+   */
+
+  const SAMPLE_QUIZ_ITEMS = [
+    {
+      id: 'q1',
+      question: 'Where do green plants capture sunlight to make food?',
+      options: [
+        'In the roots underground',
+        'Inside chloroplasts in the leaves',
+        'In the flower petals',
+        'Through the bark of the stem'
+      ],
+      correctIndex: 1,
+      explanation: 'Chloroplasts contain chlorophyll, the green pigment that traps solar photons to drive photosynthesis.',
+      citation: 'From NCERT Class 8 Science, Chapter 1: Crop Production & Nutrition in Plants'
+    },
+    {
+      id: 'q2',
+      question: 'What gas is released into the air as a vital byproduct of photosynthesis?',
+      options: [
+        'Carbon dioxide (CO₂)',
+        'Nitrogen (N₂)',
+        'Oxygen (O₂)',
+        'Methane (CH₄)'
+      ],
+      correctIndex: 2,
+      explanation: 'During the light reactions, water molecules are split, releasing fresh Oxygen (O₂) for living beings to breathe.',
+      citation: 'From NCERT Class 7 & 8 Science: Respiration and Photosynthesis'
+    },
+    {
+      id: 'q3',
+      question: 'What sugar molecule is synthesized to give the plant metabolic energy?',
+      options: [
+        'Glucose (C₆H₁₂O₆)',
+        'Table salt (NaCl)',
+        'Lactose',
+        'Acetic acid'
+      ],
+      correctIndex: 0,
+      explanation: 'Glucose is synthesized from carbon dioxide and water and provides direct energy or stores as starch.',
+      citation: 'From NCERT Class 8 Science: Cell Structure & Function'
+    },
+    {
+      id: 'q4',
+      question: 'How does carbon dioxide enter leaves from the surrounding atmosphere?',
+      options: [
+        'Through root hairs',
+        'Through microscopic pores called stomata',
+        'Through bark lenticels only',
+        'It is dissolved into falling rain'
+      ],
+      correctIndex: 1,
+      explanation: 'Stomata are microscopic pores guarded by specialized cells on the underside of leaves that open for gas exchange.',
+      citation: 'From NCERT Class 8 Science: Plant Nutrition & Physiology'
+    }
+  ];
+
+  const SAMPLE_FLASHCARDS = [
+    {
+      id: 'fc1',
+      front: 'What is Chlorophyll? 🍃',
+      back: 'The green pigment in plant leaves that absorbs sunlight energy for photosynthesis.',
+      explanation: 'Chlorophyll reflects green light (making plants look green) while absorbing blue and red light spectrums.'
+    },
+    {
+      id: 'fc2',
+      front: 'What are Stomata? 🫧',
+      back: 'Microscopic pores primarily on the leaf underside that allow CO₂ in and Oxygen out.',
+      explanation: 'Guard cells swell or shrink to open and close the stomata, preventing excessive water loss through transpiration.'
+    },
+    {
+      id: 'fc3',
+      front: 'What is the Chemical Equation of Photosynthesis? 🧪',
+      back: '6 CO₂ + 6 H₂O + Light Energy ➔ C₆H₁₂O₆ (Glucose) + 6 O₂',
+      explanation: 'Six molecules of carbon dioxide and six of water combine under sunlight to form one glucose and six oxygen.'
+    },
+    {
+      id: 'fc4',
+      front: 'Why are Plants Called "Autotrophs"? 🌱',
+      back: 'Because they produce their own food using sunlight rather than eating other organisms.',
+      explanation: '"Auto" means self and "troph" means nourishment in Greek. Plants are nature\'s primary producers!'
+    }
+  ];
+
+  const SAMPLE_STUDY_GUIDE = {
+    topic: 'Photosynthesis & Plant Energy',
+    grade: 'Class 8 Science',
+    keyPoints: [
+      'Photosynthesis is the fundamental bio-chemical process powering almost all life on Earth.',
+      'Inputs: Sunlight (energy), Water (from roots), and Carbon Dioxide (from air).',
+      'Outputs: Glucose (plant food & stored starch) and Oxygen (released to air).',
+      'Takes place inside specialized cell organelles called Chloroplasts.'
+    ],
+    definitions: [
+      {
+        term: 'Chloroplast',
+        definition: 'Membrane-bound plant cell organelle where photosynthesis reactions occur.'
+      },
+      {
+        term: 'Chlorophyll',
+        definition: 'Green pigment that absorbs light photons to energize electrons.'
+      },
+      {
+        term: 'Stomata',
+        definition: 'Adjustable microscopic openings for carbon dioxide and oxygen gas exchange.'
+      },
+      {
+        term: 'Transpiration',
+        definition: 'The evaporation of water from plant leaves that pulls water upward from roots.'
+      }
+    ],
+    mustRemember: [
+      '☀️ Light Reaction: Sunlight splits water molecules into Hydrogen and Oxygen.',
+      '🍬 Dark Reaction (Calvin Cycle): Carbon dioxide is fixed into Glucose sugar.',
+      '💡 Quick Mnemonic: S.W.C. ➔ G.O. (Sunlight + Water + CO₂ produces Glucose + Oxygen)!'
+    ]
+  };
+
+  const SAMPLE_MIND_MAP = {
+    title: 'Photosynthesis Concept Map',
+    summary: 'Trace inputs, cellular reactions, and vital outputs',
+    spec: 'flowchart TD; Sun["☀️ Sunlight"] --> Leaf["🍃 Chloroplast"]; Water["💧 Roots (H2O)"] --> Leaf; CO2["💨 Stomata (CO2)"] --> Leaf; Leaf --> LightRxn["⚡ Light Reaction"]; LightRxn --> Oxygen["🫧 Oxygen (O2) Released"]; Leaf --> DarkRxn["🧪 Calvin Cycle"]; DarkRxn --> Glucose["🍬 Glucose (Energy)"]; Glucose --> Starch["🪴 Growth & Starch"]'
+  };
+
+  const SAMPLE_PODCAST_SCRIPT = {
+    title: 'Photosynthesis: The Secret Power of Leaves',
+    duration: '0:45',
+    caption: 'Leaves are basically solar-powered kitchens making food and oxygen for the planet.',
+    script: 'Hey there! Welcome to the Appu Quick Audio Overview. Have you ever looked at a green leaf and thought: how does this little leaf eat without a mouth? Well, leaves are basically nature\'s solar-powered kitchens. Deep inside every leaf cell are tiny green factories called chloroplasts. When morning sunlight hits them, they grab water pulled up from the roots, mix in carbon dioxide from the breeze, and cook up sweet glucose sugar for energy! And the best part? They breathe out fresh, crisp oxygen for you and me to breathe. Pretty cool, right? You\'ve got this!'
+  };
+
   // Sample lesson-card for testing and scaffolding
   const SAMPLE_CARD = {
     mood: 'explaining',
@@ -33,7 +214,12 @@
       { type: 'analogy', text: 'A leaf is like a tiny solar-powered kitchen.' },
       { type: 'check', q: 'What gas does the plant breathe out?', a: 'Oxygen' }
     ],
-    plainText: 'Plants make their food through photosynthesis. Leaves catch sunlight, roots absorb water from the soil, and they take in carbon dioxide from the air. Inside the leaf, these mix together to produce sugar for energy, and the plant releases oxygen for us to breathe!'
+    plainText: 'Plants make their food through photosynthesis. Leaves catch sunlight, roots absorb water from the soil, and they take in carbon dioxide from the air. Inside the leaf, these mix together to produce sugar for energy, and the plant releases oxygen for us to breathe!',
+    quizItems: SAMPLE_QUIZ_ITEMS,
+    flashcards: SAMPLE_FLASHCARDS,
+    studyGuide: SAMPLE_STUDY_GUIDE,
+    mindMap: SAMPLE_MIND_MAP,
+    podcastScript: SAMPLE_PODCAST_SCRIPT
   };
 
   let mermaidInitialized = false;
@@ -363,6 +549,33 @@
           break;
         }
 
+        case 'quiz': {
+          container.appendChild(renderQuiz(block.items || block.quizItems, options));
+          break;
+        }
+
+        case 'flashcards': {
+          container.appendChild(renderFlashcards(block.items || block.flashcards, options));
+          break;
+        }
+
+        case 'studyGuide':
+        case 'guide': {
+          container.appendChild(renderStudyGuide(block.guide || block, options));
+          break;
+        }
+
+        case 'mindMap':
+        case 'mindmap': {
+          container.appendChild(renderMindMap(block.mindMap || block, options));
+          break;
+        }
+
+        case 'podcast': {
+          container.appendChild(renderPodcast(block.podcastScript || block, options));
+          break;
+        }
+
         default:
           // Gracefully ignore unknown block types
           break;
@@ -372,10 +585,675 @@
     return container;
   }
 
+  /**
+   * 1) Quiz Me: Multi-question MCQ mini-game
+   * Features: Progress dots, correct/incorrect visual feedback, Explain drawer with NCERT citation, XP & confetti.
+   */
+  function renderQuiz(quizItems, options = {}) {
+    const items = Array.isArray(quizItems) && quizItems.length > 0 ? quizItems : SAMPLE_QUIZ_ITEMS;
+    let currentIndex = 0;
+    let score = 0;
+    const answeredStates = {};
+
+    const container = document.createElement('div');
+    container.className = 'appu-study-card study-mode-quiz';
+
+    function updateView() {
+      const q = items[currentIndex];
+      const answered = answeredStates[currentIndex];
+      const isAnswered = answered !== undefined;
+      const isLast = currentIndex === items.length - 1;
+
+      container.innerHTML = `
+        <div class="study-quiz-header">
+          <div class="quiz-badge-kicker">
+            <i class="fa-solid fa-flask-vial text-cyan" aria-hidden="true"></i>
+            <span>Quiz Me!</span>
+            <span class="quiz-xp-badge">+20 XP per question</span>
+          </div>
+          <div class="quiz-progress-dots" aria-label="Question progress">
+            ${items.map((_, i) => {
+              let dotCls = 'q-dot';
+              if (i === currentIndex) dotCls += ' is-current';
+              if (answeredStates[i] !== undefined) {
+                dotCls += answeredStates[i].correct ? ' is-correct' : ' is-incorrect';
+              }
+              return `<span class="${dotCls}" aria-label="Question ${i + 1}"></span>`;
+            }).join('')}
+          </div>
+          <span class="quiz-q-counter">Question ${currentIndex + 1} of ${items.length}</span>
+        </div>
+
+        <div class="quiz-question-box">
+          <h3 class="quiz-question-title">${escapeHTML(q.question)}</h3>
+          <div class="quiz-options-grid">
+            ${q.options.map((opt, idx) => {
+              const letter = ['A', 'B', 'C', 'D'][idx] || String(idx + 1);
+              let btnCls = `quiz-opt-btn quiz-opt-btn-${idx}`;
+              if (isAnswered) {
+                if (idx === q.correctIndex) btnCls += ' is-correct-answer';
+                if (answered && answered.selected === idx) {
+                  btnCls += answered.correct ? ' is-selected-correct' : ' is-selected-incorrect';
+                }
+              }
+              return `
+                <button type="button" class="${btnCls}" data-opt-index="${idx}" ${isAnswered ? 'disabled' : ''}>
+                  <span class="opt-letter">${letter}</span>
+                  <span class="opt-label">${escapeHTML(opt)}</span>
+                  <span class="opt-icon" aria-hidden="true">
+                    ${isAnswered && idx === q.correctIndex ? '<i class="fa-solid fa-check text-green"></i>' : ''}
+                    ${isAnswered && answered && answered.selected === idx && !answered.correct ? '<i class="fa-solid fa-xmark text-coral"></i>' : ''}
+                  </span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="quiz-feedback-box ${isAnswered ? 'is-visible' : ''}" ${isAnswered ? '' : 'hidden'}>
+            ${isAnswered ? `
+              <div class="quiz-feedback-banner ${answered.correct ? 'banner-correct' : 'banner-incorrect'}">
+                <span class="feedback-icon" aria-hidden="true">${answered.correct ? '🎉' : '💡'}</span>
+                <strong>${answered.correct ? 'Spot on! Nailed it! +20 XP ⭐' : 'Not quite, but great effort! Here is why:'}</strong>
+              </div>
+              <p class="quiz-explanation">${escapeHTML(q.explanation || '')}</p>
+              ${q.citation ? `
+                <div class="quiz-citation-pill">
+                  <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+                  <span>${escapeHTML(q.citation)}</span>
+                </div>
+              ` : ''}
+              <div class="quiz-nav-row">
+                <button type="button" class="quiz-next-btn">
+                  <span>${isLast ? 'See Results 🎉' : 'Next Question ➔'}</span>
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      q.options.forEach((_, idx) => {
+        const btn = container.querySelector(`.quiz-opt-btn-${idx}`);
+        if (btn) {
+          btn.addEventListener('click', () => {
+            if (answeredStates[currentIndex] !== undefined) return;
+            const isCorrect = idx === q.correctIndex;
+            if (isCorrect) score += 1;
+            answeredStates[currentIndex] = { selected: idx, correct: isCorrect };
+
+            if (isCorrect) {
+              const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+              if (g && g.AppuGamification && typeof g.AppuGamification.awardXP === 'function') {
+                g.AppuGamification.awardXP(20, 'Quiz Answer Correct! ⭐');
+              }
+              if (typeof options.onCelebrate === 'function') {
+                options.onCelebrate();
+              }
+            }
+            updateView();
+          });
+        }
+      });
+
+      const nextBtn = container.querySelector('.quiz-next-btn');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          if (currentIndex < items.length - 1) {
+            currentIndex += 1;
+            updateView();
+          } else {
+            showResults();
+          }
+        });
+      }
+    }
+
+    function showResults() {
+      const pct = Math.round((score / items.length) * 100);
+      const totalXP = score * 20;
+      container.innerHTML = `
+        <div class="quiz-results-screen">
+          <div class="results-trophy" aria-hidden="true">${score === items.length ? '🏆' : '🌟'}</div>
+          <h3 class="results-title">${score === items.length ? 'Perfect Score!' : 'Quiz Complete!'}</h3>
+          <p class="results-score-badge">${score} of ${items.length} Correct (${pct}%)</p>
+          <div class="results-xp-award"><i class="fa-solid fa-star text-amber" aria-hidden="true"></i> +${totalXP} XP Earned!</div>
+          <p class="results-summary-text">You just strengthened your knowledge of this topic. Ready for more?</p>
+          <div class="results-actions">
+            <button type="button" class="quiz-restart-btn">
+              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              <span>Try Again</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      const restartBtn = container.querySelector('.quiz-restart-btn');
+      if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+          currentIndex = 0;
+          score = 0;
+          for (const k in answeredStates) delete answeredStates[k];
+          updateView();
+        });
+      }
+    }
+
+    updateView();
+    return container;
+  }
+
+  /**
+   * 2) Flashcards: Flip card deck for active recall
+   * Features: 3D flip animation, Prev/Next buttons, Got It / Review ratings.
+   */
+  function renderFlashcards(flashcards, options = {}) {
+    const cards = Array.isArray(flashcards) && flashcards.length > 0 ? flashcards : SAMPLE_FLASHCARDS;
+    let currentIndex = 0;
+    let gotCount = 0;
+    let reviewCount = 0;
+    const ratings = {};
+
+    const container = document.createElement('div');
+    container.className = 'appu-study-card study-mode-flashcards';
+
+    function updateCardView() {
+      const card = cards[currentIndex];
+      const cardNum = currentIndex + 1;
+
+      container.innerHTML = `
+        <div class="flashcards-topbar">
+          <div class="flashcard-badge">
+            <i class="fa-solid fa-layer-group text-cyan" aria-hidden="true"></i>
+            <span>Flashcards</span>
+          </div>
+          <span class="flashcard-counter-label">Card ${cardNum} of ${cards.length}</span>
+          <div class="flashcard-score-tracker">
+            <span class="badge-got"><i class="fa-solid fa-check text-green"></i> Got: <b>${gotCount}</b></span>
+            <span class="badge-review"><i class="fa-solid fa-bookmark text-amber"></i> Review: <b>${reviewCount}</b></span>
+          </div>
+        </div>
+
+        <div class="flashcard-scene" tabindex="0" role="button" aria-label="Flashcard: ${escapeHTML(card.front)}. Tap or click to flip.">
+          <div class="flashcard-flipper">
+            <div class="flashcard-face flashcard-front">
+              <div class="face-tag-row">
+                <span class="face-tag tag-front">✦ FRONT • QUESTION / TERM</span>
+                <span class="flip-hint-tag"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Flip</span>
+              </div>
+              <div class="flashcard-content">
+                <h3 class="flashcard-term">${escapeHTML(card.front)}</h3>
+              </div>
+              <div class="flashcard-footer-prompt">
+                <span>Tap anywhere on card to reveal answer ↺</span>
+              </div>
+            </div>
+
+            <div class="flashcard-face flashcard-back">
+              <div class="face-tag-row">
+                <span class="face-tag tag-back">✓ BACK • DEFINITION</span>
+                <span class="flip-hint-tag"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Flip</span>
+              </div>
+              <div class="flashcard-content">
+                <p class="flashcard-def">${escapeHTML(card.back)}</p>
+                ${card.explanation ? `
+                  <div class="flashcard-explain-hint">
+                    <i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i>
+                    <span>${escapeHTML(card.explanation)}</span>
+                  </div>
+                ` : ''}
+              </div>
+              <div class="flashcard-footer-prompt">
+                <span>Tap to flip back</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flashcard-actions-bar">
+          <button type="button" class="fc-nav-btn btn-fc-prev" ${currentIndex === 0 ? 'disabled' : ''} aria-label="Previous card">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> <span>Prev</span>
+          </button>
+
+          <div class="fc-rating-group">
+            <button type="button" class="fc-rate-btn btn-fc-review" title="Mark for review later">
+              <i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>Review Later</span>
+            </button>
+            <button type="button" class="fc-rate-btn btn-fc-got" title="I know this card!">
+              <i class="fa-solid fa-check text-green" aria-hidden="true"></i> <span>Got It! +5 XP</span>
+            </button>
+          </div>
+
+          <button type="button" class="fc-nav-btn btn-fc-next" ${currentIndex === cards.length - 1 ? 'disabled' : ''} aria-label="Next card">
+            <span>Next</span> <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      `;
+
+      const flipper = container.querySelector('.flashcard-flipper');
+      const scene = container.querySelector('.flashcard-scene');
+
+      function toggleFlip() {
+        if (!flipper) return;
+        if (flipper.classList.contains('is-flipped')) {
+          flipper.classList.remove('is-flipped');
+        } else {
+          flipper.classList.add('is-flipped');
+        }
+      }
+
+      if (scene) {
+        scene.addEventListener('click', toggleFlip);
+        scene.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            if (e.preventDefault) e.preventDefault();
+            toggleFlip();
+          }
+        });
+      }
+
+      const prevBtn = container.querySelector('.btn-fc-prev');
+      if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          if (currentIndex > 0) {
+            currentIndex -= 1;
+            updateCardView();
+          }
+        });
+      }
+
+      const nextBtn = container.querySelector('.btn-fc-next');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          if (currentIndex < cards.length - 1) {
+            currentIndex += 1;
+            updateCardView();
+          }
+        });
+      }
+
+      const gotBtn = container.querySelector('.btn-fc-got');
+      if (gotBtn) {
+        gotBtn.addEventListener('click', (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          if (!ratings[currentIndex]) {
+            gotCount += 1;
+            ratings[currentIndex] = 'got';
+            const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+            if (g && g.AppuGamification && typeof g.AppuGamification.awardXP === 'function') {
+              g.AppuGamification.awardXP(5, 'Flashcard Mastered! 🗂️');
+            }
+          }
+          if (currentIndex < cards.length - 1) {
+            currentIndex += 1;
+            updateCardView();
+          } else {
+            updateCardView();
+          }
+        });
+      }
+
+      const reviewBtn = container.querySelector('.btn-fc-review');
+      if (reviewBtn) {
+        reviewBtn.addEventListener('click', (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          if (!ratings[currentIndex]) {
+            reviewCount += 1;
+            ratings[currentIndex] = 'review';
+          }
+          if (currentIndex < cards.length - 1) {
+            currentIndex += 1;
+            updateCardView();
+          } else {
+            updateCardView();
+          }
+        });
+      }
+    }
+
+    updateCardView();
+    return container;
+  }
+
+  /**
+   * 3) Study Guide: Tidy tinted sections (Key Points, Definitions, Must-Remember)
+   */
+  function renderStudyGuide(studyGuide, options = {}) {
+    const guide = studyGuide || SAMPLE_STUDY_GUIDE;
+    const container = document.createElement('div');
+    container.className = 'appu-study-card study-mode-guide';
+
+    const keyPoints = Array.isArray(guide.keyPoints) ? guide.keyPoints : [];
+    const definitions = Array.isArray(guide.definitions) ? guide.definitions : [];
+    const mustRemember = Array.isArray(guide.mustRemember) ? guide.mustRemember : [];
+
+    container.innerHTML = `
+      <div class="guide-header">
+        <div class="guide-badge">
+          <i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i>
+          <span>Study Guide</span>
+          <span class="guide-grade-pill">${escapeHTML(guide.grade || 'Revision Notes')}</span>
+        </div>
+        <h2 class="guide-title">${escapeHTML(guide.topic || 'Photosynthesis & Plant Energy')}</h2>
+        <p class="guide-lead">High-yield exam takeaways organized for quick recall.</p>
+      </div>
+
+      <div class="guide-sections-wrap">
+        <!-- 1. Key Points (Sky Tint) -->
+        <section class="guide-section guide-keypoints">
+          <div class="guide-sec-header header-sky">
+            <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+            <span>Key Points</span>
+          </div>
+          <ul class="guide-points-list">
+            ${keyPoints.map(pt => `
+              <li class="guide-point-item">
+                <span class="pt-bullet" aria-hidden="true">✦</span>
+                <span class="pt-text">${escapeHTML(pt)}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </section>
+
+        <!-- 2. Definitions (Mint Tint) -->
+        <section class="guide-section guide-definitions">
+          <div class="guide-sec-header header-mint">
+            <i class="fa-solid fa-spell-check" aria-hidden="true"></i>
+            <span>Definitions to Know</span>
+          </div>
+          <div class="guide-def-grid">
+            ${definitions.map(d => `
+              <div class="guide-def-card">
+                <strong class="def-term">${escapeHTML(d.term)}</strong>
+                <p class="def-desc">${escapeHTML(d.definition)}</p>
+              </div>
+            `).join('')}
+          </div>
+        </section>
+
+        <!-- 3. Must-Remember for Exams (Gold Tint) -->
+        <section class="guide-section guide-mustremember">
+          <div class="guide-sec-header header-gold">
+            <i class="fa-solid fa-star text-amber" aria-hidden="true"></i>
+            <span>Must-Remember for Exams</span>
+          </div>
+          <div class="guide-remember-list">
+            ${mustRemember.map(r => `
+              <div class="guide-remember-card">
+                <span class="rem-icon" aria-hidden="true">💡</span>
+                <p class="rem-text">${escapeHTML(r)}</p>
+              </div>
+            `).join('')}
+          </div>
+        </section>
+      </div>
+    `;
+
+    return container;
+  }
+
+  /**
+   * 4) Mind Map: Rich concept flowchart visualizer
+   */
+  function renderMindMap(mindMap, options = {}) {
+    const mapData = mindMap || SAMPLE_MIND_MAP;
+    const container = document.createElement('div');
+    container.className = 'appu-study-card study-mode-mindmap';
+
+    const diagId = 'mindmap-' + Math.random().toString(36).substring(2, 10);
+
+    container.innerHTML = `
+      <div class="mindmap-header">
+        <div class="mindmap-badge">
+          <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
+          <span>Mind Map</span>
+        </div>
+        <h2 class="mindmap-title">${escapeHTML(mapData.title || 'Photosynthesis Concept Map')}</h2>
+        <p class="mindmap-desc">${escapeHTML(mapData.summary || 'Trace inputs, cellular reactions, and vital outputs')}</p>
+      </div>
+
+      <div class="mindmap-canvas-wrap" id="${diagId}-wrap">
+        <div class="mermaid-target" id="${diagId}"></div>
+      </div>
+    `;
+
+    const hasMermaid = initMermaidSafe();
+    const targetEl = container.querySelector('.mermaid-target');
+
+    if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function' && mapData.spec) {
+      setTimeout(async () => {
+        try {
+          const { svg } = await window.mermaid.render(diagId + '-svg', mapData.spec);
+          if (targetEl) targetEl.innerHTML = svg;
+        } catch (err) {
+          if (targetEl) targetEl.innerHTML = renderFallbackDiagram(mapData.spec);
+        }
+      }, 50);
+    } else {
+      if (targetEl) targetEl.innerHTML = renderFallbackDiagram(mapData.spec || '');
+    }
+
+    return container;
+  }
+
+  /**
+   * 5) Appu Podcast (Audio Overview): Audio player UI with play/pause, progress, caption, SpeechSynthesis
+   */
+  function renderPodcast(podcastScript, options = {}) {
+    const data = podcastScript || SAMPLE_PODCAST_SCRIPT;
+    const container = document.createElement('div');
+    container.className = 'appu-study-card study-mode-podcast';
+
+    container.innerHTML = `
+      <div class="podcast-header">
+        <div class="podcast-badge"><i class="fa-solid fa-headphones text-cyan" aria-hidden="true"></i> <span>Appu Podcast</span></div>
+        <span class="podcast-badge-kicker">Audio Overview</span>
+      </div>
+      <div class="podcast-player-card">
+        <div class="podcast-info-row">
+          <div class="podcast-avatar-bubble">
+            <img src="assets/appu-cutout-new.png" alt="Appu" width="48" height="48">
+          </div>
+          <div class="podcast-title-meta">
+            <h3 class="podcast-title">${escapeHTML(data.title || 'Photosynthesis: The Secret Power of Leaves')}</h3>
+            <span class="podcast-duration"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(data.duration || '0:45')}</span>
+          </div>
+        </div>
+
+        <div class="podcast-equalizer" aria-hidden="true">
+          <span class="eq-bar eq-1"></span>
+          <span class="eq-bar eq-2"></span>
+          <span class="eq-bar eq-3"></span>
+          <span class="eq-bar eq-4"></span>
+          <span class="eq-bar eq-5"></span>
+          <span class="eq-bar eq-6"></span>
+          <span class="eq-bar eq-7"></span>
+        </div>
+
+        <div class="podcast-progress-wrap">
+          <div class="podcast-progress-bar">
+            <div class="podcast-progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="podcast-time-row">
+            <span class="time-elapsed">0:00</span>
+            <span class="time-total">${escapeHTML(data.duration || '0:45')}</span>
+          </div>
+        </div>
+
+        <div class="podcast-controls-row">
+          <button type="button" class="podcast-play-btn" aria-label="Play Appu Audio Overview">
+            <i class="fa-solid fa-play play-icon" aria-hidden="true"></i>
+            <span class="play-btn-text">Listen to this lesson</span>
+          </button>
+        </div>
+
+        <div class="podcast-caption-box">
+          <span class="caption-label"><i class="fa-solid fa-quote-left text-cyan" aria-hidden="true"></i> Appu says:</span>
+          <p class="podcast-caption-text">${escapeHTML(data.caption || 'Leaves are basically solar-powered kitchens making food and oxygen.')}</p>
+        </div>
+      </div>
+    `;
+
+    const playBtn = container.querySelector('.podcast-play-btn');
+    const playerCard = container.querySelector('.podcast-player-card');
+    const progressFill = container.querySelector('.podcast-progress-fill');
+    const timeElapsed = container.querySelector('.time-elapsed');
+
+    let isPlaying = false;
+    let progressInterval = null;
+    let elapsedSeconds = 0;
+    const totalSeconds = 45;
+
+    function stopPlayback() {
+      isPlaying = false;
+      if (playerCard) playerCard.classList.remove('is-playing');
+      if (playBtn) {
+        playBtn.innerHTML = '<i class="fa-solid fa-play play-icon" aria-hidden="true"></i> <span class="play-btn-text">Listen to this lesson</span>';
+      }
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (_) {}
+      }
+    }
+
+    function startPlayback() {
+      isPlaying = true;
+      if (playerCard) playerCard.classList.add('is-playing');
+      if (playBtn) {
+        playBtn.innerHTML = '<i class="fa-solid fa-pause play-icon" aria-hidden="true"></i> <span class="play-btn-text">Pause</span>';
+      }
+
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && data.script) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(data.script);
+          utterance.rate = 1.0;
+          utterance.pitch = 1.1;
+          utterance.onend = () => {
+            stopPlayback();
+            if (progressFill) progressFill.style.width = '100%';
+          };
+          utterance.onerror = () => {
+            // Keep timer running visually
+          };
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          console.warn('[LessonCard] SpeechSynthesis notice:', e);
+        }
+      }
+
+      if (progressInterval) clearInterval(progressInterval);
+      progressInterval = setInterval(() => {
+        elapsedSeconds += 1;
+        const pct = Math.min(100, Math.round((elapsedSeconds / totalSeconds) * 100));
+        if (progressFill) progressFill.style.width = pct + '%';
+        const m = Math.floor(elapsedSeconds / 60);
+        const s = elapsedSeconds % 60;
+        if (timeElapsed) timeElapsed.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+        if (elapsedSeconds >= totalSeconds) {
+          stopPlayback();
+          elapsedSeconds = 0;
+        }
+      }, 1000);
+    }
+
+    if (playBtn) {
+      playBtn.addEventListener('click', () => {
+        if (isPlaying) {
+          stopPlayback();
+        } else {
+          startPlayback();
+        }
+      });
+    }
+
+    return container;
+  }
+
+  /**
+   * Study Modes Toolbar: Pill tabs to switch between Lesson and the 5 study modes
+   */
+  function renderStudyToolbar(activeMode = 'lesson', onModeChange) {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'study-modes-toolbar';
+    toolbar.setAttribute('role', 'tablist');
+    toolbar.setAttribute('aria-label', 'Study Modes');
+
+    const modes = [
+      { id: 'lesson', label: 'Lesson', icon: 'fa-wand-magic-sparkles' },
+      { id: 'quiz', label: 'Quiz Me', icon: 'fa-flask-vial' },
+      { id: 'flashcards', label: 'Flashcards', icon: 'fa-layer-group' },
+      { id: 'guide', label: 'Study Guide', icon: 'fa-book-open-reader' },
+      { id: 'mindmap', label: 'Mind Map', icon: 'fa-diagram-project' },
+      { id: 'podcast', label: 'Podcast', icon: 'fa-headphones' }
+    ];
+
+    modes.forEach(m => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `study-tab-btn study-tab-${m.id} ${m.id === activeMode ? 'is-active' : ''}`;
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', m.id === activeMode ? 'true' : 'false');
+      btn.setAttribute('data-mode', m.id);
+      btn.innerHTML = `<i class="fa-solid ${m.icon}" aria-hidden="true"></i> <span>${m.label}</span>`;
+
+      btn.addEventListener('click', () => {
+        if (typeof onModeChange === 'function') {
+          onModeChange(m.id);
+        }
+      });
+
+      toolbar.appendChild(btn);
+    });
+
+    return toolbar;
+  }
+
+  /**
+   * Unified dispatcher: renders any study mode or standard lesson card
+   */
+  function renderStudyMode(modeName, data = {}, options = {}) {
+    switch (modeName) {
+      case 'quiz':
+        return renderQuiz(data.quizItems || (Array.isArray(data) ? data : SAMPLE_QUIZ_ITEMS), options);
+      case 'flashcards':
+        return renderFlashcards(data.flashcards || (Array.isArray(data) ? data : SAMPLE_FLASHCARDS), options);
+      case 'guide':
+      case 'studyGuide':
+        return renderStudyGuide(data.studyGuide || data, options);
+      case 'mindmap':
+      case 'mindMap':
+        return renderMindMap(data.mindMap || data, options);
+      case 'podcast':
+      case 'podcastScript':
+        return renderPodcast(data.podcastScript || data, options);
+      case 'lesson':
+      default:
+        return render(data, options);
+    }
+  }
+
   return {
     parse,
     render,
     SAMPLE_CARD,
-    renderFallbackDiagram
+    SAMPLE_QUIZ_ITEMS,
+    SAMPLE_FLASHCARDS,
+    SAMPLE_STUDY_GUIDE,
+    SAMPLE_MIND_MAP,
+    SAMPLE_PODCAST_SCRIPT,
+    renderFallbackDiagram,
+    renderQuiz,
+    renderFlashcards,
+    renderStudyGuide,
+    renderMindMap,
+    renderPodcast,
+    renderStudyToolbar,
+    renderStudyMode
   };
 });

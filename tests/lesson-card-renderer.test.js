@@ -272,6 +272,144 @@ describe('APPU Lesson-Card Renderer Unit Tests', () => {
       assert.equal(check.a, 'Oxygen');
 
       assert.ok(card.plainText.length > 50);
+
+      // Verify study mode data contracts attached to SAMPLE_CARD
+      assert.ok(Array.isArray(card.quizItems));
+      assert.ok(Array.isArray(card.flashcards));
+      assert.ok(card.studyGuide && typeof card.studyGuide === 'object');
+      assert.ok(card.mindMap && typeof card.mindMap === 'object');
+      assert.ok(card.podcastScript && typeof card.podcastScript === 'object');
+    });
+  });
+
+  describe('Study Output Modes Contract & Rendering', () => {
+    test('exports all 5 sample data contracts matching n8n payload specification', () => {
+      assert.ok(Array.isArray(LessonCardRenderer.SAMPLE_QUIZ_ITEMS));
+      assert.ok(LessonCardRenderer.SAMPLE_QUIZ_ITEMS.length >= 3);
+      const q = LessonCardRenderer.SAMPLE_QUIZ_ITEMS[0];
+      assert.ok(q.question);
+      assert.ok(Array.isArray(q.options) && q.options.length === 4);
+      assert.equal(typeof q.correctIndex, 'number');
+      assert.ok(q.explanation);
+      assert.ok(q.citation.includes('NCERT'));
+
+      assert.ok(Array.isArray(LessonCardRenderer.SAMPLE_FLASHCARDS));
+      assert.ok(LessonCardRenderer.SAMPLE_FLASHCARDS.length >= 3);
+      const fc = LessonCardRenderer.SAMPLE_FLASHCARDS[0];
+      assert.ok(fc.front);
+      assert.ok(fc.back);
+      assert.ok(fc.explanation);
+
+      assert.ok(LessonCardRenderer.SAMPLE_STUDY_GUIDE);
+      assert.ok(Array.isArray(LessonCardRenderer.SAMPLE_STUDY_GUIDE.keyPoints));
+      assert.ok(Array.isArray(LessonCardRenderer.SAMPLE_STUDY_GUIDE.definitions));
+      assert.ok(Array.isArray(LessonCardRenderer.SAMPLE_STUDY_GUIDE.mustRemember));
+
+      assert.ok(LessonCardRenderer.SAMPLE_MIND_MAP);
+      assert.ok(LessonCardRenderer.SAMPLE_MIND_MAP.title);
+      assert.ok(LessonCardRenderer.SAMPLE_MIND_MAP.spec.includes('flowchart'));
+
+      assert.ok(LessonCardRenderer.SAMPLE_PODCAST_SCRIPT);
+      assert.ok(LessonCardRenderer.SAMPLE_PODCAST_SCRIPT.title);
+      assert.ok(LessonCardRenderer.SAMPLE_PODCAST_SCRIPT.duration);
+      assert.ok(LessonCardRenderer.SAMPLE_PODCAST_SCRIPT.script);
+      assert.ok(LessonCardRenderer.SAMPLE_PODCAST_SCRIPT.caption);
+    });
+
+    test('renderQuiz() renders MCQ mini-game, handles answer clicks, and shows feedback', () => {
+      let celebrated = false;
+      const el = LessonCardRenderer.renderQuiz(LessonCardRenderer.SAMPLE_QUIZ_ITEMS, {
+        onCelebrate: () => { celebrated = true; }
+      });
+
+      assert.ok(el.classList.contains('study-mode-quiz'));
+      const qBox = el.querySelector('.quiz-question-box');
+      assert.ok(qBox);
+
+      // Click the correct option (index 1 for q1)
+      const correctBtn = el.querySelector('.quiz-opt-btn-1');
+      assert.ok(correctBtn);
+      correctBtn.click();
+
+      assert.equal(celebrated, true, 'onCelebrate should fire on correct answer');
+      const feedback = el.querySelector('.quiz-feedback-box');
+      assert.ok(feedback);
+    });
+
+    test('renderFlashcards() renders 3D flipcard deck with tap-to-flip and navigation', () => {
+      const el = LessonCardRenderer.renderFlashcards(LessonCardRenderer.SAMPLE_FLASHCARDS);
+      assert.ok(el.classList.contains('study-mode-flashcards'));
+
+      const flipper = el.querySelector('.flashcard-flipper');
+      const scene = el.querySelector('.flashcard-scene');
+      assert.ok(flipper);
+      assert.ok(scene);
+
+      // Simulate flip
+      scene.click();
+      assert.ok(flipper.classList.contains('is-flipped'));
+
+      // Rating buttons exist
+      const gotBtn = el.querySelector('.btn-fc-got');
+      const reviewBtn = el.querySelector('.btn-fc-review');
+      assert.ok(gotBtn);
+      assert.ok(reviewBtn);
+    });
+
+    test('renderStudyGuide() renders structured sections: key points, definitions, must-remember', () => {
+      const el = LessonCardRenderer.renderStudyGuide(LessonCardRenderer.SAMPLE_STUDY_GUIDE);
+      assert.ok(el.classList.contains('study-mode-guide'));
+      assert.ok(el.querySelector('.guide-keypoints'));
+      assert.ok(el.querySelector('.guide-definitions'));
+      assert.ok(el.querySelector('.guide-mustremember'));
+    });
+
+    test('renderMindMap() renders canvas wrap and flowchart nodes', () => {
+      const el = LessonCardRenderer.renderMindMap(LessonCardRenderer.SAMPLE_MIND_MAP);
+      assert.ok(el.classList.contains('study-mode-mindmap'));
+      assert.ok(el.querySelector('.mindmap-canvas-wrap'));
+    });
+
+    test('renderPodcast() renders player card with play button, equalizer, and live caption', () => {
+      const el = LessonCardRenderer.renderPodcast(LessonCardRenderer.SAMPLE_PODCAST_SCRIPT);
+      assert.ok(el.classList.contains('study-mode-podcast'));
+      assert.ok(el.querySelector('.podcast-player-card'));
+      assert.ok(el.querySelector('.podcast-play-btn'));
+      assert.ok(el.querySelector('.podcast-equalizer'));
+      assert.ok(el.querySelector('.podcast-caption-box'));
+    });
+
+    test('renderStudyToolbar() renders all 6 mode tabs with accessible attributes', () => {
+      let switchedMode = null;
+      const el = LessonCardRenderer.renderStudyToolbar('quiz', (m) => { switchedMode = m; });
+      assert.ok(el.classList.contains('study-modes-toolbar'));
+      const tabs = el.children;
+      assert.equal(tabs.length, 6);
+
+      const quizTab = el.querySelector('.study-tab-quiz');
+      assert.ok(quizTab.classList.contains('is-active'));
+      assert.equal(quizTab.getAttribute('aria-selected'), 'true');
+
+      const flashcardsTab = el.querySelector('.study-tab-flashcards');
+      flashcardsTab.click();
+      assert.equal(switchedMode, 'flashcards');
+    });
+
+    test('renderStudyMode() dispatches cleanly to each requested mode', () => {
+      const quizEl = LessonCardRenderer.renderStudyMode('quiz');
+      assert.ok(quizEl.classList.contains('study-mode-quiz'));
+
+      const fcEl = LessonCardRenderer.renderStudyMode('flashcards');
+      assert.ok(fcEl.classList.contains('study-mode-flashcards'));
+
+      const guideEl = LessonCardRenderer.renderStudyMode('guide');
+      assert.ok(guideEl.classList.contains('study-mode-guide'));
+
+      const mmEl = LessonCardRenderer.renderStudyMode('mindmap');
+      assert.ok(mmEl.classList.contains('study-mode-mindmap'));
+
+      const podEl = LessonCardRenderer.renderStudyMode('podcast');
+      assert.ok(podEl.classList.contains('study-mode-podcast'));
     });
   });
 });

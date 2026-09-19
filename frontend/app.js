@@ -977,27 +977,66 @@ document.addEventListener('DOMContentLoaded', () => {
   const voiceReplyPopup = document.getElementById('voice-reply-popup');
   const voicePopupContent = document.getElementById('voice-popup-content');
   const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
+  let activePopupLessonCard = null;
+  let activePopupMode = 'lesson';
 
-  function showVoicePopup(text, lessonCard = null) {
+  function renderVoicePopupStudyContent(mode = 'lesson') {
+    if (!voicePopupContent) return;
+    activePopupMode = mode;
+    voicePopupContent.innerHTML = '';
+
+    if (activePopupLessonCard && typeof LessonCardRenderer !== 'undefined') {
+      // 1) Render Study Modes Toolbar above the content
+      if (typeof LessonCardRenderer.renderStudyToolbar === 'function') {
+        const toolbar = LessonCardRenderer.renderStudyToolbar(mode, (newMode) => {
+          renderVoicePopupStudyContent(newMode);
+        });
+        voicePopupContent.appendChild(toolbar);
+      }
+
+      // 2) Render the active study mode inside wrapper
+      const wrapper = document.createElement('div');
+      wrapper.className = 'voice-popup-study-wrapper';
+
+      const contentEl = typeof LessonCardRenderer.renderStudyMode === 'function'
+        ? LessonCardRenderer.renderStudyMode(mode, activePopupLessonCard, {
+            onCelebrate: () => {
+              if (window.AppuGamification && typeof window.AppuGamification.awardXP === 'function') {
+                window.AppuGamification.awardXP(20, 'Awesome work! ⭐');
+              } else if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                window.appMascot.celebrate(3200);
+              }
+            }
+          })
+        : (mode === 'lesson'
+            ? LessonCardRenderer.render(activePopupLessonCard, {
+                onCelebrate: () => {
+                  if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                    window.appMascot.celebrate(3200);
+                  }
+                }
+              })
+            : document.createElement('div'));
+
+      wrapper.appendChild(contentEl);
+      voicePopupContent.appendChild(wrapper);
+    } else {
+      voicePopupContent.textContent = activePopupLessonCard?.plainText || '';
+    }
+  }
+
+  function showVoicePopup(text, lessonCard = null, initialMode = 'lesson') {
     if (!voiceReplyPopup || (!text && !lessonCard)) return;
     const missionStage = document.querySelector('.mission-stage');
     if (missionStage) {
       missionStage.classList.add('has-lesson-active');
     }
-    if (voicePopupContent) {
-      if (lessonCard && typeof LessonCardRenderer !== 'undefined') {
-        voicePopupContent.innerHTML = '';
-        const cardEl = LessonCardRenderer.render(lessonCard, {
-          onCelebrate: () => {
-            if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
-              window.appMascot.celebrate(3200);
-            }
-          }
-        });
-        voicePopupContent.appendChild(cardEl);
-      } else {
-        voicePopupContent.textContent = text || '';
-      }
+    activePopupLessonCard = lessonCard;
+    if (lessonCard) {
+      renderVoicePopupStudyContent(initialMode || 'lesson');
+    } else if (voicePopupContent) {
+      voicePopupContent.innerHTML = '';
+      voicePopupContent.textContent = text || '';
     }
     voiceReplyPopup.hidden = false;
     voiceReplyPopup.removeAttribute('hidden');
@@ -1010,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
     const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
-    const timeoutMs = Math.max(30000, readingDurationMs);
+    const timeoutMs = lessonCard ? Math.max(60000, readingDurationMs) : Math.max(30000, readingDurationMs);
 
     voicePopupTimer = setTimeout(() => {
       hideVoicePopup();
@@ -1021,6 +1060,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (voicePopupTimer) {
       clearTimeout(voicePopupTimer);
       voicePopupTimer = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {
+        // ignore
+      }
     }
     const missionStage = document.querySelector('.mission-stage');
     if (missionStage) {
@@ -2308,7 +2354,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateGamificationUI();
 
   // ==========================================
-  // DEV-ONLY VISUALS DEMO HARNESS (?demo=1)
+  // DEV-ONLY VISUALS & STUDY MODES DEMO HARNESS (?demo=1)
   // ==========================================
   function initVisualsDemo() {
     const sampleCard = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || {
@@ -2324,14 +2370,22 @@ document.addEventListener('DOMContentLoaded', () => {
       plainText: 'Plants make their food through photosynthesis. Leaves catch sunlight, roots absorb water from the soil, and they take in carbon dioxide from the air. Inside the leaf, these mix together to produce sugar for energy, and the plant releases oxygen for us to breathe!'
     };
 
+    const existingBar = document.getElementById('dev-demo-bar');
+    if (existingBar) existingBar.remove();
+
     const bar = document.createElement('div');
     bar.id = 'dev-demo-bar';
     bar.className = 'dev-demo-bar';
     bar.setAttribute('role', 'region');
-    bar.setAttribute('aria-label', 'Playful Visuals Demo Controls');
+    bar.setAttribute('aria-label', 'Study Modes & Visuals Demo Controls');
     bar.innerHTML = `
-      <span class="demo-badge">🎬 NEXT-LEVEL VISUALS DEMO</span>
+      <span class="demo-badge">🎬 STUDY MODES DEMO</span>
       <button id="btn-demo-replay" class="demo-btn" type="button"><i class="fa-solid fa-play" aria-hidden="true"></i> <span>Run Flow</span></button>
+      <button id="btn-demo-quiz" class="demo-btn" type="button"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Quiz Me</span></button>
+      <button id="btn-demo-flashcards" class="demo-btn" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> <span>Flashcards</span></button>
+      <button id="btn-demo-guide" class="demo-btn" type="button"><i class="fa-solid fa-book-open-reader" aria-hidden="true"></i> <span>Study Guide</span></button>
+      <button id="btn-demo-mindmap" class="demo-btn" type="button"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> <span>Mind Map</span></button>
+      <button id="btn-demo-podcast" class="demo-btn" type="button"><i class="fa-solid fa-headphones" aria-hidden="true"></i> <span>Podcast</span></button>
       <button id="btn-demo-chat" class="demo-btn" type="button"><i class="fa-solid fa-comments" aria-hidden="true"></i> <span>In Chat</span></button>
       <button id="btn-demo-celebrate" class="demo-btn" type="button"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> <span>Celebrate</span></button>
       <button id="btn-demo-close" class="demo-close-btn" type="button" aria-label="Close demo bar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
@@ -2354,7 +2408,7 @@ document.addEventListener('DOMContentLoaded', () => {
       toggleChatDrawer(true);
     });
 
-    const runDemoFlow = () => {
+    const runDemoFlow = (targetMode = 'lesson') => {
       const subtitlesText = document.getElementById('subtitles-text');
       if (subtitlesText) {
         subtitlesText.textContent = '"How does photosynthesis work?"';
@@ -2365,11 +2419,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.appMascot) window.appMascot.setMood('thinking');
 
       setTimeout(() => {
-        // Step 2: Explaining + Reveal Lesson Card
+        // Step 2: Explaining + Reveal Lesson Card / Study Mode
         if (avatarStage) avatarStage.setState('speaking');
         if (window.appMascot) window.appMascot.setMood('explaining');
 
-        showVoicePopup(sampleCard.plainText, sampleCard);
+        showVoicePopup(sampleCard.plainText, sampleCard, targetMode);
 
         // Also populate chat drawer
         if (chatAgent) {
@@ -2382,17 +2436,59 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
         }
-      }, 1200);
+      }, 1000);
     };
 
-    document.getElementById('btn-demo-replay')?.addEventListener('click', runDemoFlow);
+    document.getElementById('btn-demo-replay')?.addEventListener('click', () => runDemoFlow('lesson'));
+    document.getElementById('btn-demo-quiz')?.addEventListener('click', () => runDemoFlow('quiz'));
+    document.getElementById('btn-demo-flashcards')?.addEventListener('click', () => runDemoFlow('flashcards'));
+    document.getElementById('btn-demo-guide')?.addEventListener('click', () => runDemoFlow('guide'));
+    document.getElementById('btn-demo-mindmap')?.addEventListener('click', () => runDemoFlow('mindmap'));
+    document.getElementById('btn-demo-podcast')?.addEventListener('click', () => runDemoFlow('podcast'));
 
-    // Auto-trigger the demo sequence after 600ms on first load
-    setTimeout(runDemoFlow, 600);
+    return { runDemoFlow };
   }
 
-  if (typeof window !== 'undefined' && /[?&]demo=(?:1|rich|visuals)/i.test(window.location.search)) {
-    initVisualsDemo();
+  // Expose Study Modes and Voice Popup API
+  window.AppuStudyModes = {
+    show: (mode = 'lesson') => {
+      const card = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || null;
+      showVoicePopup(card?.plainText || '', card, mode);
+    },
+    showQuiz: () => window.AppuStudyModes.show('quiz'),
+    showFlashcards: () => window.AppuStudyModes.show('flashcards'),
+    showGuide: () => window.AppuStudyModes.show('guide'),
+    showMindMap: () => window.AppuStudyModes.show('mindmap'),
+    showPodcast: () => window.AppuStudyModes.show('podcast')
+  };
+
+  if (window.app) {
+    window.app.showVoicePopup = showVoicePopup;
+    window.app.hideVoicePopup = hideVoicePopup;
+    window.app.showStudyMode = (mode) => window.AppuStudyModes.show(mode);
+  }
+
+  if (typeof window !== 'undefined' && /[?&]demo=/i.test(window.location.search)) {
+    const demoControls = initVisualsDemo();
+    let initialMode = 'lesson';
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const demoVal = (params.get('demo') || '').toLowerCase();
+      if (demoVal === 'quiz') initialMode = 'quiz';
+      else if (demoVal === 'flashcards' || demoVal === 'flashcard') initialMode = 'flashcards';
+      else if (demoVal === 'guide' || demoVal === 'studyguide') initialMode = 'guide';
+      else if (demoVal === 'mindmap' || demoVal === 'mind-map') initialMode = 'mindmap';
+      else if (demoVal === 'podcast') initialMode = 'podcast';
+    } catch (e) {
+      initialMode = 'lesson';
+    }
+
+    // Auto-trigger the demo sequence after 600ms on first load
+    setTimeout(() => {
+      if (demoControls && typeof demoControls.runDemoFlow === 'function') {
+        demoControls.runDemoFlow(initialMode);
+      }
+    }, 600);
   }
 });
 
