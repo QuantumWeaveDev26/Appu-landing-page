@@ -31,12 +31,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize Core Subsystems
   const avatarStage = new AvatarStage();
 
-  // Initialize Mascot Avatar
+  // Initialize Mascot Avatar (Hero Stage Presenter + Response Dock)
   let appMascot = null;
   if (typeof MascotAvatar !== 'undefined') {
-    appMascot = new MascotAvatar('#appu-mascot-container', {
-      initialMood: 'idle'
-    });
+    const heroEl = document.getElementById('hero-mascot-container');
+    const dockEl = document.getElementById('appu-mascot-container');
+    const heroMascot = heroEl ? new MascotAvatar(heroEl, { initialMood: 'idle' }) : null;
+    const dockMascot = dockEl ? new MascotAvatar(dockEl, { initialMood: 'idle' }) : null;
+
+    appMascot = {
+      get mood() {
+        return (heroMascot || dockMascot)?.mood || 'idle';
+      },
+      setMood(mood, durationMs) {
+        if (heroMascot) heroMascot.setMood(mood, durationMs);
+        if (dockMascot) dockMascot.setMood(mood, durationMs);
+        return this;
+      },
+      idle() { return this.setMood('idle'); },
+      listen() { return this.setMood('listening'); },
+      think() { return this.setMood('thinking'); },
+      explain() { return this.setMood('explaining'); },
+      celebrate(durationMs = 3200) { return this.setMood('celebrating', durationMs); },
+      getMood() { return this.mood; },
+      hero: heroMascot,
+      dock: dockMascot
+    };
     window.appMascot = appMascot;
   }
 
