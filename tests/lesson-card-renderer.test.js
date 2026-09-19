@@ -245,4 +245,33 @@ describe('APPU Lesson-Card Renderer Unit Tests', () => {
       assert.equal(h2, '');
     });
   });
+
+  describe('Sample Photosynthesis Demo Card Contract', () => {
+    test('SAMPLE_CARD conforms to docs/next-level-visuals-plan.md specification', () => {
+      const card = LessonCardRenderer.SAMPLE_CARD;
+      assert.equal(card.mood, 'explaining');
+      assert.equal(card.gradeTone, 'junior');
+      assert.ok(Array.isArray(card.blocks));
+      assert.equal(card.blocks.length, 5);
+
+      const [hook, diagram, steps, analogy, check] = card.blocks;
+      assert.equal(hook.type, 'hook');
+      assert.ok(hook.text.includes('plant eats without a mouth'));
+
+      assert.equal(diagram.type, 'diagram');
+      assert.equal(diagram.kind, 'mermaid');
+      assert.ok(diagram.spec.includes('flowchart LR'));
+
+      assert.equal(steps.type, 'steps');
+      assert.equal(steps.items.length, 4);
+
+      assert.equal(analogy.type, 'analogy');
+      assert.ok(analogy.text.includes('solar-powered kitchen'));
+
+      assert.equal(check.type, 'check');
+      assert.equal(check.a, 'Oxygen');
+
+      assert.ok(card.plainText.length > 50);
+    });
+  });
 });

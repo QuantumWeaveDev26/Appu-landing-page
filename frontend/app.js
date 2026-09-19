@@ -1977,4 +1977,91 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.init === 'function') {
     window.ParentalControlsUI.init();
   }
+
+  // ==========================================
+  // DEV-ONLY VISUALS DEMO HARNESS (?demo=1)
+  // ==========================================
+  function initVisualsDemo() {
+    const sampleCard = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || {
+      mood: 'explaining',
+      gradeTone: 'junior',
+      blocks: [
+        { type: 'hook', text: 'Ever wonder how a plant eats without a mouth? 🌱' },
+        { type: 'diagram', kind: 'mermaid', spec: 'flowchart LR; Sun-->Leaf; Water-->Leaf; CO2-->Leaf; Leaf-->Sugar; Leaf-->Oxygen' },
+        { type: 'steps', items: ['Leaves catch sunlight', 'Roots drink water', 'Leaf mixes them into sugar', 'Plant breathes out oxygen'] },
+        { type: 'analogy', text: 'A leaf is like a tiny solar-powered kitchen.' },
+        { type: 'check', q: 'What gas does the plant breathe out?', a: 'Oxygen' }
+      ],
+      plainText: 'Plants make their food through photosynthesis. Leaves catch sunlight, roots absorb water from the soil, and they take in carbon dioxide from the air. Inside the leaf, these mix together to produce sugar for energy, and the plant releases oxygen for us to breathe!'
+    };
+
+    const bar = document.createElement('div');
+    bar.id = 'dev-demo-bar';
+    bar.className = 'dev-demo-bar';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Playful Visuals Demo Controls');
+    bar.innerHTML = `
+      <span class="demo-badge">🎬 NEXT-LEVEL VISUALS DEMO</span>
+      <button id="btn-demo-replay" class="demo-btn" type="button"><i class="fa-solid fa-play" aria-hidden="true"></i> <span>Run Flow</span></button>
+      <button id="btn-demo-chat" class="demo-btn" type="button"><i class="fa-solid fa-comments" aria-hidden="true"></i> <span>In Chat</span></button>
+      <button id="btn-demo-celebrate" class="demo-btn" type="button"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> <span>Celebrate</span></button>
+      <button id="btn-demo-close" class="demo-close-btn" type="button" aria-label="Close demo bar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    `;
+    document.body.appendChild(bar);
+
+    document.getElementById('btn-demo-close')?.addEventListener('click', () => {
+      bar.remove();
+    });
+
+    document.getElementById('btn-demo-celebrate')?.addEventListener('click', () => {
+      if (window.appMascot) {
+        window.appMascot.celebrate(3500);
+      }
+    });
+
+    document.getElementById('btn-demo-chat')?.addEventListener('click', () => {
+      toggleChatDrawer(true);
+    });
+
+    const runDemoFlow = () => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = '"How does photosynthesis work?"';
+      }
+
+      // Step 1: Thinking
+      if (avatarStage) avatarStage.setState('thinking');
+      if (window.appMascot) window.appMascot.setMood('thinking');
+
+      setTimeout(() => {
+        // Step 2: Explaining + Reveal Lesson Card
+        if (avatarStage) avatarStage.setState('speaking');
+        if (window.appMascot) window.appMascot.setMood('explaining');
+
+        showVoicePopup(sampleCard.plainText, sampleCard);
+
+        // Also populate chat drawer
+        if (chatAgent) {
+          const exists = chatAgent.messages.some(m => m.lessonCard);
+          if (!exists) {
+            chatAgent.addMessage('user', 'How does photosynthesis work?');
+            chatAgent.addMessage('appu', sampleCard.plainText, null, null, {
+              lessonCard: sampleCard,
+              mood: 'explaining'
+            });
+          }
+        }
+      }, 1200);
+    };
+
+    document.getElementById('btn-demo-replay')?.addEventListener('click', runDemoFlow);
+
+    // Auto-trigger the demo sequence after 600ms on first load
+    setTimeout(runDemoFlow, 600);
+  }
+
+  if (typeof window !== 'undefined' && /[?&]demo=(?:1|rich|visuals)/i.test(window.location.search)) {
+    initVisualsDemo();
+  }
 });
+

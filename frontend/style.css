@@ -3929,3 +3929,87 @@ body.policy-page {
   }
 }
 
+/* ==========================================================================
+   DEV-ONLY DEMO CONTROLS (?demo=1)
+   ========================================================================== */
+.dev-demo-bar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(6, 20, 38, 0.95);
+  border: 1px solid #22d3ee;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 238, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: demoBarSlide 0.4s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+@keyframes demoBarSlide {
+  from { transform: translate(-50%, -20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+.demo-badge {
+  font: 800 11px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.08em;
+  color: #22d3ee;
+  white-space: nowrap;
+}
+.demo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.12);
+  color: #ecfeff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.demo-btn:hover {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+  transform: translateY(-1px);
+}
+.demo-close-btn {
+  background: transparent;
+  border: 0;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+.demo-close-btn:hover {
+  color: #ffffff;
+}
+@media (max-width: 640px) {
+  .dev-demo-bar {
+    top: auto;
+    bottom: 84px;
+    width: calc(100% - 24px);
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-radius: 14px;
+    gap: 6px;
+  }
+  .demo-badge {
+    display: none;
+  }
+  .demo-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+
