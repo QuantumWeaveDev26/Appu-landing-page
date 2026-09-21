@@ -455,43 +455,40 @@ select option:checked, .discovery-form select option:checked {
     flex-shrink: 0;
     z-index: 20;
   }
-  .brand { gap: 8px; flex-shrink: 0; }
-  .brand-mark { width: 36px; height: 36px; border-radius: 50%; }
-  .brand-copy strong { font-size: 13.5px; }
-  .brand-copy small, .status-pill { display: none; }
+  .topbar-hamburger { display: grid !important; }
+  .brand { display: none !important; }
+  .topbar-center {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+  .topbar-center .explore-prompts-pill {
+    display: none !important;
+  }
+  .topbar-center .status-pill {
+    display: inline-flex !important;
+    padding: 0 10px;
+    font-size: 11px;
+    min-height: 32px;
+    gap: 6px;
+    white-space: nowrap;
+  }
   .topbar-actions {
     display: flex;
     align-items: center;
     gap: 5px;
     flex-shrink: 1;
     min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
   }
-  .topbar-actions::-webkit-scrollbar { display: none; }
+  .topbar-actions .auth-pill-btn { display: none; }
   .parent-session-badge { max-width: 92px; font-size: 10.5px; padding: 0 8px; min-height: 32px; gap: 4px; flex-shrink: 0; }
   .parent-session-badge > i { flex-shrink: 0; }
   .parent-session-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
   .badge-logout-btn { width: 20px; height: 20px; font-size: 9.5px; margin-left: 2px; flex-shrink: 0; }
-  .auth-pill-btn {
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 12px;
-    font-weight: 800;
-    gap: 5px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-    color: #ffffff;
-    border: 0;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
-    flex-shrink: 0;
-    cursor: pointer;
-  }
   .language-switch { padding: 2px; gap: 2px; flex-shrink: 0; }
   .lang-btn { min-height: 32px; padding: 0 8px; font-size: 10.5px; }
-  .parent-zone-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; border-radius: 10px; flex-shrink: 0; }
-  .parent-zone-btn span { display: none; }
+  .parent-zone-btn { display: none; }
   .icon-btn { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; }
   .topbar-actions #btn-sound-toggle, .topbar-actions #btn-quick-schedule { display: none; }
 
@@ -507,8 +504,6 @@ select option:checked, .discovery-form select option:checked {
     padding: 0;
     background: #071426;
   }
-
-  .topbar-center { display: none !important; }
 
   .mission-intro {
     position: relative;
@@ -631,72 +626,7 @@ select option:checked, .discovery-form select option:checked {
   }
 
   .mission-deck {
-    position: relative;
-    top: auto;
-    bottom: auto;
-    left: auto;
-    right: auto;
-    transform: none;
-    width: 100%;
-    box-sizing: border-box;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 0 12px;
-    margin-top: 12px;
-    margin-bottom: 4px;
-    flex-shrink: 0;
-    z-index: 7;
-    pointer-events: auto;
-  }
-  .mission-card {
-    min-height: 56px;
-    grid-template-columns: 36px 1fr;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 14px;
-    background: linear-gradient(110deg, color-mix(in srgb, var(--accent) 15%, rgba(4, 14, 29, .95)), rgba(5, 14, 29, .9));
-    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .mission-card:active {
-    transform: scale(0.97);
-  }
-  .mission-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    font-size: 15px;
-    flex-shrink: 0;
-  }
-  .mission-copy {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    min-width: 0;
-  }
-  .mission-copy strong {
-    font-size: 12px;
-    line-height: 1.25;
-    color: #f8fafc;
-    font-weight: 700;
-    white-space: normal;
-    word-break: break-word;
-  }
-  .mission-copy small {
-    display: block;
-    font-size: 9.5px;
-    color: #94a3b8;
-    font-weight: 500;
-    line-height: 1.2;
-    white-space: normal;
-    word-break: break-word;
-  }
-  .mission-arrow {
-    display: none;
+    display: none !important;
   }
 
   .response-dock {
@@ -2282,7 +2212,7 @@ body.policy-page {
 .is-native .topbar-hamburger { display: grid; }
 .is-native .brand { display: none; }
 .is-native .topbar { grid-template-columns: auto 1fr auto; }
-.is-native #beta-banner { display: none; }
+.is-native.is-native-app #beta-banner { display: none; }
 .is-native .landing-footer-strip { display: none; }
 
 .nav-drawer {
@@ -2342,6 +2272,63 @@ body.policy-page {
 }
 .icon-btn span { display: none; }
 .nav-drawer-slot .icon-btn span { display: inline; font-size: 13px; font-weight: 700; }
+
+.nav-drawer-missions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.nav-drawer-section-title {
+  font: 700 11px/1.2 Space Grotesk, sans-serif;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 4px;
+}
+.nav-drawer-mission-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+.nav-drawer-mission-btn:hover {
+  background: rgba(34, 211, 238, 0.08);
+  border-color: rgba(34, 211, 238, 0.3);
+  transform: translateX(2px);
+}
+.nav-drawer-mission-btn:active {
+  transform: scale(0.98);
+}
+.nav-drawer-mission-btn i {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-drawer-mission-btn div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nav-drawer-mission-btn strong {
+  font: 700 13px/1.2 Space Grotesk, sans-serif;
+  color: #fff;
+}
+.nav-drawer-mission-btn small {
+  font-size: 10.5px;
+  color: var(--muted);
+}
 
 .nav-drawer-legal {
   display: flex;

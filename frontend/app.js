@@ -392,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerShipping: 'Shipping & Delivery',
       drawerPricing: 'Pricing',
       drawerContact: 'Contact Us',
+      drawerMissionsTitle: 'Learning Missions',
       posChildNicknameLabel: 'Learner Nickname',
       posChildDobLabel: 'Date of Birth',
       dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).',
@@ -511,6 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerShipping: 'ರವಾನೆ ಮತ್ತು ವಿತರಣೆ',
       drawerPricing: 'ದರ ವಿವರ',
       drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
+      drawerMissionsTitle: 'ಕಲಿಕಾ ಮಿಷನ್‌ಗಳು',
       posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
       posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
       dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).',
@@ -630,6 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerShipping: 'शिपिंग और डिलीवरी',
       drawerPricing: 'मूल्य निर्धारण',
       drawerContact: 'संपर्क करें',
+      drawerMissionsTitle: 'लर्निंग मिशन्स',
       posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
       posChildDobLabel: 'जन्म तिथि',
       dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।',
@@ -756,6 +759,39 @@ document.addEventListener('DOMContentLoaded', () => {
       if (title) title.textContent = t.chipExamTitle;
       if (desc) desc.textContent = t.chipExamDesc;
       chipExam.setAttribute('data-prompt', t.chipExamPrompt);
+    }
+
+    const drawerChipExplain = document.querySelector('.drawer-chip-explain');
+    if (drawerChipExplain) {
+      const title = drawerChipExplain.querySelector('strong');
+      const desc = drawerChipExplain.querySelector('small');
+      if (title) title.textContent = t.chipExplainTitle;
+      if (desc) desc.textContent = t.chipExplainDesc;
+      drawerChipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
+    }
+    const drawerChipQuiz = document.querySelector('.drawer-chip-quiz');
+    if (drawerChipQuiz) {
+      const title = drawerChipQuiz.querySelector('strong');
+      const desc = drawerChipQuiz.querySelector('small');
+      if (title) title.textContent = t.chipQuizTitle;
+      if (desc) desc.textContent = t.chipQuizDesc;
+      drawerChipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
+    }
+    const drawerChipHomework = document.querySelector('.drawer-chip-homework');
+    if (drawerChipHomework) {
+      const title = drawerChipHomework.querySelector('strong');
+      const desc = drawerChipHomework.querySelector('small');
+      if (title) title.textContent = t.chipHomeworkTitle;
+      if (desc) desc.textContent = t.chipHomeworkDesc;
+      drawerChipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
+    }
+    const drawerChipExam = document.querySelector('.drawer-chip-exam');
+    if (drawerChipExam) {
+      const title = drawerChipExam.querySelector('strong');
+      const desc = drawerChipExam.querySelector('small');
+      if (title) title.textContent = t.chipExamTitle;
+      if (desc) desc.textContent = t.chipExamDesc;
+      drawerChipExam.setAttribute('data-prompt', t.chipExamPrompt);
     }
 
     const appuSaysLabel = document.getElementById('appu-says-label');
@@ -1443,6 +1479,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseNavDrawer) btnCloseNavDrawer.addEventListener('click', () => closeNavDrawer());
   if (navDrawerScrim) navDrawerScrim.addEventListener('click', () => closeNavDrawer());
 
+  // Nav drawer learning mission chips: populate chat input and open chat drawer
+  document.querySelectorAll('.nav-drawer-mission-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const prompt = btn.getAttribute('data-prompt') || '';
+      closeNavDrawer();
+      toggleChatDrawer(true);
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) {
+        chatInput.value = prompt;
+        chatInput.focus();
+      }
+    });
+  });
+
   // ==========================================
   // NATIVE APP SHELL: WELCOME GATE (post-loader sign-in screen)
   // ==========================================
@@ -1814,10 +1864,31 @@ document.addEventListener('DOMContentLoaded', () => {
     maybeShowNativeWelcomeGate();
   }
 
-  // Native app only: the email verification link opens as an Android App Link (see
-  // AndroidManifest.xml) straight into this already-running app instead of a browser.
-  // Supabase's own detectSessionInUrl only runs once at client construction against the
-  // page's own URL, so a link arriving later has to be applied manually.
+  // Mobile web (narrow screen, non-native): adopt minimal chrome.
+  // Add is-native to body and relocate crowded header controls into nav drawer
+  // so the mobile topbar restores the clean original layout (hamburger menu,
+  // timer pill, language switch, settings), while keeping the top #beta-banner
+  // visible for instant sign-up access.
+  if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+      && typeof window !== 'undefined' && window.innerWidth <= 768) {
+    document.body.classList.add('is-native');
+    const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
+    const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
+    const navAccountSlot = document.getElementById('nav-drawer-account-slot');
+    const parentSessionBadgeEl = document.getElementById('parent-session-badge');
+    const btnMainAuthEl = document.getElementById('btn-main-auth');
+    const btnParentSetupEl = document.getElementById('btn-parent-setup');
+    const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
+    const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
+    if (navActionsSlot && btnQuickScheduleEl && !navActionsSlot.contains(btnQuickScheduleEl)) navActionsSlot.appendChild(btnQuickScheduleEl);
+    if (navActionsSlot && btnSoundToggleEl && !navActionsSlot.contains(btnSoundToggleEl)) navActionsSlot.appendChild(btnSoundToggleEl);
+    if (navBadgeSlot && parentSessionBadgeEl && !navBadgeSlot.contains(parentSessionBadgeEl)) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnMainAuthEl && !navAccountSlot.contains(btnMainAuthEl)) navAccountSlot.appendChild(btnMainAuthEl);
+    if (navAccountSlot && btnParentSetupEl && !navAccountSlot.contains(btnParentSetupEl)) navAccountSlot.appendChild(btnParentSetupEl);
+    if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
+    if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
+    if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
+  }
 
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
     document.body.classList.add('is-native');

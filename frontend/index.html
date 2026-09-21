@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260921-04">
+  <link rel="stylesheet" href="style.css?v=20260921-05">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -178,6 +178,25 @@
     </header>
     <nav class="nav-drawer-body">
       <div id="nav-drawer-lang-slot" class="nav-drawer-slot"></div>
+      <div class="nav-drawer-missions">
+        <span class="nav-drawer-section-title" data-i18n="drawerMissionsTitle">Learning Missions</span>
+        <button class="nav-drawer-mission-btn drawer-chip-explain" type="button" data-prompt="Explain this concept simply with a fun real-world example: ">
+          <i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i>
+          <div><strong data-i18n="chipExplainTitle">Explain Concept</strong><small data-i18n="chipExplainDesc">Simple breakdown</small></div>
+        </button>
+        <button class="nav-drawer-mission-btn drawer-chip-quiz" type="button" data-prompt="Give me a quick 3-question quiz with multiple choice options on: ">
+          <i class="fa-solid fa-circle-question text-cyan" aria-hidden="true"></i>
+          <div><strong data-i18n="chipQuizTitle">Play Quiz</strong><small data-i18n="chipQuizDesc">Test knowledge</small></div>
+        </button>
+        <button class="nav-drawer-mission-btn drawer-chip-homework" type="button" data-prompt="Help me understand how to solve this step by step: ">
+          <i class="fa-solid fa-book-open-reader text-green" aria-hidden="true"></i>
+          <div><strong data-i18n="chipHomeworkTitle">Homework Helper</strong><small data-i18n="chipHomeworkDesc">Step-by-step guidance</small></div>
+        </button>
+        <button class="nav-drawer-mission-btn drawer-chip-exam" type="button" data-prompt="Give me an exam-style question and marking scheme on: ">
+          <i class="fa-solid fa-medal text-violet" aria-hidden="true"></i>
+          <div><strong data-i18n="chipExamTitle">Exam Practice</strong><small data-i18n="chipExamDesc">Revise smarter</small></div>
+        </button>
+      </div>
       <div id="nav-drawer-actions-slot" class="nav-drawer-slot"></div>
       <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span data-i18n="drawerReports">Child Progress Report</span></button>
       <div class="nav-drawer-legal">
@@ -658,19 +677,19 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260921-04"></script>
-  <script src="appu-config.js?v=20260921-04"></script>
-  <script src="appu-session.js?v=20260921-04"></script>
-  <script src="appu-backend-client.js?v=20260921-04"></script>
-  <script src="parent-onboarding-shell.js?v=20260921-04"></script>
-  <script src="parent-setup-ui.js?v=20260921-04"></script>
-  <script src="prompt-library-ui.js?v=20260921-04"></script>
-  <script src="avatar-stage.js?v=20260921-04"></script>
-  <script src="voice-engine.js?v=20260921-04"></script>
-  <script src="chat-history.js?v=20260921-04"></script>
-  <script src="chat-agent.js?v=20260921-04"></script>
-  <script src="parent-reports-ui.js?v=20260921-04"></script>
-  <script src="parental-controls-ui.js?v=20260921-04"></script>
-  <script src="app.js?v=20260921-04"></script>
+  <script src="voice-contract.js?v=20260921-05"></script>
+  <script src="appu-config.js?v=20260921-05"></script>
+  <script src="appu-session.js?v=20260921-05"></script>
+  <script src="appu-backend-client.js?v=20260921-05"></script>
+  <script src="parent-onboarding-shell.js?v=20260921-05"></script>
+  <script src="parent-setup-ui.js?v=20260921-05"></script>
+  <script src="prompt-library-ui.js?v=20260921-05"></script>
+  <script src="avatar-stage.js?v=20260921-05"></script>
+  <script src="voice-engine.js?v=20260921-05"></script>
+  <script src="chat-history.js?v=20260921-05"></script>
+  <script src="chat-agent.js?v=20260921-05"></script>
+  <script src="parent-reports-ui.js?v=20260921-05"></script>
+  <script src="parental-controls-ui.js?v=20260921-05"></script>
+  <script src="app.js?v=20260921-05"></script>
 </body>
 </html>
