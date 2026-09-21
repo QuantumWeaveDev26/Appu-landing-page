@@ -141,9 +141,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   box-sizing: border-box;
 }
 
-.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -2%; width: min(560px, 41vw); height: 76%; max-height: calc(100% - 150px); transform: translateX(-50%); }
-.avatar-interactive-figure { position: absolute; z-index: 3; inset: 4% 8% 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
-.avatar-interactive-figure img { display: block; width: auto; height: 96%; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 28px 28px rgba(0, 0, 0, .52)); transform: none; animation: none; }
+.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -2%; width: min(840px, 58vw); height: 90%; max-height: calc(100% - 70px); transform: translateX(-50%); }
+.avatar-interactive-figure { position: absolute; z-index: 3; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.avatar-interactive-figure img { display: block; width: auto; height: 100%; max-height: 100%; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 30px 45px rgba(0, 0, 0, .75)); transform: none; animation: none; }
 .avatar-glow { position: absolute; z-index: -1; left: 50%; bottom: 2%; width: 78%; height: 57%; border-radius: 50%; background: radial-gradient(circle, rgba(34, 211, 238, .22), transparent 68%); transform: translateX(-50%); filter: blur(12px); }
 .stage-halo { position: absolute; left: 50%; bottom: 1%; width: 92%; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%) perspective(500px) rotateX(69deg); border: 1px solid rgba(67, 222, 255, .45); box-shadow: 0 0 30px rgba(34, 211, 238, .13), inset 0 0 28px rgba(34, 211, 238, .13); }
 .stage-halo::before, .stage-halo::after { content: ''; position: absolute; border-radius: inherit; border: 1px solid rgba(55, 224, 255, .28); }
@@ -309,9 +309,9 @@ select option:checked, .discovery-form select option:checked {
   .mission-intro { top: 16px; }
   .mission-intro h1 { font-size: clamp(30px, 2.55vw, 42px); }
   .mission-intro > p:last-child { margin-top: 6px; font-size: 12px; }
-  .avatar-stage { bottom: -4%; width: min(620px, 43vw); height: 82%; }
-  .avatar-interactive-figure { inset: 0 4% 0; }
-  .avatar-interactive-figure img { height: 100%; }
+  .avatar-stage { bottom: -2%; width: min(840px, 58vw); height: 90%; max-height: calc(100% - 65px); }
+  .avatar-interactive-figure { inset: 0; }
+  .avatar-interactive-figure img { height: 100%; max-height: 100%; }
   .appu-nameplate { bottom: 5%; }
   .mission-deck { top: 52%; grid-template-columns: minmax(220px, 270px) minmax(220px, 270px); gap: 13px; }
   .mission-card { min-height: 60px; grid-template-columns: 44px 1fr; gap: 11px; padding: 7px 18px 7px 8px; border-radius: 999px; }
@@ -332,7 +332,9 @@ select option:checked, .discovery-form select option:checked {
   .topbar-actions { grid-column: 2; }
   .mission-intro { top: 18px; width: 90%; }
   .mission-intro h1 { font-size: clamp(28px, 5vw, 39px); }
-  .avatar-stage { bottom: 1%; width: min(390px, 46vw); height: 72%; }
+  .avatar-stage { bottom: 0; width: min(600px, 54vw); height: 84%; max-height: calc(100% - 70px); }
+  .avatar-interactive-figure { inset: 0; }
+  .avatar-interactive-figure img { height: 100%; max-height: 100%; }
   .mission-deck { top: auto; bottom: 10px; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 12px; transform: none; }
   .mission-card { min-height: 62px; grid-template-columns: 39px 1fr 14px; padding: 8px 11px; }
   .mission-icon { width: 39px; height: 39px; border-radius: 12px; }
@@ -543,11 +545,11 @@ select option:checked, .discovery-form select option:checked {
     left: auto;
     bottom: auto;
     transform: none;
-    width: min(380px, 94vw);
+    width: min(420px, 96vw);
     flex: 0 0 auto;
-    height: clamp(240px, 34vh, 300px);
-    min-height: 240px;
-    margin: 6px auto 2px;
+    height: clamp(290px, 40vh, 350px);
+    min-height: 290px;
+    margin: 6px auto 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -563,7 +565,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.12);
+    transform: scale(1.15);
     padding: 0;
     border: 0;
     background: transparent;
@@ -573,11 +575,11 @@ select option:checked, .discovery-form select option:checked {
     display: block;
     width: auto;
     height: 100%;
-    max-height: clamp(220px, 32vh, 280px);
+    max-height: clamp(270px, 38vh, 330px);
     max-width: 100%;
     object-fit: contain;
     object-position: bottom center;
-    filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.65));
+    filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.75));
     transform: none !important;
     animation: none !important;
   }
@@ -600,10 +602,10 @@ select option:checked, .discovery-form select option:checked {
   .appu-nameplate {
     position: absolute;
     left: 50%;
-    bottom: 4px;
+    bottom: 2px;
     transform: translateX(-50%);
     z-index: 8;
-    padding: 4px 12px;
+    padding: 4px 14px;
     font-size: 11px;
     border-radius: 999px;
     white-space: nowrap;
@@ -622,19 +624,23 @@ select option:checked, .discovery-form select option:checked {
     box-sizing: border-box;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 4px 10px 8px;
-    margin-top: 0;
+    gap: 8px;
+    padding: 0 12px;
+    margin-top: 12px;
+    margin-bottom: 4px;
     flex-shrink: 0;
     z-index: 7;
     pointer-events: auto;
   }
   .mission-card {
-    min-height: 48px;
-    grid-template-columns: 34px 1fr;
-    gap: 7px;
-    padding: 6px 8px;
-    border-radius: 12px;
+    min-height: 56px;
+    grid-template-columns: 36px 1fr;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: linear-gradient(110deg, color-mix(in srgb, var(--accent) 15%, rgba(4, 14, 29, .95)), rgba(5, 14, 29, .9));
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
@@ -642,37 +648,35 @@ select option:checked, .discovery-form select option:checked {
     transform: scale(0.97);
   }
   .mission-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    font-size: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 15px;
     flex-shrink: 0;
   }
   .mission-copy {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1px;
+    gap: 2px;
     min-width: 0;
   }
   .mission-copy strong {
-    font-size: 11.5px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.25;
     color: #f8fafc;
     font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
   }
   .mission-copy small {
     display: block;
-    font-size: 9px;
+    font-size: 9.5px;
     color: #94a3b8;
     font-weight: 500;
     line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
   }
   .mission-arrow {
     display: none;
