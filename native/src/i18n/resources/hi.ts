@@ -19,8 +19,8 @@ export const hi: TranslationKeys = {
   },
   home: {
     eyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
-    title: 'आज हम क्या नया',
-    titleHighlight: 'सीखेंगे?',
+    title: 'शैक्षणिक उत्कृष्टता के लिए',
+    titleHighlight: 'तैयार हैं?',
     subtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
     explorePrompts: 'प्रॉम्प्ट देखें',
     chipExplainTitle: 'विषय समझाओ',
