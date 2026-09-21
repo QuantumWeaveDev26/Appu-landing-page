@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260921-05">
+  <link rel="stylesheet" href="style.css?v=20260921-06">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -109,6 +109,15 @@
         <div class="appu-nameplate"><span class="online-dot" aria-hidden="true"></span><strong>APPU</strong><small id="appu-companion-tag" data-i18n="companionTag">AI learning companion</small></div>
       </div>
 
+      <div id="mobile-status-slot" class="mobile-status-slot"></div>
+      <script>
+        if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+          var p = document.getElementById('avatar-status-pill');
+          var s = document.getElementById('mobile-status-slot');
+          if (p && s && !s.contains(p)) s.appendChild(p);
+        }
+      </script>
+
       <div class="mission-deck" aria-label="Choose a learning mission">
         <button id="chip-explain" class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
           <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title" data-i18n="chipExplainTitle">Explain My Topic</strong><small class="chip-desc" data-i18n="chipExplainDesc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
@@ -198,6 +207,7 @@
         </button>
       </div>
       <div id="nav-drawer-actions-slot" class="nav-drawer-slot"></div>
+      <button id="btn-drawer-parent-zone" class="nav-drawer-parent-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> <span data-i18n="drawerParentZone">Parent Zone & Controls</span></button>
       <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span data-i18n="drawerReports">Child Progress Report</span></button>
       <div class="nav-drawer-legal">
         <a href="privacy-policy.html" data-i18n="drawerPrivacy">Privacy Policy</a>
@@ -677,19 +687,19 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260921-05"></script>
-  <script src="appu-config.js?v=20260921-05"></script>
-  <script src="appu-session.js?v=20260921-05"></script>
-  <script src="appu-backend-client.js?v=20260921-05"></script>
-  <script src="parent-onboarding-shell.js?v=20260921-05"></script>
-  <script src="parent-setup-ui.js?v=20260921-05"></script>
-  <script src="prompt-library-ui.js?v=20260921-05"></script>
-  <script src="avatar-stage.js?v=20260921-05"></script>
-  <script src="voice-engine.js?v=20260921-05"></script>
-  <script src="chat-history.js?v=20260921-05"></script>
-  <script src="chat-agent.js?v=20260921-05"></script>
-  <script src="parent-reports-ui.js?v=20260921-05"></script>
-  <script src="parental-controls-ui.js?v=20260921-05"></script>
-  <script src="app.js?v=20260921-05"></script>
+  <script src="voice-contract.js?v=20260921-06"></script>
+  <script src="appu-config.js?v=20260921-06"></script>
+  <script src="appu-session.js?v=20260921-06"></script>
+  <script src="appu-backend-client.js?v=20260921-06"></script>
+  <script src="parent-onboarding-shell.js?v=20260921-06"></script>
+  <script src="parent-setup-ui.js?v=20260921-06"></script>
+  <script src="prompt-library-ui.js?v=20260921-06"></script>
+  <script src="avatar-stage.js?v=20260921-06"></script>
+  <script src="voice-engine.js?v=20260921-06"></script>
+  <script src="chat-history.js?v=20260921-06"></script>
+  <script src="chat-agent.js?v=20260921-06"></script>
+  <script src="parent-reports-ui.js?v=20260921-06"></script>
+  <script src="parental-controls-ui.js?v=20260921-06"></script>
+  <script src="app.js?v=20260921-06"></script>
 </body>
 </html>

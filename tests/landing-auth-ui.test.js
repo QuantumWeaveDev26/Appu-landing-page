@@ -127,7 +127,10 @@ describe('Landing Page Visible Sign in / Sign up CTA & Native Drawer Slot', () =
       }
     };
 
-    return { elements, btnMainAuth, parentSessionBadge, navDrawerAccountSlot };
+    const betaBanner = createMockElement('div', 'beta-banner', 'beta-banner');
+    elements.set('beta-banner', betaBanner);
+
+    return { elements, btnMainAuth, parentSessionBadge, navDrawerAccountSlot, betaBanner };
   }
 
   beforeEach(() => {
@@ -233,5 +236,55 @@ describe('Landing Page Visible Sign in / Sign up CTA & Native Drawer Slot', () =
       '#btn-main-auth must be relocated into #nav-drawer-account-slot in native mode'
     );
     assert.equal(btnMainAuth.parentElement, navAccountSlot);
+  });
+
+  test('when session is authenticated, updateHeaderSessionBadge hides #beta-banner', () => {
+    global.window.AppuSession.setSession({
+      parentContext: { childName: 'Aarav' }
+    });
+    ParentOnboardingShell.state.session = { user: { id: 'parent-123' } };
+    ParentOnboardingShell.state.authStatus = 'AUTHENTICATED';
+    ParentOnboardingShell.state.selectedChild = { preferredName: 'Aarav' };
+
+    ParentOnboardingShell.updateHeaderSessionBadge();
+
+    assert.equal(dom.betaBanner.style.display, 'none', '#beta-banner must have display: none when authenticated');
+    assert.ok(dom.betaBanner.classList.contains('is-hidden'), '#beta-banner must have is-hidden class when authenticated');
+  });
+
+  test('when session is unauthenticated, updateHeaderSessionBadge displays #beta-banner', () => {
+    global.window.AppuSession.clear();
+    ParentOnboardingShell.state.session = null;
+    ParentOnboardingShell.state.authStatus = 'UNAUTHENTICATED';
+
+    ParentOnboardingShell.updateHeaderSessionBadge();
+
+    assert.notEqual(dom.betaBanner.style.display, 'none', '#beta-banner must NOT have display: none when unauthenticated');
+    assert.ok(!dom.betaBanner.classList.contains('is-hidden'), '#beta-banner must NOT have is-hidden class when unauthenticated');
+  });
+
+  test('index.html contains #btn-drawer-parent-zone inside #nav-drawer with i18n key', () => {
+    const html = fs.readFileSync(path.resolve(__dirname, '../frontend/index.html'), 'utf8');
+    assert.ok(html.includes('id="btn-drawer-parent-zone"'), '#btn-drawer-parent-zone must exist in index.html');
+    assert.ok(html.includes('data-i18n="drawerParentZone"'), 'drawerParentZone data-i18n attribute must be present');
+  });
+
+  test('index.html contains #mobile-status-slot in mission-stage', () => {
+    const html = fs.readFileSync(path.resolve(__dirname, '../frontend/index.html'), 'utf8');
+    assert.ok(html.includes('id="mobile-status-slot"'), '#mobile-status-slot must exist in index.html');
+  });
+
+  test('drawerParentZone is translated in en, kn, and hi in app.js', () => {
+    const appJs = fs.readFileSync(path.resolve(__dirname, '../frontend/app.js'), 'utf8');
+    const enMatch = /en:\s*\{[\s\S]*?drawerParentZone:\s*['"]([^'"]+)['"]/.exec(appJs);
+    const knMatch = /kn:\s*\{[\s\S]*?drawerParentZone:\s*['"]([^'"]+)['"]/.exec(appJs);
+    const hiMatch = /hi:\s*\{[\s\S]*?drawerParentZone:\s*['"]([^'"]+)['"]/.exec(appJs);
+
+    assert.ok(enMatch, 'English translation for drawerParentZone must exist');
+    assert.ok(knMatch, 'Kannada translation for drawerParentZone must exist');
+    assert.ok(hiMatch, 'Hindi translation for drawerParentZone must exist');
+    assert.ok(enMatch[1].length > 0);
+    assert.ok(knMatch[1].length > 0);
+    assert.ok(hiMatch[1].length > 0);
   });
 });

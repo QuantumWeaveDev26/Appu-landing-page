@@ -1177,6 +1177,44 @@
         statusLabel.textContent = 'Appu is ready';
       }
     }
+
+    const hasActiveSession = Boolean(
+      isAuthed ||
+      (state.session && state.authStatus !== 'UNAUTHENTICATED')
+    );
+    const betaBanner = document.getElementById('beta-banner');
+    if (betaBanner) {
+      if (hasActiveSession) {
+        if (betaBanner.classList && typeof betaBanner.classList.add === 'function') {
+          betaBanner.classList.add('is-hidden');
+        }
+        if (betaBanner.style) {
+          if (typeof betaBanner.style.setProperty === 'function') {
+            betaBanner.style.setProperty('display', 'none', 'important');
+          } else {
+            betaBanner.style.display = 'none';
+          }
+        }
+      } else {
+        if (betaBanner.classList && typeof betaBanner.classList.remove === 'function') {
+          betaBanner.classList.remove('is-hidden');
+        }
+        if (betaBanner.style) {
+          if (typeof betaBanner.style.removeProperty === 'function') {
+            betaBanner.style.removeProperty('display');
+          } else {
+            betaBanner.style.display = '';
+          }
+        }
+      }
+    }
+    if (typeof document !== 'undefined' && document.body && document.body.classList) {
+      if (hasActiveSession) {
+        document.body.classList.add('is-authenticated');
+      } else {
+        document.body.classList.remove('is-authenticated');
+      }
+    }
   }
 
   /**

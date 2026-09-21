@@ -415,6 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
       historyEmpty: 'No saved conversations yet.',
       historyError: 'Could not load recent chats. Try again.',
       clearAllHistory: 'Clear all history',
+      drawerParentZone: 'Parent Zone & Controls',
       drawerReports: 'Child Progress Report',
       guestLimitTitle: 'Your complimentary APPU chats are complete',
       guestLimitLead: 'Sign in to continue learning, save your progress, and unlock tailored study plans.',
@@ -535,6 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
       historyEmpty: 'ಇನ್ನೂ ಯಾವುದೇ ಸಂಭಾಷಣೆಗಳು ಉಳಿಸಲಾಗಿಲ್ಲ.',
       historyError: 'ಸಂಭಾಷಣೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
       clearAllHistory: 'ಎಲ್ಲಾ ಇತಿಹಾಸ ತೆರವುಗೊಳಿಸಿ',
+      drawerParentZone: 'ಪೋಷಕರ ವಲಯ & ನಿಯಂತ್ರಣಗಳು',
       drawerReports: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
       guestLimitTitle: 'ನಿಮ್ಮ ಉಚಿತ ಅಪ್ಪು ಸಂಭಾಷಣೆಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ',
       guestLimitLead: 'ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲು ಮತ್ತು ಸೂಕ್ತವಾದ ಅಧ್ಯಯನ ಯೋಜನೆಗಳನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
@@ -655,6 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
       historyEmpty: 'अभी तक कोई बातचीत सुरक्षित नहीं है।',
       historyError: 'हाल की चैट लोड नहीं हो सकीं। पुनः प्रयास करें।',
       clearAllHistory: 'सारा इतिहास साफ़ करें',
+      drawerParentZone: 'पेरेंट ज़ोन और नियंत्रण',
       drawerReports: 'बच्चे की प्रगति रिपोर्ट',
       guestLimitTitle: 'आपकी निःशुल्क अप्पू बातचीत पूरी हो गई हैं',
       guestLimitLead: 'सीखना जारी रखने, अपनी प्रगति सहेजने और अनुकूलित अध्ययन योजनाओं को अनलॉक करने के लिए साइन इन करें।',
@@ -1889,6 +1892,79 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
     if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
   }
+
+  // Parent Zone & Controls affordance in mobile slide-out nav drawer
+  const btnDrawerParentZoneEl = document.getElementById('btn-drawer-parent-zone');
+  if (btnDrawerParentZoneEl) {
+    btnDrawerParentZoneEl.addEventListener('click', () => {
+      closeNavDrawer();
+      if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal();
+      } else {
+        const btnParentSetup = document.getElementById('btn-parent-setup');
+        if (btnParentSetup) btnParentSetup.click();
+      }
+    });
+  }
+
+  // Responsive synchronization for avatar status pill (placed below Appu model on mobile)
+  function syncResponsiveSlots() {
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768) ||
+      (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+    const statusPill = document.getElementById('avatar-status-pill');
+    const mobileSlot = document.getElementById('mobile-status-slot');
+    const topbarCenter = document.querySelector('.topbar-center');
+
+    if (isMobile) {
+      if (mobileSlot && statusPill && !mobileSlot.contains(statusPill)) {
+        mobileSlot.appendChild(statusPill);
+      }
+    } else {
+      if (topbarCenter && statusPill && !topbarCenter.contains(statusPill)) {
+        const btnExplore = document.getElementById('btn-explore-prompts');
+        if (btnExplore && topbarCenter.contains(btnExplore)) {
+          topbarCenter.insertBefore(statusPill, btnExplore);
+        } else {
+          topbarCenter.appendChild(statusPill);
+        }
+      }
+    }
+  }
+  syncResponsiveSlots();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', syncResponsiveSlots);
+  }
+
+  // Sync public beta banner visibility (hidden when user is authenticated)
+  function syncBetaBannerVisibility() {
+    const isAuthed = (typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated()) ||
+      (typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated());
+    const betaBanner = document.getElementById('beta-banner');
+    if (betaBanner) {
+      if (isAuthed) {
+        betaBanner.classList.add('is-hidden');
+        if (typeof betaBanner.style?.setProperty === 'function') {
+          betaBanner.style.setProperty('display', 'none', 'important');
+        } else if (betaBanner.style) {
+          betaBanner.style.display = 'none';
+        }
+        if (document.body) document.body.classList.add('is-authenticated');
+      } else {
+        betaBanner.classList.remove('is-hidden');
+        if (typeof betaBanner.style?.removeProperty === 'function') {
+          betaBanner.style.removeProperty('display');
+        } else if (betaBanner.style) {
+          betaBanner.style.display = '';
+        }
+        if (document.body) document.body.classList.remove('is-authenticated');
+      }
+    }
+  }
+  syncBetaBannerVisibility();
 
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
     document.body.classList.add('is-native');
