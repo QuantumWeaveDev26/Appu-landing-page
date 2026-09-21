@@ -17,8 +17,8 @@ export const en = {
   },
   home: {
     eyebrow: '✦ Your learning mission starts here',
-    title: 'What will we',
-    titleHighlight: 'discover today?',
+    title: 'Ready to start',
+    titleHighlight: 'academic excellence?',
     subtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
     explorePrompts: 'Explore Prompts',
     chipExplainTitle: 'Explain My Topic',

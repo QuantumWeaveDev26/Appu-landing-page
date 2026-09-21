@@ -19,8 +19,8 @@ export const kn: TranslationKeys = {
   },
   home: {
     eyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
-    title: 'ಇಂದು ನಾವು ಏನು',
-    titleHighlight: 'ಕಲಿಯೋಣ?',
+    title: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ',
+    titleHighlight: 'ಸಿದ್ಧರಿದ್ದೀರಾ?',
     subtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
     explorePrompts: 'ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
     chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
