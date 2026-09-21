@@ -404,7 +404,38 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryExamDrills: 'Exam Drills',
       btnRefreshPrompts: 'Refresh prompts',
       btnExplorePrompts: 'Explore Prompts',
-      promptCardAskAppu: 'Ask Appu'
+      promptCardAskAppu: 'Ask Appu',
+      brandTagline: 'Learn with Appu',
+      authPill: 'Sign in / Sign up',
+      reportButton: 'Report',
+      subtitlesDefault: 'Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.',
+      historyTitle: 'Recent chats',
+      newChat: 'New chat',
+      historyEmpty: 'No saved conversations yet.',
+      historyError: 'Could not load recent chats. Try again.',
+      clearAllHistory: 'Clear all history',
+      drawerReports: 'Child Progress Report',
+      guestLimitTitle: 'Your complimentary APPU chats are complete',
+      guestLimitLead: 'Sign in to continue learning, save your progress, and unlock tailored study plans.',
+      guestFeature1: 'Personalized explanations for your syllabus',
+      guestFeature2: 'Save chat history across all your devices',
+      guestFeature3: 'Voice practice in English and Kannada',
+      guestSignIn: 'Sign in',
+      guestRegister: 'Create free account',
+      guestViewPlans: 'View learning plans',
+      reportsKicker: 'Parent Zone • Progress',
+      reportsTitle: 'Child Performance Report',
+      reportsLoading: 'Checking your reports…',
+      reportsLockedLead: "Appu can generate a detailed performance report for your child — with a score, strengths, and what to improve. To unlock it, please share quick feedback first. Once you do, your child's report is generated on demand and appears here, in the app, and on WhatsApp.",
+      reportsRatingLabel: 'How is Appu working for your family?',
+      reportsWorkingWell: "What's working well?",
+      reportsImprove: 'What would make it even better?',
+      reportsSubmit: 'Submit feedback & unlock report',
+      reportsLater: 'Maybe later',
+      reportsUnlockedLead: "Your child's report is ready to generate. It analyzes their conversations with Appu across the app, website, and WhatsApp, and produces a designed PDF with an overall score, subject breakdown, strengths, and recommendations.",
+      reportsDownload: 'Download performance report (PDF)',
+      reportsError: "We couldn't load your reports right now.",
+      reportsRetry: 'Try again'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -492,7 +523,38 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryExamDrills: 'ಪರೀಕ್ಷಾ ಅಭ್ಯಾಸ',
       btnRefreshPrompts: 'ಹೊಸ ಪ್ರಾಂಪ್ಟ್‌ಗಳು',
       btnExplorePrompts: 'ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
-      promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ'
+      promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      brandTagline: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಕಲಿಯಿರಿ',
+      authPill: 'ಸೈನ್ ಇನ್ / ನೋಂದಣಿ',
+      reportButton: 'ವರದಿ',
+      subtitlesDefault: 'ನಮಸ್ಕಾರ! ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ, ಪ್ರಶ್ನೆ ಟೈಪ್ ಮಾಡಿ, ಅಥವಾ ಮಾತನಾಡಲು ಮೈಕ್ರೊಫೋನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.',
+      historyTitle: 'ಇತ್ತೀಚಿನ ಸಂಭಾಷಣೆಗಳು',
+      newChat: 'ಹೊಸ ಸಂಭಾಷಣೆ',
+      historyEmpty: 'ಇನ್ನೂ ಯಾವುದೇ ಸಂಭಾಷಣೆಗಳು ಉಳಿಸಲಾಗಿಲ್ಲ.',
+      historyError: 'ಸಂಭಾಷಣೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+      clearAllHistory: 'ಎಲ್ಲಾ ಇತಿಹಾಸ ತೆರವುಗೊಳಿಸಿ',
+      drawerReports: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
+      guestLimitTitle: 'ನಿಮ್ಮ ಉಚಿತ ಅಪ್ಪು ಸಂಭಾಷಣೆಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ',
+      guestLimitLead: 'ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲು ಮತ್ತು ಸೂಕ್ತವಾದ ಅಧ್ಯಯನ ಯೋಜನೆಗಳನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+      guestFeature1: 'ನಿಮ್ಮ ಪಠ್ಯಕ್ರಮಕ್ಕಾಗಿ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿವರಣೆಗಳು',
+      guestFeature2: 'ನಿಮ್ಮ ಎಲ್ಲಾ ಸಾಧನಗಳಲ್ಲಿ ಚಾಟ್ ಇತಿಹಾಸವನ್ನು ಉಳಿಸಿ',
+      guestFeature3: 'ಇಂಗ್ಲಿಷ್ ಮತ್ತು ಕನ್ನಡದಲ್ಲಿ ಧ್ವನಿ ಅಭ್ಯಾಸ',
+      guestSignIn: 'ಸೈನ್ ಇನ್',
+      guestRegister: 'ಉಚಿತ ಖಾತೆ ರಚಿಸಿ',
+      guestViewPlans: 'ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+      reportsKicker: 'ಪೋಷಕರ ವಲಯ • ಪ್ರಗತಿ',
+      reportsTitle: 'ಮಗುವಿನ ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿ',
+      reportsLoading: 'ನಿಮ್ಮ ವರದಿಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…',
+      reportsLockedLead: 'ಅಪ್ಪು ನಿಮ್ಮ ಮಗುವಿಗೆ ವಿವರವಾದ ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿಯನ್ನು ಸಿದ್ಧಪಡಿಸಬಹುದು — ಅಂಕಗಳು, ಸಾಮರ್ಥ್ಯಗಳು ಮತ್ತು ಸುಧಾರಣೆಯ ಕ್ಷೇತ್ರಗಳೊಂದಿಗೆ. ಅದನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು, ದಯವಿಟ್ಟು ಮೊದಲು ಸಂಕ್ಷಿಪ್ತ ಪ್ರತಿಕ್ರಿಯೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ.',
+      reportsRatingLabel: 'ನಿಮ್ಮ ಕುಟುಂಬಕ್ಕೆ ಅಪ್ಪು ಹೇಗೆ ಸಹಾಯಕವಾಗಿದೆ?',
+      reportsWorkingWell: 'ಯಾವುದು ಉತ್ತಮವಾಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿದೆ?',
+      reportsImprove: 'ಇದನ್ನು ಇನ್ನಷ್ಟು ಉತ್ತಮಗೊಳಿಸಲು ಏನು ಮಾಡಬಹುದು?',
+      reportsSubmit: 'ಪ್ರತಿಕ್ರಿಯೆ ಸಲ್ಲಿಸಿ & ವರದಿ ಅನ್‌ಲಾಕ್ ಮಾಡಿ',
+      reportsLater: 'ನಂತರ ನೋಡೋಣ',
+      reportsUnlockedLead: 'ನಿಮ್ಮ ಮಗುವಿನ ವರದಿ ರಚಿಸಲು ಸಿದ್ಧವಾಗಿದೆ. ಇದು ಆ್ಯಪ್, ವೆಬ್‌ಸೈಟ್ ಮತ್ತು WhatsApp ನಾದ್ಯಂತ ಸಂಭಾಷಣೆಗಳನ್ನು ವಿಶ್ಲೇಷಿಸಿ, ವಿನ್ಯಾಸಗೊಳಿಸಿದ PDF ವರದಿ ನೀಡುತ್ತದೆ.',
+      reportsDownload: 'ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ (PDF)',
+      reportsError: 'ಇದೀಗ ನಿಮ್ಮ ವರದಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.',
+      reportsRetry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -580,13 +642,70 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryExamDrills: 'परीक्षा अभ्यास',
       btnRefreshPrompts: 'प्रॉम्प्ट ताज़ा करें',
       btnExplorePrompts: 'प्रॉम्प्ट देखें',
-      promptCardAskAppu: 'अप्पू से पूछें'
+      promptCardAskAppu: 'अप्पू से पूछें',
+      brandTagline: 'अप्पू के साथ सीखें',
+      authPill: 'साइन इन / साइन अप',
+      reportButton: 'रिपोर्ट',
+      subtitlesDefault: 'नमस्ते! कोई विषय चुनें, प्रश्न टाइप करें, या बात करने के लिए माइक दबाएं।',
+      historyTitle: 'हाल की चैट',
+      newChat: 'नई चैट',
+      historyEmpty: 'अभी तक कोई बातचीत सुरक्षित नहीं है।',
+      historyError: 'हाल की चैट लोड नहीं हो सकीं। पुनः प्रयास करें।',
+      clearAllHistory: 'सारा इतिहास साफ़ करें',
+      drawerReports: 'बच्चे की प्रगति रिपोर्ट',
+      guestLimitTitle: 'आपकी निःशुल्क अप्पू बातचीत पूरी हो गई हैं',
+      guestLimitLead: 'सीखना जारी रखने, अपनी प्रगति सहेजने और अनुकूलित अध्ययन योजनाओं को अनलॉक करने के लिए साइन इन करें।',
+      guestFeature1: 'आपके पाठ्यक्रम के लिए व्यक्तिगत स्पष्टीकरण',
+      guestFeature2: 'अपने सभी उपकरणों पर चैट इतिहास सहेजें',
+      guestFeature3: 'अंग्रेजी और कन्नड़ में वॉयस अभ्यास',
+      guestSignIn: 'साइन इन',
+      guestRegister: 'मुफ़्त खाता बनाएं',
+      guestViewPlans: 'लर्निंग प्लान देखें',
+      reportsKicker: 'पेरेंट ज़ोन • प्रगति',
+      reportsTitle: 'बच्चे की प्रदर्शन रिपोर्ट',
+      reportsLoading: 'आपकी रिपोर्ट जांची जा रही हैं…',
+      reportsLockedLead: 'अप्पू आपके बच्चे के लिए विस्तृत प्रदर्शन रिपोर्ट तैयार कर सकता है — स्कोर, ताकत और सुधार के सुझावों के साथ। इसे अनलॉक करने के लिए, कृपया पहले संक्षिप्त प्रतिक्रिया साझा करें।',
+      reportsRatingLabel: 'अप्पू आपके परिवार के लिए कैसा काम कर रहा है?',
+      reportsWorkingWell: 'क्या अच्छा काम कर रहा है?',
+      reportsImprove: 'इसे और बेहतर क्या बनाएगा?',
+      reportsSubmit: 'प्रतिक्रिया सबमिट करें और रिपोर्ट अनलॉक करें',
+      reportsLater: 'शायद बाद में',
+      reportsUnlockedLead: 'आपके बच्चे की रिपोर्ट तैयार है। यह ऐप, वेबसाइट और व्हाट्सएप पर बातचीत का विश्लेषण करके पीडीएफ रिपोर्ट तैयार करती है।',
+      reportsDownload: 'प्रदर्शन रिपोर्ट डाउनलोड करें (PDF)',
+      reportsError: 'हम अभी आपकी रिपोर्ट लोड नहीं कर सके।',
+      reportsRetry: 'पुनः प्रयास करें'
     }
   };
 
   function applyUiTranslations(lang) {
     const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
-    document.documentElement.lang = lang;
+    if (document.documentElement) {
+      document.documentElement.lang = lang;
+    }
+
+    // Generic declarative data-i18n attributes across the entire page
+    if (typeof document.querySelectorAll === 'function') {
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (t && t[key] !== undefined) el.textContent = t[key];
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-html');
+        if (t && t[key] !== undefined) el.innerHTML = t[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (t && t[key] !== undefined) el.placeholder = t[key];
+      });
+      document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-title');
+        if (t && t[key] !== undefined) el.title = t[key];
+      });
+      document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-aria');
+        if (t && t[key] !== undefined) el.setAttribute('aria-label', t[key]);
+      });
+    }
 
     const statusLabel = document.getElementById('status-label');
     if (statusLabel) statusLabel.textContent = t.statusLabel;
@@ -894,6 +1013,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize UI language state on load
   setLanguage(currentLang, false);
+  window.AppuI18n = {
+    translations: UI_TRANSLATIONS,
+    setLanguage: setLanguage,
+    applyUiTranslations: applyUiTranslations,
+    getCurrentLang: () => currentLang
+  };
   if (voiceEngine && !voiceEngine.isVoiceSupported) {
     const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
     const subtitlesText = document.getElementById('subtitles-text');
@@ -1693,32 +1818,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // AndroidManifest.xml) straight into this already-running app instead of a browser.
   // Supabase's own detectSessionInUrl only runs once at client construction against the
   // page's own URL, so a link arriving later has to be applied manually.
-  // Mobile web (narrow, non-native) adopts the app's minimal chrome: add the same
-  // is-native class and relocate the crowded header controls (language switch, sign-in,
-  // parent, etc.) into the nav drawer, exactly as the native path below does — minus the
-  // Capacitor/legal-viewer specifics that only apply inside the packaged app.
-  if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
-      && typeof window !== 'undefined' && window.innerWidth <= 640) {
-    document.body.classList.add('is-native');
-    // NOTE: unlike the native app, mobile web KEEPS the language switch in the top bar
-    // (user request) — only the other controls move into the drawer.
-    const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
-    const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
-    const navAccountSlot = document.getElementById('nav-drawer-account-slot');
-    const parentSessionBadgeEl = document.getElementById('parent-session-badge');
-    const btnMainAuthEl = document.getElementById('btn-main-auth');
-    const btnParentSetupEl = document.getElementById('btn-parent-setup');
-    const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
-    const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
-    if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
-    if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
-    if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
-    if (navAccountSlot && btnMainAuthEl) navAccountSlot.appendChild(btnMainAuthEl);
-    if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
-    if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
-    if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
-    if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
-  }
 
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
     document.body.classList.add('is-native');
