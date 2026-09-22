@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     en: {
       statusLabel: 'Appu is ready',
       missionEyebrow: '✦ Your learning mission starts here',
-      missionTitleHtml: 'Ready to start <span>academic excellence?</span>',
+      missionTitleHtml: 'Start your <span>academic success</span> now!',
       missionSubtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
       companionTag: 'AI learning companion',
       chipExplainTitle: 'Explain My Topic',
@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
       missionEyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
-      missionTitleHtml: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ <span>ಸಿದ್ಧರಿದ್ದೀರಾ?</span>',
+      missionTitleHtml: 'ಈಗಲೇ ನಿಮ್ಮ <span>ಶೈಕ್ಷಣಿಕ ಯಶಸ್ಸನ್ನು</span> ಆರಂಭಿಸಿ!',
       missionSubtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
       companionTag: 'ಎಐ ಕಲಿಕಾ ಸಂಗಾತಿ',
       chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
@@ -563,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hi: {
       statusLabel: 'अप्पू तैयार है',
       missionEyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
-      missionTitleHtml: 'शैक्षणिक उत्कृष्टता के लिए <span>तैयार हैं?</span>',
+      missionTitleHtml: 'अभी अपनी <span>शैक्षणिक सफलता</span> शुरू करें!',
       missionSubtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
       companionTag: 'एआई लर्निंग साथी',
       chipExplainTitle: 'विषय समझाओ',
