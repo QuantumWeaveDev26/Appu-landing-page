@@ -1481,7 +1481,8 @@
   }
 
   /**
-   * 5) Appu Podcast (Audio Overview): Audio player UI with chapters, equalizer, progress, caption, SpeechSynthesis
+   * 5) Appu Podcast (Audio Overview): Audio player UI with chapters, equalizer, progress, caption,
+   * supporting ElevenLabs real voice (audio_base64) with seamless SpeechSynthesis fallback
    */
   function renderPodcast(podcastScript, options = {}) {
     const data = podcastScript || SAMPLE_PODCAST_SCRIPT;
@@ -1514,18 +1515,33 @@
     const formattedDuration = `${Math.floor(totalSeconds / 60)}:${(totalSeconds % 60) < 10 ? '0' : ''}${totalSeconds % 60}`;
 
     // Compute segment time bounds for dynamic chapter highlighting
-    const totalChars = segments.reduce((sum, s) => sum + (s.text || '').length, 0) || 1;
-    let accumulated = 0;
-    const segmentBounds = segments.map((seg, i) => {
-      const segRatio = (seg.text || '').length / totalChars;
-      const segSecs = Math.max(3, Math.round(segRatio * totalSeconds));
-      const start = accumulated;
-      accumulated += segSecs;
-      return { index: i, start, end: accumulated, label: seg.label, text: seg.text };
-    });
-    if (segmentBounds.length > 0) {
-      segmentBounds[segmentBounds.length - 1].end = totalSeconds;
+    let segmentBounds = [];
+    function recomputeSegmentBounds() {
+      const totalChars = segments.reduce((sum, s) => sum + (s.text || '').length, 0) || 1;
+      let accumulated = 0;
+      segmentBounds = segments.map((seg, i) => {
+        const segRatio = (seg.text || '').length / totalChars;
+        const segSecs = Math.max(2, Math.round(segRatio * totalSeconds));
+        const start = accumulated;
+        accumulated += segSecs;
+        return { index: i, start, end: accumulated, label: seg.label, text: seg.text };
+      });
+      if (segmentBounds.length > 0) {
+        segmentBounds[segmentBounds.length - 1].end = totalSeconds;
+      }
     }
+    recomputeSegmentBounds();
+
+    // Check for real ElevenLabs audio (audio_base64)
+    const rawAudioBase64 = data.audio_base64 || data.audioBase64 || null;
+    const hasAudioBase64 = Boolean(typeof rawAudioBase64 === 'string' && rawAudioBase64.trim());
+    const audioSrc = hasAudioBase64
+      ? (rawAudioBase64.startsWith('data:') ? rawAudioBase64 : `data:audio/mpeg;base64,${rawAudioBase64.trim()}`)
+      : null;
+
+    const kickerHtml = hasAudioBase64
+      ? '<span class="podcast-badge-kicker"><i class="fa-solid fa-sparkles text-cyan" aria-hidden="true"></i> Appu\'s Voice</span>'
+      : '<span class="podcast-badge-kicker">Audio Lesson</span>';
 
     const segmentsHtml = segments.length > 0
       ? `
@@ -1556,7 +1572,7 @@
       <div class="podcast-header">
         <div class="podcast-badge-group">
           <div class="podcast-badge"><i class="fa-solid fa-headphones text-cyan" aria-hidden="true"></i> <span>Appu Podcast</span></div>
-          <span class="podcast-badge-kicker">Audio Lesson</span>
+          ${kickerHtml}
         </div>
         ${citationHtml}
       </div>
@@ -1610,10 +1626,60 @@
     const playerCard = container.querySelector('.podcast-player-card');
     const progressFill = container.querySelector('.podcast-progress-fill');
     const timeElapsed = container.querySelector('.time-elapsed');
+    const timeTotal = container.querySelector('.time-total');
     const captionText = container.querySelector('.podcast-caption-text');
     const segmentCards = typeof container.querySelectorAll === 'function'
       ? container.querySelectorAll('.podcast-segment-card')
       : [];
+
+    // Native audio element instantiation when ElevenLabs audio is present
+    let audioElement = null;
+    if (audioSrc) {
+      if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+        try {
+          audioElement = document.createElement('audio');
+          audioElement.src = audioSrc;
+          audioElement.preload = 'metadata';
+          audioElement.className = 'podcast-native-audio';
+          audioElement.style.display = 'none';
+          container.appendChild(audioElement);
+        } catch (_) {
+          audioElement = null;
+        }
+      } else if (typeof Audio !== 'undefined') {
+        try {
+          audioElement = new Audio(audioSrc);
+        } catch (_) {
+          audioElement = null;
+        }
+      }
+    }
+
+    if (audioElement && typeof audioElement.addEventListener === 'function') {
+      audioElement.addEventListener('loadedmetadata', () => {
+        if (isFinite(audioElement.duration) && audioElement.duration > 0) {
+          totalSeconds = Math.round(audioElement.duration);
+          recomputeSegmentBounds();
+          const m = Math.floor(totalSeconds / 60);
+          const s = totalSeconds % 60;
+          const fmt = `${m}:${s < 10 ? '0' : ''}${s}`;
+          if (timeTotal) timeTotal.textContent = fmt;
+          const durBadge = container.querySelector('.podcast-duration');
+          if (durBadge) {
+            durBadge.innerHTML = `<i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(fmt)}`;
+          }
+        }
+      });
+      audioElement.addEventListener('ended', () => {
+        stopPlayback(true);
+        if (progressFill) progressFill.style.width = '100%';
+      });
+      audioElement.addEventListener('pause', () => {
+        if (!audioElement.ended && !isPaused && isPlaying) {
+          pausePlayback();
+        }
+      });
+    }
 
     let isPlaying = false;
     let isPaused = false;
@@ -1649,6 +1715,14 @@
         clearInterval(progressInterval);
         progressInterval = null;
       }
+      if (audioElement && typeof audioElement.pause === 'function') {
+        try {
+          audioElement.pause();
+          if (isComplete && isFinite(audioElement.currentTime)) {
+            audioElement.currentTime = 0;
+          }
+        } catch (_) {}
+      }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try { window.speechSynthesis.cancel(); } catch (_) {}
       }
@@ -1665,21 +1739,72 @@
         clearInterval(progressInterval);
         progressInterval = null;
       }
+      if (audioElement && typeof audioElement.pause === 'function') {
+        try { audioElement.pause(); } catch (_) {}
+      }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try { window.speechSynthesis.pause(); } catch (_) {}
       }
     }
 
     function startPlayback(customText = null, startFromSecond = null) {
-      const textToSpeak = customText || data.script || segments.map(s => s.text).join(' ');
-      if (startFromSecond !== null) {
-        elapsedSeconds = startFromSecond;
-      }
       isPlaying = true;
       isPaused = false;
       if (playerCard) playerCard.classList.add('is-playing');
       if (playBtn) {
         playBtn.innerHTML = '<i class="fa-solid fa-pause play-icon" aria-hidden="true"></i> <span class="play-btn-text">Pause</span>';
+      }
+
+      // 1. Native ElevenLabs audio playback
+      if (audioElement) {
+        try {
+          if (startFromSecond !== null && isFinite(startFromSecond)) {
+            audioElement.currentTime = startFromSecond;
+            elapsedSeconds = Math.round(startFromSecond);
+          }
+          const playPromise = audioElement.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch((err) => {
+              console.warn('[LessonCard] Audio play error:', err);
+            });
+          }
+        } catch (e) {
+          console.warn('[LessonCard] Native audio play exception:', e);
+        }
+
+        if (progressInterval) clearInterval(progressInterval);
+        progressInterval = setInterval(() => {
+          if (!audioElement) return;
+          const curr = isFinite(audioElement.currentTime) ? audioElement.currentTime : elapsedSeconds;
+          elapsedSeconds = Math.round(curr);
+          const dur = (isFinite(audioElement.duration) && audioElement.duration > 0) ? audioElement.duration : totalSeconds;
+          const pct = Math.min(100, Math.round((curr / dur) * 100));
+          if (progressFill) progressFill.style.width = pct + '%';
+          const m = Math.floor(curr / 60);
+          const s = Math.floor(curr % 60);
+          if (timeElapsed) timeElapsed.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+          if (segmentBounds.length > 0) {
+            const currentBound = segmentBounds.find(st => curr >= st.start && curr < st.end);
+            if (currentBound) {
+              highlightSegment(currentBound.index);
+            }
+          }
+
+          if (audioElement.ended || curr >= dur) {
+            stopPlayback(true);
+            if (progressFill) progressFill.style.width = '100%';
+            if (timeElapsed) timeElapsed.textContent = formattedDuration;
+          }
+        }, 250);
+
+        return;
+      }
+
+      // 2. Fallback SpeechSynthesis path
+      const textToSpeak = customText || data.script || segments.map(s => s.text).join(' ');
+      if (startFromSecond !== null) {
+        elapsedSeconds = startFromSecond;
       }
 
       if (typeof window !== 'undefined' && 'speechSynthesis' in window && textToSpeak) {
@@ -1747,7 +1872,11 @@
           if (!isNaN(idx) && segments[idx]) {
             const bound = segmentBounds[idx];
             highlightSegment(idx);
-            startPlayback(segments[idx].text, bound ? bound.start : null);
+            if (audioElement) {
+              startPlayback(null, bound ? bound.start : 0);
+            } else {
+              startPlayback(segments[idx].text, bound ? bound.start : null);
+            }
           }
         });
       });
@@ -1760,7 +1889,11 @@
           if (!isNaN(idx) && segments[idx]) {
             const bound = segmentBounds[idx];
             highlightSegment(idx);
-            startPlayback(segments[idx].text, bound ? bound.start : null);
+            if (audioElement) {
+              startPlayback(null, bound ? bound.start : 0);
+            } else {
+              startPlayback(segments[idx].text, bound ? bound.start : null);
+            }
           }
         });
       });
@@ -2615,13 +2748,17 @@
           ? resolvedSegments[0].text.slice(0, 140)
           : (script.slice(0, 140) || 'Audio overview lesson');
 
+        const rawAudio = resultObj.audio_base64 || resultObj.audioBase64 || resultObj.audio || null;
+        const audio_base64 = (typeof rawAudio === 'string' && rawAudio.trim()) ? rawAudio.trim() : null;
+
         return {
           title,
           script: script || resolvedSegments.map(s => s.text).join(' '),
           segments: resolvedSegments,
           duration: resultObj.duration || formattedDuration,
           caption,
-          isLiveFetched: true
+          isLiveFetched: true,
+          audio_base64
         };
       } catch (err) {
         if (timeoutId) clearTimeout(timeoutId);

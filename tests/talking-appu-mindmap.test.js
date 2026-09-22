@@ -36,6 +36,12 @@ function createMockNode(tag = 'div', id = '') {
     },
     hidden: false,
     textContent: '',
+    src: '',
+    preload: '',
+    currentTime: 0,
+    duration: 45,
+    play: async () => {},
+    pause: () => {},
     children: [],
     _subElements: [],
     _innerHTML: '',
@@ -1170,6 +1176,67 @@ describe('Task G: Live AI Appu Podcast (Audio Lesson & Chapters)', () => {
     assert.ok(rendered);
     assert.ok(rendered.classList.contains('study-mode-podcast'));
     assert.ok(rendered.innerHTML.includes('Photosynthesis Deep Dive'));
+  });
+
+  test('fetchPodcast extracts and returns audio_base64 when present', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        title: 'Sound Waves & Echoes',
+        script: 'Sound travels as vibrational pressure waves through matter.',
+        segments: [{ label: 'Vibrations', text: 'Sound needs a medium.' }],
+        audio_base64: 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA'
+      })
+    });
+
+    const result = await LessonCardRenderer.fetchPodcast({
+      topic: 'Sound',
+      question: 'How do sound waves travel?',
+      answer: 'Through vibrations.'
+    });
+
+    assert.ok(result);
+    assert.equal(result.audio_base64, 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA');
+    assert.equal(result.title, 'Sound Waves & Echoes');
+
+    globalThis.fetch = originalFetch;
+  });
+
+  test('renderPodcast creates native audio element and Appus Voice kicker when audio_base64 is present', () => {
+    const mockAudioBase64 = 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA';
+    const mockScript = {
+      title: 'Real ElevenLabs Audio Lesson',
+      duration: '0:30',
+      script: 'Listen to my real voice!',
+      segments: [{ label: 'Hook', text: 'Welcome to this voice lesson.' }],
+      audio_base64: mockAudioBase64
+    };
+
+    const rendered = LessonCardRenderer.renderPodcast(mockScript);
+    assert.ok(rendered);
+    assert.ok(rendered.innerHTML.includes("Appu's Voice"));
+    const nativeAudio = rendered.querySelector('.podcast-native-audio');
+    assert.ok(nativeAudio, 'Must create native audio element when audio_base64 is present');
+    assert.ok(nativeAudio.src.includes('data:audio/mpeg;base64,' + mockAudioBase64));
+  });
+
+  test('renderPodcast omits native audio element and uses SpeechSynthesis fallback when audio_base64 is absent', () => {
+    const mockScript = {
+      title: 'SpeechSynthesis Fallback Lesson',
+      duration: '0:45',
+      script: 'TTS fallback mode',
+      segments: [{ label: 'Intro', text: 'TTS fallback intro.' }],
+      audio_base64: null
+    };
+
+    const rendered = LessonCardRenderer.renderPodcast(mockScript);
+    assert.ok(rendered);
+    assert.ok(rendered.innerHTML.includes('Audio Lesson'));
+    assert.ok(!rendered.innerHTML.includes("Appu's Voice"));
+    const nativeAudio = rendered.querySelector('.podcast-native-audio');
+    assert.equal(nativeAudio, null, 'Must NOT create native audio element when audio_base64 is null');
   });
 });
 
