@@ -276,13 +276,19 @@
       const plainText = typeof input.plainText === 'string' && input.plainText.trim()
         ? input.plainText.trim()
         : (typeof input.text === 'string' ? input.text : '');
+      const rawMindMap = input.mindMap || (hasBlocks ? input.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
 
       return {
         isRich: hasBlocks,
         mood: typeof input.mood === 'string' ? input.mood : 'explaining',
         gradeTone: ['junior', 'middle', 'senior'].includes(input.gradeTone) ? input.gradeTone : 'junior',
         blocks: hasBlocks ? input.blocks : [],
-        plainText
+        plainText,
+        mindMap: rawMindMap,
+        quizItems: input.quizItems || null,
+        flashcards: input.flashcards || null,
+        studyGuide: input.studyGuide || null,
+        podcastScript: input.podcastScript || null
       };
     }
 
@@ -311,12 +317,18 @@
             ? obj.plainText.trim()
             : trimmed;
 
+          const rawMindMap = obj.mindMap || (hasBlocks ? obj.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
           return {
             isRich: hasBlocks,
             mood: typeof obj.mood === 'string' ? obj.mood : 'explaining',
             gradeTone: ['junior', 'middle', 'senior'].includes(obj.gradeTone) ? obj.gradeTone : 'junior',
             blocks: hasBlocks ? obj.blocks : [],
-            plainText
+            plainText,
+            mindMap: rawMindMap,
+            quizItems: obj.quizItems || null,
+            flashcards: obj.flashcards || null,
+            studyGuide: obj.studyGuide || null,
+            podcastScript: obj.podcastScript || null
           };
         }
       } catch {
@@ -329,7 +341,12 @@
       mood: 'idle',
       gradeTone: 'junior',
       blocks: [],
-      plainText: trimmed
+      plainText: trimmed,
+      mindMap: null,
+      quizItems: null,
+      flashcards: null,
+      studyGuide: null,
+      podcastScript: null
     };
   }
 
@@ -436,11 +453,20 @@
 
         case 'diagram': {
           const diagDiv = document.createElement('div');
-          diagDiv.className = 'lesson-block lesson-block-diagram';
+          diagDiv.className = 'lesson-block lesson-block-diagram lesson-block-mindmap';
           const diagId = 'mermaid-' + Math.random().toString(36).substring(2, 10);
+          const mmInfo = data.mindMap || {};
+          const title = block.title || mmInfo.title || '';
+          const summary = block.summary || mmInfo.summary || '';
+          const spec = block.spec || mmInfo.spec || '';
 
           diagDiv.innerHTML = `
-            <div class="diagram-header"><i class="fa-solid fa-project-diagram text-cyan" aria-hidden="true"></i> <span>Concept Map</span></div>
+            <div class="diagram-header">
+              <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
+              <span>Concept Mind Map</span>
+              <span class="diagram-live-badge">Live Visual</span>
+            </div>
+            ${title ? `<div class="diagram-meta"><h4 class="diagram-title">${escapeHTML(title)}</h4>${summary ? `<p class="diagram-summary">${escapeHTML(summary)}</p>` : ''}</div>` : (summary ? `<div class="diagram-meta"><p class="diagram-summary">${escapeHTML(summary)}</p>` : '')}
             <div class="diagram-canvas-wrap" id="${diagId}-wrap">
               <div class="mermaid-target" id="${diagId}"></div>
             </div>
@@ -451,19 +477,19 @@
           const hasMermaid = initMermaidSafe();
           const targetEl = diagDiv.querySelector('.mermaid-target');
 
-          if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function' && block.spec) {
+          if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function' && spec) {
             // Asynchronously render SVG
             setTimeout(async () => {
               try {
-                const { svg } = await window.mermaid.render(diagId + '-svg', block.spec);
+                const { svg } = await window.mermaid.render(diagId + '-svg', spec);
                 if (targetEl) targetEl.innerHTML = svg;
               } catch (renderErr) {
                 console.warn('[LessonCard] Mermaid render error, falling back:', renderErr);
-                if (targetEl) targetEl.innerHTML = renderFallbackDiagram(block.spec);
+                if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec);
               }
             }, 50);
           } else {
-            if (targetEl) targetEl.innerHTML = renderFallbackDiagram(block.spec || '');
+            if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec || '');
           }
           break;
         }
@@ -581,6 +607,20 @@
           break;
       }
     });
+
+    // Guarantee that Concept Mind Map is prominently rendered by default in lesson card presentation
+    // If blocks did not include a diagram or mindMap block, but mindMap data is available:
+    const hasVisualMap = data.blocks.some(b => b && (b.type === 'diagram' || b.type === 'mindMap' || b.type === 'mindmap'));
+    if (!hasVisualMap && data.mindMap && options.includeMindMap !== false) {
+      const mindMapBlock = renderMindMap(data.mindMap, options);
+      mindMapBlock.classList.add('lesson-block-mindmap-default');
+      const hookEl = container.querySelector('.lesson-block-hook');
+      if (hookEl && hookEl.nextSibling) {
+        container.insertBefore(mindMapBlock, hookEl.nextSibling);
+      } else {
+        container.insertBefore(mindMapBlock, container.firstChild);
+      }
+    }
 
     return container;
   }

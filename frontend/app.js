@@ -99,7 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
     onTranscript: (transcript) => handleUserInteraction(transcript),
     onInterimTranscript: (transcript) => {
       const subtitlesText = document.getElementById('subtitles-text');
-      if (subtitlesText) subtitlesText.textContent = transcript;
+      if (subtitlesText) {
+        subtitlesText.textContent = `"${transcript}"`;
+      }
     },
     onVoiceUnavailable: (notice) => {
       const subtitlesText = document.getElementById('subtitles-text');
@@ -117,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeBtn) typeBtn.classList.add('pulse-highlight');
     }
   });
+  avatarStage.setVoiceEngine(voiceEngine);
 
   voiceEngine.setPlaybackRate(savedRate);
   voiceEngine.autoSpeak = savedAutoSpeak;
@@ -1031,8 +1034,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (missionStage) {
       missionStage.classList.add('has-lesson-active');
     }
-    activePopupLessonCard = lessonCard;
-    if (lessonCard) {
+    let cardToRender = lessonCard;
+    if (!cardToRender && text && typeof LessonCardRenderer !== 'undefined') {
+      const parsed = LessonCardRenderer.parse(text);
+      if (parsed && parsed.isRich) {
+        cardToRender = parsed;
+      }
+    }
+    activePopupLessonCard = cardToRender;
+    if (cardToRender) {
       renderVoicePopupStudyContent(initialMode || 'lesson');
     } else if (voicePopupContent) {
       voicePopupContent.innerHTML = '';
@@ -2466,6 +2476,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.showVoicePopup = showVoicePopup;
     window.app.hideVoicePopup = hideVoicePopup;
     window.app.showStudyMode = (mode) => window.AppuStudyModes.show(mode);
+    window.app.demoTalkingAppu = (mode = 'lesson') => {
+      window.AppuStudyModes.show(mode);
+      if (avatarStage) avatarStage.setState('speaking');
+    };
+    window.app.avatarStage = avatarStage;
+    window.app.voiceEngine = voiceEngine;
   }
 
   if (typeof window !== 'undefined' && /[?&]demo=/i.test(window.location.search)) {

@@ -6343,4 +6343,144 @@ body.policy-page {
   color: #0f172a;
 }
 
+/* ==========================================================================
+   TALKING APPU: Build-Light Audio-Reactive Face & Jaw Dynamics
+   ========================================================================== */
+.avatar-model-frame {
+  position: relative;
+  height: 92%;
+  width: auto;
+  max-width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transform-origin: 50% 88%;
+  will-change: transform;
+}
+
+.avatar-face-mesh {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Mouth Aperture: Responsive to audio amplitude */
+.avatar-mouth-wrap {
+  position: absolute;
+  top: 27.4%;
+  left: 50.5%;
+  transform: translate(-50%, -50%) scaleY(0);
+  width: 30px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s ease, transform 0.04s ease;
+  transform-origin: 50% 40%;
+  will-change: transform, opacity;
+}
+
+.avatar-mouth {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px 4px 12px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 28%, #5c1822 28%, #360a10 100%);
+  border: 1px solid rgba(180, 110, 110, 0.45);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Natural Eyelid Blinks */
+.avatar-eye-blink {
+  position: absolute;
+  top: 19.8%;
+  width: 18px;
+  height: 0px;
+  border-radius: 999px;
+  background: #c2ada7;
+  box-shadow: 0 1px 2px rgba(80, 40, 30, 0.25);
+  opacity: 0;
+  transition: height 0.07s ease-in-out, opacity 0.07s ease-in-out;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.avatar-eye-blink.eye-left {
+  left: 44.2%;
+}
+.avatar-eye-blink.eye-right {
+  left: 56.8%;
+}
+.avatar-eye-blink.is-blinking {
+  height: 10px;
+  opacity: 0.95;
+}
+
+/* State Speaking enhancements */
+.avatar-stage.state-speaking .stage-halo {
+  border-color: var(--cyan);
+  box-shadow: 0 0 36px rgba(14, 165, 233, 0.35), inset 0 0 30px rgba(251, 191, 36, 0.25);
+  animation: halo-pulse 0.9s ease-in-out infinite;
+}
+
+/* Prominent Concept Mind Map defaults in answers */
+.lesson-block-mindmap,
+.lesson-block-diagram {
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.diagram-live-badge {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+.diagram-meta {
+  margin: 2px 0 4px 0;
+}
+.diagram-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+}
+.diagram-summary {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .avatar-interactive-figure .avatar-model-frame {
+    height: 100%;
+    max-height: 150px;
+    width: auto;
+  }
+  .mission-stage.has-lesson-active .avatar-model-frame {
+    max-height: 86px;
+  }
+  .avatar-mouth-wrap {
+    width: 22px;
+    height: 10px;
+  }
+  .avatar-eye-blink {
+    width: 14px;
+  }
+  .avatar-eye-blink.is-blinking {
+    height: 7px;
+  }
+}
+
+
 

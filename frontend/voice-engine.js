@@ -52,6 +52,7 @@ class VoiceEngine {
         this.onInterimTranscript = options.onInterimTranscript || (() => {});
         this.onVoiceUnavailable = options.onVoiceUnavailable || (() => {});
         this.onPermissionDenied = options.onPermissionDenied || (() => {});
+        this.onSpeechAmplitude = options.onSpeechAmplitude || null;
 
         this.soundEnabled = true;
         this.autoSpeak = true;
@@ -63,6 +64,9 @@ class VoiceEngine {
         this.liveSessionActive = false;
         this.subtitleTimer = null;
         this.audioContext = null;
+        this.analyserNode = null;
+        this.mediaSourceNode = null;
+        this._freqDataArray = null;
         this.isVoiceSupported = VoiceEngine.isVoiceSupported();
 
         this.micButton = document.getElementById('btn-mic');
@@ -84,6 +88,7 @@ class VoiceEngine {
     initAudioPlayerEvents() {
         this.audioPlayer.addEventListener('play', () => {
             this.isSpeaking = true;
+            this.initAudioAnalyser();
             if (this.recognition) {
                 try { this.recognition.abort(); } catch {}
             }
@@ -97,10 +102,66 @@ class VoiceEngine {
         });
     }
 
+    initAudioAnalyser() {
+        if (this.analyserNode || !this.audioPlayer) return;
+        this.initWebAudio();
+        if (!this.audioContext) return;
+        try {
+            if (!this.mediaSourceNode && typeof this.audioContext.createMediaElementSource === 'function') {
+                this.mediaSourceNode = this.audioContext.createMediaElementSource(this.audioPlayer);
+                if (typeof this.audioContext.createAnalyser === 'function') {
+                    this.analyserNode = this.audioContext.createAnalyser();
+                    this.analyserNode.fftSize = 256;
+                    this.analyserNode.smoothingTimeConstant = 0.5;
+                    this.mediaSourceNode.connect(this.analyserNode);
+                    if (this.audioContext.destination) {
+                        this.analyserNode.connect(this.audioContext.destination);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[VoiceEngine] Web Audio Analyser init notice:', err);
+        }
+    }
+
+    getSpeechAmplitude() {
+        if (!this.isSpeaking) return 0;
+        if (this.analyserNode && this.audioContext && this.audioContext.state === 'running') {
+            try {
+                if (!this._freqDataArray) {
+                    this._freqDataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+                }
+                this.analyserNode.getByteFrequencyData(this._freqDataArray);
+                let sum = 0;
+                const endBin = Math.min(36, this._freqDataArray.length);
+                for (let i = 2; i < endBin; i++) {
+                    sum += this._freqDataArray[i];
+                }
+                const avg = sum / Math.max(1, endBin - 2);
+                const norm = Math.min(1, Math.max(0, avg / 120));
+                if (typeof this.onSpeechAmplitude === 'function') {
+                    this.onSpeechAmplitude(norm);
+                }
+                return norm;
+            } catch (_) {}
+        }
+        // Natural rhythmic fallback simulation when AnalyserNode is unattached or synthetic
+        const t = Date.now() / 1000;
+        const wave = Math.sin(t * 14) * 0.35 + Math.sin(t * 22) * 0.25 + 0.35;
+        const norm = Math.max(0.12, Math.min(1, wave));
+        if (typeof this.onSpeechAmplitude === 'function') {
+            this.onSpeechAmplitude(norm);
+        }
+        return norm;
+    }
+
     handleSpeechFinish() {
         this.awaitingResponse = false;
         this.isSpeaking = false;
         this.updateSpeakingUI(false);
+        if (typeof this.onSpeechAmplitude === 'function') {
+            this.onSpeechAmplitude(0);
+        }
         this.onSpeechEnd();
         if (this.liveSessionActive && !this.isListening) {
             window.setTimeout(() => this.startListening(), 350);
@@ -631,6 +692,9 @@ class VoiceEngine {
         if (this.isSpeaking) {
             this.isSpeaking = false;
             this.updateSpeakingUI(false);
+            if (typeof this.onSpeechAmplitude === 'function') {
+                this.onSpeechAmplitude(0);
+            }
         }
     }
 
