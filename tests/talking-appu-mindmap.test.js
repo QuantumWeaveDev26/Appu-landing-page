@@ -108,6 +108,11 @@ function createMockNode(tag = 'div', id = '') {
       for (const ch of this.children) {
         if (ch.classList.contains(cls)) results.push(ch);
       }
+      if (this._subElements) {
+        for (const sub of this._subElements) {
+          if (sub.classList.contains(cls)) results.push(sub);
+        }
+      }
       return results;
     },
     _listeners: {},
@@ -1017,4 +1022,155 @@ describe('Task F: Topic Guard & Zero-Sample-Leak Invariant', () => {
     globalThis.fetch = originalFetch;
   });
 });
+
+describe('Task G: Live AI Appu Podcast (Audio Lesson & Chapters)', () => {
+  test('resolvePodcastEndpoint returns valid endpoint and respects window override', () => {
+    delete globalThis.window;
+    const url = LessonCardRenderer.resolvePodcastEndpoint();
+    assert.ok(url.includes('/appu-podcast'));
+    assert.ok(!url.includes('undefined'));
+
+    globalThis.window = { __APPU_PODCAST_URL__: 'https://custom-proxy/appu-podcast' };
+    assert.equal(LessonCardRenderer.resolvePodcastEndpoint(), 'https://custom-proxy/appu-podcast');
+    delete globalThis.window;
+  });
+
+  test('fetchPodcast returns null if all inputs and documentText are empty', async () => {
+    assert.equal(await LessonCardRenderer.fetchPodcast({}), null);
+    assert.equal(await LessonCardRenderer.fetchPodcast({ topic: '', question: '', answer: '' }), null);
+  });
+
+  test('fetchPodcast constructs valid request payload, caps documentText at 16,000 chars, and parses response', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedBody = null;
+
+    globalThis.fetch = async (url, opts) => {
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          title: 'The Journey of Water: The Water Cycle',
+          script: 'Water evaporates from oceans and lakes when warmed by the sun. It condenses into clouds and falls as rain or snow. This continuous loop supports all living systems on Earth.',
+          segments: [
+            { label: 'Fun Hook', text: 'Have you ever wondered where rain comes from?' },
+            { label: 'Evaporation & Condensation', text: 'Water warms into vapor, rises, and cools into clouds.' },
+            { label: 'Precipitation', text: 'Heavy clouds release rain droplets that return to rivers.' },
+            { label: 'Summary', text: 'The water cycle never stops moving around our planet.' }
+          ]
+        })
+      };
+    };
+
+    const longDoc = 'Chapter Notes '.repeat(2000); // > 20,000 chars
+    const result = await LessonCardRenderer.fetchPodcast({
+      topic: 'Water Cycle',
+      question: 'Explain water cycle',
+      answer: 'Water evaporates, condenses, and precipitates.',
+      grade: '7',
+      language: 'en',
+      documentText: longDoc
+    });
+
+    assert.ok(result);
+    assert.equal(capturedBody.topic, 'Water Cycle');
+    assert.equal(capturedBody.grade, '7');
+    assert.equal(capturedBody.language, 'en');
+    assert.equal(capturedBody.documentText.length, 16000, 'Must cap documentText at 16,000 chars');
+
+    assert.equal(result.title, 'The Journey of Water: The Water Cycle');
+    assert.ok(result.script.includes('Water evaporates'));
+    assert.equal(result.segments.length, 4);
+    assert.equal(result.segments[0].label, 'Fun Hook');
+    assert.equal(result.isLiveFetched, true);
+    assert.ok(result.duration, 'Must have computed duration');
+
+    globalThis.fetch = originalFetch;
+  });
+
+  test('fetchPodcast retries once upon failure and returns null on total failure', async () => {
+    const originalFetch = globalThis.fetch;
+    let attempts = 0;
+
+    globalThis.fetch = async () => {
+      attempts++;
+      throw new Error('Connection refused');
+    };
+
+    const result = await LessonCardRenderer.fetchPodcast({
+      topic: 'Friction',
+      question: 'What is friction?',
+      answer: 'Friction opposes motion.'
+    });
+
+    assert.equal(attempts, 2, 'Must retry once (maxRetries: 1)');
+    assert.equal(result, null, 'Must return null gracefully without throwing');
+
+    globalThis.fetch = originalFetch;
+  });
+
+  test('buildFallbackPodcastScript constructs structured chapters from answer without sample leakage', () => {
+    const fallback = LessonCardRenderer.buildFallbackPodcastScript(
+      'Friction Dynamics',
+      'Friction is a resistance force between two surfaces. Static friction prevents sliding until threshold. Kinetic friction acts during motion. Friction produces heat and wear.'
+    );
+
+    assert.ok(fallback);
+    assert.equal(fallback.title, 'Friction Dynamics (Audio Lesson)');
+    assert.ok(fallback.segments.length >= 3);
+    assert.equal(fallback.isFallback, true);
+    assert.equal(fallback.isLiveFetched, false);
+    assert.ok(!JSON.stringify(fallback).toLowerCase().includes('photosynthesis'), 'Must never leak photosynthesis');
+  });
+
+  test('createPodcastLoadingCard creates card with loading state and shimmer', () => {
+    const loadingCard = LessonCardRenderer.createPodcastLoadingCard('Gravity & Orbits');
+    assert.ok(loadingCard);
+    assert.ok(loadingCard.classList.contains('podcast-loading-state'));
+    const titleEl = loadingCard.querySelector('.podcast-title');
+    assert.ok(titleEl);
+    assert.ok(loadingCard.innerHTML.includes('Gravity') && loadingCard.innerHTML.includes('Orbits'));
+    assert.ok(loadingCard.querySelector('.podcast-eq-loading'));
+  });
+
+  test('renderPodcast renders chapters, play button, duration, and equalizer', () => {
+    const mockScript = {
+      title: 'Solar System Exploration',
+      duration: '1:15',
+      script: 'Welcome to the solar system tour. Eight planets orbit our central star the Sun.',
+      segments: [
+        { label: 'Introduction', text: 'Welcome to the solar system tour.' },
+        { label: 'Inner Planets', text: 'Mercury, Venus, Earth, and Mars are rocky worlds.' },
+        { label: 'Outer Giants', text: 'Jupiter, Saturn, Uranus, and Neptune are gas and ice giants.' }
+      ]
+    };
+
+    const rendered = LessonCardRenderer.renderPodcast(mockScript);
+    assert.ok(rendered);
+    assert.ok(rendered.classList.contains('study-mode-podcast'));
+    assert.ok(rendered.innerHTML.includes('Solar System Exploration'));
+    assert.ok(rendered.innerHTML.includes('1:15'));
+    assert.ok(rendered.querySelector('.podcast-play-btn'));
+    assert.ok(rendered.querySelector('.podcast-equalizer'));
+    assert.ok(rendered.querySelector('.podcast-segments-section'));
+    assert.ok(rendered.innerHTML.includes('Inner Planets'));
+    assert.ok(rendered.innerHTML.includes('Outer Giants'));
+  });
+
+  test('renderStudyMode podcast dispatches to renderPodcast', () => {
+    const card = {
+      podcastScript: {
+        title: 'Photosynthesis Deep Dive',
+        duration: '0:45',
+        script: 'Chloroplasts absorb photons.',
+        segments: [{ label: 'Light', text: 'Solar energy absorbed' }]
+      }
+    };
+    const rendered = LessonCardRenderer.renderStudyMode('podcast', card);
+    assert.ok(rendered);
+    assert.ok(rendered.classList.contains('study-mode-podcast'));
+    assert.ok(rendered.innerHTML.includes('Photosynthesis Deep Dive'));
+  });
+});
+
 

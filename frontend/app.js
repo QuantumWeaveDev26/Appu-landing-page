@@ -1001,6 +1001,73 @@ document.addEventListener('DOMContentLoaded', () => {
       const wrapper = document.createElement('div');
       wrapper.className = 'voice-popup-study-wrapper';
 
+      // Dynamic live fetch for Podcast mode if not yet generated
+      if (mode === 'podcast') {
+        const topic = activePopupLessonCard.mindMap?.central || activePopupLessonCard.topic || activePopupLessonCard.title || 'Lesson';
+        if (!activePopupLessonCard.podcastScript?.isLiveFetched && !activePopupLessonCard.__isFetchingPodcast) {
+          if (typeof LessonCardRenderer.createPodcastLoadingCard === 'function') {
+            wrapper.appendChild(LessonCardRenderer.createPodcastLoadingCard(topic));
+          }
+          voicePopupContent.appendChild(wrapper);
+
+          activePopupLessonCard.__isFetchingPodcast = true;
+          const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+          const docText = activeDoc?.text || null;
+          const childGrade = (window.appuSession && typeof window.appuSession.getGrade === 'function')
+            ? window.appuSession.getGrade()
+            : '6';
+          const lang = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+
+          LessonCardRenderer.fetchPodcast({
+            topic,
+            question: activePopupLessonCard.question || topic,
+            answer: activePopupLessonCard.plainText || '',
+            grade: childGrade,
+            language: lang,
+            documentText: docText,
+            timeoutMs: 22000
+          }).then(result => {
+            activePopupLessonCard.__isFetchingPodcast = false;
+            if (result && (result.script || (Array.isArray(result.segments) && result.segments.length > 0))) {
+              activePopupLessonCard.podcastScript = {
+                ...result,
+                isLiveFetched: true,
+                citation: activePopupLessonCard.citation
+              };
+            } else if (!activePopupLessonCard.podcastScript) {
+              activePopupLessonCard.podcastScript = LessonCardRenderer.buildFallbackPodcastScript(
+                topic,
+                activePopupLessonCard.plainText,
+                activePopupLessonCard.citation
+              );
+            }
+            if (activePopupMode === 'podcast') {
+              renderVoicePopupStudyContent('podcast');
+            }
+          }).catch(err => {
+            console.warn('[Appu] Live podcast fetch notice:', err);
+            activePopupLessonCard.__isFetchingPodcast = false;
+            if (!activePopupLessonCard.podcastScript) {
+              activePopupLessonCard.podcastScript = LessonCardRenderer.buildFallbackPodcastScript(
+                topic,
+                activePopupLessonCard.plainText,
+                activePopupLessonCard.citation
+              );
+            }
+            if (activePopupMode === 'podcast') {
+              renderVoicePopupStudyContent('podcast');
+            }
+          });
+          return;
+        } else if (activePopupLessonCard.__isFetchingPodcast) {
+          if (typeof LessonCardRenderer.createPodcastLoadingCard === 'function') {
+            wrapper.appendChild(LessonCardRenderer.createPodcastLoadingCard(topic));
+          }
+          voicePopupContent.appendChild(wrapper);
+          return;
+        }
+      }
+
       const contentEl = typeof LessonCardRenderer.renderStudyMode === 'function'
         ? LessonCardRenderer.renderStudyMode(mode, activePopupLessonCard, {
             onCelebrate: () => {
@@ -1043,6 +1110,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (parsed && parsed.isRich) {
         cardToRender = parsed;
       }
+    }
+    if (cardToRender && !cardToRender.question && text) {
+      cardToRender.question = text;
     }
     activePopupLessonCard = cardToRender;
     if (cardToRender) {
@@ -2047,6 +2117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const name = doc.name || 'Your Notes';
     const text = String(doc.text).slice(0, 16000).trim();
     window.activeTutorDocument = { name, text };
+    window.__APPU_ACTIVE_DOCUMENT__ = { name, text };
 
     if (activeDocNameDock) activeDocNameDock.textContent = name;
     if (activeDocNameDrawer) activeDocNameDrawer.textContent = name;
@@ -2062,6 +2133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function clearActiveTutorDocument() {
     window.activeTutorDocument = null;
+    window.__APPU_ACTIVE_DOCUMENT__ = null;
     pendingExtractedDoc = null;
     if (activeDocBannerDock) activeDocBannerDock.hidden = true;
     if (activeDocBannerDrawer) activeDocBannerDrawer.hidden = true;

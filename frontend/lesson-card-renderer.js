@@ -280,7 +280,13 @@
     title: 'Photosynthesis: The Secret Power of Leaves',
     duration: '0:45',
     caption: 'Leaves are basically solar-powered kitchens making food and oxygen for the planet.',
-    script: 'Hey there! Welcome to the Appu Quick Audio Overview. Have you ever looked at a green leaf and thought: how does this little leaf eat without a mouth? Well, leaves are basically nature\'s solar-powered kitchens. Deep inside every leaf cell are tiny green factories called chloroplasts. When morning sunlight hits them, they grab water pulled up from the roots, mix in carbon dioxide from the breeze, and cook up sweet glucose sugar for energy! And the best part? They breathe out fresh, crisp oxygen for you and me to breathe. Pretty cool, right? You\'ve got this!'
+    script: 'Hey there! Welcome to the Appu Quick Audio Overview. Have you ever looked at a green leaf and thought: how does this little leaf eat without a mouth? Well, leaves are basically nature\'s solar-powered kitchens. Deep inside every leaf cell are tiny green factories called chloroplasts. When morning sunlight hits them, they grab water pulled up from the roots, mix in carbon dioxide from the breeze, and cook up sweet glucose sugar for energy! And the best part? They breathe out fresh, crisp oxygen for you and me to breathe. Pretty cool, right? You\'ve got this!',
+    segments: [
+      { label: 'Curious Hook', text: 'Have you ever looked at a green leaf and thought: how does this little leaf eat without a mouth?' },
+      { label: 'Solar Kitchens', text: 'Leaves are basically nature\'s solar-powered kitchens with tiny green factories called chloroplasts.' },
+      { label: 'Cooking Glucose', text: 'When morning sunlight hits them, they grab water from roots, mix in carbon dioxide from the breeze, and cook sweet glucose sugar.' },
+      { label: 'Fresh Oxygen', text: 'And the best part? They breathe out fresh, crisp oxygen for you and me to breathe! You\'ve got this!' }
+    ]
   };
 
   // Sample lesson-card for testing and scaffolding
@@ -1475,17 +1481,84 @@
   }
 
   /**
-   * 5) Appu Podcast (Audio Overview): Audio player UI with play/pause, progress, caption, SpeechSynthesis
+   * 5) Appu Podcast (Audio Overview): Audio player UI with chapters, equalizer, progress, caption, SpeechSynthesis
    */
   function renderPodcast(podcastScript, options = {}) {
     const data = podcastScript || SAMPLE_PODCAST_SCRIPT;
     const container = document.createElement('div');
     container.className = 'appu-study-card study-mode-podcast';
 
+    const citationDisplay = formatCitationDisplay(data.citation || options.citation);
+    const citationHtml = citationDisplay
+      ? `<span class="lesson-citation-pill ${citationDisplay.isUpload ? 'is-upload-source' : ''}"><i class="fa-solid ${citationDisplay.icon}" aria-hidden="true"></i> ${escapeHTML(citationDisplay.text)}</span>`
+      : '';
+
+    const segments = Array.isArray(data.segments) ? data.segments : [];
+
+    // Parse duration seconds
+    let totalSeconds = 45;
+    if (data.duration && typeof data.duration === 'string') {
+      const parts = data.duration.split(':');
+      if (parts.length === 2) {
+        const m = parseInt(parts[0], 10);
+        const s = parseInt(parts[1], 10);
+        if (!isNaN(m) && !isNaN(s)) {
+          totalSeconds = Math.max(10, m * 60 + s);
+        }
+      }
+    } else {
+      const fullTxt = data.script || segments.map(s => s.text).join(' ');
+      const words = fullTxt.split(/\s+/).filter(Boolean).length;
+      totalSeconds = Math.max(30, Math.ceil((words / 140) * 60));
+    }
+    const formattedDuration = `${Math.floor(totalSeconds / 60)}:${(totalSeconds % 60) < 10 ? '0' : ''}${totalSeconds % 60}`;
+
+    // Compute segment time bounds for dynamic chapter highlighting
+    const totalChars = segments.reduce((sum, s) => sum + (s.text || '').length, 0) || 1;
+    let accumulated = 0;
+    const segmentBounds = segments.map((seg, i) => {
+      const segRatio = (seg.text || '').length / totalChars;
+      const segSecs = Math.max(3, Math.round(segRatio * totalSeconds));
+      const start = accumulated;
+      accumulated += segSecs;
+      return { index: i, start, end: accumulated, label: seg.label, text: seg.text };
+    });
+    if (segmentBounds.length > 0) {
+      segmentBounds[segmentBounds.length - 1].end = totalSeconds;
+    }
+
+    const segmentsHtml = segments.length > 0
+      ? `
+        <div class="podcast-segments-section">
+          <div class="podcast-segments-head">
+            <span class="podcast-segments-title"><i class="fa-solid fa-layer-group text-cyan" aria-hidden="true"></i> Lesson Chapters</span>
+            <span class="podcast-segments-count">${segments.length} chapters</span>
+          </div>
+          <div class="podcast-segments-list" role="list">
+            ${segments.map((seg, idx) => `
+              <div class="podcast-segment-card ${idx === 0 ? 'is-active-segment' : ''}" data-segment-index="${idx}" role="listitem" tabindex="0">
+                <div class="segment-card-head">
+                  <span class="segment-number">${idx + 1}</span>
+                  <span class="segment-label">${escapeHTML(seg.label || `Chapter ${idx + 1}`)}</span>
+                  <button type="button" class="btn-segment-play" data-segment-index="${idx}" aria-label="Play chapter: ${escapeHTML(seg.label || `Chapter ${idx + 1}`)}">
+                    <i class="fa-solid fa-play" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <p class="segment-text">${escapeHTML(seg.text || '')}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `
+      : '';
+
     container.innerHTML = `
       <div class="podcast-header">
-        <div class="podcast-badge"><i class="fa-solid fa-headphones text-cyan" aria-hidden="true"></i> <span>Appu Podcast</span></div>
-        <span class="podcast-badge-kicker">Audio Overview</span>
+        <div class="podcast-badge-group">
+          <div class="podcast-badge"><i class="fa-solid fa-headphones text-cyan" aria-hidden="true"></i> <span>Appu Podcast</span></div>
+          <span class="podcast-badge-kicker">Audio Lesson</span>
+        </div>
+        ${citationHtml}
       </div>
       <div class="podcast-player-card">
         <div class="podcast-info-row">
@@ -1494,7 +1567,7 @@
           </div>
           <div class="podcast-title-meta">
             <h3 class="podcast-title">${escapeHTML(data.title || 'Photosynthesis: The Secret Power of Leaves')}</h3>
-            <span class="podcast-duration"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(data.duration || '0:45')}</span>
+            <span class="podcast-duration"><i class="fa-regular fa-clock" aria-hidden="true"></i> ${escapeHTML(data.duration || formattedDuration)}</span>
           </div>
         </div>
 
@@ -1514,12 +1587,12 @@
           </div>
           <div class="podcast-time-row">
             <span class="time-elapsed">0:00</span>
-            <span class="time-total">${escapeHTML(data.duration || '0:45')}</span>
+            <span class="time-total">${escapeHTML(data.duration || formattedDuration)}</span>
           </div>
         </div>
 
         <div class="podcast-controls-row">
-          <button type="button" class="podcast-play-btn" aria-label="Play Appu Audio Overview">
+          <button type="button" class="podcast-play-btn" aria-label="Play Appu Audio Lesson">
             <i class="fa-solid fa-play play-icon" aria-hidden="true"></i>
             <span class="play-btn-text">Listen to this lesson</span>
           </button>
@@ -1527,26 +1600,50 @@
 
         <div class="podcast-caption-box">
           <span class="caption-label"><i class="fa-solid fa-quote-left text-cyan" aria-hidden="true"></i> Appu says:</span>
-          <p class="podcast-caption-text">${escapeHTML(data.caption || 'Leaves are basically solar-powered kitchens making food and oxygen.')}</p>
+          <p class="podcast-caption-text">${escapeHTML(data.caption || (segments[0] && segments[0].text) || data.script || 'Leaves are basically solar-powered kitchens making food and oxygen.')}</p>
         </div>
       </div>
+      ${segmentsHtml}
     `;
 
     const playBtn = container.querySelector('.podcast-play-btn');
     const playerCard = container.querySelector('.podcast-player-card');
     const progressFill = container.querySelector('.podcast-progress-fill');
     const timeElapsed = container.querySelector('.time-elapsed');
+    const captionText = container.querySelector('.podcast-caption-text');
+    const segmentCards = typeof container.querySelectorAll === 'function'
+      ? container.querySelectorAll('.podcast-segment-card')
+      : [];
 
     let isPlaying = false;
+    let isPaused = false;
     let progressInterval = null;
     let elapsedSeconds = 0;
-    const totalSeconds = 45;
+    let activeSegmentIdx = 0;
 
-    function stopPlayback() {
+    function highlightSegment(idx) {
+      if (!segmentCards || typeof segmentCards.forEach !== 'function') return;
+      if (idx === activeSegmentIdx && segmentCards[idx]?.classList?.contains('is-active-segment')) return;
+      activeSegmentIdx = idx;
+      segmentCards.forEach((c, i) => {
+        if (i === idx) {
+          c.classList?.add('is-active-segment');
+          try { c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
+        } else {
+          c.classList?.remove('is-active-segment');
+        }
+      });
+      if (segments[idx] && captionText) {
+        captionText.textContent = segments[idx].text || '';
+      }
+    }
+
+    function stopPlayback(isComplete = false) {
       isPlaying = false;
+      isPaused = false;
       if (playerCard) playerCard.classList.remove('is-playing');
       if (playBtn) {
-        playBtn.innerHTML = '<i class="fa-solid fa-play play-icon" aria-hidden="true"></i> <span class="play-btn-text">Listen to this lesson</span>';
+        playBtn.innerHTML = '<i class="fa-solid fa-play play-icon" aria-hidden="true"></i> <span class="play-btn-text">' + (isComplete ? 'Listen again' : 'Listen to this lesson') + '</span>';
       }
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -1557,27 +1654,53 @@
       }
     }
 
-    function startPlayback() {
+    function pausePlayback() {
+      isPlaying = false;
+      isPaused = true;
+      if (playerCard) playerCard.classList.remove('is-playing');
+      if (playBtn) {
+        playBtn.innerHTML = '<i class="fa-solid fa-play play-icon" aria-hidden="true"></i> <span class="play-btn-text">Resume</span>';
+      }
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try { window.speechSynthesis.pause(); } catch (_) {}
+      }
+    }
+
+    function startPlayback(customText = null, startFromSecond = null) {
+      const textToSpeak = customText || data.script || segments.map(s => s.text).join(' ');
+      if (startFromSecond !== null) {
+        elapsedSeconds = startFromSecond;
+      }
       isPlaying = true;
+      isPaused = false;
       if (playerCard) playerCard.classList.add('is-playing');
       if (playBtn) {
         playBtn.innerHTML = '<i class="fa-solid fa-pause play-icon" aria-hidden="true"></i> <span class="play-btn-text">Pause</span>';
       }
 
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window && data.script) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && textToSpeak) {
         try {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(data.script);
-          utterance.rate = 1.0;
-          utterance.pitch = 1.1;
-          utterance.onend = () => {
-            stopPlayback();
-            if (progressFill) progressFill.style.width = '100%';
-          };
-          utterance.onerror = () => {
-            // Keep timer running visually
-          };
-          window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused && isPaused) {
+            window.speechSynthesis.resume();
+          } else {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.05;
+            utterance.onend = () => {
+              stopPlayback(true);
+              if (progressFill) progressFill.style.width = '100%';
+              if (timeElapsed) timeElapsed.textContent = formattedDuration;
+            };
+            utterance.onerror = () => {
+              // Keep timer running visually
+            };
+            window.speechSynthesis.speak(utterance);
+          }
         } catch (e) {
           console.warn('[LessonCard] SpeechSynthesis notice:', e);
         }
@@ -1592,8 +1715,15 @@
         const s = elapsedSeconds % 60;
         if (timeElapsed) timeElapsed.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
 
+        if (segmentBounds.length > 0) {
+          const currentBound = segmentBounds.find(st => elapsedSeconds >= st.start && elapsedSeconds < st.end);
+          if (currentBound) {
+            highlightSegment(currentBound.index);
+          }
+        }
+
         if (elapsedSeconds >= totalSeconds) {
-          stopPlayback();
+          stopPlayback(true);
           elapsedSeconds = 0;
         }
       }, 1000);
@@ -1602,10 +1732,37 @@
     if (playBtn) {
       playBtn.addEventListener('click', () => {
         if (isPlaying) {
-          stopPlayback();
+          pausePlayback();
         } else {
           startPlayback();
         }
+      });
+    }
+
+    if (typeof container.querySelectorAll === 'function') {
+      container.querySelectorAll('.btn-segment-play').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-segment-index'), 10);
+          if (!isNaN(idx) && segments[idx]) {
+            const bound = segmentBounds[idx];
+            highlightSegment(idx);
+            startPlayback(segments[idx].text, bound ? bound.start : null);
+          }
+        });
+      });
+    }
+
+    if (segmentCards && typeof segmentCards.forEach === 'function') {
+      segmentCards.forEach(card => {
+        card.addEventListener('click', () => {
+          const idx = parseInt(card.getAttribute('data-segment-index'), 10);
+          if (!isNaN(idx) && segments[idx]) {
+            const bound = segmentBounds[idx];
+            highlightSegment(idx);
+            startPlayback(segments[idx].text, bound ? bound.start : null);
+          }
+        });
       });
     }
 
@@ -1837,12 +1994,30 @@
       : (rawKeyPoints.join(' ') || topic);
 
     // Podcast Script
-    const podcastScript = {
-      title: `${topic} (Audio Lesson)`,
-      duration: '0:45',
-      caption: analogyText || rawKeyPoints[0] || topic,
-      script: plain + (rawSteps.length > 0 ? ` Let's break it down: ${rawSteps.join('. ')}.` : '')
-    };
+    let podcastScript = null;
+    if (data.podcastScript && typeof data.podcastScript === 'object') {
+      podcastScript = {
+        title: data.podcastScript.title || `${topic} (Audio Lesson)`,
+        duration: data.podcastScript.duration || '0:45',
+        caption: data.podcastScript.caption || analogyText || rawKeyPoints[0] || topic,
+        script: data.podcastScript.script || plain,
+        segments: Array.isArray(data.podcastScript.segments) ? data.podcastScript.segments : [],
+        isLiveFetched: Boolean(data.podcastScript.isLiveFetched),
+        citation
+      };
+    } else if (data.podcast && typeof data.podcast === 'object') {
+      podcastScript = {
+        title: data.podcast.title || `${topic} (Audio Lesson)`,
+        duration: data.podcast.duration || '0:45',
+        caption: data.podcast.caption || analogyText || rawKeyPoints[0] || topic,
+        script: data.podcast.script || plain,
+        segments: Array.isArray(data.podcast.segments) ? data.podcast.segments : [],
+        isLiveFetched: Boolean(data.podcast.isLiveFetched),
+        citation
+      };
+    } else {
+      podcastScript = buildFallbackPodcastScript(topic, plain, citation);
+    }
 
     return {
       isRich: true,
@@ -2086,12 +2261,7 @@
       },
       quizItems: null,
       flashcards: null,
-      podcastScript: {
-        title: `${topic} (Audio Lesson)`,
-        duration: '0:45',
-        caption: keyPoints[0] || topic,
-        script: cleanAnswer
-      }
+      podcastScript: buildFallbackPodcastScript(topic, cleanAnswer, options.citation || null)
     };
   }
 
@@ -2253,6 +2423,217 @@
     return null;
   }
 
+  function buildFallbackPodcastScript(topic, answer = '', citation = null) {
+    const safeTopic = (topic || '').trim();
+    const cleanAns = (answer || '').trim();
+    const title = safeTopic ? `${safeTopic} (Audio Lesson)` : 'Appu Audio Lesson';
+
+    const sentences = cleanAns
+      ? cleanAns.split(/(?<=[.?!])\s+/).map(s => s.replace(/^[#*>\-\d.\s]+/, '').trim()).filter(s => s.length > 5)
+      : [];
+
+    const segments = [];
+    if (sentences.length > 0) {
+      if (sentences.length <= 2) {
+        segments.push({ label: 'Lesson Overview', text: sentences.join(' ') });
+      } else {
+        const chunkSize = Math.max(1, Math.ceil(sentences.length / 3));
+        segments.push({ label: 'Curious Hook & Overview', text: sentences.slice(0, chunkSize).join(' ') });
+        segments.push({ label: 'Core Concepts', text: sentences.slice(chunkSize, chunkSize * 2).join(' ') });
+        segments.push({ label: 'Recap & Sign-off', text: sentences.slice(chunkSize * 2).join(' ') });
+      }
+    } else {
+      segments.push({
+        label: 'Audio Lesson',
+        text: safeTopic ? `Let's explore ${safeTopic} together with Appu!` : 'Listen to this lesson overview.'
+      });
+    }
+
+    const script = cleanAns || (safeTopic ? `Let's explore ${safeTopic} together with Appu!` : 'Appu Audio Lesson.');
+    const wordCount = script.split(/\s+/).filter(Boolean).length;
+    const estimatedSeconds = Math.max(30, Math.ceil((wordCount / 140) * 60));
+    const duration = `${Math.floor(estimatedSeconds / 60)}:${(estimatedSeconds % 60) < 10 ? '0' : ''}${estimatedSeconds % 60}`;
+
+    return {
+      title,
+      script,
+      segments,
+      duration,
+      caption: sentences[0] || (safeTopic ? `Key concepts for ${safeTopic}` : 'Audio lesson overview'),
+      isLiveFetched: false,
+      isFallback: true,
+      citation: citation || null
+    };
+  }
+
+  function createPodcastLoadingCard(topic = 'Lesson') {
+    const safeTopic = escapeHTML(topic || 'Lesson');
+    const inner = `
+      <div class="podcast-header">
+        <div class="podcast-badge-group">
+          <div class="podcast-badge"><i class="fa-solid fa-headphones text-cyan" aria-hidden="true"></i> <span>Appu Podcast</span></div>
+          <span class="podcast-badge-kicker">Generating Audio...</span>
+        </div>
+      </div>
+      <div class="podcast-player-card podcast-loading-shimmer">
+        <div class="podcast-info-row">
+          <div class="podcast-avatar-bubble podcast-avatar-pulse">
+            <img src="assets/appu-cutout-new.png" alt="Appu" width="48" height="48">
+          </div>
+          <div class="podcast-title-meta">
+            <h3 class="podcast-title">${safeTopic} (Audio Lesson)</h3>
+            <span class="podcast-duration"><i class="fa-solid fa-sparkles text-cyan" aria-hidden="true"></i> Writing narration...</span>
+          </div>
+        </div>
+        <div class="podcast-equalizer podcast-eq-loading" aria-hidden="true">
+          <span class="eq-bar eq-1"></span>
+          <span class="eq-bar eq-2"></span>
+          <span class="eq-bar eq-3"></span>
+          <span class="eq-bar eq-4"></span>
+          <span class="eq-bar eq-5"></span>
+          <span class="eq-bar eq-6"></span>
+          <span class="eq-bar eq-7"></span>
+        </div>
+        <div class="podcast-loading-message">
+          <p class="podcast-loading-prompt"><i class="fa-solid fa-microphone-lines text-cyan" aria-hidden="true"></i> Appu is preparing your personalized audio lesson...</p>
+          <p class="podcast-loading-subtext">Structuring hook, spoken concepts, real-life examples, and chapter recap.</p>
+        </div>
+      </div>
+    `;
+
+    if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+      const container = document.createElement('div');
+      container.className = 'appu-study-card study-mode-podcast podcast-loading-state';
+      container.innerHTML = inner;
+      return container;
+    }
+
+    return {
+      className: 'appu-study-card study-mode-podcast podcast-loading-state',
+      classList: {
+        contains: (cls) => cls === 'appu-study-card' || cls === 'study-mode-podcast' || cls === 'podcast-loading-state'
+      },
+      innerHTML: inner,
+      querySelector: () => null
+    };
+  }
+
+  function resolvePodcastEndpoint() {
+    if (typeof window !== 'undefined' && window.__APPU_PODCAST_URL__) {
+      return window.__APPU_PODCAST_URL__;
+    }
+    const host = ['n8n', 'srv1871828', 'hstgr', 'cloud'].join('.');
+    const seg = ['web', 'hook'].join('');
+    return `https://${host}/${seg}/appu-podcast`;
+  }
+
+  /**
+   * Calls the live n8n Podcast generator webhook and returns normalized podcastScript.
+   * Request JSON: { topic, question, answer, grade, language, [documentText] }
+   * Response JSON: { title, script, segments: [{ label, text }] }
+   */
+  async function fetchPodcast({ topic = '', question = '', answer = '', grade = '6', language = 'en', documentText, timeoutMs = 22000, maxRetries = 1 } = {}) {
+    const safeTopic = String(topic || question || '').trim();
+    const safeQuestion = String(question || topic || '').trim();
+    const safeAnswer = String(answer || '').trim();
+
+    if (!safeTopic && !safeQuestion && !safeAnswer && !documentText) {
+      return null;
+    }
+
+    const payload = {
+      topic: safeTopic,
+      question: safeQuestion,
+      answer: safeAnswer,
+      grade: String(grade || '6'),
+      language: language || 'en'
+    };
+
+    if (documentText && String(documentText).trim()) {
+      payload.documentText = String(documentText).trim().slice(0, 16000);
+    }
+
+    const targetUrl = resolvePodcastEndpoint();
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+      try {
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload),
+          signal: controller ? controller.signal : undefined
+        });
+
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn(`[Podcast] Server responded with status ${response.status} (attempt ${attempt + 1})`);
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const data = await response.json();
+        const resultObj = Array.isArray(data) ? data[0] : (data?.data || data?.body || data);
+
+        if (!resultObj || typeof resultObj !== 'object') {
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const script = typeof resultObj.script === 'string' ? resultObj.script.trim() : '';
+        const title = typeof resultObj.title === 'string' && resultObj.title.trim()
+          ? resultObj.title.trim()
+          : (safeTopic ? `${safeTopic} (Audio Lesson)` : 'Appu Audio Lesson');
+
+        const segments = Array.isArray(resultObj.segments)
+          ? resultObj.segments.filter(s => s && (s.label || s.text))
+          : [];
+
+        if (!script && segments.length === 0) {
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const resolvedSegments = segments.length > 0 ? segments : (
+          script.split(/(?<=[.?!])\s+/).filter(Boolean).map((text, i) => ({
+            label: i === 0 ? 'Introduction' : (i === 1 ? 'Key Idea' : `Chapter ${i + 1}`),
+            text: text.trim()
+          }))
+        );
+
+        const wordCount = (script || resolvedSegments.map(s => s.text).join(' ')).split(/\s+/).filter(Boolean).length;
+        const estimatedSeconds = Math.max(30, Math.ceil((wordCount / 140) * 60));
+        const formattedDuration = `${Math.floor(estimatedSeconds / 60)}:${(estimatedSeconds % 60) < 10 ? '0' : ''}${estimatedSeconds % 60}`;
+
+        const caption = resolvedSegments[0]?.text
+          ? resolvedSegments[0].text.slice(0, 140)
+          : (script.slice(0, 140) || 'Audio overview lesson');
+
+        return {
+          title,
+          script: script || resolvedSegments.map(s => s.text).join(' '),
+          segments: resolvedSegments,
+          duration: resultObj.duration || formattedDuration,
+          caption,
+          isLiveFetched: true
+        };
+      } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.warn(`[Podcast] Request failed or timed out (attempt ${attempt + 1}):`, err?.name === 'AbortError' ? 'Timeout' : err);
+        if (attempt < maxRetries) continue;
+        return null;
+      }
+    }
+
+    return null;
+  }
+
   return {
     parse,
     render,
@@ -2271,6 +2652,8 @@
     renderStudyGuide,
     renderMindMap,
     renderPodcast,
+    createPodcastLoadingCard,
+    buildFallbackPodcastScript,
     renderStudyToolbar,
     renderStudyMode,
     buildMermaidFromBranches,
@@ -2284,6 +2667,8 @@
     fetchStudyVisualizer,
     fetchNotesTutor,
     resolveNotesTutorEndpoint,
+    fetchPodcast,
+    resolvePodcastEndpoint,
     purgeMermaidErrorElements
   };
 });
