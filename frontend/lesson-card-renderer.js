@@ -98,6 +98,21 @@
     return null;
   }
 
+  /**
+   * Helper: Formats citation for UI pill rendering with appropriate icon and label.
+   */
+  function formatCitationDisplay(citation) {
+    const norm = normalizeCitation(citation);
+    if (!norm || !norm.label) return null;
+    const rawLabel = norm.label;
+    const isUpload = norm.source === 'upload' || rawLabel.toLowerCase().includes('upload');
+    const icon = isUpload ? 'fa-file-lines' : 'fa-book-bookmark';
+    const text = isUpload
+      ? (rawLabel.startsWith('Source:') ? rawLabel : rawLabel)
+      : (rawLabel.startsWith('Source:') || rawLabel.startsWith('From ') ? rawLabel : `Source: ${rawLabel}`);
+    return { label: rawLabel, text, icon, isUpload };
+  }
+
   const SAMPLE_CITATION = {
     label: 'NCERT Class 8 Science - Nutrition in Plants',
     class: 8,
@@ -690,12 +705,12 @@
     if (!data.isRich || !data.blocks || data.blocks.length === 0) {
       const plainDiv = document.createElement('div');
       plainDiv.className = 'lesson-block lesson-block-plain';
-      const citationObj = data.citation || null;
-      const citationLabel = citationObj ? (citationObj.label || (typeof citationObj === 'string' ? citationObj : '')) : '';
-      if (citationLabel) {
+      const cit = formatCitationDisplay(data.citation);
+      if (cit) {
         const pill = document.createElement('div');
-        pill.className = 'lesson-citation-pill plain-citation-pill';
-        pill.innerHTML = `<i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i> <span>Source: ${escapeHTML(citationLabel)}</span>`;
+        pill.className = `lesson-citation-pill plain-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}`;
+        pill.setAttribute('title', `Source: ${cit.label}`);
+        pill.innerHTML = `<i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i> <span>${escapeHTML(cit.text)}</span>`;
         plainDiv.appendChild(pill);
       }
       const p = document.createElement('p');
@@ -706,16 +721,16 @@
     }
 
     const citationObj = normalizeCitation(data.citation);
-    const citationLabel = citationObj ? (citationObj.label || '') : '';
+    const topCit = formatCitationDisplay(citationObj);
     const hasDiagram = data.blocks.some(b => b && (b.type === 'diagram' || b.type === 'mindMap'));
 
-    if (citationLabel && !hasDiagram) {
+    if (topCit && !hasDiagram) {
       const topCitation = document.createElement('div');
       topCitation.className = 'lesson-top-citation-wrap';
       topCitation.innerHTML = `
-        <div class="lesson-citation-pill plain-citation-pill" title="Source: ${escapeHTML(citationLabel)}">
-          <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-          <span>Source: ${escapeHTML(citationLabel)}</span>
+        <div class="lesson-citation-pill plain-citation-pill ${topCit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(topCit.label)}">
+          <i class="fa-solid ${topCit.icon} text-amber" aria-hidden="true"></i>
+          <span>${escapeHTML(topCit.text)}</span>
         </div>
       `;
       container.appendChild(topCitation);
@@ -743,7 +758,7 @@
           const diagId = 'mermaid-' + Math.random().toString(36).substring(2, 10);
           const mmInfo = data.mindMap || {};
           const bCitationObj = normalizeCitation(block.citation || mmInfo.citation || data.citation);
-          const bCitationLabel = bCitationObj ? (bCitationObj.label || '') : '';
+          const bCit = formatCitationDisplay(bCitationObj);
           const title = block.title || mmInfo.title || '';
           const summary = block.summary || mmInfo.summary || '';
           let central = block.central || mmInfo.central || title;
@@ -761,10 +776,10 @@
                   <span>Concept Mind Map</span>
                   <span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>
                 </div>
-                ${bCitationLabel ? `
-                  <div class="lesson-citation-pill" title="Source: ${escapeHTML(bCitationLabel)}">
-                    <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-                    <span>Source: ${escapeHTML(bCitationLabel)}</span>
+                ${bCit ? `
+                  <div class="lesson-citation-pill ${bCit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(bCit.label)}">
+                    <i class="fa-solid ${bCit.icon} text-amber" aria-hidden="true"></i>
+                    <span>${escapeHTML(bCit.text)}</span>
                   </div>
                 ` : ''}
               </div>
@@ -806,10 +821,10 @@
                 <span>Concept Mind Map</span>
                 <span class="diagram-live-badge">Live Visual</span>
               </div>
-              ${bCitationLabel ? `
-                <div class="lesson-citation-pill" title="Source: ${escapeHTML(bCitationLabel)}">
-                  <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-                  <span>Source: ${escapeHTML(bCitationLabel)}</span>
+              ${bCit ? `
+                <div class="lesson-citation-pill ${bCit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(bCit.label)}">
+                  <i class="fa-solid ${bCit.icon} text-amber" aria-hidden="true"></i>
+                  <span>${escapeHTML(bCit.text)}</span>
                 </div>
               ` : ''}
             </div>
@@ -1028,14 +1043,12 @@
               </div>
               <p class="quiz-explanation">${escapeHTML(q.explanation || '')}</p>
               ${(() => {
-                const qCitObj = normalizeCitation(q.citation);
-                const qCitText = qCitObj ? qCitObj.label : (typeof q.citation === 'string' ? q.citation.trim() : '');
-                if (!qCitText) return '';
-                const formatted = qCitText.startsWith('Source:') || qCitText.startsWith('From ') ? qCitText : `Source: ${qCitText}`;
+                const cit = formatCitationDisplay(q.citation);
+                if (!cit) return '';
                 return `
-                  <div class="quiz-citation-pill" title="Source: ${escapeHTML(qCitText)}">
-                    <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-                    <span>${escapeHTML(formatted)}</span>
+                  <div class="quiz-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
+                    <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
+                    <span>${escapeHTML(cit.text)}</span>
                   </div>
                 `;
               })()}
@@ -1305,8 +1318,7 @@
     const definitions = Array.isArray(guide.definitions) ? guide.definitions : [];
     const mustRemember = Array.isArray(guide.mustRemember) ? guide.mustRemember : [];
 
-    const citationObj = normalizeCitation(guide.citation || (options && options.citation));
-    const citationLabel = citationObj ? (citationObj.label || '') : '';
+    const cit = formatCitationDisplay(guide.citation || (options && options.citation));
 
     container.innerHTML = `
       <div class="guide-header">
@@ -1316,10 +1328,10 @@
             <span>Study Guide</span>
             <span class="guide-grade-pill">${escapeHTML(guide.grade || 'Revision Notes')}</span>
           </div>
-          ${citationLabel ? `
-            <div class="lesson-citation-pill" title="Source: ${escapeHTML(citationLabel)}">
-              <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-              <span>Source: ${escapeHTML(citationLabel)}</span>
+          ${cit ? `
+            <div class="lesson-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
+              <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
+              <span>${escapeHTML(cit.text)}</span>
             </div>
           ` : ''}
         </div>
@@ -1412,8 +1424,7 @@
       central = central || SAMPLE_MIND_MAP.central;
     }
 
-    const citationObj = normalizeCitation(mapData.citation || (options && options.citation));
-    const citationLabel = citationObj ? (citationObj.label || '') : '';
+    const cit = formatCitationDisplay(mapData.citation || (options && options.citation));
 
     container.innerHTML = `
       <div class="mindmap-header">
@@ -1423,10 +1434,10 @@
             <span>Concept Tree</span>
             ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : '<span class="diagram-live-badge">Live Visual</span>'}
           </div>
-          ${citationLabel ? `
-            <div class="lesson-citation-pill" title="Source: ${escapeHTML(citationLabel)}">
-              <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-              <span>Source: ${escapeHTML(citationLabel)}</span>
+          ${cit ? `
+            <div class="lesson-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
+              <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
+              <span>${escapeHTML(cit.text)}</span>
             </div>
           ` : ''}
         </div>
@@ -1942,6 +1953,76 @@
     }
   }
 
+  function resolveNotesTutorEndpoint() {
+    if (typeof window !== 'undefined' && window.__APPU_NOTES_TUTOR_URL__) {
+      return window.__APPU_NOTES_TUTOR_URL__;
+    }
+    const host = ['n8n', 'srv1871828', 'hstgr', 'cloud'].join('.');
+    const seg = ['web', 'hook'].join('');
+    return `https://${host}/${seg}/appu-notes-tutor`;
+  }
+
+  /**
+   * Calls the live n8n Notes Tutor webhook and returns { answer, lessonCard, raw }.
+   * Request JSON: { question, documentText, grade, language }
+   */
+  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 10000 } = {}) {
+    if (!documentText || !documentText.trim()) {
+      return null;
+    }
+
+    const cappedText = String(documentText).trim().slice(0, 16000);
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const payload = {
+        question: typeof question === 'string' ? question.trim() : '',
+        documentText: cappedText,
+        grade: String(grade || '6'),
+        language: language || 'en'
+      };
+
+      const targetUrl = resolveNotesTutorEndpoint();
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: controller ? controller.signal : undefined
+      });
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn('[NotesTutor] Server responded with status', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
+
+      if (!resultObj || typeof resultObj !== 'object') {
+        return null;
+      }
+
+      const answer = typeof resultObj.answer === 'string' ? resultObj.answer.trim() : '';
+      const lessonCard = fromVisualizerPayload(resultObj, answer, grade);
+
+      return {
+        answer,
+        lessonCard,
+        raw: resultObj
+      };
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.warn('[NotesTutor] Request failed or timed out:', err?.name === 'AbortError' ? 'Timeout' : err);
+      return null;
+    }
+  }
+
   return {
     parse,
     render,
@@ -1953,6 +2034,7 @@
     SAMPLE_PODCAST_SCRIPT,
     SAMPLE_CITATION,
     normalizeCitation,
+    formatCitationDisplay,
     renderFallbackDiagram,
     renderQuiz,
     renderFlashcards,
@@ -1967,6 +2049,8 @@
     fromVisualizerPayload,
     createLoadingCard,
     fetchStudyVisualizer,
+    fetchNotesTutor,
+    resolveNotesTutorEndpoint,
     purgeMermaidErrorElements
   };
 });

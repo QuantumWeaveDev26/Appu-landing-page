@@ -696,3 +696,205 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
     assert.ok(el.innerHTML.includes('NCERT Class 7 Science - Acids, Bases and Salts'));
   });
 });
+
+describe('Task E: Notes Tutor & Document Upload Teaching', () => {
+  test('resolveNotesTutorEndpoint returns valid endpoint and respects window override', () => {
+    const endpoint = LessonCardRenderer.resolveNotesTutorEndpoint();
+    assert.ok(endpoint.includes('appu-notes-tutor'));
+
+    // Test window override
+    const originalWin = globalThis.window;
+    globalThis.window = { __APPU_NOTES_TUTOR_URL__: 'https://custom-proxy.internal/notes-tutor' };
+    assert.equal(LessonCardRenderer.resolveNotesTutorEndpoint(), 'https://custom-proxy.internal/notes-tutor');
+    globalThis.window = originalWin;
+  });
+
+  test('formatCitationDisplay handles upload citations with fa-file-lines and isUpload: true', () => {
+    const uploadCit = { label: 'Your uploaded notes', source: 'upload' };
+    const formatted = LessonCardRenderer.formatCitationDisplay(uploadCit);
+    assert.ok(formatted);
+    assert.equal(formatted.isUpload, true);
+    assert.equal(formatted.icon, 'fa-file-lines');
+    assert.equal(formatted.text, 'Your uploaded notes');
+
+    // NCERT citation check
+    const ncertCit = { label: 'NCERT Class 7 Science - Nutrition in Animals' };
+    const formattedNcert = LessonCardRenderer.formatCitationDisplay(ncertCit);
+    assert.ok(formattedNcert);
+    assert.equal(formattedNcert.isUpload, false);
+    assert.equal(formattedNcert.icon, 'fa-book-bookmark');
+    assert.equal(formattedNcert.text, 'Source: NCERT Class 7 Science - Nutrition in Animals');
+  });
+
+  test('fetchNotesTutor returns null if documentText is missing or empty', async () => {
+    assert.equal(await LessonCardRenderer.fetchNotesTutor({ documentText: '' }), null);
+    assert.equal(await LessonCardRenderer.fetchNotesTutor({ documentText: '   ' }), null);
+    assert.equal(await LessonCardRenderer.fetchNotesTutor({}), null);
+  });
+
+  test('fetchNotesTutor caps documentText to 16,000 characters and parses response', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedBody = null;
+
+    globalThis.fetch = async (url, opts) => {
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          answer: 'Photosynthesis is how plants convert solar energy into glucose.',
+          topic: 'Photosynthesis in Leaves',
+          citation: { label: 'Your uploaded notes', source: 'upload' },
+          mindMap: {
+            central: 'Photosynthesis',
+            branches: [
+              { label: 'Inputs', children: ['Light', 'CO2', 'Water'] },
+              { label: 'Outputs', children: ['Glucose', 'Oxygen'] }
+            ]
+          },
+          steps: ['Light capture', 'Water splitting', 'Calvin cycle'],
+          analogy: 'Leaves are solar-powered sugar factories.',
+          keyPoints: ['Chloroplasts trap photons', 'Stomata absorb CO2'],
+          quiz: [
+            {
+              q: 'What is the primary product of photosynthesis?',
+              options: ['Glucose', 'Methane', 'Nitrogen', 'Salt'],
+              answerIndex: 0,
+              explain: 'Plants produce glucose for fuel.'
+            }
+          ],
+          flashcards: [
+            { front: 'Stomata', back: 'Microscopic pores for gas exchange' }
+          ]
+        })
+      };
+    };
+
+    const longDoc = 'Word '.repeat(5000); // ~25,000 chars
+    const result = await LessonCardRenderer.fetchNotesTutor({
+      question: 'Explain this chapter',
+      documentText: longDoc,
+      grade: '7',
+      language: 'en'
+    });
+
+    assert.ok(result);
+    assert.equal(capturedBody.documentText.length, 16000, 'Must cap documentText at 16,000 characters');
+    assert.equal(capturedBody.grade, '7');
+    assert.equal(capturedBody.language, 'en');
+
+    assert.equal(result.answer, 'Photosynthesis is how plants convert solar energy into glucose.');
+    assert.ok(result.lessonCard);
+    assert.equal(result.lessonCard.mindMap.central, 'Photosynthesis');
+    assert.equal(result.lessonCard.citation.label, 'Your uploaded notes');
+    assert.equal(result.lessonCard.quizItems.length, 1);
+    assert.equal(result.lessonCard.flashcards.length, 1);
+
+    globalThis.fetch = originalFetch;
+  });
+
+  test('fetchNotesTutor handles network failure or non-200 gracefully without throwing', async () => {
+    const originalFetch = globalThis.fetch;
+
+    // 500 error
+    globalThis.fetch = async () => ({ ok: false, status: 500 });
+    const failRes = await LessonCardRenderer.fetchNotesTutor({
+      question: 'Testing failure',
+      documentText: 'Some notes text'
+    });
+    assert.equal(failRes, null);
+
+    // Network error / throw
+    globalThis.fetch = async () => { throw new Error('Network offline'); };
+    const throwRes = await LessonCardRenderer.fetchNotesTutor({
+      question: 'Testing network drop',
+      documentText: 'Some notes text'
+    });
+    assert.equal(throwRes, null);
+
+    globalThis.fetch = originalFetch;
+  });
+
+  test('render() and renderMindMap() apply is-upload-source class and fa-file-lines for uploaded notes', () => {
+    const uploadCard = {
+      isRich: true,
+      mood: 'explaining',
+      gradeTone: 'middle',
+      citation: { label: 'Your uploaded notes', source: 'upload' },
+      blocks: [
+        {
+          type: 'diagram',
+          title: 'Notes Concept Tree',
+          central: 'Cell Division',
+          branches: [{ label: 'Mitosis', children: ['Prophase', 'Metaphase'] }],
+          citation: { label: 'Your uploaded notes', source: 'upload' }
+        }
+      ],
+      plainText: 'Cells divide through mitosis.'
+    };
+
+    const el = LessonCardRenderer.render(uploadCard);
+    const diag = el.querySelector('.lesson-block-diagram');
+    assert.ok(diag, 'Must contain diagram block');
+    assert.ok(diag.innerHTML.includes('is-upload-source'), 'Must include is-upload-source class');
+    assert.ok(diag.innerHTML.includes('fa-file-lines'), 'Must include fa-file-lines icon for upload');
+    assert.ok(diag.innerHTML.includes('Your uploaded notes'), 'Must render citation label');
+
+    // Test renderMindMap
+    const mapEl = LessonCardRenderer.renderMindMap({
+      title: 'Notes Concept Tree',
+      central: 'Cell Division',
+      branches: [{ label: 'Mitosis', children: [] }],
+      citation: { label: 'Your uploaded notes', source: 'upload' }
+    });
+    assert.ok(mapEl.innerHTML.includes('is-upload-source'));
+    assert.ok(mapEl.innerHTML.includes('fa-file-lines'));
+  });
+
+  test('renderQuiz() applies is-upload-source class and fa-file-lines for uploaded notes', () => {
+    const quizItems = [
+      {
+        id: 'q1',
+        question: 'What phase comes after prophase?',
+        options: ['Metaphase', 'Anaphase', 'Telophase', 'Interphase'],
+        correctIndex: 0,
+        explanation: 'Chromosomes align along the metaphase plate.',
+        citation: { label: 'Your uploaded notes', source: 'upload' }
+      }
+    ];
+
+    const el = LessonCardRenderer.renderQuiz(quizItems);
+    const btn0 = el.querySelector('.quiz-opt-btn-0');
+    assert.ok(btn0);
+    btn0.click();
+
+    assert.ok(el.innerHTML.includes('is-upload-source'), 'Quiz explanation must include is-upload-source');
+    assert.ok(el.innerHTML.includes('fa-file-lines'), 'Quiz explanation must include fa-file-lines');
+    assert.ok(el.innerHTML.includes('Your uploaded notes'));
+  });
+
+  test('index.html contains required upload buttons, banners, and modal elements', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html = fs.readFileSync(path.join(__dirname, '../frontend/index.html'), 'utf8');
+
+    // Upload affordances
+    assert.ok(html.includes('id="btn-upload-notes"'), 'Must contain dock upload notes button');
+    assert.ok(html.includes('id="btn-chat-upload-notes"'), 'Must contain chat drawer upload notes button');
+
+    // Active document banners
+    assert.ok(html.includes('id="active-doc-banner-dock"'), 'Must contain dock active document banner');
+    assert.ok(html.includes('id="active-doc-banner-drawer"'), 'Must contain drawer active document banner');
+    assert.ok(html.includes('id="btn-clear-doc-dock"'), 'Must contain dock clear document button');
+    assert.ok(html.includes('id="btn-clear-doc-drawer"'), 'Must contain drawer clear document button');
+
+    // Notes upload modal
+    assert.ok(html.includes('id="notes-upload-modal"'), 'Must contain notes upload modal');
+    assert.ok(html.includes('id="notes-dropzone"'), 'Must contain notes file dropzone');
+    assert.ok(html.includes('id="notes-paste-input"'), 'Must contain notes paste textarea');
+    assert.ok(html.includes('id="btn-submit-notes"'), 'Must contain submit notes button');
+
+    // pdf.js library
+    assert.ok(html.includes('pdf.min.js'), 'Must include pdf.js library script');
+  });
+});

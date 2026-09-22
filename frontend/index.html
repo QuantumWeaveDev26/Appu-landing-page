@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260922-01">
+  <link rel="stylesheet" href="style.css?v=20260922-02">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -173,6 +173,18 @@
       </div>
     </main>
 
+    <!-- Active Document Banner (Dock Mode) -->
+    <div id="active-doc-banner-dock" class="active-doc-banner" hidden>
+      <div class="active-doc-pill">
+        <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+        <span class="active-doc-name" id="active-doc-name-dock">Notes</span>
+        <span class="active-doc-badge">Teaching from this</span>
+        <button id="btn-clear-doc-dock" class="active-doc-clear-btn" type="button" aria-label="Clear active document and return to standard mode" title="Clear document">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
     <section class="response-dock" aria-label="Talk to Appu">
       <div class="response-card" id="response-card" role="button" tabindex="0" aria-label="Tap to type a message to Appu">
         <div id="appu-mascot-container" class="appu-mascot-container" aria-hidden="true"></div>
@@ -182,7 +194,10 @@
         </div>
       </div>
       <div class="control-dock">
-        <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span>Type instead</span></button>
+        <div class="dock-btn-group">
+          <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span>Type instead</span></button>
+          <button id="btn-upload-notes" class="dock-btn notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i><span>Upload notes</span></button>
+        </div>
         <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Tap to speak to Appu"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
         <span class="mic-label">Tap to speak</span>
       </div>
@@ -263,11 +278,23 @@
       <img id="chat-image-preview-thumb" alt="Attached photo preview">
       <button id="btn-remove-chat-image" class="chat-image-remove" type="button" aria-label="Remove attached photo"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
+    <!-- Active Document Banner (Drawer Mode) -->
+    <div id="active-doc-banner-drawer" class="active-doc-banner in-drawer" hidden>
+      <div class="active-doc-pill">
+        <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+        <span class="active-doc-name" id="active-doc-name-drawer">Notes</span>
+        <span class="active-doc-badge">Teaching from this</span>
+        <button id="btn-clear-doc-drawer" class="active-doc-clear-btn" type="button" aria-label="Clear active document and return to standard mode" title="Clear document">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
     <form id="chat-form" class="chat-composer">
       <label class="sr-only" for="chat-input">Your question for Appu</label>
       <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homework…">
       <input id="chat-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden aria-hidden="true">
       <button id="btn-chat-attach" class="composer-attach" type="button" aria-label="Attach a photo of your homework"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></button>
+      <button id="btn-chat-upload-notes" class="composer-notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></button>
       <button id="btn-chat-mic" class="composer-mic" type="button" aria-label="Ask using your voice"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
       <button class="composer-send" type="submit" aria-label="Send question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
     </form>
@@ -756,6 +783,64 @@
     </div>
   </div>
 
+  <!-- NOTES & TEXTBOOK UPLOAD MODAL -->
+  <section id="notes-upload-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-upload-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet notes-upload-sheet">
+      <button id="btn-close-notes-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close upload dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i> <span>Grounded Chapter Tutor</span></div>
+      <h2 id="notes-upload-title">Learn from Your Notes or Textbook</h2>
+      <p class="modal-lead">Upload your class notes, textbook PDF, or paste text. Appu will create a mind map, step-by-step lesson, and quiz directly from your material!</p>
+
+      <div class="notes-tabs" role="tablist" aria-label="Upload method">
+        <button id="tab-notes-file" class="notes-tab is-active" type="button" role="tab" aria-selected="true"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>Upload PDF / File</span></button>
+        <button id="tab-notes-paste" class="notes-tab" type="button" role="tab" aria-selected="false"><i class="fa-solid fa-paste" aria-hidden="true"></i><span>Paste Text</span></button>
+      </div>
+
+      <!-- Tab 1: File Dropzone -->
+      <div id="notes-tabpanel-file" class="notes-tabpanel" role="tabpanel" aria-labelledby="tab-notes-file">
+        <div id="notes-dropzone" class="notes-dropzone" tabindex="0" role="button" aria-label="Drag and drop PDF or text file here, or browse">
+          <input id="notes-file-input" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" hidden>
+          <div class="notes-dropzone-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></div>
+          <p class="notes-dropzone-title">Drop your PDF or textbook chapter here</p>
+          <p class="notes-dropzone-subtitle">Supports PDF, TXT or Markdown files (up to 10MB)</p>
+          <button id="btn-browse-notes-file" class="secondary-modal-btn notes-browse-btn" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>Browse File</span></button>
+        </div>
+        <div id="notes-file-status" class="notes-status-card" hidden>
+          <div class="notes-file-meta">
+            <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+            <div class="notes-file-info">
+              <strong id="notes-filename">chapter-notes.pdf</strong>
+              <small id="notes-file-stats">Extracting text...</small>
+            </div>
+          </div>
+          <button id="btn-remove-notes-file" class="icon-btn notes-remove-btn" type="button" aria-label="Remove selected file"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Paste Text -->
+      <div id="notes-tabpanel-paste" class="notes-tabpanel" role="tabpanel" aria-labelledby="tab-notes-paste" hidden>
+        <label for="notes-paste-input" class="sr-only">Paste textbook or notes content</label>
+        <textarea id="notes-paste-input" class="notes-paste-textarea" rows="8" placeholder="Paste text from your digital notes, PDF, or study guide here..."></textarea>
+        <div class="notes-paste-counter">
+          <span id="notes-char-count">0 / 16,000 characters</span>
+        </div>
+      </div>
+
+      <div class="notes-guidance-pill">
+        <i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i>
+        <span>Answers, concept maps, and quizzes will be strictly grounded in this material.</span>
+      </div>
+
+      <div class="notes-modal-actions">
+        <button id="btn-submit-notes" class="primary-modal-btn notes-submit-btn" type="button" disabled>
+          <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+          <span>Teach Me From This</span>
+        </button>
+        <button id="btn-cancel-notes" class="secondary-modal-btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Confetti Canvas & XP Toast Container -->
   <canvas id="game-confetti-canvas" class="game-confetti-canvas" aria-hidden="true"></canvas>
   <div id="game-toast-container" class="game-toast-container" aria-live="polite" aria-atomic="true"></div>
@@ -764,23 +849,24 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260922-01"></script>
-  <script src="appu-config.js?v=20260922-01"></script>
-  <script src="appu-session.js?v=20260922-01"></script>
-  <script src="appu-backend-client.js?v=20260922-01"></script>
-  <script src="parent-onboarding-shell.js?v=20260922-01"></script>
-  <script src="parent-setup-ui.js?v=20260922-01"></script>
-  <script src="prompt-library-ui.js?v=20260922-01"></script>
-  <script src="avatar-stage.js?v=20260922-01"></script>
-  <script src="mascot-avatar.js?v=20260922-01"></script>
-  <script src="lesson-card-renderer.js?v=20260922-01"></script>
-  <script src="voice-engine.js?v=20260922-01"></script>
-  <script src="chat-history.js?v=20260922-01"></script>
-  <script src="chat-agent.js?v=20260922-01"></script>
-  <script src="parent-reports-ui.js?v=20260922-01"></script>
-  <script src="parental-controls-ui.js?v=20260922-01"></script>
-  <script src="app.js?v=20260922-01"></script>
+  <script src="voice-contract.js?v=20260922-02"></script>
+  <script src="appu-config.js?v=20260922-02"></script>
+  <script src="appu-session.js?v=20260922-02"></script>
+  <script src="appu-backend-client.js?v=20260922-02"></script>
+  <script src="parent-onboarding-shell.js?v=20260922-02"></script>
+  <script src="parent-setup-ui.js?v=20260922-02"></script>
+  <script src="prompt-library-ui.js?v=20260922-02"></script>
+  <script src="avatar-stage.js?v=20260922-02"></script>
+  <script src="mascot-avatar.js?v=20260922-02"></script>
+  <script src="lesson-card-renderer.js?v=20260922-02"></script>
+  <script src="voice-engine.js?v=20260922-02"></script>
+  <script src="chat-history.js?v=20260922-02"></script>
+  <script src="chat-agent.js?v=20260922-02"></script>
+  <script src="parent-reports-ui.js?v=20260922-02"></script>
+  <script src="parental-controls-ui.js?v=20260922-02"></script>
+  <script src="app.js?v=20260922-02"></script>
 </body>
 </html>

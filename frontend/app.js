@@ -1204,15 +1204,96 @@ document.addEventListener('DOMContentLoaded', () => {
   // CORE INTERACTION HANDLER
   // ==========================================
   async function handleUserInteraction(text, image = null) {
-    if (!text || !text.trim()) return;
+    const isDocActive = Boolean(window.activeTutorDocument && window.activeTutorDocument.text);
+    if (!isDocActive && (!text || !text.trim())) return;
 
-    if (!ensureChatSessionReady(text)) {
+    if (!ensureChatSessionReady(text || (isDocActive ? window.activeTutorDocument.name : ''))) {
       return;
     }
 
     voiceEngine.playClick();
     avatarStage.setState('thinking');
     if (window.appMascot) window.appMascot.setMood('thinking');
+
+    // If active document mode: Route directly to appu-notes-tutor webhook
+    if (isDocActive) {
+      const rawQuestion = (text && text.trim()) ? text.trim() : '';
+      const displayQuery = rawQuestion || `Teach me from "${window.activeTutorDocument.name}"`;
+
+      // Update Subtitles HUD
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = `"${displayQuery}"`;
+      }
+
+      // Append user turn to chat drawer
+      if (chatAgent && typeof chatAgent.addMessage === 'function') {
+        chatAgent.addMessage('user', displayQuery);
+      }
+
+      // Immediate shimmer loading card
+      const childGrade = getActiveChildGrade();
+      const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+      const initialCard = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+        ? LessonCardRenderer.createLoadingCard(displayQuery, 'Reading your notes and crafting your grounded lesson...', childGrade)
+        : null;
+
+      // Close typing drawer if open so learner sees the live stage
+      const chatDrawer = document.getElementById('chat-drawer');
+      if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+        if (typeof toggleChatDrawer === 'function') {
+          toggleChatDrawer(false);
+        }
+      }
+      if (typeof showVoicePopup === 'function') {
+        showVoicePopup('Reading your notes and crafting your grounded lesson...', initialCard);
+      }
+
+      try {
+        const notesResult = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function')
+          ? await LessonCardRenderer.fetchNotesTutor({
+              question: rawQuestion,
+              documentText: window.activeTutorDocument.text,
+              grade: childGrade,
+              language: currentLangCode,
+              timeoutMs: 12000
+            })
+          : null;
+
+        if (notesResult && notesResult.answer) {
+          const reply = notesResult.answer;
+          const lessonCard = notesResult.lessonCard;
+
+          avatarStage.setState('speaking');
+          if (window.appMascot) window.appMascot.setMood('explaining');
+
+          if (typeof showVoicePopup === 'function') {
+            showVoicePopup(reply, lessonCard);
+          }
+          if (chatAgent && typeof chatAgent.addMessage === 'function') {
+            chatAgent.addMessage('appu', reply, null, null, { lessonCard });
+          }
+
+          voiceEngine.playMessage();
+          await voiceEngine.speak(reply);
+        } else {
+          throw new Error('No valid response from notes tutor webhook');
+        }
+      } catch (err) {
+        console.warn('[NotesTutor] Interaction failed or timed out:', err);
+        avatarStage.setState('idle');
+        if (window.appMascot) window.appMascot.setMood('idle');
+        const fallbackMsg = "I couldn't process this document right now. Please try asking a specific question or re-uploading your notes!";
+        if (typeof showVoicePopup === 'function') {
+          showVoicePopup(fallbackMsg, null);
+        }
+        if (chatAgent && typeof chatAgent.addMessage === 'function') {
+          chatAgent.addMessage('appu', fallbackMsg);
+        }
+        voiceEngine.speak(fallbackMsg);
+      }
+      return;
+    }
 
     // Update Subtitles HUD to show user's query
     const subtitlesText = document.getElementById('subtitles-text');
@@ -1878,6 +1959,268 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ==========================================
+  // ACTIVE DOCUMENT & NOTES TUTOR (GROUNDED CHAPTER TEACHING)
+  // ==========================================
+  window.activeTutorDocument = null;
+
+  const activeDocBannerDock = document.getElementById('active-doc-banner-dock');
+  const activeDocNameDock = document.getElementById('active-doc-name-dock');
+  const btnClearDocDock = document.getElementById('btn-clear-doc-dock');
+  const activeDocBannerDrawer = document.getElementById('active-doc-banner-drawer');
+  const activeDocNameDrawer = document.getElementById('active-doc-name-drawer');
+  const btnClearDocDrawer = document.getElementById('btn-clear-doc-drawer');
+  const btnUploadNotes = document.getElementById('btn-upload-notes');
+  const btnChatUploadNotes = document.getElementById('btn-chat-upload-notes');
+
+  const notesUploadModal = document.getElementById('notes-upload-modal');
+  const btnCloseNotesModal = document.getElementById('btn-close-notes-modal');
+  const btnCancelNotes = document.getElementById('btn-cancel-notes');
+  const tabNotesFile = document.getElementById('tab-notes-file');
+  const tabNotesPaste = document.getElementById('tab-notes-paste');
+  const notesTabpanelFile = document.getElementById('notes-tabpanel-file');
+  const notesTabpanelPaste = document.getElementById('notes-tabpanel-paste');
+  const notesDropzone = document.getElementById('notes-dropzone');
+  const notesFileInput = document.getElementById('notes-file-input');
+  const btnBrowseNotesFile = document.getElementById('btn-browse-notes-file');
+  const notesFileStatus = document.getElementById('notes-file-status');
+  const notesFilename = document.getElementById('notes-filename');
+  const notesFileStats = document.getElementById('notes-file-stats');
+  const btnRemoveNotesFile = document.getElementById('btn-remove-notes-file');
+  const notesPasteInput = document.getElementById('notes-paste-input');
+  const notesCharCount = document.getElementById('notes-char-count');
+  const btnSubmitNotes = document.getElementById('btn-submit-notes');
+
+  let pendingExtractedDoc = null;
+
+  function setActiveTutorDocument(doc) {
+    if (!doc || !doc.text) return;
+    const name = doc.name || 'Your Notes';
+    const text = String(doc.text).slice(0, 16000).trim();
+    window.activeTutorDocument = { name, text };
+
+    if (activeDocNameDock) activeDocNameDock.textContent = name;
+    if (activeDocNameDrawer) activeDocNameDrawer.textContent = name;
+    if (activeDocBannerDock) {
+      activeDocBannerDock.hidden = false;
+      activeDocBannerDock.removeAttribute('hidden');
+    }
+    if (activeDocBannerDrawer) {
+      activeDocBannerDrawer.hidden = false;
+      activeDocBannerDrawer.removeAttribute('hidden');
+    }
+  }
+
+  function clearActiveTutorDocument() {
+    window.activeTutorDocument = null;
+    pendingExtractedDoc = null;
+    if (activeDocBannerDock) activeDocBannerDock.hidden = true;
+    if (activeDocBannerDrawer) activeDocBannerDrawer.hidden = true;
+    resetNotesUploadState();
+    if (voiceEngine && typeof voiceEngine.playClick === 'function') {
+      voiceEngine.playClick();
+    }
+  }
+
+  function openNotesUploadModal() {
+    if (!notesUploadModal) return;
+    notesUploadModal.classList.add('is-visible');
+    activateDialog(notesUploadModal, tabNotesFile || notesUploadModal);
+  }
+
+  function closeNotesUploadModal() {
+    if (!notesUploadModal) return;
+    notesUploadModal.classList.remove('is-visible');
+    deactivateDialog(notesUploadModal);
+  }
+
+  function resetNotesUploadState() {
+    pendingExtractedDoc = null;
+    if (notesFileInput) notesFileInput.value = '';
+    if (notesFileStatus) notesFileStatus.hidden = true;
+    if (notesPasteInput) notesPasteInput.value = '';
+    if (notesCharCount) notesCharCount.textContent = '0 / 16,000 characters';
+    if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+  }
+
+  function switchNotesTab(activeTab) {
+    if (!tabNotesFile || !tabNotesPaste) return;
+    if (activeTab === 'file') {
+      tabNotesFile.classList.add('is-active');
+      tabNotesFile.setAttribute('aria-selected', 'true');
+      tabNotesPaste.classList.remove('is-active');
+      tabNotesPaste.setAttribute('aria-selected', 'false');
+      if (notesTabpanelFile) notesTabpanelFile.hidden = false;
+      if (notesTabpanelPaste) notesTabpanelPaste.hidden = true;
+      if (btnSubmitNotes) {
+        btnSubmitNotes.disabled = !pendingExtractedDoc;
+      }
+    } else {
+      tabNotesPaste.classList.add('is-active');
+      tabNotesPaste.setAttribute('aria-selected', 'true');
+      tabNotesFile.classList.remove('is-active');
+      tabNotesFile.setAttribute('aria-selected', 'false');
+      if (notesTabpanelPaste) notesTabpanelPaste.hidden = false;
+      if (notesTabpanelFile) notesTabpanelFile.hidden = true;
+      if (notesPasteInput) {
+        notesPasteInput.focus();
+        if (btnSubmitNotes) {
+          btnSubmitNotes.disabled = !(notesPasteInput.value && notesPasteInput.value.trim().length > 0);
+        }
+      }
+    }
+  }
+
+  async function extractTextFromPdfFile(file) {
+    if (typeof window !== 'undefined' && window.pdfjsLib) {
+      try {
+        if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += (fullText ? '\n\n' : '') + pageText;
+          if (fullText.length >= 16000) break;
+        }
+        return fullText.slice(0, 16000);
+      } catch (pdfErr) {
+        console.warn('[NotesTutor] pdfjsLib extraction failed, falling back to text read:', pdfErr);
+      }
+    }
+    return await file.text();
+  }
+
+  async function processSelectedFile(file) {
+    if (!file) return;
+    if (notesFilename) notesFilename.textContent = file.name;
+    if (notesFileStats) notesFileStats.textContent = 'Extracting text...';
+    if (notesFileStatus) notesFileStatus.hidden = false;
+    if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+
+    try {
+      let extracted = '';
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        extracted = await extractTextFromPdfFile(file);
+      } else {
+        extracted = await file.text();
+      }
+
+      const capped = String(extracted || '').slice(0, 16000).trim();
+      if (!capped) {
+        if (notesFileStats) notesFileStats.textContent = 'Could not extract readable text from this file.';
+        return;
+      }
+
+      pendingExtractedDoc = {
+        name: file.name,
+        text: capped
+      };
+
+      if (notesFileStats) {
+        notesFileStats.textContent = `Ready • ${capped.length.toLocaleString()} characters extracted`;
+      }
+      if (btnSubmitNotes) btnSubmitNotes.disabled = false;
+    } catch (err) {
+      console.warn('[NotesTutor] File text extraction failed:', err);
+      if (notesFileStats) notesFileStats.textContent = 'Extraction failed. Please try pasting the text instead.';
+    }
+  }
+
+  // Event Listeners for Notes Upload UI
+  if (btnUploadNotes) btnUploadNotes.addEventListener('click', openNotesUploadModal);
+  if (btnChatUploadNotes) btnChatUploadNotes.addEventListener('click', openNotesUploadModal);
+  if (btnCloseNotesModal) btnCloseNotesModal.addEventListener('click', closeNotesUploadModal);
+  if (btnCancelNotes) btnCancelNotes.addEventListener('click', closeNotesUploadModal);
+
+  if (btnClearDocDock) btnClearDocDock.addEventListener('click', clearActiveTutorDocument);
+  if (btnClearDocDrawer) btnClearDocDrawer.addEventListener('click', clearActiveTutorDocument);
+
+  if (tabNotesFile) tabNotesFile.addEventListener('click', () => switchNotesTab('file'));
+  if (tabNotesPaste) tabNotesPaste.addEventListener('click', () => switchNotesTab('paste'));
+
+  if (notesDropzone) {
+    notesDropzone.addEventListener('click', () => {
+      if (notesFileInput) notesFileInput.click();
+    });
+    notesDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      notesDropzone.classList.add('dragover');
+    });
+    notesDropzone.addEventListener('dragleave', () => {
+      notesDropzone.classList.remove('dragover');
+    });
+    notesDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      notesDropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  if (notesFileInput) {
+    notesFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        processSelectedFile(e.target.files[0]);
+      }
+    });
+  }
+
+  if (btnRemoveNotesFile) {
+    btnRemoveNotesFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pendingExtractedDoc = null;
+      if (notesFileInput) notesFileInput.value = '';
+      if (notesFileStatus) notesFileStatus.hidden = true;
+      if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+    });
+  }
+
+  if (notesPasteInput) {
+    notesPasteInput.addEventListener('input', () => {
+      const val = notesPasteInput.value || '';
+      const len = val.length;
+      if (notesCharCount) {
+        notesCharCount.textContent = `${len.toLocaleString()} / 16,000 characters`;
+      }
+      if (tabNotesPaste && tabNotesPaste.classList.contains('is-active')) {
+        if (btnSubmitNotes) {
+          btnSubmitNotes.disabled = len === 0;
+        }
+      }
+    });
+  }
+
+  if (btnSubmitNotes) {
+    btnSubmitNotes.addEventListener('click', () => {
+      let docToActivate = null;
+      const isPasteActive = tabNotesPaste && tabNotesPaste.classList.contains('is-active');
+
+      if (isPasteActive) {
+        const text = (notesPasteInput && notesPasteInput.value ? notesPasteInput.value : '').slice(0, 16000).trim();
+        if (!text) return;
+        const firstLine = text.split('\n')[0].replace(/^#+\s*/, '').slice(0, 30).trim();
+        const docName = firstLine ? `Notes: ${firstLine}` : 'Pasted Notes';
+        docToActivate = { name: docName, text };
+      } else {
+        if (!pendingExtractedDoc || !pendingExtractedDoc.text) return;
+        docToActivate = pendingExtractedDoc;
+      }
+
+      setActiveTutorDocument(docToActivate);
+      closeNotesUploadModal();
+
+      // Auto-send on Upload: If user uploads without typing a question, auto-send empty question
+      handleUserInteraction('');
+    });
+  }
+
   // Initialize Phase 2 Parent Setup UI
   if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.init === 'function') {
     window.ParentSetupUI.init();
@@ -2093,6 +2436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
     if (e.target === guestLimitModal) closeGuestGateModal();
+    if (e.target === notesUploadModal) closeNotesUploadModal();
     if (e.target === parentSetupModal && parentSetupModal) {
       if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
         window.ParentSetupUI.closeModal();
@@ -2147,6 +2491,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeDiscoveryModal();
       closeSettingsModal();
       closeGuestGateModal();
+      closeNotesUploadModal();
       toggleChatDrawer(false);
       closeNavDrawer();
       closeWelcomeGate();
@@ -2573,6 +2918,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window.app.avatarStage = avatarStage;
     window.app.voiceEngine = voiceEngine;
+    window.app.setActiveTutorDocument = setActiveTutorDocument;
+    window.app.clearActiveTutorDocument = clearActiveTutorDocument;
+    window.app.openNotesUploadModal = openNotesUploadModal;
+    window.app.closeNotesUploadModal = closeNotesUploadModal;
   }
 
   if (typeof window !== 'undefined' && /[?&]demo=/i.test(window.location.search)) {
