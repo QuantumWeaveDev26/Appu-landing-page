@@ -114,6 +114,11 @@ function createMockNode(tag = 'div', id = '') {
     addEventListener(evt, fn) {
       this._listeners[evt] = this._listeners[evt] || [];
       this._listeners[evt].push(fn);
+    },
+    click() {
+      if (this._listeners['click']) {
+        this._listeners['click'].forEach(fn => fn({ preventDefault: () => {} }));
+      }
     }
   };
   return el;
@@ -517,5 +522,177 @@ describe('Task C: Modular Avatar Architecture', () => {
     // Replacing provider destroys previous one
     stage.setAvatarProvider(null);
     assert.equal(providerDestroyed, true);
+  });
+});
+
+describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
+  test('normalizeCitation correctly normalizes object, string, and missing citations', () => {
+    // Missing / invalid
+    assert.equal(LessonCardRenderer.normalizeCitation(null), null);
+    assert.equal(LessonCardRenderer.normalizeCitation(undefined), null);
+    assert.equal(LessonCardRenderer.normalizeCitation(''), null);
+    assert.equal(LessonCardRenderer.normalizeCitation('   '), null);
+
+    // String
+    assert.deepEqual(LessonCardRenderer.normalizeCitation('NCERT Class 7 Science'), {
+      label: 'NCERT Class 7 Science'
+    });
+
+    // Object with label
+    const fullObj = {
+      label: 'NCERT Class 7 Science - Nutrition in Animals',
+      class: 7,
+      subject: 'Science',
+      chapter: 'Nutrition in Animals'
+    };
+    assert.deepEqual(LessonCardRenderer.normalizeCitation(fullObj), fullObj);
+
+    // Object without label but with class and subject
+    const partialObj = { class: 8, subject: 'Maths', chapter: 'Rational Numbers' };
+    const normalized = LessonCardRenderer.normalizeCitation(partialObj);
+    assert.ok(normalized);
+    assert.equal(normalized.label, 'NCERT Class 8 Maths - Rational Numbers');
+  });
+
+  test('fromVisualizerPayload extracts top-level citation and propagates to card, mindMap, studyGuide, and quiz items', () => {
+    const payloadWithCitation = {
+      topic: 'Digestive System in Animals',
+      citation: {
+        label: 'NCERT Class 7 Science - Nutrition in Animals',
+        class: 7,
+        subject: 'Science',
+        chapter: 'Nutrition in Animals'
+      },
+      mindMap: {
+        central: 'Digestive System',
+        branches: [
+          { label: 'Buccal Cavity', children: ['Teeth', 'Saliva'] },
+          { label: 'Stomach', children: ['Hydrochloric acid', 'Digestive juices'] }
+        ]
+      },
+      steps: ['Ingestion', 'Digestion', 'Absorption', 'Assimilation', 'Egestion'],
+      analogy: 'The digestive system is like an automated breakdown factory.',
+      keyPoints: ['Nutrients are absorbed in small intestine', 'Villi increase surface area'],
+      quiz: [
+        {
+          q: 'Where does carbohydrate digestion begin?',
+          options: ['Mouth', 'Stomach', 'Small Intestine', 'Large Intestine'],
+          answerIndex: 0,
+          explain: 'Salivary amylase begins starch breakdown in the mouth.'
+        }
+      ]
+    };
+
+    const card = LessonCardRenderer.fromVisualizerPayload(payloadWithCitation, 'Digestion breakdown', '7');
+    assert.ok(card);
+    assert.ok(card.citation, 'card must contain citation');
+    assert.equal(card.citation.label, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.ok(card.mindMap.citation, 'mindMap must contain citation');
+    assert.equal(card.mindMap.citation.label, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.ok(card.studyGuide.citation, 'studyGuide must contain citation');
+    assert.equal(card.studyGuide.citation.label, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.ok(card.quizItems[0].citation, 'quiz item must inherit citation');
+    assert.equal(card.quizItems[0].citation, 'NCERT Class 7 Science - Nutrition in Animals');
+  });
+
+  test('render() displays lesson-citation-pill in diagram-header when citation is present', () => {
+    const card = {
+      mood: 'explaining',
+      gradeTone: 'middle',
+      citation: { label: 'NCERT Class 7 Science - Nutrition in Animals' },
+      blocks: [
+        {
+          type: 'diagram',
+          title: 'Human Digestion',
+          central: 'Digestion',
+          branches: [{ label: 'Stomach', children: ['Acid'] }]
+        }
+      ],
+      plainText: 'Digestion breaks down food.'
+    };
+
+    const el = LessonCardRenderer.render(card);
+    const diag = el.querySelector('.lesson-block-diagram');
+    assert.ok(diag, 'Must contain diagram block');
+    assert.ok(diag.innerHTML.includes('lesson-citation-pill'), 'Diagram header must contain lesson-citation-pill');
+    assert.ok(diag.innerHTML.includes('NCERT Class 7 Science - Nutrition in Animals'), 'Must include citation text');
+    assert.ok(diag.innerHTML.includes('Source:'), 'Must include Source: label');
+  });
+
+  test('render() gracefully omits citation pill when citation is null or missing', () => {
+    const cardWithoutCitation = {
+      mood: 'explaining',
+      gradeTone: 'junior',
+      citation: null,
+      blocks: [
+        {
+          type: 'diagram',
+          title: 'Forces',
+          central: 'Force',
+          branches: [{ label: 'Push', children: [] }]
+        }
+      ],
+      plainText: 'A push or pull is a force.'
+    };
+
+    const el = LessonCardRenderer.render(cardWithoutCitation);
+    const diag = el.querySelector('.lesson-block-diagram');
+    assert.ok(diag);
+    assert.ok(!diag.innerHTML.includes('lesson-citation-pill'), 'Must omit lesson-citation-pill when citation is absent');
+  });
+
+  test('renderMindMap() renders citation pill in mindmap-badge-row when present, omits when absent', () => {
+    const mapWithCit = {
+      title: 'Respiration Map',
+      central: 'Respiration',
+      branches: [{ label: 'Aerobic', children: [] }],
+      citation: { label: 'NCERT Class 7 Science - Respiration in Organisms' }
+    };
+    const el1 = LessonCardRenderer.renderMindMap(mapWithCit);
+    assert.ok(el1.innerHTML.includes('lesson-citation-pill'));
+    assert.ok(el1.innerHTML.includes('NCERT Class 7 Science - Respiration in Organisms'));
+
+    const mapNoCit = {
+      title: 'Simple Map',
+      central: 'Simple',
+      branches: []
+    };
+    const el2 = LessonCardRenderer.renderMindMap(mapNoCit);
+    assert.ok(!el2.innerHTML.includes('lesson-citation-pill'), 'Should omit pill when citation is missing');
+  });
+
+  test('renderQuiz() displays citation pill in explain drawer with Source: prefix', () => {
+    const quizItems = [
+      {
+        id: 'q1',
+        question: 'Which organ produces bile?',
+        options: ['Liver', 'Pancreas', 'Stomach', 'Kidney'],
+        correctIndex: 0,
+        explanation: 'The liver secretes bile which helps digest fats.',
+        citation: 'NCERT Class 7 Science - Nutrition in Animals'
+      }
+    ];
+
+    const el = LessonCardRenderer.renderQuiz(quizItems);
+    const btn0 = el.querySelector('.quiz-opt-btn-0');
+    assert.ok(btn0, 'Option button 0 must exist');
+    btn0.click();
+
+    assert.ok(el.innerHTML.includes('quiz-citation-pill'), 'Quiz feedback box must show quiz-citation-pill');
+    assert.ok(el.innerHTML.includes('Source: NCERT Class 7 Science - Nutrition in Animals'), 'Must format with Source: prefix');
+  });
+
+  test('renderStudyGuide() renders citation pill in guide-badge-row when present', () => {
+    const guideWithCit = {
+      topic: 'Acids and Bases',
+      grade: 'Class 7',
+      keyPoints: ['Acids taste sour', 'Bases feel soapy'],
+      citation: { label: 'NCERT Class 7 Science - Acids, Bases and Salts' }
+    };
+
+    const el = LessonCardRenderer.renderStudyGuide(guideWithCit);
+    assert.ok(el.innerHTML.includes('guide-badge-row'));
+    assert.ok(el.innerHTML.includes('lesson-citation-pill'));
+    assert.ok(el.innerHTML.includes('NCERT Class 7 Science - Acids, Bases and Salts'));
   });
 });

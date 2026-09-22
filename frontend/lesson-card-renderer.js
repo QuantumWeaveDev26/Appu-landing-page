@@ -74,6 +74,37 @@
    *    }
    */
 
+  /**
+   * Normalizes citation payload from n8n Study Visualizer or card input into canonical structure.
+   * e.g. { label: "NCERT Class 7 Science - Nutrition in Animals", class: 7, subject: "Science", chapter: "Nutrition in Animals" }
+   */
+  function normalizeCitation(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      return trimmed ? { label: trimmed } : null;
+    }
+    if (typeof raw === 'object') {
+      let label = raw.label || raw.text || raw.title || '';
+      if (!label && (raw.class || raw.subject)) {
+        const parts = [];
+        if (raw.class && raw.subject) parts.push(`NCERT Class ${raw.class} ${raw.subject}`);
+        else if (raw.subject) parts.push(`NCERT ${raw.subject}`);
+        if (raw.chapter) parts.push(raw.chapter);
+        label = parts.join(' - ');
+      }
+      return label ? { ...raw, label } : null;
+    }
+    return null;
+  }
+
+  const SAMPLE_CITATION = {
+    label: 'NCERT Class 8 Science - Nutrition in Plants',
+    class: 8,
+    subject: 'Science',
+    chapter: 'Nutrition in Plants'
+  };
+
   const SAMPLE_QUIZ_ITEMS = [
     {
       id: 'q1',
@@ -159,6 +190,7 @@
   const SAMPLE_STUDY_GUIDE = {
     topic: 'Photosynthesis & Plant Energy',
     grade: 'Class 8 Science',
+    citation: SAMPLE_CITATION,
     keyPoints: [
       'Photosynthesis is the fundamental bio-chemical process powering almost all life on Earth.',
       'Inputs: Sunlight (energy), Water (from roots), and Carbon Dioxide (from air).',
@@ -225,7 +257,8 @@
         ]
       }
     ],
-    spec: 'flowchart TD; Sun["☀️ Sunlight"] --> Leaf["🍃 Chloroplast"]; Water["💧 Roots (H2O)"] --> Leaf; CO2["💨 Stomata (CO2)"] --> Leaf; Leaf --> LightRxn["⚡ Light Reaction"]; LightRxn --> Oxygen["🫧 Oxygen (O2) Released"]; Leaf --> DarkRxn["🧪 Calvin Cycle"]; DarkRxn --> Glucose["🍬 Glucose (Energy)"]; Glucose --> Starch["🪴 Growth & Starch"]'
+    spec: 'flowchart TD; Sun["☀️ Sunlight"] --> Leaf["🍃 Chloroplast"]; Water["💧 Roots (H2O)"] --> Leaf; CO2["💨 Stomata (CO2)"] --> Leaf; Leaf --> LightRxn["⚡ Light Reaction"]; LightRxn --> Oxygen["🫧 Oxygen (O2) Released"]; Leaf --> DarkRxn["🧪 Calvin Cycle"]; DarkRxn --> Glucose["🍬 Glucose (Energy)"]; Glucose --> Starch["🪴 Growth & Starch"]',
+    citation: SAMPLE_CITATION
   };
 
   const SAMPLE_PODCAST_SCRIPT = {
@@ -239,6 +272,7 @@
   const SAMPLE_CARD = {
     mood: 'explaining',
     gradeTone: 'junior',
+    citation: SAMPLE_CITATION,
     blocks: [
       { type: 'hook', text: 'Ever wonder how a plant eats without a mouth? 🌱' },
       {
@@ -247,7 +281,8 @@
         spec: 'flowchart LR; Sun-->Leaf; Water-->Leaf; CO2-->Leaf; Leaf-->Sugar; Leaf-->Oxygen',
         title: 'Photosynthesis Concept Map',
         central: 'Photosynthesis',
-        branches: SAMPLE_MIND_MAP.branches
+        branches: SAMPLE_MIND_MAP.branches,
+        citation: SAMPLE_CITATION
       },
       { type: 'steps', items: ['Leaves catch sunlight', 'Roots drink water', 'Leaf mixes them into sugar', 'Plant breathes out oxygen'] },
       { type: 'analogy', text: 'A leaf is like a tiny solar-powered kitchen.' },
@@ -328,6 +363,7 @@
         ? input.plainText.trim()
         : (typeof input.text === 'string' ? input.text : '');
       const rawMindMap = input.mindMap || (hasBlocks ? input.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
+      const rawCitation = normalizeCitation(input.citation || (hasBlocks ? input.blocks.find(b => b && b.citation)?.citation : null) || (rawMindMap && rawMindMap.citation));
 
       return {
         isRich: hasBlocks,
@@ -335,6 +371,7 @@
         gradeTone: ['junior', 'middle', 'senior'].includes(input.gradeTone) ? input.gradeTone : 'junior',
         blocks: hasBlocks ? input.blocks : [],
         plainText,
+        citation: rawCitation,
         mindMap: rawMindMap,
         quizItems: input.quizItems || null,
         flashcards: input.flashcards || null,
@@ -344,12 +381,12 @@
     }
 
     if (typeof input !== 'string') {
-      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: String(input) };
+      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: String(input), citation: null };
     }
 
     const trimmed = input.trim();
     if (!trimmed) {
-      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: '' };
+      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: '', citation: null };
     }
 
     // Check if string contains JSON or code block containing JSON
@@ -369,12 +406,14 @@
             : trimmed;
 
           const rawMindMap = obj.mindMap || (hasBlocks ? obj.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
+          const rawCitation = normalizeCitation(obj.citation || (hasBlocks ? obj.blocks.find(b => b && b.citation)?.citation : null) || (rawMindMap && rawMindMap.citation));
           return {
             isRich: hasBlocks,
             mood: typeof obj.mood === 'string' ? obj.mood : 'explaining',
             gradeTone: ['junior', 'middle', 'senior'].includes(obj.gradeTone) ? obj.gradeTone : 'junior',
             blocks: hasBlocks ? obj.blocks : [],
             plainText,
+            citation: rawCitation,
             mindMap: rawMindMap,
             quizItems: obj.quizItems || null,
             flashcards: obj.flashcards || null,
@@ -393,6 +432,7 @@
       gradeTone: 'junior',
       blocks: [],
       plainText: trimmed,
+      citation: null,
       mindMap: null,
       quizItems: null,
       flashcards: null,
@@ -650,11 +690,35 @@
     if (!data.isRich || !data.blocks || data.blocks.length === 0) {
       const plainDiv = document.createElement('div');
       plainDiv.className = 'lesson-block lesson-block-plain';
+      const citationObj = data.citation || null;
+      const citationLabel = citationObj ? (citationObj.label || (typeof citationObj === 'string' ? citationObj : '')) : '';
+      if (citationLabel) {
+        const pill = document.createElement('div');
+        pill.className = 'lesson-citation-pill plain-citation-pill';
+        pill.innerHTML = `<i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i> <span>Source: ${escapeHTML(citationLabel)}</span>`;
+        plainDiv.appendChild(pill);
+      }
       const p = document.createElement('p');
       p.textContent = data.plainText || '';
       plainDiv.appendChild(p);
       container.appendChild(plainDiv);
       return container;
+    }
+
+    const citationObj = normalizeCitation(data.citation);
+    const citationLabel = citationObj ? (citationObj.label || '') : '';
+    const hasDiagram = data.blocks.some(b => b && (b.type === 'diagram' || b.type === 'mindMap'));
+
+    if (citationLabel && !hasDiagram) {
+      const topCitation = document.createElement('div');
+      topCitation.className = 'lesson-top-citation-wrap';
+      topCitation.innerHTML = `
+        <div class="lesson-citation-pill plain-citation-pill" title="Source: ${escapeHTML(citationLabel)}">
+          <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+          <span>Source: ${escapeHTML(citationLabel)}</span>
+        </div>
+      `;
+      container.appendChild(topCitation);
     }
 
     // 2. Render blocks top-to-bottom
@@ -678,6 +742,8 @@
           diagDiv.className = 'lesson-block lesson-block-diagram lesson-block-mindmap';
           const diagId = 'mermaid-' + Math.random().toString(36).substring(2, 10);
           const mmInfo = data.mindMap || {};
+          const bCitationObj = normalizeCitation(block.citation || mmInfo.citation || data.citation);
+          const bCitationLabel = bCitationObj ? (bCitationObj.label || '') : '';
           const title = block.title || mmInfo.title || '';
           const summary = block.summary || mmInfo.summary || '';
           let central = block.central || mmInfo.central || title;
@@ -690,9 +756,17 @@
             diagDiv.classList.add('diagram-block-loading');
             diagDiv.innerHTML = `
               <div class="diagram-header">
-                <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
-                <span>Concept Mind Map</span>
-                <span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>
+                <div class="diagram-header-left">
+                  <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
+                  <span>Concept Mind Map</span>
+                  <span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>
+                </div>
+                ${bCitationLabel ? `
+                  <div class="lesson-citation-pill" title="Source: ${escapeHTML(bCitationLabel)}">
+                    <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+                    <span>Source: ${escapeHTML(bCitationLabel)}</span>
+                  </div>
+                ` : ''}
               </div>
               <div class="diagram-meta">
                 <h4 class="diagram-title">${escapeHTML(title || 'Generating Concept Map...')}</h4>
@@ -732,6 +806,12 @@
                 <span>Concept Mind Map</span>
                 <span class="diagram-live-badge">Live Visual</span>
               </div>
+              ${bCitationLabel ? `
+                <div class="lesson-citation-pill" title="Source: ${escapeHTML(bCitationLabel)}">
+                  <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+                  <span>Source: ${escapeHTML(bCitationLabel)}</span>
+                </div>
+              ` : ''}
             </div>
             ${title ? `<div class="diagram-meta"><h4 class="diagram-title">${escapeHTML(title)}</h4>${summary ? `<p class="diagram-summary">${escapeHTML(summary)}</p>` : ''}</div>` : (summary ? `<div class="diagram-meta"><p class="diagram-summary">${escapeHTML(summary)}</p>` : '')}
             <div class="diagram-canvas-wrap is-concept-mindmap" id="${diagId}-wrap">
@@ -947,12 +1027,18 @@
                 <strong>${answered.correct ? 'Spot on! Nailed it! +20 XP ⭐' : 'Not quite, but great effort! Here is why:'}</strong>
               </div>
               <p class="quiz-explanation">${escapeHTML(q.explanation || '')}</p>
-              ${q.citation ? `
-                <div class="quiz-citation-pill">
-                  <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
-                  <span>${escapeHTML(q.citation)}</span>
-                </div>
-              ` : ''}
+              ${(() => {
+                const qCitObj = normalizeCitation(q.citation);
+                const qCitText = qCitObj ? qCitObj.label : (typeof q.citation === 'string' ? q.citation.trim() : '');
+                if (!qCitText) return '';
+                const formatted = qCitText.startsWith('Source:') || qCitText.startsWith('From ') ? qCitText : `Source: ${qCitText}`;
+                return `
+                  <div class="quiz-citation-pill" title="Source: ${escapeHTML(qCitText)}">
+                    <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+                    <span>${escapeHTML(formatted)}</span>
+                  </div>
+                `;
+              })()}
               <div class="quiz-nav-row">
                 <button type="button" class="quiz-next-btn">
                   <span>${isLast ? 'See Results 🎉' : 'Next Question ➔'}</span>
@@ -1219,12 +1305,23 @@
     const definitions = Array.isArray(guide.definitions) ? guide.definitions : [];
     const mustRemember = Array.isArray(guide.mustRemember) ? guide.mustRemember : [];
 
+    const citationObj = normalizeCitation(guide.citation || (options && options.citation));
+    const citationLabel = citationObj ? (citationObj.label || '') : '';
+
     container.innerHTML = `
       <div class="guide-header">
-        <div class="guide-badge">
-          <i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i>
-          <span>Study Guide</span>
-          <span class="guide-grade-pill">${escapeHTML(guide.grade || 'Revision Notes')}</span>
+        <div class="guide-badge-row">
+          <div class="guide-badge">
+            <i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i>
+            <span>Study Guide</span>
+            <span class="guide-grade-pill">${escapeHTML(guide.grade || 'Revision Notes')}</span>
+          </div>
+          ${citationLabel ? `
+            <div class="lesson-citation-pill" title="Source: ${escapeHTML(citationLabel)}">
+              <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+              <span>Source: ${escapeHTML(citationLabel)}</span>
+            </div>
+          ` : ''}
         </div>
         <h2 class="guide-title">${escapeHTML(guide.topic || 'Photosynthesis & Plant Energy')}</h2>
         <p class="guide-lead">High-yield exam takeaways organized for quick recall.</p>
@@ -1315,6 +1412,9 @@
       central = central || SAMPLE_MIND_MAP.central;
     }
 
+    const citationObj = normalizeCitation(mapData.citation || (options && options.citation));
+    const citationLabel = citationObj ? (citationObj.label || '') : '';
+
     container.innerHTML = `
       <div class="mindmap-header">
         <div class="mindmap-badge-row">
@@ -1323,6 +1423,12 @@
             <span>Concept Tree</span>
             ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : '<span class="diagram-live-badge">Live Visual</span>'}
           </div>
+          ${citationLabel ? `
+            <div class="lesson-citation-pill" title="Source: ${escapeHTML(citationLabel)}">
+              <i class="fa-solid fa-book-bookmark text-amber" aria-hidden="true"></i>
+              <span>Source: ${escapeHTML(citationLabel)}</span>
+            </div>
+          ` : ''}
         </div>
         <h2 class="mindmap-title">${escapeHTML(title)}</h2>
         <p class="mindmap-desc">${escapeHTML(summary)}</p>
@@ -1530,23 +1636,25 @@
    * Unified dispatcher: renders any study mode or standard lesson card
    */
   function renderStudyMode(modeName, data = {}, options = {}) {
+    const cardCitation = (data && data.citation) || (options && options.citation);
+    const enhancedOptions = cardCitation ? { ...options, citation: cardCitation } : options;
     switch (modeName) {
       case 'quiz':
-        return renderQuiz(data.quizItems || (Array.isArray(data) ? data : SAMPLE_QUIZ_ITEMS), options);
+        return renderQuiz(data.quizItems || (Array.isArray(data) ? data : SAMPLE_QUIZ_ITEMS), enhancedOptions);
       case 'flashcards':
-        return renderFlashcards(data.flashcards || (Array.isArray(data) ? data : SAMPLE_FLASHCARDS), options);
+        return renderFlashcards(data.flashcards || (Array.isArray(data) ? data : SAMPLE_FLASHCARDS), enhancedOptions);
       case 'guide':
       case 'studyGuide':
-        return renderStudyGuide(data.studyGuide || data, options);
+        return renderStudyGuide(data.studyGuide || data, enhancedOptions);
       case 'mindmap':
       case 'mindMap':
-        return renderMindMap(data.mindMap || data, options);
+        return renderMindMap(data.mindMap || data, enhancedOptions);
       case 'podcast':
       case 'podcastScript':
-        return renderPodcast(data.podcastScript || data, options);
+        return renderPodcast(data.podcastScript || data, enhancedOptions);
       case 'lesson':
       default:
-        return render(data, options);
+        return render(data, enhancedOptions);
     }
   }
 
@@ -1592,6 +1700,8 @@
     }
 
     const topic = data.topic || 'Lesson Concept';
+    const citation = normalizeCitation(data.citation);
+    const citationLabel = citation ? citation.label : '';
     const central = (data.mindMap && data.mindMap.central) || topic;
     const branches = (data.mindMap && Array.isArray(data.mindMap.branches)) ? data.mindMap.branches : [];
     let mermaidSpec = (data.mindMap && data.mindMap.mermaid) ? data.mindMap.mermaid.trim() : '';
@@ -1601,14 +1711,18 @@
 
     // Convert quiz items to canonical format
     const rawQuiz = Array.isArray(data.quiz) ? data.quiz : [];
-    const quizItems = rawQuiz.map((q, idx) => ({
-      id: `q${idx + 1}`,
-      question: q.q || q.question || `Question ${idx + 1}`,
-      options: Array.isArray(q.options) ? q.options : [],
-      correctIndex: typeof q.answerIndex === 'number' ? q.answerIndex : (typeof q.correctIndex === 'number' ? q.correctIndex : 0),
-      explanation: q.explain || q.explanation || '',
-      citation: q.citation || `Class ${grade || '6'} Curriculum`
-    }));
+    const quizItems = rawQuiz.map((q, idx) => {
+      const qCitation = normalizeCitation(q.citation);
+      const qCitationLabel = qCitation ? qCitation.label : (citationLabel || '');
+      return {
+        id: `q${idx + 1}`,
+        question: q.q || q.question || `Question ${idx + 1}`,
+        options: Array.isArray(q.options) ? q.options : [],
+        correctIndex: typeof q.answerIndex === 'number' ? q.answerIndex : (typeof q.correctIndex === 'number' ? q.correctIndex : 0),
+        explanation: q.explain || q.explanation || '',
+        citation: qCitationLabel || (grade ? `Class ${grade} Curriculum` : '')
+      };
+    });
 
     // Convert flashcards to canonical format
     const rawCards = Array.isArray(data.flashcards) ? data.flashcards : [];
@@ -1629,7 +1743,8 @@
         term: b.label || '',
         definition: Array.isArray(b.children) ? b.children.join(', ') : ''
       })).filter(d => d.term),
-      mustRemember: rawKeyPoints.slice(0, 3)
+      mustRemember: rawKeyPoints.slice(0, 3),
+      citation
     };
 
     // Steps
@@ -1663,7 +1778,8 @@
         central: central,
         branches: branches,
         summary: central ? `Core Theme: ${central}` : '',
-        spec: mermaidSpec
+        spec: mermaidSpec,
+        citation
       });
     }
 
@@ -1715,12 +1831,14 @@
       gradeTone,
       blocks,
       plainText: plain,
+      citation,
       mindMap: {
         title: topic,
         central: central,
         branches: branches,
         spec: mermaidSpec,
-        summary: central ? `Core Theme: ${central}` : ''
+        summary: central ? `Core Theme: ${central}` : '',
+        citation
       },
       quizItems: quizItems.length > 0 ? quizItems : null,
       flashcards: flashcards.length > 0 ? flashcards : null,
@@ -1833,6 +1951,8 @@
     SAMPLE_STUDY_GUIDE,
     SAMPLE_MIND_MAP,
     SAMPLE_PODCAST_SCRIPT,
+    SAMPLE_CITATION,
+    normalizeCitation,
     renderFallbackDiagram,
     renderQuiz,
     renderFlashcards,
