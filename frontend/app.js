@@ -1309,6 +1309,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtitlesText = document.getElementById('subtitles-text');
     if (subtitlesText) {
       subtitlesText.textContent = `"${text}"`;
+      if (typeof subtitlesText.scrollTop !== 'undefined') {
+        subtitlesText.scrollTop = 0;
+      }
     }
 
     const result = await chatAgent.sendMessage(
@@ -1616,16 +1619,30 @@ document.addEventListener('DOMContentLoaded', () => {
       toggleChatDrawer(true);
     });
   }
-  // Tapping the center "Appu says" card also opens the typing window.
+  // Tapping the center "Appu says" card or Expand button opens the typing window.
   const responseCard = document.getElementById('response-card');
+  const btnDockExpand = document.getElementById('btn-dock-expand');
+
   if (responseCard) {
     const openTyping = () => {
       if (!ensureChatSessionReady()) return;
       toggleChatDrawer(true);
     };
-    responseCard.addEventListener('click', openTyping);
+    responseCard.addEventListener('click', (e) => {
+      const selection = window.getSelection ? window.getSelection().toString() : '';
+      if (selection && selection.length > 0) return;
+      openTyping();
+    });
     responseCard.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTyping(); }
+    });
+  }
+
+  if (btnDockExpand) {
+    btnDockExpand.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
     });
   }
   if (btnCloseChat) {

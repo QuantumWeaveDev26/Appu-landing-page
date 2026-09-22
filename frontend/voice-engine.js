@@ -784,6 +784,9 @@ class VoiceEngine {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reducedMotion || words.length < 5) {
             this.subtitleElement.textContent = text;
+            if (typeof this.subtitleElement.scrollTop !== 'undefined') {
+                this.subtitleElement.scrollTop = this.subtitleElement.scrollHeight || 0;
+            }
             return;
         }
         let cursor = 0;
@@ -791,6 +794,9 @@ class VoiceEngine {
         this.subtitleTimer = window.setInterval(() => {
             cursor = Math.min(words.length, cursor + 3);
             this.subtitleElement.textContent = words.slice(0, cursor).join(' ');
+            if (typeof this.subtitleElement.scrollTop !== 'undefined') {
+                this.subtitleElement.scrollTop = this.subtitleElement.scrollHeight || 0;
+            }
             if (cursor >= words.length) window.clearInterval(this.subtitleTimer);
         }, 70);
     }
