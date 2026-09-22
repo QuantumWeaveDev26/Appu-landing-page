@@ -1066,6 +1066,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }, timeoutMs);
   }
 
+  function updateVoicePopupCard(newCard) {
+    if (!newCard) return;
+    activePopupLessonCard = newCard;
+    if (voiceReplyPopup && voiceReplyPopup.classList.contains('is-visible')) {
+      renderVoicePopupStudyContent(activePopupMode || 'lesson');
+    }
+  }
+
   function hideVoicePopup() {
     if (voicePopupTimer) {
       clearTimeout(voicePopupTimer);
@@ -1167,6 +1175,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
+  function getActiveChildGrade() {
+    try {
+      if (window.parentSetupUI && typeof window.parentSetupUI.getActiveChild === 'function') {
+        const child = window.parentSetupUI.getActiveChild();
+        if (child && (child.grade || child.gradeBand)) return String(child.grade || child.gradeBand);
+      }
+      const stored = localStorage.getItem('appu_active_child');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && (parsed.grade || parsed.gradeBand)) return String(parsed.grade || parsed.gradeBand);
+      }
+    } catch (_) {}
+    return '6';
+  }
+
   // ==========================================
   // CORE INTERACTION HANDLER
   // ==========================================
@@ -1197,14 +1220,55 @@ document.addEventListener('DOMContentLoaded', () => {
         avatarStage.setState('speaking');
         const mood = (fullResult && fullResult.mood) || 'explaining';
         if (window.appMascot) window.appMascot.setMood(mood);
+
+        const childGrade = getActiveChildGrade();
+        const hasCompleteCard = Boolean(fullResult?.lessonCard?.mindMap?.spec || fullResult?.lessonCard?.mindMap?.mermaid);
+
+        // 1) Prepare immediate loading card with plain text + shimmer Concept Map
+        const initialCard = hasCompleteCard
+          ? fullResult.lessonCard
+          : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+              ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
+              : (fullResult ? fullResult.lessonCard : null));
+
+        // 2) Show voice popup immediately (child sees answer + shimmer concept map)
+        const chatDrawer = document.getElementById('chat-drawer');
         if (typeof showVoicePopup === 'function') {
-          const chatDrawer = document.getElementById('chat-drawer');
           if (!chatDrawer || !chatDrawer.classList.contains('is-open')) {
-            showVoicePopup(reply, fullResult ? fullResult.lessonCard : null);
+            showVoicePopup(reply, initialCard);
           }
         }
-        await voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
+
+        // 3) Speak immediately (ElevenLabs TTS / audio-reactive Appu)
+        const speakPromise = voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
         voiceEngine.playMessage();
+
+        // 4) In parallel: call Study Visualizer brain if complete card not already present
+        if (!hasCompleteCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
+          const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+          LessonCardRenderer.fetchStudyVisualizer({
+            question: text,
+            answer: reply,
+            grade: childGrade,
+            language: currentLangCode,
+            timeoutMs: 8000
+          }).then((realCard) => {
+            const finalCard = realCard || (typeof LessonCardRenderer.SAMPLE_CARD !== 'undefined' ? LessonCardRenderer.SAMPLE_CARD : null);
+            if (finalCard) {
+              updateVoicePopupCard(finalCard);
+              if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
+                chatAgent.updateLastAppuMessageCard(finalCard);
+              }
+            }
+          }).catch((err) => {
+            console.warn('[StudyVisualizer] Background fetch caught error:', err);
+            if (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) {
+              updateVoicePopupCard(LessonCardRenderer.SAMPLE_CARD);
+            }
+          });
+        }
+
+        await speakPromise;
       },
       image
     );
@@ -2474,6 +2538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (window.app) {
     window.app.showVoicePopup = showVoicePopup;
+    window.app.updateVoicePopupCard = updateVoicePopupCard;
     window.app.hideVoicePopup = hideVoicePopup;
     window.app.showStudyMode = (mode) => window.AppuStudyModes.show(mode);
     window.app.demoTalkingAppu = (mode = 'lesson') => {

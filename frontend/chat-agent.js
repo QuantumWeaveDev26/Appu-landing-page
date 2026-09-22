@@ -401,6 +401,37 @@ class ChatAgent {
     }
   }
 
+  updateLastAppuMessageCard(lessonCard) {
+    if (!lessonCard || !this.messages || this.messages.length === 0) return;
+    const lastAppu = [...this.messages].reverse().find(m => m.sender === 'appu');
+    if (!lastAppu) return;
+    lastAppu.lessonCard = lessonCard;
+    if (this.messagesContainer) {
+      const appuBubbles = this.messagesContainer.querySelectorAll('.msg-row.appu-msg');
+      if (appuBubbles.length > 0) {
+        const lastRow = appuBubbles[appuBubbles.length - 1];
+        const bubble = lastRow.querySelector('.msg-bubble');
+        if (bubble) {
+          const renderer = (typeof window !== 'undefined' && window.LessonCardRenderer) || (typeof LessonCardRenderer !== 'undefined' ? LessonCardRenderer : null);
+          const parsedCard = renderer ? renderer.parse(lessonCard) : null;
+          if (renderer && parsedCard && parsedCard.isRich) {
+            bubble.innerHTML = '';
+            const celebrateCallback = () => {
+              if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                window.appMascot.celebrate(3200);
+              }
+            };
+            const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback });
+            bubble.appendChild(cardEl);
+            try {
+              lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (_) {}
+          }
+        }
+      }
+    }
+  }
+
   clearHistory() {
     this.messages = [];
     if (this.messagesContainer) {

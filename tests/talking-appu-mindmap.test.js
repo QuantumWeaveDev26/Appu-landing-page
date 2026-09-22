@@ -201,6 +201,154 @@ describe('Task A: Mind Map as Default in Answers (Teacher Directive)', () => {
     const injectedMap = el.children.find(c => c.className.includes('lesson-block-mindmap-default') || c.className.includes('study-mode-mindmap'));
     assert.ok(injectedMap, 'Mind Map must be automatically injected as default visual when mindMap contract is present');
   });
+
+  test('buildMermaidFromBranches constructs valid Mermaid flowchart TD from central node and branches', () => {
+    const central = 'Water Cycle';
+    const branches = [
+      { label: 'Evaporation', children: ['Ocean water heats up', 'Vapor rises'] },
+      { label: 'Condensation', children: ['Clouds form in sky'] },
+      { label: 'Precipitation', children: ['Rain falls down'] }
+    ];
+
+    const spec = LessonCardRenderer.buildMermaidFromBranches(central, branches);
+    assert.ok(spec.startsWith('flowchart TD'));
+    assert.ok(spec.includes('ROOT["Water Cycle"]'));
+    assert.ok(spec.includes('B1["Evaporation"]'));
+    assert.ok(spec.includes('C1_1["Ocean water heats up"]'));
+    assert.ok(spec.includes('B2["Condensation"]'));
+    assert.ok(spec.includes('B3["Precipitation"]'));
+  });
+
+  test('fromVisualizerPayload transforms n8n payload into canonical LessonCard with all study modes', () => {
+    const samplePayload = {
+      topic: 'How Does Rain Happen?',
+      mindMap: {
+        central: 'Rain Formation',
+        branches: [
+          { label: 'Evaporation', children: ['Water turns to vapor'] },
+          { label: 'Condensation', children: ['Water drops gather'] }
+        ],
+        mermaid: 'flowchart TD\n  A[Rain Formation] --> B[Evaporation]\n  A --> C[Condensation]'
+      },
+      steps: [
+        '1. Sun warms surface water.',
+        '2. Vapor rises and cools.',
+        '3. Rain falls to earth.'
+      ],
+      analogy: 'Rain is like nature recycling its own bathwater.',
+      keyPoints: ['Water evaporates', 'Vapor cools into clouds', 'Heavy drops fall as rain'],
+      quiz: [
+        {
+          q: 'What powers evaporation?',
+          options: ['Sunlight heat', 'Wind gusts', 'Moonlight', 'Soil nutrients'],
+          answerIndex: 0,
+          explain: 'Solar thermal radiation warms liquid water molecules.'
+        }
+      ],
+      flashcards: [
+        { front: 'What is evaporation?', back: 'Liquid water changing to water vapor.' }
+      ]
+    };
+
+    const answerText = 'Rain happens when water evaporates, condenses into clouds, and falls down.';
+    const card = LessonCardRenderer.fromVisualizerPayload(samplePayload, answerText, '6');
+
+    assert.equal(card.isRich, true);
+    assert.equal(card.plainText, answerText);
+    assert.equal(card.gradeTone, 'middle');
+    assert.ok(card.mindMap);
+    assert.equal(card.mindMap.title, 'How Does Rain Happen?');
+    assert.ok(card.mindMap.spec.includes('Rain Formation'));
+
+    // Verify blocks
+    assert.ok(card.blocks.some(b => b.type === 'analogy'));
+    assert.ok(card.blocks.some(b => b.type === 'diagram'));
+    assert.ok(card.blocks.some(b => b.type === 'steps'));
+    assert.ok(card.blocks.some(b => b.type === 'check'));
+
+    // Verify study modes
+    assert.ok(Array.isArray(card.quizItems));
+    assert.equal(card.quizItems[0].correctIndex, 0);
+    assert.ok(Array.isArray(card.flashcards));
+    assert.ok(card.studyGuide);
+    assert.ok(card.podcastScript);
+  });
+
+  test('createLoadingCard creates placeholder with shimmer diagram block', () => {
+    const loadingCard = LessonCardRenderer.createLoadingCard('How do birds fly?', 'Birds fly using aerodynamic lift.', '7');
+    assert.equal(loadingCard.isRich, true);
+    assert.equal(loadingCard.isLoading, true);
+    assert.equal(loadingCard.plainText, 'Birds fly using aerodynamic lift.');
+    assert.equal(loadingCard.blocks.length, 1);
+    assert.equal(loadingCard.blocks[0].kind, 'shimmer');
+    assert.equal(loadingCard.blocks[0].loading, true);
+
+    // Verify rendering of shimmer diagram block
+    const el = LessonCardRenderer.render(loadingCard);
+    assert.ok(el.classList.contains('appu-lesson-card'));
+    const diag = el.children.find(c => c.className.includes('diagram-block-loading'));
+    assert.ok(diag, 'Must render diagram-block-loading while generating');
+    assert.ok(diag.innerHTML.includes('diagram-shimmer-loading'), 'Must contain diagram-shimmer-loading element');
+    assert.ok(diag.innerHTML.includes('Generating...'), 'Must display Generating badge');
+  });
+
+  test('renderFallbackDiagram parses newline-separated Mermaid and maps bracket node labels', () => {
+    const spec = `flowchart TD
+      A[Sun] --> B[Plant Leaf]
+      B --> C[Sugar]`;
+    const html = LessonCardRenderer.renderFallbackDiagram(spec);
+    assert.ok(html.includes('diagram-flow-fallback'));
+    assert.ok(html.includes('Sun'));
+    assert.ok(html.includes('Plant Leaf'));
+    assert.ok(html.includes('Sugar'));
+  });
+
+  test('fetchStudyVisualizer returns parsed card on 200 response and handles failure gracefully', async () => {
+    const originalFetch = globalThis.fetch;
+
+    // Test successful response
+    globalThis.fetch = async (url, opts) => {
+      assert.ok(url.includes('appu-study-visualizer'));
+      const body = JSON.parse(opts.body);
+      assert.equal(body.question, 'Why is grass green?');
+      assert.equal(body.grade, '6');
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          topic: 'Chlorophyll and Grass',
+          mindMap: { central: 'Chlorophyll', branches: [] },
+          steps: ['Grass absorbs light', 'Reflects green'],
+          analogy: 'Leaves wear green coats.',
+          keyPoints: ['Chlorophyll is green'],
+          quiz: [],
+          flashcards: []
+        })
+      };
+    };
+
+    const card = await LessonCardRenderer.fetchStudyVisualizer({
+      question: 'Why is grass green?',
+      answer: 'Grass has chlorophyll which reflects green light.',
+      grade: '6'
+    });
+    assert.ok(card);
+    assert.equal(card.mindMap.title, 'Chlorophyll and Grass');
+
+    // Test error/timeout response
+    globalThis.fetch = async () => {
+      return { ok: false, status: 500 };
+    };
+
+    const failedCard = await LessonCardRenderer.fetchStudyVisualizer({
+      question: 'Broken endpoint test',
+      answer: 'Test'
+    });
+    assert.equal(failedCard, null, 'Must return null gracefully on error');
+
+    // Restore fetch
+    globalThis.fetch = originalFetch;
+  });
 });
 
 describe('Task B: Build-Light "Talking Appu" Engine', () => {

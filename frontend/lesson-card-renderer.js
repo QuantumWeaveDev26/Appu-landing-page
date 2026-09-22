@@ -353,21 +353,53 @@
   /**
    * Generates a semantic, styled HTML flowchart diagram when Mermaid is unavailable.
    */
+  /**
+   * Generates a semantic, styled HTML flowchart diagram when Mermaid is unavailable.
+   */
   function renderFallbackDiagram(spec) {
     if (!spec || typeof spec !== 'string') return '';
-    // Parse simple flowchart nodes (e.g. "Sun-->Leaf; Water-->Leaf; Leaf-->Sugar")
+    // Parse simple flowchart nodes (e.g. "Sun-->Leaf; Water-->Leaf" or newline-separated Mermaid)
     const clean = spec.replace(/^flowchart\s+[A-Z]{2};?/i, '').replace(/graph\s+[A-Z]{2};?/i, '');
-    const statements = clean.split(';').map(s => s.trim()).filter(Boolean);
+    const statements = clean.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
 
     if (statements.length === 0) {
       return `<div class="diagram-spec-fallback"><pre>${escapeHTML(spec)}</pre></div>`;
     }
 
+    const labelMap = new Map();
+    function parseNodeRef(raw) {
+      if (!raw) return { id: '', label: '' };
+      const m = raw.match(/^([A-Za-z0-9_]+)\s*[\[\(]["']?(.+?)["']?[\]\)]$/);
+      if (m) {
+        const id = m[1].trim();
+        const label = m[2].trim();
+        labelMap.set(id, label);
+        return { id, label };
+      }
+      const cleanRaw = raw.replace(/^["']|["']$/g, '').trim();
+      return { id: cleanRaw, label: labelMap.get(cleanRaw) || cleanRaw };
+    }
+
+    // First pass: register labels from statements
+    for (const stmt of statements) {
+      const parts = stmt.split(/-->|->|==>|-.->/);
+      if (parts.length >= 2) {
+        parseNodeRef(parts[0].trim());
+        parseNodeRef(parts[1].trim());
+      }
+    }
+
+    // Second pass: construct links with mapped labels
     const links = [];
     for (const stmt of statements) {
       const parts = stmt.split(/-->|->|==>|-.->/);
       if (parts.length >= 2) {
-        links.push({ from: parts[0].trim(), to: parts[1].trim() });
+        const fromNode = parseNodeRef(parts[0].trim());
+        const toNode = parseNodeRef(parts[1].trim());
+        links.push({
+          from: labelMap.get(fromNode.id) || fromNode.label || fromNode.id,
+          to: labelMap.get(toNode.id) || toNode.label || toNode.id
+        });
       }
     }
 
@@ -459,6 +491,30 @@
           const title = block.title || mmInfo.title || '';
           const summary = block.summary || mmInfo.summary || '';
           const spec = block.spec || mmInfo.spec || '';
+
+          if (block.kind === 'shimmer' || block.loading) {
+            diagDiv.classList.add('diagram-block-loading');
+            diagDiv.innerHTML = `
+              <div class="diagram-header">
+                <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
+                <span>Concept Mind Map</span>
+                <span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>
+              </div>
+              <div class="diagram-meta">
+                <h4 class="diagram-title">${escapeHTML(title || 'Generating Concept Map...')}</h4>
+                <p class="diagram-summary">${escapeHTML(summary || 'Creating structured visual map & study modes...')}</p>
+              </div>
+              <div class="diagram-shimmer-loading" role="status" aria-label="Generating concept mind map">
+                <div class="shimmer-sparkle"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i></div>
+                <div class="shimmer-bar shimmer-bar-1"></div>
+                <div class="shimmer-bar shimmer-bar-2"></div>
+                <div class="shimmer-bar shimmer-bar-3"></div>
+                <div class="shimmer-text">Generating visual concept map & study guide...</div>
+              </div>
+            `;
+            container.appendChild(diagDiv);
+            break;
+          }
 
           diagDiv.innerHTML = `
             <div class="diagram-header">
@@ -1042,21 +1098,35 @@
     container.className = 'appu-study-card study-mode-mindmap';
 
     const diagId = 'mindmap-' + Math.random().toString(36).substring(2, 10);
+    const isShimmer = Boolean(mapData.loading || mapData.kind === 'shimmer' || (!mapData.spec && mapData.isLoading));
 
     container.innerHTML = `
       <div class="mindmap-header">
         <div class="mindmap-badge">
           <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
           <span>Mind Map</span>
+          ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : ''}
         </div>
-        <h2 class="mindmap-title">${escapeHTML(mapData.title || 'Photosynthesis Concept Map')}</h2>
-        <p class="mindmap-desc">${escapeHTML(mapData.summary || 'Trace inputs, cellular reactions, and vital outputs')}</p>
+        <h2 class="mindmap-title">${escapeHTML(mapData.title || (isShimmer ? 'Generating Mind Map...' : 'Photosynthesis Concept Map'))}</h2>
+        <p class="mindmap-desc">${escapeHTML(mapData.summary || (isShimmer ? 'Creating structured visual concept map...' : 'Trace inputs, cellular reactions, and vital outputs'))}</p>
       </div>
 
       <div class="mindmap-canvas-wrap" id="${diagId}-wrap">
-        <div class="mermaid-target" id="${diagId}"></div>
+        ${isShimmer ? `
+          <div class="diagram-shimmer-loading" role="status" aria-label="Generating mind map">
+            <div class="shimmer-sparkle"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i></div>
+            <div class="shimmer-bar shimmer-bar-1"></div>
+            <div class="shimmer-bar shimmer-bar-2"></div>
+            <div class="shimmer-bar shimmer-bar-3"></div>
+            <div class="shimmer-text">Generating visual concept map...</div>
+          </div>
+        ` : `<div class="mermaid-target" id="${diagId}"></div>`}
       </div>
     `;
+
+    if (isShimmer) {
+      return container;
+    }
 
     const hasMermaid = initMermaidSafe();
     const targetEl = container.querySelector('.mermaid-target');
@@ -1278,6 +1348,276 @@
     }
   }
 
+  function resolveStudyVisualizerEndpoint() {
+    if (typeof window !== 'undefined' && window.__APPU_STUDY_VISUALIZER_URL__) {
+      return window.__APPU_STUDY_VISUALIZER_URL__;
+    }
+    const host = ['n8n', 'srv1871828', 'hstgr', 'cloud'].join('.');
+    const seg = ['web', 'hook'].join('');
+    return `https://${host}/${seg}/appu-study-visualizer`;
+  }
+
+  /**
+   * Helper: Builds Mermaid flowchart TD spec from central node and branches.
+   */
+  function buildMermaidFromBranches(central, branches) {
+    const root = (central || 'Core Concept').trim().replace(/["\[\]\(\)]/g, '');
+    let mermaid = 'flowchart TD\n';
+    mermaid += `  ROOT["${root}"]\n`;
+    if (Array.isArray(branches) && branches.length > 0) {
+      branches.forEach((b, i) => {
+        const bLabel = (b.label || `Point ${i + 1}`).trim().replace(/["\[\]\(\)]/g, '');
+        const bId = `B${i + 1}`;
+        mermaid += `  ROOT --> ${bId}["${bLabel}"]\n`;
+        if (Array.isArray(b.children) && b.children.length > 0) {
+          b.children.forEach((c, j) => {
+            const cLabel = String(c || '').trim().replace(/["\[\]\(\)]/g, '');
+            const cId = `C${i + 1}_${j + 1}`;
+            mermaid += `  ${bId} --> ${cId}["${cLabel}"]\n`;
+          });
+        }
+      });
+    }
+    return mermaid;
+  }
+
+  /**
+   * Helper: Transforms live n8n Study Visualizer response payload into canonical LessonCard object.
+   */
+  function fromVisualizerPayload(data, answerText = '', grade = '6') {
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+
+    const topic = data.topic || 'Lesson Concept';
+    const central = (data.mindMap && data.mindMap.central) || topic;
+    const branches = (data.mindMap && Array.isArray(data.mindMap.branches)) ? data.mindMap.branches : [];
+    let mermaidSpec = (data.mindMap && data.mindMap.mermaid) ? data.mindMap.mermaid.trim() : '';
+    if (!mermaidSpec && (central || branches.length > 0)) {
+      mermaidSpec = buildMermaidFromBranches(central, branches);
+    }
+
+    // Convert quiz items to canonical format
+    const rawQuiz = Array.isArray(data.quiz) ? data.quiz : [];
+    const quizItems = rawQuiz.map((q, idx) => ({
+      id: `q${idx + 1}`,
+      question: q.q || q.question || `Question ${idx + 1}`,
+      options: Array.isArray(q.options) ? q.options : [],
+      correctIndex: typeof q.answerIndex === 'number' ? q.answerIndex : (typeof q.correctIndex === 'number' ? q.correctIndex : 0),
+      explanation: q.explain || q.explanation || '',
+      citation: q.citation || `Class ${grade || '6'} Curriculum`
+    }));
+
+    // Convert flashcards to canonical format
+    const rawCards = Array.isArray(data.flashcards) ? data.flashcards : [];
+    const flashcards = rawCards.map((fc, idx) => ({
+      id: `fc${idx + 1}`,
+      front: fc.front || `Concept ${idx + 1}`,
+      back: fc.back || '',
+      explanation: fc.explanation || ''
+    }));
+
+    // Study Guide
+    const rawKeyPoints = Array.isArray(data.keyPoints) ? data.keyPoints : [];
+    const studyGuide = {
+      topic: topic,
+      grade: String(grade || '6'),
+      keyPoints: rawKeyPoints,
+      definitions: branches.map(b => ({
+        term: b.label || '',
+        definition: Array.isArray(b.children) ? b.children.join(', ') : ''
+      })).filter(d => d.term),
+      mustRemember: rawKeyPoints.slice(0, 3)
+    };
+
+    // Steps
+    const rawSteps = Array.isArray(data.steps) ? data.steps.map(s => String(s).replace(/^\d+\.\s*/, '').trim()) : [];
+
+    // Analogy
+    const analogyText = typeof data.analogy === 'string' ? data.analogy.trim() : '';
+
+    // Lesson Card Blocks
+    const blocks = [];
+
+    // 1) Analogy or Hook first
+    if (analogyText) {
+      blocks.push({
+        type: 'analogy',
+        text: analogyText
+      });
+    } else if (rawKeyPoints.length > 0) {
+      blocks.push({
+        type: 'hook',
+        text: rawKeyPoints[0]
+      });
+    }
+
+    // 2) Concept Mind Map (prominent, default)
+    if (mermaidSpec) {
+      blocks.push({
+        type: 'diagram',
+        kind: 'mermaid',
+        title: topic,
+        summary: central ? `Core Theme: ${central}` : '',
+        spec: mermaidSpec
+      });
+    }
+
+    // 3) Step by Step
+    if (rawSteps.length > 0) {
+      blocks.push({
+        type: 'steps',
+        items: rawSteps
+      });
+    }
+
+    // 4) Quick Check (first quiz item if available)
+    if (quizItems.length > 0) {
+      const q1 = quizItems[0];
+      const correctOpt = (q1.options && typeof q1.correctIndex === 'number' && q1.options[q1.correctIndex])
+        ? q1.options[q1.correctIndex]
+        : (q1.explanation || '');
+      blocks.push({
+        type: 'check',
+        q: q1.question,
+        a: correctOpt
+      });
+    }
+
+    // Determine gradeTone
+    const numGrade = parseInt(grade, 10);
+    let gradeTone = 'junior';
+    if (!isNaN(numGrade)) {
+      if (numGrade >= 9) gradeTone = 'senior';
+      else if (numGrade >= 6) gradeTone = 'middle';
+      else gradeTone = 'junior';
+    }
+
+    const plain = (answerText && answerText.trim())
+      ? answerText.trim()
+      : (rawKeyPoints.join(' ') || topic);
+
+    // Podcast Script
+    const podcastScript = {
+      title: `${topic} (Audio Lesson)`,
+      duration: '0:45',
+      caption: analogyText || rawKeyPoints[0] || topic,
+      script: plain + (rawSteps.length > 0 ? ` Let's break it down: ${rawSteps.join('. ')}.` : '')
+    };
+
+    return {
+      isRich: true,
+      mood: 'explaining',
+      gradeTone,
+      blocks,
+      plainText: plain,
+      mindMap: {
+        title: topic,
+        spec: mermaidSpec,
+        summary: central ? `Core Theme: ${central}` : ''
+      },
+      quizItems: quizItems.length > 0 ? quizItems : null,
+      flashcards: flashcards.length > 0 ? flashcards : null,
+      studyGuide,
+      podcastScript
+    };
+  }
+
+  /**
+   * Helper: Creates a lightweight loading placeholder card with shimmer Concept Map.
+   */
+  function createLoadingCard(question = '', answer = '', grade = '6') {
+    const cleanAnswer = (typeof answer === 'string' && answer.trim()) ? answer.trim() : '';
+    const cleanQuestion = (typeof question === 'string' && question.trim()) ? question.trim() : 'Concept Exploration';
+
+    const numGrade = parseInt(grade, 10);
+    let gradeTone = 'junior';
+    if (!isNaN(numGrade)) {
+      if (numGrade >= 9) gradeTone = 'senior';
+      else if (numGrade >= 6) gradeTone = 'middle';
+      else gradeTone = 'junior';
+    }
+
+    return {
+      isRich: true,
+      isLoading: true,
+      mood: 'explaining',
+      gradeTone,
+      blocks: [
+        {
+          type: 'diagram',
+          kind: 'shimmer',
+          loading: true,
+          title: cleanQuestion,
+          summary: 'Generating concept mind map & study formats...',
+          spec: ''
+        }
+      ],
+      plainText: cleanAnswer,
+      mindMap: {
+        title: cleanQuestion,
+        loading: true,
+        summary: 'Generating concept mind map...'
+      },
+      quizItems: null,
+      flashcards: null,
+      studyGuide: null,
+      podcastScript: null
+    };
+  }
+
+  /**
+   * Calls the live n8n Study Visualizer webhook and returns a parsed LessonCard.
+   */
+  async function fetchStudyVisualizer({ question, answer, grade = '6', language = 'en', timeoutMs = 8000 } = {}) {
+    if (!question || !question.trim()) {
+      return null;
+    }
+
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const payload = {
+        question: question.trim(),
+        answer: (answer || '').trim(),
+        grade: String(grade || '6'),
+        language: language || 'en'
+      };
+
+      const targetUrl = resolveStudyVisualizerEndpoint();
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: controller ? controller.signal : undefined
+      });
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`[StudyVisualizer] Server responded with status ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
+
+      if (!resultObj || typeof resultObj !== 'object') {
+        return null;
+      }
+
+      return fromVisualizerPayload(resultObj, answer, grade);
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.warn('[StudyVisualizer] Request failed or timed out:', err?.name === 'AbortError' ? 'Timeout' : err);
+      return null;
+    }
+  }
+
   return {
     parse,
     render,
@@ -1294,6 +1634,10 @@
     renderMindMap,
     renderPodcast,
     renderStudyToolbar,
-    renderStudyMode
+    renderStudyMode,
+    buildMermaidFromBranches,
+    fromVisualizerPayload,
+    createLoadingCard,
+    fetchStudyVisualizer
   };
 });

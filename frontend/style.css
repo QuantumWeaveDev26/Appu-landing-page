@@ -4493,6 +4493,97 @@ body.policy-page {
   stroke: #0284c7 !important;
 }
 
+/* Shimmer Loading State for Concept Mind Map & Visualizer */
+.diagram-block-loading {
+  opacity: 0.95;
+}
+.diagram-loading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.15);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  margin-left: auto;
+}
+.diagram-shimmer-loading {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px;
+  border-radius: 16px;
+  background: rgba(240, 249, 255, 0.7);
+  border: 1.5px dashed rgba(125, 211, 252, 0.85);
+  min-height: 120px;
+  width: 100%;
+  gap: 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.diagram-shimmer-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 100%
+  );
+  animation: shimmerSlide 2s infinite ease-in-out;
+  pointer-events: none;
+}
+@keyframes shimmerSlide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+.shimmer-sparkle {
+  font-size: 22px;
+  color: #0284c7;
+  animation: pulseSparkle 1.8s infinite ease-in-out;
+}
+@keyframes pulseSparkle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
+.shimmer-bar {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(186, 230, 253, 0.75);
+  box-shadow: 0 1px 3px rgba(14, 165, 233, 0.08);
+}
+.shimmer-bar-1 { width: 65%; }
+.shimmer-bar-2 { width: 80%; }
+.shimmer-bar-3 { width: 42%; }
+.shimmer-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0369a1;
+  letter-spacing: 0.02em;
+  margin-top: 4px;
+}
+
 /* Fallback Diagram Nodes */
 .diagram-flow-fallback {
   display: flex;
