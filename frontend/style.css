@@ -6899,5 +6899,15 @@ body.policy-page {
   }
 }
 
-
-
+/* Suppress any Mermaid error elements or syntax error banners */
+[id^="dmermaid"],
+.error-icon,
+.mermaid-error,
+svg[id^="dmermaid"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  pointer-events: none !important;
+}

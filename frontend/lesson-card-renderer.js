@@ -263,12 +263,23 @@
 
   let mermaidInitialized = false;
 
+  function purgeMermaidErrorElements() {
+    if (typeof document === 'undefined') return;
+    try {
+      const errorElements = document.querySelectorAll('[id^="dmermaid"], .error-icon, .mermaid-error');
+      errorElements.forEach(el => el.remove());
+    } catch {
+      // ignore
+    }
+  }
+
   function initMermaidSafe() {
     if (mermaidInitialized) return true;
     if (typeof window !== 'undefined' && window.mermaid && typeof window.mermaid.initialize === 'function') {
       try {
         window.mermaid.initialize({
           startOnLoad: false,
+          suppressErrorRendering: true,
           theme: 'dark',
           securityLevel: 'loose',
           themeVariables: {
@@ -281,9 +292,10 @@
           }
         });
         mermaidInitialized = true;
+        purgeMermaidErrorElements();
         return true;
       } catch (err) {
-        console.warn('[LessonCard] Mermaid init failed, will use fallback renderer:', err);
+        console.warn('[LessonCard] Mermaid init failed:', err);
         return false;
       }
     }
@@ -396,7 +408,18 @@
    * Generates a semantic, styled HTML flowchart diagram when Mermaid is unavailable.
    */
   function renderFallbackDiagram(spec) {
-    if (!spec || typeof spec !== 'string') return '';
+    if (!spec || typeof spec !== 'string' || !spec.trim()) return '';
+
+    // If spec is a single-root tree (Central -> Branches), render the clean Concept Tree!
+    const parsed = parseMermaidToBranches(spec);
+    if (parsed && parsed.isSingleRoot && parsed.central && Array.isArray(parsed.branches) && parsed.branches.length > 0) {
+      return `
+        <div class="diagram-flow-fallback diagram-concept-tree-fallback" role="figure" aria-label="Concept Flow">
+          ${buildConceptTreeHTML(parsed.central, parsed.branches, { isDedicatedTab: false })}
+        </div>
+      `;
+    }
+
     // Parse simple flowchart nodes (e.g. "Sun-->Leaf; Water-->Leaf" or newline-separated Mermaid)
     const clean = spec.replace(/^flowchart\s+[A-Z]{2};?/i, '').replace(/graph\s+[A-Z]{2};?/i, '');
     const statements = clean.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
@@ -408,7 +431,7 @@
     const labelMap = new Map();
     function parseNodeRef(raw) {
       if (!raw) return { id: '', label: '' };
-      const m = raw.match(/^([A-Za-z0-9_]+)\s*[\[\(]["']?(.+?)["']?[\]\)]$/);
+      const m = raw.match(/^([A-Za-z0-9_]+)\s*[\[\(\{](?:["']?)(.+?)(?:["']?)[\]\)\}]$/);
       if (m) {
         const id = m[1].trim();
         const label = m[2].trim();
@@ -444,6 +467,18 @@
 
     if (links.length === 0) {
       return `<div class="diagram-spec-fallback"><pre>${escapeHTML(spec)}</pre></div>`;
+    }
+
+    // If all links share the same 'from' node, render as clean concept tree so central parent is NEVER repeated!
+    const allSameFrom = links.length > 1 && links.every(l => l.from === links[0].from);
+    if (allSameFrom) {
+      const central = links[0].from;
+      const branches = links.map(l => ({ label: l.to, children: [] }));
+      return `
+        <div class="diagram-flow-fallback diagram-concept-tree-fallback" role="figure" aria-label="Concept Flow">
+          ${buildConceptTreeHTML(central, branches, { isDedicatedTab: false })}
+        </div>
+      `;
     }
 
     const nodeIcons = {
@@ -524,6 +559,7 @@
     }
 
     const rootCandidates = allNodes.filter(id => childrenMap.has(id) && !parents.has(id));
+    const isSingleRoot = rootCandidates.length <= 1;
     const rootId = rootCandidates.length > 0 ? rootCandidates[0] : allNodes[0];
     if (!rootId || !childrenMap.has(rootId)) return null;
 
@@ -536,7 +572,7 @@
       return { label, children };
     });
 
-    return { central, branches };
+    return { central, branches, isSingleRoot };
   }
 
   /**
@@ -552,9 +588,9 @@
     return `
       <div class="concept-tree-wrapper ${isDedicatedTab ? 'tree-dedicated' : 'tree-compact'}">
         <div class="concept-tree-central">
-          <div class="central-node-pill">
+          <div class="central-node-pill from-node">
             <span class="central-node-icon"><i class="fa-solid fa-brain" aria-hidden="true"></i></span>
-            <span class="central-node-text">${escapeHTML(central || 'Core Concept')}</span>
+            <span class="central-node-text node-label">${escapeHTML(central || 'Core Concept')}</span>
           </div>
         </div>
 
@@ -565,16 +601,16 @@
         </div>
 
         <div class="concept-tree-branches-grid">
-          ${branches.map((b, idx) => {
+          ${(branches || []).map((b, idx) => {
             const theme = themeNames[idx % themeNames.length];
             const icon = themeIcons[idx % themeIcons.length];
             const children = Array.isArray(b.children) ? b.children : [];
             return `
-              <div class="concept-branch-card branch-theme-${theme}">
+              <div class="concept-branch-card to-node branch-theme-${theme}">
                 <div class="branch-card-top">
                   <span class="branch-order-chip" aria-hidden="true">${idx + 1}</span>
                   <span class="branch-theme-icon"><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
-                  <h4 class="branch-title-text">${escapeHTML(b.label || `Branch ${idx + 1}`)}</h4>
+                  <h4 class="branch-title-text node-label">${escapeHTML(b.label || `Branch ${idx + 1}`)}</h4>
                 </div>
                 ${children.length > 0 ? `
                   <ul class="branch-leaf-list">
@@ -683,8 +719,11 @@
             }
           }
 
-          const hasTree = branches.length > 0;
-          const hasBoth = hasTree && Boolean(spec);
+          // Fallback to sample branches if neither is present
+          if (branches.length === 0) {
+            branches = SAMPLE_MIND_MAP.branches;
+            central = central || SAMPLE_MIND_MAP.central;
+          }
 
           diagDiv.innerHTML = `
             <div class="diagram-header">
@@ -693,76 +732,16 @@
                 <span>Concept Mind Map</span>
                 <span class="diagram-live-badge">Live Visual</span>
               </div>
-              ${hasBoth ? `
-                <div class="mindmap-view-switcher" role="group" aria-label="Diagram view">
-                  <button type="button" class="btn-map-switch btn-switch-tree is-active" data-view="tree" title="Visual Concept Tree">
-                    <i class="fa-solid fa-network-wired" aria-hidden="true"></i> <span>Tree</span>
-                  </button>
-                  <button type="button" class="btn-map-switch btn-switch-flow" data-view="flow" title="Mermaid Flowchart">
-                    <i class="fa-solid fa-code-fork" aria-hidden="true"></i> <span>Flowchart</span>
-                  </button>
-                </div>
-              ` : ''}
             </div>
             ${title ? `<div class="diagram-meta"><h4 class="diagram-title">${escapeHTML(title)}</h4>${summary ? `<p class="diagram-summary">${escapeHTML(summary)}</p>` : ''}</div>` : (summary ? `<div class="diagram-meta"><p class="diagram-summary">${escapeHTML(summary)}</p>` : '')}
             <div class="diagram-canvas-wrap is-concept-mindmap" id="${diagId}-wrap">
-              ${hasTree ? `
-                <div class="concept-tree-container">
-                  ${buildConceptTreeHTML(central, branches, { isDedicatedTab: false })}
-                </div>
-              ` : ''}
-              <div class="concept-flowchart-container" id="${diagId}-flow" ${hasTree ? 'hidden' : ''}>
-                <div class="mermaid-target" id="${diagId}"></div>
+              <div class="concept-tree-container">
+                ${buildConceptTreeHTML(central, branches, { isDedicatedTab: false })}
               </div>
             </div>
           `;
           container.appendChild(diagDiv);
-
-          const btnTree = diagDiv.querySelector('.btn-switch-tree');
-          const btnFlow = diagDiv.querySelector('.btn-switch-flow');
-          const treeBox = diagDiv.querySelector('.concept-tree-container');
-          const flowBox = diagDiv.querySelector('.concept-flowchart-container');
-          const targetEl = diagDiv.querySelector('.mermaid-target');
-
-          let mermaidRendered = false;
-          function ensureMermaidRender() {
-            if (mermaidRendered || !spec || !targetEl) return;
-            mermaidRendered = true;
-            const hasMermaid = initMermaidSafe();
-            if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function') {
-              setTimeout(async () => {
-                try {
-                  const { svg } = await window.mermaid.render(diagId + '-svg', spec);
-                  if (targetEl) targetEl.innerHTML = svg;
-                } catch (renderErr) {
-                  console.warn('[LessonCard] Mermaid render error, falling back:', renderErr);
-                  if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec);
-                }
-              }, 40);
-            } else {
-              targetEl.innerHTML = renderFallbackDiagram(spec || '');
-            }
-          }
-
-          if (btnTree && btnFlow && treeBox && flowBox) {
-            btnTree.addEventListener('click', () => {
-              btnTree.classList.add('is-active');
-              btnFlow.classList.remove('is-active');
-              treeBox.removeAttribute('hidden');
-              flowBox.setAttribute('hidden', '');
-            });
-            btnFlow.addEventListener('click', () => {
-              btnFlow.classList.add('is-active');
-              btnTree.classList.remove('is-active');
-              flowBox.removeAttribute('hidden');
-              treeBox.setAttribute('hidden', '');
-              ensureMermaidRender();
-            });
-          }
-
-          if (!hasTree && spec) {
-            ensureMermaidRender();
-          }
+          purgeMermaidErrorElements();
           break;
         }
 
@@ -1331,27 +1310,19 @@
       }
     }
 
-    const hasTree = !isShimmer && branches.length > 0;
-    const hasBoth = hasTree && Boolean(spec);
+    if (!isShimmer && branches.length === 0) {
+      branches = SAMPLE_MIND_MAP.branches;
+      central = central || SAMPLE_MIND_MAP.central;
+    }
 
     container.innerHTML = `
       <div class="mindmap-header">
         <div class="mindmap-badge-row">
           <div class="mindmap-badge">
-            <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
-            <span>Mind Map</span>
+            <i class="fa-solid fa-network-wired text-cyan" aria-hidden="true"></i>
+            <span>Concept Tree</span>
             ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : '<span class="diagram-live-badge">Live Visual</span>'}
           </div>
-          ${hasBoth ? `
-            <div class="mindmap-view-switcher" role="group" aria-label="Diagram view">
-              <button type="button" class="btn-map-switch btn-switch-tree is-active" data-view="tree" title="Visual Concept Tree">
-                <i class="fa-solid fa-network-wired" aria-hidden="true"></i> <span>Concept Tree</span>
-              </button>
-              <button type="button" class="btn-map-switch btn-switch-flow" data-view="flow" title="Mermaid Flowchart">
-                <i class="fa-solid fa-code-fork" aria-hidden="true"></i> <span>Flowchart</span>
-              </button>
-            </div>
-          ` : ''}
         </div>
         <h2 class="mindmap-title">${escapeHTML(title)}</h2>
         <p class="mindmap-desc">${escapeHTML(summary)}</p>
@@ -1367,67 +1338,14 @@
             <div class="shimmer-text">Generating visual concept map...</div>
           </div>
         ` : `
-          ${hasTree ? `
-            <div class="concept-tree-container">
-              ${buildConceptTreeHTML(central, branches, { isDedicatedTab: true })}
-            </div>
-          ` : ''}
-          <div class="concept-flowchart-container" id="${diagId}-flow" ${hasTree ? 'hidden' : ''}>
-            <div class="mermaid-target" id="${diagId}"></div>
+          <div class="concept-tree-container">
+            ${buildConceptTreeHTML(central, branches, { isDedicatedTab: true })}
           </div>
         `}
       </div>
     `;
 
-    if (isShimmer) {
-      return container;
-    }
-
-    const btnTree = container.querySelector('.btn-switch-tree');
-    const btnFlow = container.querySelector('.btn-switch-flow');
-    const treeBox = container.querySelector('.concept-tree-container');
-    const flowBox = container.querySelector('.concept-flowchart-container');
-    const targetEl = container.querySelector('.mermaid-target');
-
-    let mermaidRendered = false;
-    function ensureMermaidRender() {
-      if (mermaidRendered || !spec || !targetEl) return;
-      mermaidRendered = true;
-      const hasMermaid = initMermaidSafe();
-      if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function') {
-        setTimeout(async () => {
-          try {
-            const { svg } = await window.mermaid.render(diagId + '-svg', spec);
-            if (targetEl) targetEl.innerHTML = svg;
-          } catch (err) {
-            if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec);
-          }
-        }, 40);
-      } else {
-        if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec || '');
-      }
-    }
-
-    if (btnTree && btnFlow && treeBox && flowBox) {
-      btnTree.addEventListener('click', () => {
-        btnTree.classList.add('is-active');
-        btnFlow.classList.remove('is-active');
-        treeBox.removeAttribute('hidden');
-        flowBox.setAttribute('hidden', '');
-      });
-      btnFlow.addEventListener('click', () => {
-        btnFlow.classList.add('is-active');
-        btnTree.classList.remove('is-active');
-        flowBox.removeAttribute('hidden');
-        treeBox.setAttribute('hidden', '');
-        ensureMermaidRender();
-      });
-    }
-
-    if (!hasTree && spec) {
-      ensureMermaidRender();
-    }
-
+    purgeMermaidErrorElements();
     return container;
   }
 
@@ -1928,6 +1846,7 @@
     buildConceptTreeHTML,
     fromVisualizerPayload,
     createLoadingCard,
-    fetchStudyVisualizer
+    fetchStudyVisualizer,
+    purgeMermaidErrorElements
   };
 });

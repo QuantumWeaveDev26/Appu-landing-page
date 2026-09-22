@@ -400,6 +400,34 @@ describe('Task A: Mind Map as Default in Answers (Teacher Directive)', () => {
     assert.ok(el.innerHTML.includes('Water Cycle'));
     assert.ok(el.innerHTML.includes('Evaporation'));
   });
+
+  test('renderFallbackDiagram groups 1-to-many links into Concept Tree without repetitive central node pairs', () => {
+    const spec = `flowchart TD
+      Photosynthesis-->Where It Happens
+      Photosynthesis-->Main Ingredients
+      Photosynthesis-->Process Steps
+      Photosynthesis-->Products & Importance`;
+
+    const html = LessonCardRenderer.renderFallbackDiagram(spec);
+    assert.ok(html.includes('diagram-concept-tree-fallback') || html.includes('concept-tree-wrapper'));
+    assert.ok(html.includes('central-node-pill'));
+    assert.ok(html.includes('Photosynthesis'));
+    assert.ok(html.includes('Where It Happens'));
+    assert.ok(html.includes('Main Ingredients'));
+    assert.ok(html.includes('Process Steps'));
+    assert.ok(html.includes('Products &amp; Importance') || html.includes('Products & Importance'));
+
+    // Verify Photosynthesis is NOT repeated 4 times as repetitive flow-link-item rows
+    const matches = html.match(/Photosynthesis/g) || [];
+    assert.equal(matches.length, 1, 'Central concept must appear exactly once at the top of the tree');
+  });
+
+  test('purgeMermaidErrorElements is exposed and executes safely without throwing', () => {
+    assert.equal(typeof LessonCardRenderer.purgeMermaidErrorElements, 'function');
+    assert.doesNotThrow(() => {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    });
+  });
 });
 
 describe('Task B: Build-Light "Talking Appu" Engine', () => {

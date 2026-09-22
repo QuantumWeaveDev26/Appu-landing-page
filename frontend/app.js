@@ -1030,6 +1030,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showVoicePopup(text, lessonCard = null, initialMode = 'lesson') {
     if (!voiceReplyPopup || (!text && !lessonCard)) return;
+    if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    }
     const missionStage = document.querySelector('.mission-stage');
     if (missionStage) {
       missionStage.classList.add('has-lesson-active');
@@ -1068,6 +1071,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateVoicePopupCard(newCard) {
     if (!newCard) return;
+    if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    }
     activePopupLessonCard = newCard;
     if (voiceReplyPopup) {
       if (!voiceReplyPopup.classList.contains('is-visible')) {
@@ -1226,7 +1232,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.appMascot) window.appMascot.setMood(mood);
 
         const childGrade = getActiveChildGrade();
-        const hasCompleteCard = Boolean(fullResult?.lessonCard?.mindMap?.spec || fullResult?.lessonCard?.mindMap?.mermaid);
+        const hasCompleteCard = Boolean(
+          fullResult?.lessonCard?.mindMap?.branches?.length > 0 &&
+          (fullResult?.lessonCard?.quizItems?.length > 0 || fullResult?.lessonCard?.blocks?.some(b => b.type === 'check'))
+        );
 
         // 1) Prepare immediate loading card with plain text + shimmer Concept Map
         const initialCard = hasCompleteCard
