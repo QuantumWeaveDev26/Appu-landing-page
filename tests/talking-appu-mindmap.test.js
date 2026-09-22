@@ -898,3 +898,123 @@ describe('Task E: Notes Tutor & Document Upload Teaching', () => {
     assert.ok(html.includes('pdf.min.js'), 'Must include pdf.js library script');
   });
 });
+
+describe('Task F: Topic Guard & Zero-Sample-Leak Invariant', () => {
+  test('isCardTopicMatching blocks sample photosynthesis card when question is about friction', () => {
+    const q = 'explain friction in detail, as many key points as possible';
+    const a = 'Friction is a force that opposes the relative motion between two surfaces in contact.';
+    const sampleCard = LessonCardRenderer.SAMPLE_CARD;
+
+    assert.equal(LessonCardRenderer.isCardTopicMatching(sampleCard, q, a), false,
+      'Must reject sample photosynthesis card when question is about friction');
+  });
+
+  test('isCardTopicMatching accepts matching card when question and answer are about friction', () => {
+    const q = 'explain friction in detail, as many key points as possible';
+    const a = 'Friction is a force that opposes motion.';
+    const frictionCard = {
+      topic: 'Friction',
+      mindMap: {
+        central: 'Friction',
+        branches: [
+          { label: 'Types of Friction', children: ['Static friction', 'Sliding friction'] },
+          { label: 'Causes', children: ['Surface roughness', 'Microscopic interlocking'] }
+        ]
+      },
+      plainText: a
+    };
+
+    assert.equal(LessonCardRenderer.isCardTopicMatching(frictionCard, q, a), true,
+      'Must accept card whose topic and branches match the question');
+  });
+
+  test('isCardTopicMatching accepts photosynthesis card when user actually asked about photosynthesis', () => {
+    const q = 'How does photosynthesis work in plants?';
+    const a = 'Photosynthesis is the process by which green plants make food using sunlight.';
+    const sampleCard = LessonCardRenderer.SAMPLE_CARD;
+
+    assert.equal(LessonCardRenderer.isCardTopicMatching(sampleCard, q, a), true,
+      'Must accept photosynthesis card when the question is legitimately about photosynthesis');
+  });
+
+  test('buildMinimalAnswerCard produces grounded card with topic, real answer sentences, and ZERO sample leakage', () => {
+    const q = 'explain friction in detail, as many key points as possible';
+    const a = 'Friction opposes relative motion between surfaces. Static friction prevents an object from starting to slide. Sliding friction acts when surfaces slide past each other. Lubrication reduces friction by smoothing microscopic roughness.';
+
+    const card = LessonCardRenderer.buildMinimalAnswerCard(q, a, '8', {
+      citation: { label: 'NCERT Class 8 Science - Friction' }
+    });
+
+    assert.ok(card, 'Card must be created');
+    assert.equal(card.isRich, true);
+    assert.equal(card.isGroundedMinimal, true);
+    assert.equal(card.mindMap.central, 'Friction');
+    assert.equal(card.mindMap.isFallback, true);
+    assert.ok(card.mindMap.branches.length >= 2, 'Must extract branches from answer sentences');
+    assert.equal(card.citation.label, 'NCERT Class 8 Science - Friction');
+
+    const serialized = JSON.stringify(card).toLowerCase();
+    assert.ok(!serialized.includes('photosynthesis'), 'ZERO sample photosynthesis leakage allowed');
+    assert.ok(!serialized.includes('chloroplast'), 'ZERO chloroplast allowed');
+    assert.ok(serialized.includes('friction'), 'Must contain user topic friction');
+    assert.ok(serialized.includes('static friction'), 'Must contain extracted key point detail');
+  });
+
+  test('render() does not inject SAMPLE_MIND_MAP when diagram block has empty branches', () => {
+    const card = {
+      mood: 'explaining',
+      gradeTone: 'middle',
+      blocks: [
+        {
+          type: 'diagram',
+          title: 'Friction Basics',
+          central: 'Friction',
+          branches: []
+        }
+      ],
+      plainText: 'Friction opposes movement between rough surfaces.'
+    };
+
+    const el = LessonCardRenderer.render(card);
+    const html = el.innerHTML.toLowerCase();
+    assert.ok(!html.includes('photosynthesis'), 'Must never inject sample photosynthesis into rendered card');
+    assert.ok(!html.includes('chloroplast'), 'Must never inject sample chloroplast into rendered card');
+  });
+
+  test('fetchStudyVisualizer retries once on network failure and rejects mismatched card', async () => {
+    const originalFetch = globalThis.fetch;
+    let fetchCount = 0;
+
+    // Simulate first attempt fail, second attempt returns mismatched photosynthesis card
+    globalThis.fetch = async () => {
+      fetchCount++;
+      if (fetchCount === 1) {
+        throw new Error('Simulated network timeout');
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          topic: 'Photosynthesis',
+          mindMap: { central: 'Photosynthesis', branches: [{ label: 'Light', children: [] }] },
+          steps: ['Light reaction'],
+          keyPoints: ['Chlorophyll absorbs photons']
+        })
+      };
+    };
+
+    const card = await LessonCardRenderer.fetchStudyVisualizer({
+      question: 'explain friction in detail',
+      answer: 'Friction opposes motion.',
+      grade: '8'
+    });
+
+    // Fetched twice because of 1 retry
+    assert.equal(fetchCount, 2, 'Must retry once upon network failure');
+    // Result must be null because Topic Guard blocked the mismatched Photosynthesis card
+    assert.equal(card, null, 'Must reject mismatched card via Topic Guard and return null');
+
+    globalThis.fetch = originalFetch;
+  });
+});
+

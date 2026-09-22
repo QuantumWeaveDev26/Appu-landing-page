@@ -1203,9 +1203,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // CORE INTERACTION HANDLER
   // ==========================================
+  let activeInteractionSeq = 0;
+
   async function handleUserInteraction(text, image = null) {
     const isDocActive = Boolean(window.activeTutorDocument && window.activeTutorDocument.text);
     if (!isDocActive && (!text || !text.trim())) return;
+
+    const interactionTurnId = ++activeInteractionSeq;
 
     if (!ensureChatSessionReady(text || (isDocActive ? window.activeTutorDocument.name : ''))) {
       return;
@@ -1256,9 +1260,14 @@ document.addEventListener('DOMContentLoaded', () => {
               documentText: window.activeTutorDocument.text,
               grade: childGrade,
               language: currentLangCode,
-              timeoutMs: 12000
+              timeoutMs: 22000
             })
           : null;
+
+        if (interactionTurnId !== activeInteractionSeq) {
+          console.log('[NotesTutor] Discarding stale response from previous turn');
+          return;
+        }
 
         if (notesResult && notesResult.answer) {
           const reply = notesResult.answer;
@@ -1280,6 +1289,7 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error('No valid response from notes tutor webhook');
         }
       } catch (err) {
+        if (interactionTurnId !== activeInteractionSeq) return;
         console.warn('[NotesTutor] Interaction failed or timed out:', err);
         avatarStage.setState('idle');
         if (window.appMascot) window.appMascot.setMood('idle');
@@ -1348,9 +1358,25 @@ document.addEventListener('DOMContentLoaded', () => {
             answer: reply,
             grade: childGrade,
             language: currentLangCode,
-            timeoutMs: 8000
+            timeoutMs: 22000
           }).then((realCard) => {
-            const finalCard = realCard || (typeof LessonCardRenderer.SAMPLE_CARD !== 'undefined' ? LessonCardRenderer.SAMPLE_CARD : null);
+            if (interactionTurnId !== activeInteractionSeq) {
+              console.log('[StudyVisualizer] Discarding stale card from previous turn');
+              return;
+            }
+
+            // TOPIC GUARD: Verify card matches current question before displaying
+            let finalCard = null;
+            if (realCard && typeof LessonCardRenderer.isCardTopicMatching === 'function' && LessonCardRenderer.isCardTopicMatching(realCard, text, reply)) {
+              finalCard = realCard;
+            } else {
+              // Build grounded minimal card directly from actual answer text - NEVER SAMPLE_CARD!
+              console.warn('[StudyVisualizer] Real visualizer timed out or topic mismatched, building grounded card from actual answer');
+              if (typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+                finalCard = LessonCardRenderer.buildMinimalAnswerCard(text, reply, childGrade);
+              }
+            }
+
             if (finalCard) {
               updateVoicePopupCard(finalCard);
               if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
@@ -1358,9 +1384,15 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
           }).catch((err) => {
+            if (interactionTurnId !== activeInteractionSeq) return;
             console.warn('[StudyVisualizer] Background fetch caught error:', err);
-            if (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) {
-              updateVoicePopupCard(LessonCardRenderer.SAMPLE_CARD);
+            // Build grounded minimal card directly from actual answer text - NEVER SAMPLE_CARD!
+            if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+              const groundedFallback = LessonCardRenderer.buildMinimalAnswerCard(text, reply, childGrade);
+              updateVoicePopupCard(groundedFallback);
+              if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
+                chatAgent.updateLastAppuMessageCard(groundedFallback);
+              }
             }
           });
         }

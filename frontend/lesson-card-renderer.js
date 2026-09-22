@@ -808,10 +808,14 @@
             }
           }
 
-          // Fallback to sample branches if neither is present
+          // Fallback to branches derived from lesson text if branches missing
           if (branches.length === 0) {
-            branches = SAMPLE_MIND_MAP.branches;
-            central = central || SAMPLE_MIND_MAP.central;
+            const derived = extractBranchesFromText(data.plainText || title || central);
+            if (derived.length > 0) {
+              branches = derived;
+            } else if (central) {
+              branches = [{ label: central, children: [] }];
+            }
           }
 
           diagDiv.innerHTML = `
@@ -1420,8 +1424,12 @@
     }
 
     if (!isShimmer && branches.length === 0) {
-      branches = SAMPLE_MIND_MAP.branches;
-      central = central || SAMPLE_MIND_MAP.central;
+      const derived = extractBranchesFromText(mapData.plainText || mapData.summary || central);
+      if (derived.length > 0) {
+        branches = derived;
+      } else if (central) {
+        branches = [{ label: central, children: [] }];
+      }
     }
 
     const cit = formatCitationDisplay(mapData.citation || (options && options.citation));
@@ -1902,55 +1910,258 @@
   }
 
   /**
+   * Helper: Extracts short readable branch ideas from text.
+   */
+  function extractBranchesFromText(text) {
+    if (!text || typeof text !== 'string') return [];
+    const clean = text.replace(/^[#*>\-\d.\s]+/gm, '').trim();
+    const sentences = clean
+      .split(/(?<=[.?!])\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length >= 10 && !s.toLowerCase().startsWith('let me know') && !s.toLowerCase().startsWith('ask me'));
+    if (sentences.length === 0) return [];
+    return sentences.slice(0, 4).map((s, idx) => {
+      const words = s.split(/\s+/);
+      const label = words.slice(0, 3).join(' ');
+      const detail = words.length > 3 ? words.slice(3).join(' ') : s;
+      return {
+        label: label || `Key Point ${idx + 1}`,
+        children: detail ? [detail] : []
+      };
+    });
+  }
+
+  /**
+   * Topic Guard: Checks whether a card's topic aligns with the given question & answer,
+   * guarding against sample cards, stale responses, or mismatched topics.
+   */
+  function isCardTopicMatching(card, question = '', answer = '') {
+    if (!card || typeof card !== 'object') return false;
+
+    const qLower = String(question || '').toLowerCase();
+    const aLower = String(answer || '').toLowerCase();
+    const cardTopic = String(
+      card.mindMap?.central ||
+      card.mindMap?.title ||
+      card.studyGuide?.topic ||
+      card.topic ||
+      ''
+    ).toLowerCase();
+
+    // 1. Guard against hardcoded sample photosynthesis data leaking into other topics
+    const sampleKeywords = ['photosynthesis', 'nutrition in plants', 'chloroplast', 'chlorophyll', 'plant food'];
+    const cardHasSampleTopic = sampleKeywords.some(k => cardTopic.includes(k));
+    const userAskedSampleTopic = sampleKeywords.some(k => qLower.includes(k) || aLower.includes(k));
+    if (cardHasSampleTopic && !userAskedSampleTopic) {
+      return false;
+    }
+
+    // 2. Keyword relevance check:
+    const fillerWords = new Set([
+      'explain', 'detail', 'details', 'detailed', 'many', 'much', 'points', 'point',
+      'possible', 'what', 'when', 'where', 'which', 'about', 'tell', 'help', 'with',
+      'your', 'from', 'this', 'that', 'have', 'class', 'grade', 'please', 'know',
+      'understand', 'want', 'like', 'give', 'show', 'make', 'easy', 'simple', 'fun',
+      'notes', 'textbook', 'chapter', 'question', 'answer'
+    ]);
+
+    const qWords = qLower
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 3 && !fillerWords.has(w));
+
+    if (qWords.length > 0) {
+      const cardCorpus = (
+        cardTopic + ' ' +
+        (card.plainText || '') + ' ' +
+        (card.mindMap?.central || '') + ' ' +
+        (card.studyGuide?.topic || '') + ' ' +
+        (Array.isArray(card.mindMap?.branches) ? card.mindMap.branches.map(b => (b.label || '') + ' ' + (b.children || []).join(' ')).join(' ') : '')
+      ).toLowerCase();
+
+      const matchesQuestion = qWords.some(w => cardCorpus.includes(w));
+      const answerMatchesQuestion = qWords.some(w => aLower.includes(w));
+
+      if (answerMatchesQuestion && !matchesQuestion) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Helper: Builds a minimal grounded card directly from the real answer and question text.
+   * Used when backend visualizer times out or fails, ensuring ZERO sample leakage.
+   */
+  function buildMinimalAnswerCard(question = '', answer = '', grade = '6', options = {}) {
+    const cleanAnswer = (typeof answer === 'string' && answer.trim()) ? answer.trim() : '';
+    const cleanQuestion = (typeof question === 'string' && question.trim()) ? question.trim() : 'Lesson Concept';
+
+    let topic = cleanQuestion
+      .replace(/^(?:explain|tell me about|what is|how does|what are|describe|discuss|summarise|summarize)\s+/i, '')
+      .replace(/\s+(?:in detail|with examples|as many key points as possible|for class \d+|for grade \d+).*$/i, '')
+      .trim();
+    if (!topic || topic.length < 2) {
+      topic = cleanQuestion.slice(0, 40).trim();
+    }
+    topic = topic.charAt(0).toUpperCase() + topic.slice(1);
+
+    const cleanSentences = cleanAnswer
+      .split(/(?<=[.?!])\s+/)
+      .map(s => s.replace(/^[#*>\-\d.\s]+/, '').trim())
+      .filter(s => s.length >= 10 && !s.toLowerCase().startsWith('let me know') && !s.toLowerCase().startsWith('ask me'));
+
+    const branches = [];
+    if (cleanSentences.length > 0) {
+      cleanSentences.slice(0, 5).forEach((sentence, idx) => {
+        const words = sentence.split(/\s+/);
+        const label = words.slice(0, 3).join(' ');
+        const detail = words.length > 3 ? words.slice(3).join(' ') : sentence;
+        branches.push({
+          label: label || `Key Point ${idx + 1}`,
+          children: [detail]
+        });
+      });
+    } else {
+      branches.push({
+        label: topic,
+        children: [cleanAnswer.slice(0, 100)]
+      });
+    }
+
+    const keyPoints = cleanSentences.length > 0 ? cleanSentences.slice(0, 6) : [cleanAnswer];
+
+    const numGrade = parseInt(grade, 10);
+    let gradeTone = 'junior';
+    if (!isNaN(numGrade)) {
+      if (numGrade >= 9) gradeTone = 'senior';
+      else if (numGrade >= 6) gradeTone = 'middle';
+      else gradeTone = 'junior';
+    }
+
+    const blocks = [
+      {
+        type: 'diagram',
+        kind: 'mindmap',
+        title: topic,
+        central: topic,
+        branches: branches,
+        summary: `Grounded visual overview for ${topic}`,
+        citation: options.citation || null,
+        isFallback: true
+      },
+      {
+        type: 'steps',
+        items: cleanSentences.slice(0, 4)
+      }
+    ];
+
+    return {
+      isRich: true,
+      isGroundedMinimal: true,
+      mood: 'explaining',
+      gradeTone,
+      blocks,
+      plainText: cleanAnswer,
+      citation: options.citation || null,
+      mindMap: {
+        title: topic,
+        central: topic,
+        branches: branches,
+        summary: `Core Theme: ${topic}`,
+        citation: options.citation || null,
+        isFallback: true
+      },
+      studyGuide: {
+        topic: topic,
+        grade: String(grade || '6'),
+        keyPoints: keyPoints,
+        definitions: branches.map(b => ({
+          term: b.label,
+          definition: (b.children || []).join(', ')
+        })),
+        mustRemember: keyPoints.slice(0, 3),
+        citation: options.citation || null
+      },
+      quizItems: null,
+      flashcards: null,
+      podcastScript: {
+        title: `${topic} (Audio Lesson)`,
+        duration: '0:45',
+        caption: keyPoints[0] || topic,
+        script: cleanAnswer
+      }
+    };
+  }
+
+  /**
    * Calls the live n8n Study Visualizer webhook and returns a parsed LessonCard.
    */
-  async function fetchStudyVisualizer({ question, answer, grade = '6', language = 'en', timeoutMs = 8000 } = {}) {
+  async function fetchStudyVisualizer({ question, answer, grade = '6', language = 'en', timeoutMs = 22000, maxRetries = 1 } = {}) {
     if (!question || !question.trim()) {
       return null;
     }
 
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    const payload = {
+      question: question.trim(),
+      answer: (answer || '').trim(),
+      grade: String(grade || '6'),
+      language: language || 'en'
+    };
 
-    try {
-      const payload = {
-        question: question.trim(),
-        answer: (answer || '').trim(),
-        grade: String(grade || '6'),
-        language: language || 'en'
-      };
+    const targetUrl = resolveStudyVisualizerEndpoint();
 
-      const targetUrl = resolveStudyVisualizerEndpoint();
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload),
-        signal: controller ? controller.signal : undefined
-      });
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
-      if (timeoutId) clearTimeout(timeoutId);
+      try {
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload),
+          signal: controller ? controller.signal : undefined
+        });
 
-      if (!response.ok) {
-        console.warn(`[StudyVisualizer] Server responded with status ${response.status}`);
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn(`[StudyVisualizer] Server responded with status ${response.status} (attempt ${attempt + 1})`);
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const data = await response.json();
+        const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
+
+        if (!resultObj || typeof resultObj !== 'object') {
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const card = fromVisualizerPayload(resultObj, answer, grade);
+        if (card && !isCardTopicMatching(card, question, answer)) {
+          console.warn('[StudyVisualizer] Topic Guard: Card topic mismatch, rejected:', {
+            topic: card.mindMap?.central || card.topic,
+            question
+          });
+          return null;
+        }
+
+        return card;
+      } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.warn(`[StudyVisualizer] Request failed or timed out (attempt ${attempt + 1}):`, err?.name === 'AbortError' ? 'Timeout' : err);
+        if (attempt < maxRetries) continue;
         return null;
       }
-
-      const data = await response.json();
-      const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
-
-      if (!resultObj || typeof resultObj !== 'object') {
-        return null;
-      }
-
-      return fromVisualizerPayload(resultObj, answer, grade);
-    } catch (err) {
-      if (timeoutId) clearTimeout(timeoutId);
-      console.warn('[StudyVisualizer] Request failed or timed out:', err?.name === 'AbortError' ? 'Timeout' : err);
-      return null;
     }
+
+    return null;
   }
 
   function resolveNotesTutorEndpoint() {
@@ -1966,61 +2177,80 @@
    * Calls the live n8n Notes Tutor webhook and returns { answer, lessonCard, raw }.
    * Request JSON: { question, documentText, grade, language }
    */
-  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 10000 } = {}) {
+  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 22000, maxRetries = 1 } = {}) {
     if (!documentText || !documentText.trim()) {
       return null;
     }
 
     const cappedText = String(documentText).trim().slice(0, 16000);
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    const payload = {
+      question: typeof question === 'string' ? question.trim() : '',
+      documentText: cappedText,
+      grade: String(grade || '6'),
+      language: language || 'en'
+    };
 
-    try {
-      const payload = {
-        question: typeof question === 'string' ? question.trim() : '',
-        documentText: cappedText,
-        grade: String(grade || '6'),
-        language: language || 'en'
-      };
+    const targetUrl = resolveNotesTutorEndpoint();
 
-      const targetUrl = resolveNotesTutorEndpoint();
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload),
-        signal: controller ? controller.signal : undefined
-      });
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
-      if (timeoutId) clearTimeout(timeoutId);
+      try {
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload),
+          signal: controller ? controller.signal : undefined
+        });
 
-      if (!response.ok) {
-        console.warn('[NotesTutor] Server responded with status', response.status);
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn(`[NotesTutor] Server responded with status ${response.status} (attempt ${attempt + 1})`);
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const data = await response.json();
+        const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
+
+        if (!resultObj || typeof resultObj !== 'object') {
+          if (attempt < maxRetries) continue;
+          return null;
+        }
+
+        const answer = typeof resultObj.answer === 'string' ? resultObj.answer.trim() : '';
+        let lessonCard = fromVisualizerPayload(resultObj, answer, grade);
+
+        // Topic Guard check
+        if (lessonCard && question && !isCardTopicMatching(lessonCard, question, answer)) {
+          console.warn('[NotesTutor] Topic Guard: Card topic mismatch, replacing with grounded minimal card:', {
+            topic: lessonCard.mindMap?.central || lessonCard.topic,
+            question
+          });
+          lessonCard = buildMinimalAnswerCard(question, answer, grade, {
+            citation: { label: 'Your uploaded notes', source: 'upload' }
+          });
+        }
+
+        return {
+          answer,
+          lessonCard,
+          raw: resultObj
+        };
+      } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.warn(`[NotesTutor] Request failed or timed out (attempt ${attempt + 1}):`, err?.name === 'AbortError' ? 'Timeout' : err);
+        if (attempt < maxRetries) continue;
         return null;
       }
-
-      const data = await response.json();
-      const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
-
-      if (!resultObj || typeof resultObj !== 'object') {
-        return null;
-      }
-
-      const answer = typeof resultObj.answer === 'string' ? resultObj.answer.trim() : '';
-      const lessonCard = fromVisualizerPayload(resultObj, answer, grade);
-
-      return {
-        answer,
-        lessonCard,
-        raw: resultObj
-      };
-    } catch (err) {
-      if (timeoutId) clearTimeout(timeoutId);
-      console.warn('[NotesTutor] Request failed or timed out:', err?.name === 'AbortError' ? 'Timeout' : err);
-      return null;
     }
+
+    return null;
   }
 
   return {
@@ -2048,6 +2278,9 @@
     buildConceptTreeHTML,
     fromVisualizerPayload,
     createLoadingCard,
+    buildMinimalAnswerCard,
+    isCardTopicMatching,
+    extractBranchesFromText,
     fetchStudyVisualizer,
     fetchNotesTutor,
     resolveNotesTutorEndpoint,
