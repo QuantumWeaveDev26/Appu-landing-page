@@ -193,6 +193,38 @@
   const SAMPLE_MIND_MAP = {
     title: 'Photosynthesis Concept Map',
     summary: 'Trace inputs, cellular reactions, and vital outputs',
+    central: 'Photosynthesis',
+    branches: [
+      {
+        label: 'Inputs & Energy',
+        children: [
+          'Sunlight (absorbed by chlorophyll)',
+          'Water (drawn up from roots)',
+          'Carbon Dioxide (absorbed from air)'
+        ]
+      },
+      {
+        label: 'Cellular Engine',
+        children: [
+          'Chloroplasts (special plant kitchens)',
+          'Chlorophyll (green pigment trap)'
+        ]
+      },
+      {
+        label: 'How It Works',
+        children: [
+          'Light splits water molecules',
+          'Carbon dioxide fixed into glucose'
+        ]
+      },
+      {
+        label: 'Vital Outputs',
+        children: [
+          'Glucose (fuel for plant growth)',
+          'Oxygen (fresh air released for us)'
+        ]
+      }
+    ],
     spec: 'flowchart TD; Sun["☀️ Sunlight"] --> Leaf["🍃 Chloroplast"]; Water["💧 Roots (H2O)"] --> Leaf; CO2["💨 Stomata (CO2)"] --> Leaf; Leaf --> LightRxn["⚡ Light Reaction"]; LightRxn --> Oxygen["🫧 Oxygen (O2) Released"]; Leaf --> DarkRxn["🧪 Calvin Cycle"]; DarkRxn --> Glucose["🍬 Glucose (Energy)"]; Glucose --> Starch["🪴 Growth & Starch"]'
   };
 
@@ -209,7 +241,14 @@
     gradeTone: 'junior',
     blocks: [
       { type: 'hook', text: 'Ever wonder how a plant eats without a mouth? 🌱' },
-      { type: 'diagram', kind: 'mermaid', spec: 'flowchart LR; Sun-->Leaf; Water-->Leaf; CO2-->Leaf; Leaf-->Sugar; Leaf-->Oxygen' },
+      {
+        type: 'diagram',
+        kind: 'mermaid',
+        spec: 'flowchart LR; Sun-->Leaf; Water-->Leaf; CO2-->Leaf; Leaf-->Sugar; Leaf-->Oxygen',
+        title: 'Photosynthesis Concept Map',
+        central: 'Photosynthesis',
+        branches: SAMPLE_MIND_MAP.branches
+      },
       { type: 'steps', items: ['Leaves catch sunlight', 'Roots drink water', 'Leaf mixes them into sugar', 'Plant breathes out oxygen'] },
       { type: 'analogy', text: 'A leaf is like a tiny solar-powered kitchen.' },
       { type: 'check', q: 'What gas does the plant breathe out?', a: 'Oxygen' }
@@ -441,6 +480,121 @@
   }
 
   /**
+   * Helper: Parses Mermaid flowchart statements into central node and branch trees.
+   * Enables rendering the rich custom Concept Tree even when only raw Mermaid is available.
+   */
+  function parseMermaidToBranches(spec) {
+    if (!spec || typeof spec !== 'string') return null;
+    const clean = spec.replace(/^flowchart\s+[A-Z]{2};?/i, '').replace(/^graph\s+[A-Z]{2};?/i, '');
+    const lines = clean.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
+    if (lines.length === 0) return null;
+
+    const labelMap = new Map();
+    const childrenMap = new Map();
+    const parents = new Set();
+    const allNodes = [];
+
+    function registerNode(raw) {
+      if (!raw) return '';
+      const m = raw.match(/^([A-Za-z0-9_]+)\s*[\[\(\{](?:["']?)(.+?)(?:["']?)[\]\)\}]$/);
+      if (m) {
+        const id = m[1].trim();
+        const label = m[2].trim();
+        labelMap.set(id, label);
+        if (!allNodes.includes(id)) allNodes.push(id);
+        return id;
+      }
+      const cleanId = raw.replace(/^["']|["']$/g, '').trim();
+      if (!labelMap.has(cleanId)) labelMap.set(cleanId, cleanId);
+      if (!allNodes.includes(cleanId)) allNodes.push(cleanId);
+      return cleanId;
+    }
+
+    for (const line of lines) {
+      const parts = line.split(/-->|->|==>|-.->/);
+      if (parts.length >= 2) {
+        const parentId = registerNode(parts[0].trim());
+        const childId = registerNode(parts[1].trim());
+        if (parentId && childId) {
+          if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+          childrenMap.get(parentId).push(childId);
+          parents.add(childId);
+        }
+      }
+    }
+
+    const rootCandidates = allNodes.filter(id => childrenMap.has(id) && !parents.has(id));
+    const rootId = rootCandidates.length > 0 ? rootCandidates[0] : allNodes[0];
+    if (!rootId || !childrenMap.has(rootId)) return null;
+
+    const central = labelMap.get(rootId) || rootId;
+    const branchIds = childrenMap.get(rootId) || [];
+    const branches = branchIds.map(bId => {
+      const label = labelMap.get(bId) || bId;
+      const cIds = childrenMap.get(bId) || [];
+      const children = cIds.map(cId => labelMap.get(cId) || cId);
+      return { label, children };
+    });
+
+    return { central, branches };
+  }
+
+  /**
+   * Generates crisp, kid-friendly semantic HTML for the Concept Mind Map tree.
+   * Solves the tiny/cramped Mermaid SVG issue by rendering real responsive text cards.
+   */
+  function buildConceptTreeHTML(central, branches, { isDedicatedTab = false } = {}) {
+    if (!central && (!branches || branches.length === 0)) return '';
+
+    const themeNames = ['sky', 'emerald', 'amber', 'purple', 'coral'];
+    const themeIcons = ['fa-lightbulb', 'fa-seedling', 'fa-bolt', 'fa-atom', 'fa-star'];
+
+    return `
+      <div class="concept-tree-wrapper ${isDedicatedTab ? 'tree-dedicated' : 'tree-compact'}">
+        <div class="concept-tree-central">
+          <div class="central-node-pill">
+            <span class="central-node-icon"><i class="fa-solid fa-brain" aria-hidden="true"></i></span>
+            <span class="central-node-text">${escapeHTML(central || 'Core Concept')}</span>
+          </div>
+        </div>
+
+        <div class="concept-tree-stalk" aria-hidden="true">
+          <div class="stalk-stem-v"></div>
+          <div class="stalk-hub-dot"></div>
+          <div class="stalk-stem-h"></div>
+        </div>
+
+        <div class="concept-tree-branches-grid">
+          ${branches.map((b, idx) => {
+            const theme = themeNames[idx % themeNames.length];
+            const icon = themeIcons[idx % themeIcons.length];
+            const children = Array.isArray(b.children) ? b.children : [];
+            return `
+              <div class="concept-branch-card branch-theme-${theme}">
+                <div class="branch-card-top">
+                  <span class="branch-order-chip" aria-hidden="true">${idx + 1}</span>
+                  <span class="branch-theme-icon"><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
+                  <h4 class="branch-title-text">${escapeHTML(b.label || `Branch ${idx + 1}`)}</h4>
+                </div>
+                ${children.length > 0 ? `
+                  <ul class="branch-leaf-list">
+                    ${children.map(child => `
+                      <li class="branch-leaf-node">
+                        <span class="leaf-dot" aria-hidden="true"></span>
+                        <span class="leaf-content">${escapeHTML(child)}</span>
+                      </li>
+                    `).join('')}
+                  </ul>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Renders a lesson card into a DOM element.
    * @param {object|string} card - Raw or parsed card object
    * @param {object} [options]
@@ -490,6 +644,10 @@
           const mmInfo = data.mindMap || {};
           const title = block.title || mmInfo.title || '';
           const summary = block.summary || mmInfo.summary || '';
+          let central = block.central || mmInfo.central || title;
+          let branches = (Array.isArray(block.branches) && block.branches.length > 0)
+            ? block.branches
+            : (Array.isArray(mmInfo.branches) && mmInfo.branches.length > 0 ? mmInfo.branches : []);
           const spec = block.spec || mmInfo.spec || '';
 
           if (block.kind === 'shimmer' || block.loading) {
@@ -516,36 +674,94 @@
             break;
           }
 
+          // If branches missing but spec available, parse branches from Mermaid spec
+          if (branches.length === 0 && spec) {
+            const parsed = parseMermaidToBranches(spec);
+            if (parsed) {
+              central = central || parsed.central;
+              branches = parsed.branches;
+            }
+          }
+
+          const hasTree = branches.length > 0;
+          const hasBoth = hasTree && Boolean(spec);
+
           diagDiv.innerHTML = `
             <div class="diagram-header">
-              <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
-              <span>Concept Mind Map</span>
-              <span class="diagram-live-badge">Live Visual</span>
+              <div class="diagram-header-left">
+                <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
+                <span>Concept Mind Map</span>
+                <span class="diagram-live-badge">Live Visual</span>
+              </div>
+              ${hasBoth ? `
+                <div class="mindmap-view-switcher" role="group" aria-label="Diagram view">
+                  <button type="button" class="btn-map-switch btn-switch-tree is-active" data-view="tree" title="Visual Concept Tree">
+                    <i class="fa-solid fa-network-wired" aria-hidden="true"></i> <span>Tree</span>
+                  </button>
+                  <button type="button" class="btn-map-switch btn-switch-flow" data-view="flow" title="Mermaid Flowchart">
+                    <i class="fa-solid fa-code-fork" aria-hidden="true"></i> <span>Flowchart</span>
+                  </button>
+                </div>
+              ` : ''}
             </div>
             ${title ? `<div class="diagram-meta"><h4 class="diagram-title">${escapeHTML(title)}</h4>${summary ? `<p class="diagram-summary">${escapeHTML(summary)}</p>` : ''}</div>` : (summary ? `<div class="diagram-meta"><p class="diagram-summary">${escapeHTML(summary)}</p>` : '')}
-            <div class="diagram-canvas-wrap" id="${diagId}-wrap">
-              <div class="mermaid-target" id="${diagId}"></div>
+            <div class="diagram-canvas-wrap is-concept-mindmap" id="${diagId}-wrap">
+              ${hasTree ? `
+                <div class="concept-tree-container">
+                  ${buildConceptTreeHTML(central, branches, { isDedicatedTab: false })}
+                </div>
+              ` : ''}
+              <div class="concept-flowchart-container" id="${diagId}-flow" ${hasTree ? 'hidden' : ''}>
+                <div class="mermaid-target" id="${diagId}"></div>
+              </div>
             </div>
           `;
           container.appendChild(diagDiv);
 
-          // Attempt Mermaid render if available, else degrade gracefully
-          const hasMermaid = initMermaidSafe();
+          const btnTree = diagDiv.querySelector('.btn-switch-tree');
+          const btnFlow = diagDiv.querySelector('.btn-switch-flow');
+          const treeBox = diagDiv.querySelector('.concept-tree-container');
+          const flowBox = diagDiv.querySelector('.concept-flowchart-container');
           const targetEl = diagDiv.querySelector('.mermaid-target');
 
-          if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function' && spec) {
-            // Asynchronously render SVG
-            setTimeout(async () => {
-              try {
-                const { svg } = await window.mermaid.render(diagId + '-svg', spec);
-                if (targetEl) targetEl.innerHTML = svg;
-              } catch (renderErr) {
-                console.warn('[LessonCard] Mermaid render error, falling back:', renderErr);
-                if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec);
-              }
-            }, 50);
-          } else {
-            if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec || '');
+          let mermaidRendered = false;
+          function ensureMermaidRender() {
+            if (mermaidRendered || !spec || !targetEl) return;
+            mermaidRendered = true;
+            const hasMermaid = initMermaidSafe();
+            if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function') {
+              setTimeout(async () => {
+                try {
+                  const { svg } = await window.mermaid.render(diagId + '-svg', spec);
+                  if (targetEl) targetEl.innerHTML = svg;
+                } catch (renderErr) {
+                  console.warn('[LessonCard] Mermaid render error, falling back:', renderErr);
+                  if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec);
+                }
+              }, 40);
+            } else {
+              targetEl.innerHTML = renderFallbackDiagram(spec || '');
+            }
+          }
+
+          if (btnTree && btnFlow && treeBox && flowBox) {
+            btnTree.addEventListener('click', () => {
+              btnTree.classList.add('is-active');
+              btnFlow.classList.remove('is-active');
+              treeBox.removeAttribute('hidden');
+              flowBox.setAttribute('hidden', '');
+            });
+            btnFlow.addEventListener('click', () => {
+              btnFlow.classList.add('is-active');
+              btnTree.classList.remove('is-active');
+              flowBox.removeAttribute('hidden');
+              treeBox.setAttribute('hidden', '');
+              ensureMermaidRender();
+            });
+          }
+
+          if (!hasTree && spec) {
+            ensureMermaidRender();
           }
           break;
         }
@@ -1100,18 +1316,48 @@
     const diagId = 'mindmap-' + Math.random().toString(36).substring(2, 10);
     const isShimmer = Boolean(mapData.loading || mapData.kind === 'shimmer' || (!mapData.spec && mapData.isLoading));
 
+    const title = mapData.title || (isShimmer ? 'Generating Mind Map...' : 'Photosynthesis Concept Map');
+    const summary = mapData.summary || (isShimmer ? 'Creating structured visual concept map...' : 'Trace inputs, cellular reactions, and vital outputs');
+    let central = mapData.central || title;
+    let branches = Array.isArray(mapData.branches) && mapData.branches.length > 0 ? mapData.branches : [];
+    const spec = mapData.spec || '';
+
+    // If branches missing but spec available, parse branches from spec
+    if (!isShimmer && branches.length === 0 && spec) {
+      const parsed = parseMermaidToBranches(spec);
+      if (parsed) {
+        central = central || parsed.central;
+        branches = parsed.branches;
+      }
+    }
+
+    const hasTree = !isShimmer && branches.length > 0;
+    const hasBoth = hasTree && Boolean(spec);
+
     container.innerHTML = `
       <div class="mindmap-header">
-        <div class="mindmap-badge">
-          <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
-          <span>Mind Map</span>
-          ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : ''}
+        <div class="mindmap-badge-row">
+          <div class="mindmap-badge">
+            <i class="fa-solid fa-diagram-project text-cyan" aria-hidden="true"></i>
+            <span>Mind Map</span>
+            ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : '<span class="diagram-live-badge">Live Visual</span>'}
+          </div>
+          ${hasBoth ? `
+            <div class="mindmap-view-switcher" role="group" aria-label="Diagram view">
+              <button type="button" class="btn-map-switch btn-switch-tree is-active" data-view="tree" title="Visual Concept Tree">
+                <i class="fa-solid fa-network-wired" aria-hidden="true"></i> <span>Concept Tree</span>
+              </button>
+              <button type="button" class="btn-map-switch btn-switch-flow" data-view="flow" title="Mermaid Flowchart">
+                <i class="fa-solid fa-code-fork" aria-hidden="true"></i> <span>Flowchart</span>
+              </button>
+            </div>
+          ` : ''}
         </div>
-        <h2 class="mindmap-title">${escapeHTML(mapData.title || (isShimmer ? 'Generating Mind Map...' : 'Photosynthesis Concept Map'))}</h2>
-        <p class="mindmap-desc">${escapeHTML(mapData.summary || (isShimmer ? 'Creating structured visual concept map...' : 'Trace inputs, cellular reactions, and vital outputs'))}</p>
+        <h2 class="mindmap-title">${escapeHTML(title)}</h2>
+        <p class="mindmap-desc">${escapeHTML(summary)}</p>
       </div>
 
-      <div class="mindmap-canvas-wrap" id="${diagId}-wrap">
+      <div class="mindmap-canvas-wrap is-concept-mindmap" id="${diagId}-wrap">
         ${isShimmer ? `
           <div class="diagram-shimmer-loading" role="status" aria-label="Generating mind map">
             <div class="shimmer-sparkle"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i></div>
@@ -1120,7 +1366,16 @@
             <div class="shimmer-bar shimmer-bar-3"></div>
             <div class="shimmer-text">Generating visual concept map...</div>
           </div>
-        ` : `<div class="mermaid-target" id="${diagId}"></div>`}
+        ` : `
+          ${hasTree ? `
+            <div class="concept-tree-container">
+              ${buildConceptTreeHTML(central, branches, { isDedicatedTab: true })}
+            </div>
+          ` : ''}
+          <div class="concept-flowchart-container" id="${diagId}-flow" ${hasTree ? 'hidden' : ''}>
+            <div class="mermaid-target" id="${diagId}"></div>
+          </div>
+        `}
       </div>
     `;
 
@@ -1128,20 +1383,49 @@
       return container;
     }
 
-    const hasMermaid = initMermaidSafe();
+    const btnTree = container.querySelector('.btn-switch-tree');
+    const btnFlow = container.querySelector('.btn-switch-flow');
+    const treeBox = container.querySelector('.concept-tree-container');
+    const flowBox = container.querySelector('.concept-flowchart-container');
     const targetEl = container.querySelector('.mermaid-target');
 
-    if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function' && mapData.spec) {
-      setTimeout(async () => {
-        try {
-          const { svg } = await window.mermaid.render(diagId + '-svg', mapData.spec);
-          if (targetEl) targetEl.innerHTML = svg;
-        } catch (err) {
-          if (targetEl) targetEl.innerHTML = renderFallbackDiagram(mapData.spec);
-        }
-      }, 50);
-    } else {
-      if (targetEl) targetEl.innerHTML = renderFallbackDiagram(mapData.spec || '');
+    let mermaidRendered = false;
+    function ensureMermaidRender() {
+      if (mermaidRendered || !spec || !targetEl) return;
+      mermaidRendered = true;
+      const hasMermaid = initMermaidSafe();
+      if (hasMermaid && window.mermaid && typeof window.mermaid.render === 'function') {
+        setTimeout(async () => {
+          try {
+            const { svg } = await window.mermaid.render(diagId + '-svg', spec);
+            if (targetEl) targetEl.innerHTML = svg;
+          } catch (err) {
+            if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec);
+          }
+        }, 40);
+      } else {
+        if (targetEl) targetEl.innerHTML = renderFallbackDiagram(spec || '');
+      }
+    }
+
+    if (btnTree && btnFlow && treeBox && flowBox) {
+      btnTree.addEventListener('click', () => {
+        btnTree.classList.add('is-active');
+        btnFlow.classList.remove('is-active');
+        treeBox.removeAttribute('hidden');
+        flowBox.setAttribute('hidden', '');
+      });
+      btnFlow.addEventListener('click', () => {
+        btnFlow.classList.add('is-active');
+        btnTree.classList.remove('is-active');
+        flowBox.removeAttribute('hidden');
+        treeBox.setAttribute('hidden', '');
+        ensureMermaidRender();
+      });
+    }
+
+    if (!hasTree && spec) {
+      ensureMermaidRender();
     }
 
     return container;
@@ -1453,11 +1737,13 @@
     }
 
     // 2) Concept Mind Map (prominent, default)
-    if (mermaidSpec) {
+    if (branches.length > 0 || mermaidSpec) {
       blocks.push({
         type: 'diagram',
-        kind: 'mermaid',
+        kind: 'mindmap',
         title: topic,
+        central: central,
+        branches: branches,
         summary: central ? `Core Theme: ${central}` : '',
         spec: mermaidSpec
       });
@@ -1513,6 +1799,8 @@
       plainText: plain,
       mindMap: {
         title: topic,
+        central: central,
+        branches: branches,
         spec: mermaidSpec,
         summary: central ? `Core Theme: ${central}` : ''
       },
@@ -1636,6 +1924,8 @@
     renderStudyToolbar,
     renderStudyMode,
     buildMermaidFromBranches,
+    parseMermaidToBranches,
+    buildConceptTreeHTML,
     fromVisualizerPayload,
     createLoadingCard,
     fetchStudyVisualizer

@@ -4430,9 +4430,11 @@ body.policy-page {
   animation-delay: 0.15s;
 }
 .diagram-header {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 4px 12px;
   border-radius: 999px;
   background: #e0f2fe;
@@ -4442,24 +4444,67 @@ body.policy-page {
   text-transform: uppercase;
   color: #0284c7;
   text-shadow: none;
-  margin-bottom: 4px;
-  align-self: flex-start;
+  margin-bottom: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
+.diagram-header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mindmap-view-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  border-radius: 999px;
+  padding: 2px 3px;
+  gap: 3px;
+  margin-left: auto;
+}
+.btn-map-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #0369a1;
+  font: 700 11px/1 'Space Grotesk', sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.btn-map-switch:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: #0284c7;
+}
+.btn-map-switch.is-active {
+  background: #ffffff;
+  color: #0284c7;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.09);
+}
+
 .diagram-canvas-wrap {
   flex: 1 1 auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   padding: 18px 16px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #eff6ff 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1.5px solid #7dd3fc;
   box-shadow: 0 10px 28px rgba(14, 165, 233, 0.1);
   overflow-x: auto;
-  text-align: center;
-  min-height: 130px;
+  text-align: left;
+  min-height: 280px;
+  box-sizing: border-box;
 }
 .diagram-canvas-wrap svg {
   max-width: 100%;
@@ -6251,17 +6296,257 @@ body.policy-page {
   font-weight: 600;
   color: #64748b;
 }
+.mindmap-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 6px;
+}
 .mindmap-canvas-wrap {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #eff6ff 100%);
   border: 1.5px solid #7dd3fc;
-  border-radius: 20px;
-  padding: 24px 20px;
-  box-shadow: 0 10px 28px rgba(14, 165, 233, 0.1);
-  min-height: 220px;
+  border-radius: 24px;
+  padding: 26px 22px;
+  box-shadow: 0 12px 36px rgba(14, 165, 233, 0.12);
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   CONCEPT MIND MAP TREE & RESPONSIVE HUBS (Teacher-Approved Big & Legible)
+   ========================================================================== */
+.concept-tree-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.concept-tree-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.concept-tree-central {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 2px;
+}
+.central-node-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 2px solid #bae6fd;
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
+  font: 800 clamp(14px, 1.8vw, 18px)/1.3 'Space Grotesk', sans-serif;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+.central-node-icon {
+  color: #fef08a;
+  font-size: 16px;
+}
+
+/* Connecting Stalk */
+.concept-tree-stalk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto;
+}
+.stalk-stem-v {
+  width: 3px;
+  height: 16px;
+  background: #38bdf8;
+  border-radius: 2px;
+}
+.stalk-hub-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 8px rgba(14, 165, 233, 0.6);
+  margin: -2px auto 0 auto;
+}
+.stalk-stem-h {
+  width: min(88%, 760px);
+  height: 2.5px;
+  background: #38bdf8;
+  margin: 3px auto 16px auto;
+  border-radius: 2px;
+}
+
+/* Branch Grid */
+.concept-tree-branches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  width: 100%;
+  align-items: stretch;
+}
+.tree-dedicated .concept-tree-branches-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+/* Branch Cards */
+.concept-branch-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  border: 1.5px solid transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.concept-branch-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.09);
+}
+
+/* Color Themes */
+.branch-theme-sky {
+  border-color: #7dd3fc;
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 44%);
+}
+.branch-theme-sky .branch-theme-icon { color: #0284c7; }
+.branch-theme-sky .branch-leaf-node { border-left-color: #0284c7; }
+.branch-theme-sky .branch-order-chip { background: #0284c7; color: #ffffff; }
+
+.branch-theme-emerald {
+  border-color: #6ee7b7;
+  background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 44%);
+}
+.branch-theme-emerald .branch-theme-icon { color: #059669; }
+.branch-theme-emerald .branch-leaf-node { border-left-color: #059669; }
+.branch-theme-emerald .branch-order-chip { background: #059669; color: #ffffff; }
+
+.branch-theme-amber {
+  border-color: #fcd34d;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 44%);
+}
+.branch-theme-amber .branch-theme-icon { color: #d97706; }
+.branch-theme-amber .branch-leaf-node { border-left-color: #d97706; }
+.branch-theme-amber .branch-order-chip { background: #d97706; color: #ffffff; }
+
+.branch-theme-purple {
+  border-color: #c4b5fd;
+  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 44%);
+}
+.branch-theme-purple .branch-theme-icon { color: #7c3aed; }
+.branch-theme-purple .branch-leaf-node { border-left-color: #7c3aed; }
+.branch-theme-purple .branch-order-chip { background: #7c3aed; color: #ffffff; }
+
+.branch-theme-coral {
+  border-color: #fda4af;
+  background: linear-gradient(180deg, #fff1f2 0%, #ffffff 44%);
+}
+.branch-theme-coral .branch-theme-icon { color: #e11d48; }
+.branch-theme-coral .branch-leaf-node { border-left-color: #e11d48; }
+.branch-theme-coral .branch-order-chip { background: #e11d48; color: #ffffff; }
+
+/* Branch Card Top Header */
+.branch-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+.branch-order-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font: 800 11px/1 'Space Grotesk', sans-serif;
+  flex-shrink: 0;
+}
+.branch-theme-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.branch-title-text {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+/* Branch Children Leaves */
+.branch-leaf-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1 1 auto;
+}
+.branch-leaf-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.45;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+.branch-leaf-node:hover {
+  background: #ffffff;
+}
+.leaf-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-top: 6px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.leaf-content {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+/* Flowchart view container */
+.concept-flowchart-container {
+  width: 100%;
+  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-x: auto;
+}
+.concept-flowchart-container[hidden] {
+  display: none !important;
+}
+.concept-tree-container[hidden] {
+  display: none !important;
 }
 
 /* 6. Appu Podcast Audio Overview (.study-mode-podcast) */

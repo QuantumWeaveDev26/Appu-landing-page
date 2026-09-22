@@ -349,6 +349,57 @@ describe('Task A: Mind Map as Default in Answers (Teacher Directive)', () => {
     // Restore fetch
     globalThis.fetch = originalFetch;
   });
+
+  test('parseMermaidToBranches extracts central node and branches from mermaid flowchart', () => {
+    const spec = `flowchart TD
+      A[Photosynthesis] --> B[Definition]
+      A --> C[Key Ingredients]
+      C --> C1[Sunlight]
+      C --> C2[Water]`;
+    const parsed = LessonCardRenderer.parseMermaidToBranches(spec);
+    assert.ok(parsed);
+    assert.equal(parsed.central, 'Photosynthesis');
+    assert.equal(parsed.branches.length, 2);
+    assert.equal(parsed.branches[0].label, 'Definition');
+    assert.equal(parsed.branches[1].label, 'Key Ingredients');
+    assert.equal(parsed.branches[1].children.length, 2);
+    assert.equal(parsed.branches[1].children[0], 'Sunlight');
+  });
+
+  test('buildConceptTreeHTML generates clean semantic tree HTML with central hub and branch cards', () => {
+    const central = 'Photosynthesis';
+    const branches = [
+      { label: 'Inputs', children: ['Sunlight', 'Water', 'CO2'] },
+      { label: 'Outputs', children: ['Glucose', 'Oxygen'] }
+    ];
+    const html = LessonCardRenderer.buildConceptTreeHTML(central, branches, { isDedicatedTab: true });
+    assert.ok(html.includes('concept-tree-wrapper'));
+    assert.ok(html.includes('Photosynthesis'));
+    assert.ok(html.includes('Inputs'));
+    assert.ok(html.includes('Sunlight'));
+    assert.ok(html.includes('Outputs'));
+    assert.ok(html.includes('Glucose'));
+    assert.ok(html.includes('concept-branch-card'));
+  });
+
+  test('renderMindMap() renders dedicated large Concept Tree view with live visual badge and view switcher', () => {
+    const mapData = {
+      title: 'Water Cycle Map',
+      summary: 'Trace the path of water',
+      central: 'Water Cycle',
+      branches: [
+        { label: 'Evaporation', children: ['Water heats up', 'Turns to vapor'] },
+        { label: 'Precipitation', children: ['Clouds fill up', 'Rain falls'] }
+      ],
+      spec: 'flowchart TD\n  A[Water Cycle] --> B[Evaporation]\n  A --> C[Precipitation]'
+    };
+    const el = LessonCardRenderer.renderMindMap(mapData);
+    assert.ok(el.classList.contains('study-mode-mindmap'));
+    assert.ok(el.innerHTML.includes('Concept Tree'));
+    assert.ok(el.innerHTML.includes('Live Visual'));
+    assert.ok(el.innerHTML.includes('Water Cycle'));
+    assert.ok(el.innerHTML.includes('Evaporation'));
+  });
 });
 
 describe('Task B: Build-Light "Talking Appu" Engine', () => {
