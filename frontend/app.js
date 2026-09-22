@@ -471,7 +471,29 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryExamDrills: 'Exam Drills',
       btnRefreshPrompts: 'Refresh prompts',
       btnExplorePrompts: 'Explore Prompts',
-      promptCardAskAppu: 'Ask Appu'
+      promptCardAskAppu: 'Ask Appu',
+      guestLimitTitle: 'Your complimentary APPU chats are complete',
+      guestLimitLead: 'Sign in to continue learning, save your progress, and unlock tailored study plans.',
+      guestFeature1: 'Personalized explanations for your syllabus',
+      guestFeature2: 'Save chat history across all your devices',
+      guestFeature3: 'Voice practice in English, Kannada and Hindi',
+      guestBtnSignin: 'Sign in',
+      guestBtnRegister: 'Create free account',
+      guestBtnPlans: 'View learning plans',
+      uploadNotesBtn: 'Upload notes',
+      dockExpandBtn: 'Expand',
+      notesModalKicker: 'Grounded Chapter Tutor',
+      notesModalTitle: 'Learn from Your Notes or Textbook',
+      notesModalLead: 'Upload your class notes, textbook PDF, or paste text. Appu will create a mind map, step-by-step lesson, and quiz directly from your material!',
+      notesTabFile: 'Upload PDF / File',
+      notesTabPaste: 'Paste Text',
+      notesDropzoneTitle: 'Drop your PDF or textbook chapter here',
+      notesDropzoneSubtitle: 'Supports PDF, TXT or Markdown files (up to 10MB)',
+      notesBrowseBtn: 'Browse File',
+      notesGuidance: 'Answers, concept maps, and quizzes will be strictly grounded in this material.',
+      notesBtnSubmit: 'Teach Me From This',
+      notesBtnCancel: 'Cancel',
+      childProgressReport: 'Child Progress Report'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -559,7 +581,29 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryExamDrills: 'ಪರೀಕ್ಷಾ ಅಭ್ಯಾಸ',
       btnRefreshPrompts: 'ಹೊಸ ಪ್ರಾಂಪ್ಟ್‌ಗಳು',
       btnExplorePrompts: 'ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
-      promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ'
+      promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      guestLimitTitle: 'ನಿಮ್ಮ ಉಚಿತ ಅಪ್ಪು ಸಂಭಾಷಣೆಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ',
+      guestLimitLead: 'ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲು ಮತ್ತು ವೈಯಕ್ತಿಕ ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+      guestFeature1: 'ನಿಮ್ಮ ಪಠ್ಯಕ್ರಮಕ್ಕೆ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿವರಣೆಗಳು',
+      guestFeature2: 'ನಿಮ್ಮ ಎಲ್ಲ ಸಾಧನಗಳಲ್ಲಿ ಚಾಟ್ ಇತಿಹಾಸವನ್ನು ಉಳಿಸಿ',
+      guestFeature3: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಮತ್ತು ಹಿಂದಿಯಲ್ಲಿ ಧ್ವನಿ ಅಭ್ಯಾಸ',
+      guestBtnSignin: 'ಸೈನ್ ಇನ್',
+      guestBtnRegister: 'ಉಚಿತ ಖಾತೆ ರಚಿಸಿ',
+      guestBtnPlans: 'ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+      uploadNotesBtn: 'ಟಿಪ್ಪಣಿ ಅಪ್‌ಲೋಡ್',
+      dockExpandBtn: 'ವಿಸ್ತರಿಸಿ',
+      notesModalKicker: 'ಪಠ್ಯ ಆಧಾರಿತ ಬೋಧಕ',
+      notesModalTitle: 'ನಿಮ್ಮ ಟಿಪ್ಪಣಿಗಳು ಅಥವಾ ಪಠ್ಯಪುಸ್ತಕದಿಂದ ಕಲಿಯಿರಿ',
+      notesModalLead: 'ನಿಮ್ಮ ತರಗತಿ ಟಿಪ್ಪಣಿಗಳು, ಪಠ್ಯಪುಸ್ತಕ PDF ಅಪ್‌ಲೋಡ್ ಮಾಡಿ ಅಥವಾ ಪಠ್ಯ ಅಂಟಿಸಿ. ಅಪ್ಪು ನಿಮ್ಮ ಪಠ್ಯದಿಂದಲೇ ಮೈಂಡ್ ಮ್ಯಾಪ್, ಹಂತ-ಹಂತದ ಪಾಠ ಮತ್ತು ರಸಪ್ರಶ್ನೆ ರಚಿಸುತ್ತಾನೆ!',
+      notesTabFile: 'PDF / ಫೈಲ್ ಅಪ್‌ಲೋಡ್',
+      notesTabPaste: 'ಪಠ್ಯ ಅಂಟಿಸಿ',
+      notesDropzoneTitle: 'ನಿಮ್ಮ PDF ಅಥವಾ ಅಧ್ಯಾಯವನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ',
+      notesDropzoneSubtitle: 'PDF, TXT ಅಥವಾ Markdown ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತ (10MB ವರೆಗೆ)',
+      notesBrowseBtn: 'ಫೈಲ್ ಹುಡುಕಿ',
+      notesGuidance: 'ಉತ್ತರಗಳು, ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು ಮತ್ತು ರಸಪ್ರಶ್ನೆಗಳು ಸಂಪೂರ್ಣವಾಗಿ ಈ ಪಠ್ಯವನ್ನು ಆಧರಿಸಿರುತ್ತವೆ.',
+      notesBtnSubmit: 'ಇದರಿಂದ ನನಗೆ ಕಲಿಸಿ',
+      notesBtnCancel: 'ರದ್ದುಮಾಡಿ',
+      childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -647,7 +691,29 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryExamDrills: 'परीक्षा अभ्यास',
       btnRefreshPrompts: 'प्रॉम्प्ट ताज़ा करें',
       btnExplorePrompts: 'प्रॉम्प्ट देखें',
-      promptCardAskAppu: 'अप्पू से पूछें'
+      promptCardAskAppu: 'अप्पू से पूछें',
+      guestLimitTitle: 'आपकी निःशुल्क अप्पू बातचीत पूरी हो चुकी है',
+      guestLimitLead: 'सीखना जारी रखने, अपनी प्रगति सहेजने और व्यक्तिगत अध्ययन योजनाओं को अनलॉक करने के लिए साइन इन करें।',
+      guestFeature1: 'आपके पाठ्यक्रम के लिए व्यक्तिगत विवरण',
+      guestFeature2: 'अपने सभी उपकरणों में चैट इतिहास सहेजें',
+      guestFeature3: 'अंग्रेज़ी, कन्नड़ और हिंदी में वॉइस अभ्यास',
+      guestBtnSignin: 'साइन इन करें',
+      guestBtnRegister: 'मुफ़्त खाता बनाएं',
+      guestBtnPlans: 'अध्ययन योजनाएं देखें',
+      uploadNotesBtn: 'नोट्स अपलोड करें',
+      dockExpandBtn: 'विस्तार करें',
+      notesModalKicker: 'पाठ्य-आधारित ट्यूटर',
+      notesModalTitle: 'अपने नोट्स या पाठ्यपुस्तक से सीखें',
+      notesModalLead: 'अपने क्लास नोट्स, पाठ्यपुस्तक PDF अपलोड करें या टेक्स्ट पेस्ट करें। अप्पू सीधे आपकी सामग्री से माइंड मैप, चरण-दर-चरण पाठ और क्विज़ बनाएगा!',
+      notesTabFile: 'PDF / फ़ाइल अपलोड',
+      notesTabPaste: 'टेक्स्ट पेस्ट करें',
+      notesDropzoneTitle: 'अपनी PDF या अध्याय फ़ाइल यहाँ छोड़ें',
+      notesDropzoneSubtitle: 'PDF, TXT या Markdown फ़ाइलें समर्थित (10MB तक)',
+      notesBrowseBtn: 'फ़ाइल चुनें',
+      notesGuidance: 'उत्तर, कॉन्सेप्ट मैप और क्विज़ पूरी तरह से इस सामग्री पर आधारित होंगे।',
+      notesBtnSubmit: 'इससे मुझे सिखाएं',
+      notesBtnCancel: 'रद्द करें',
+      childProgressReport: 'बच्चे की प्रगति रिपोर्ट'
     }
   };
 
@@ -909,6 +975,68 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sr) sr.textContent = t.btnRefreshPrompts;
     }
 
+    // Guest limit modal
+    const guestLimitTitle = document.getElementById('guest-limit-title');
+    if (guestLimitTitle && t.guestLimitTitle) guestLimitTitle.textContent = t.guestLimitTitle;
+    const guestLimitLead = document.querySelector('.guest-limit-sheet .modal-lead');
+    if (guestLimitLead && t.guestLimitLead) guestLimitLead.textContent = t.guestLimitLead;
+    const guestFeatures = document.querySelectorAll('.guest-gate-feature span');
+    if (guestFeatures.length >= 3) {
+      if (t.guestFeature1) guestFeatures[0].textContent = t.guestFeature1;
+      if (t.guestFeature2) guestFeatures[1].textContent = t.guestFeature2;
+      if (t.guestFeature3) guestFeatures[2].textContent = t.guestFeature3;
+    }
+    const btnGuestSigninSpan = document.querySelector('#btn-guest-signin span');
+    if (btnGuestSigninSpan && t.guestBtnSignin) btnGuestSigninSpan.textContent = t.guestBtnSignin;
+    const btnGuestRegisterSpan = document.querySelector('#btn-guest-register span');
+    if (btnGuestRegisterSpan && t.guestBtnRegister) btnGuestRegisterSpan.textContent = t.guestBtnRegister;
+    const btnGuestPlansSpan = document.querySelector('#btn-guest-plans span');
+    if (btnGuestPlansSpan && t.guestBtnPlans) btnGuestPlansSpan.textContent = t.guestBtnPlans;
+
+    // Dock buttons
+    const uploadNotesSpan = document.querySelector('#btn-upload-notes span');
+    if (uploadNotesSpan && t.uploadNotesBtn) uploadNotesSpan.textContent = t.uploadNotesBtn;
+    const dockExpandSpan = document.querySelector('#btn-dock-expand span');
+    if (dockExpandSpan && t.dockExpandBtn) dockExpandSpan.textContent = t.dockExpandBtn;
+
+    // Upload notes modal
+    const notesUploadTitle = document.getElementById('notes-upload-title');
+    if (notesUploadTitle && t.notesModalTitle) notesUploadTitle.textContent = t.notesModalTitle;
+    const notesUploadLead = document.querySelector('.notes-upload-sheet .modal-lead');
+    if (notesUploadLead && t.notesModalLead) notesUploadLead.textContent = t.notesModalLead;
+    const tabNotesFileSpan = document.querySelector('#tab-notes-file span');
+    if (tabNotesFileSpan && t.notesTabFile) tabNotesFileSpan.textContent = t.notesTabFile;
+    const tabNotesPasteSpan = document.querySelector('#tab-notes-paste span');
+    if (tabNotesPasteSpan && t.notesTabPaste) tabNotesPasteSpan.textContent = t.notesTabPaste;
+    const dropzoneTitle = document.querySelector('.notes-dropzone-title');
+    if (dropzoneTitle && t.notesDropzoneTitle) dropzoneTitle.textContent = t.notesDropzoneTitle;
+    const dropzoneSub = document.querySelector('.notes-dropzone-subtitle');
+    if (dropzoneSub && t.notesDropzoneSubtitle) dropzoneSub.textContent = t.notesDropzoneSubtitle;
+    const browseNotesSpan = document.querySelector('#btn-browse-notes-file span');
+    if (browseNotesSpan && t.notesBrowseBtn) browseNotesSpan.textContent = t.notesBrowseBtn;
+    const notesGuidanceSpan = document.querySelector('.notes-guidance-pill span');
+    if (notesGuidanceSpan && t.notesGuidance) notesGuidanceSpan.textContent = t.notesGuidance;
+    const notesSubmitSpan = document.querySelector('#btn-submit-notes span');
+    if (notesSubmitSpan && t.notesBtnSubmit) notesSubmitSpan.textContent = t.notesBtnSubmit;
+    const btnCancelNotes = document.getElementById('btn-cancel-notes');
+    if (btnCancelNotes && t.notesBtnCancel) btnCancelNotes.textContent = t.notesBtnCancel;
+
+    // Nav drawer report button
+    const drawerReportSpan = document.querySelector('#btn-drawer-reports span');
+    if (drawerReportSpan && t.childProgressReport) drawerReportSpan.textContent = t.childProgressReport;
+
+    // Study toolbar tabs if present
+    const studyToolbar = document.querySelector('.study-modes-toolbar');
+    if (studyToolbar && typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.STUDY_TOOLBAR_LABELS) {
+      const lMap = LessonCardRenderer.STUDY_TOOLBAR_LABELS[lang] || LessonCardRenderer.STUDY_TOOLBAR_LABELS.en;
+      if (lMap) {
+        Object.keys(lMap).forEach(mId => {
+          const btnSpan = studyToolbar.querySelector(`.study-tab-${mId} span`);
+          if (btnSpan) btnSpan.textContent = lMap[mId];
+        });
+      }
+    }
+
     // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
     if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
       window.ParentSetupUI.applyTranslations(lang);
@@ -993,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof LessonCardRenderer.renderStudyToolbar === 'function') {
         const toolbar = LessonCardRenderer.renderStudyToolbar(mode, (newMode) => {
           renderVoicePopupStudyContent(newMode);
-        });
+        }, currentLang);
         voicePopupContent.appendChild(toolbar);
       }
 

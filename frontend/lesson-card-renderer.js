@@ -1902,22 +1902,31 @@
     return container;
   }
 
+  const STUDY_TOOLBAR_LABELS = {
+    en: { lesson: 'Lesson', quiz: 'Quiz Me', flashcards: 'Flashcards', guide: 'Study Guide', mindmap: 'Mind Map', podcast: 'Podcast' },
+    kn: { lesson: 'ಪಾಠ', quiz: 'ರಸಪ್ರಶ್ನೆ', flashcards: 'ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್ಸ್', guide: 'ಅಧ್ಯಯನ ಮಾರ್ಗದರ್ಶಿ', mindmap: 'ಮೈಂಡ್ ಮ್ಯಾಪ್', podcast: 'ಪಾಡ್‌ಕ್ಯಾಸ್ಟ್' },
+    hi: { lesson: 'पाठ', quiz: 'क्विज़', flashcards: 'फ़्लैशकार्ड', guide: 'अध्ययन गाइड', mindmap: 'माइंड मैप', podcast: 'पॉडकास्ट' }
+  };
+
   /**
    * Study Modes Toolbar: Pill tabs to switch between Lesson and the 5 study modes
    */
-  function renderStudyToolbar(activeMode = 'lesson', onModeChange) {
+  function renderStudyToolbar(activeMode = 'lesson', onModeChange, language) {
     const toolbar = document.createElement('div');
     toolbar.className = 'study-modes-toolbar';
     toolbar.setAttribute('role', 'tablist');
     toolbar.setAttribute('aria-label', 'Study Modes');
 
+    const lang = language || (typeof window !== 'undefined' && (window.currentLang || (window.AppuApp && window.AppuApp.currentLang))) || (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || 'en';
+    const labels = STUDY_TOOLBAR_LABELS[lang] || STUDY_TOOLBAR_LABELS.en;
+
     const modes = [
-      { id: 'lesson', label: 'Lesson', icon: 'fa-wand-magic-sparkles' },
-      { id: 'quiz', label: 'Quiz Me', icon: 'fa-flask-vial' },
-      { id: 'flashcards', label: 'Flashcards', icon: 'fa-layer-group' },
-      { id: 'guide', label: 'Study Guide', icon: 'fa-book-open-reader' },
-      { id: 'mindmap', label: 'Mind Map', icon: 'fa-diagram-project' },
-      { id: 'podcast', label: 'Podcast', icon: 'fa-headphones' }
+      { id: 'lesson', label: labels.lesson, icon: 'fa-wand-magic-sparkles' },
+      { id: 'quiz', label: labels.quiz, icon: 'fa-flask-vial' },
+      { id: 'flashcards', label: labels.flashcards, icon: 'fa-layer-group' },
+      { id: 'guide', label: labels.guide, icon: 'fa-book-open-reader' },
+      { id: 'mindmap', label: labels.mindmap, icon: 'fa-diagram-project' },
+      { id: 'podcast', label: labels.podcast, icon: 'fa-headphones' }
     ];
 
     modes.forEach(m => {
@@ -2791,6 +2800,7 @@
     renderPodcast,
     createPodcastLoadingCard,
     buildFallbackPodcastScript,
+    STUDY_TOOLBAR_LABELS,
     renderStudyToolbar,
     renderStudyMode,
     buildMermaidFromBranches,
