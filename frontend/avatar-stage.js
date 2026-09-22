@@ -271,10 +271,11 @@ class AvatarStage {
       return;
     }
 
-    const scaleY = Math.min(1.4, Math.max(0.2, amp * 1.3));
-    const scaleX = Math.min(1.2, Math.max(0.85, 0.9 + amp * 0.25));
+    // Subtle, organic aperture shadow — never a hard colored block
+    const scaleY = Math.min(0.9, Math.max(0.15, amp * 0.75));
+    const scaleX = Math.min(1.05, Math.max(0.88, 0.92 + amp * 0.12));
     this.mouthWrap.style.transform = `translate(-50%, -50%) scale(${scaleX.toFixed(2)}, ${scaleY.toFixed(2)})`;
-    this.mouthWrap.style.opacity = Math.min(1, Math.max(0.7, amp * 1.5)).toFixed(2);
+    this.mouthWrap.style.opacity = Math.min(0.65, Math.max(0.2, amp * 0.65)).toFixed(2);
   }
 
   updateHeadBob(amp) {

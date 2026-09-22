@@ -1069,8 +1069,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateVoicePopupCard(newCard) {
     if (!newCard) return;
     activePopupLessonCard = newCard;
-    if (voiceReplyPopup && voiceReplyPopup.classList.contains('is-visible')) {
-      renderVoicePopupStudyContent(activePopupMode || 'lesson');
+    if (voiceReplyPopup) {
+      if (!voiceReplyPopup.classList.contains('is-visible')) {
+        showVoicePopup(newCard.plainText || '', newCard);
+      } else {
+        renderVoicePopupStudyContent(activePopupMode || 'lesson');
+      }
     }
   }
 
@@ -1231,12 +1235,15 @@ document.addEventListener('DOMContentLoaded', () => {
               ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
               : (fullResult ? fullResult.lessonCard : null));
 
-        // 2) Show voice popup immediately (child sees answer + shimmer concept map)
+        // 2) Close typing drawer if open and render stage presentation for EVERY real answer
         const chatDrawer = document.getElementById('chat-drawer');
-        if (typeof showVoicePopup === 'function') {
-          if (!chatDrawer || !chatDrawer.classList.contains('is-open')) {
-            showVoicePopup(reply, initialCard);
+        if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+          if (typeof toggleChatDrawer === 'function') {
+            toggleChatDrawer(false);
           }
+        }
+        if (typeof showVoicePopup === 'function') {
+          showVoicePopup(reply, initialCard);
         }
 
         // 3) Speak immediately (ElevenLabs TTS / audio-reactive Appu)
@@ -1668,6 +1675,9 @@ document.addEventListener('DOMContentLoaded', () => {
       chatInput.value = '';
       const imageToSend = pendingImage;
       clearPendingImage();
+      if (typeof toggleChatDrawer === 'function') {
+        toggleChatDrawer(false);
+      }
       handleUserInteraction(text, imageToSend);
     });
   }

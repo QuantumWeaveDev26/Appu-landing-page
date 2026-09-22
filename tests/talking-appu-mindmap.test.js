@@ -398,10 +398,11 @@ describe('Task B: Build-Light "Talking Appu" Engine', () => {
     assert.equal(mockMouthWrap.style.opacity, '0');
     assert.ok(mockMouthWrap.style.transform.includes('scaleY(0)'));
 
-    // High amplitude opens mouth
+    // High amplitude opens mouth with subtle natural shadow (never harsh opaque bar)
     stage.updateMouth(0.85);
     assert.notEqual(mockMouthWrap.style.opacity, '0');
     assert.ok(mockMouthWrap.style.transform.includes('scale'));
+    assert.ok(parseFloat(mockMouthWrap.style.opacity) <= 0.7, 'Mouth aperture must be softly transparent, never harsh opaque block');
   });
 
   test('Head bob applies gentle translation and tilt', () => {
