@@ -15,17 +15,24 @@
   'use strict';
 
   function resolveApiBaseUrl() {
-    // 1. Explicit window override (can be injected by hosting/CDN environment)
+    // 1. Explicit window override (can be injected by hosting/CDN environment or dev proxy)
     if (
       typeof window !== 'undefined' &&
-      window.__APPU_API_BASE_URL__ &&
-      typeof window.__APPU_API_BASE_URL__ === 'string' &&
-      window.__APPU_API_BASE_URL__.trim()
+      typeof window.__APPU_API_BASE_URL__ === 'string'
     ) {
       return window.__APPU_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
 
-    // 2. Deployed backend API URL
+    // 2. Automatically route through local dev proxy on localhost / 127.0.0.1
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)
+    ) {
+      return '';
+    }
+
+    // 3. Deployed backend API URL
     return 'https://api.appuai.online';
   }
 

@@ -7,7 +7,13 @@
   'use strict';
 
   function apiBase() {
-    return (window.APPU_CONFIG && window.APPU_CONFIG.apiBaseUrl) || 'https://api.appuai.online';
+    if (window.APPU_CONFIG && typeof window.APPU_CONFIG.apiBaseUrl === 'string') {
+      return window.APPU_CONFIG.apiBaseUrl;
+    }
+    if (typeof window !== 'undefined' && window.location && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)) {
+      return '';
+    }
+    return 'https://api.appuai.online';
   }
 
   function parentToken() {

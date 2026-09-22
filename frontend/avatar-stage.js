@@ -218,6 +218,18 @@ class AvatarStage {
         rawAmp = Math.sin(t * 14) * 0.35 + Math.sin(t * 22) * 0.25 + 0.35;
       }
 
+      // If voice engine reports near-zero amplitude while speech state is active
+      // (e.g. SpeechSynthesis active, initial stream buffering, or silent pause),
+      // drive the mouth with a natural harmonic syllable envelope so Appu articulates visibly
+      const isSpeakingState = (this.currentState === 'speaking') ||
+        Boolean(ve && ve.isSpeaking) ||
+        (typeof window !== 'undefined' && Boolean(window.speechSynthesis && window.speechSynthesis.speaking));
+
+      if (rawAmp < 0.08 && isSpeakingState) {
+        const t = Date.now() / 1000;
+        rawAmp = Math.max(0.18, Math.sin(t * 13) * 0.32 + Math.sin(t * 21) * 0.22 + 0.38);
+      }
+
       // Smooth damping (low-pass filter for organic fluid motion)
       this._smoothAmplitude += (rawAmp - this._smoothAmplitude) * 0.42;
       const amp = Math.max(0, Math.min(1, this._smoothAmplitude));

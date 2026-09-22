@@ -310,7 +310,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   pointer-events: auto;
 }
 .mission-stage.has-lesson-active .hero-appu-photo {
-  height: 92% !important;
+  height: 100% !important;
   display: block !important;
 }
 .mission-stage.has-lesson-active .stage-halo {
@@ -6448,6 +6448,13 @@ body.policy-page {
   transform-origin: 50% 88%;
   will-change: transform;
 }
+.avatar-model-frame .hero-appu-photo {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
 
 .avatar-face-mesh {
   position: absolute;
@@ -6456,55 +6463,55 @@ body.policy-page {
   z-index: 4;
 }
 
-/* Mouth Aperture: Responsive to audio amplitude */
+/* Mouth Aperture: Accurately aligned with Appu's lips at 14.2% top, 50.4% left */
 .avatar-mouth-wrap {
   position: absolute;
-  top: 27.4%;
-  left: 50.5%;
+  top: 14.2%;
+  left: 50.4%;
   transform: translate(-50%, -50%) scaleY(0);
-  width: 30px;
-  height: 13px;
+  width: 20px;
+  height: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.08s ease, transform 0.04s ease;
-  transform-origin: 50% 40%;
+  transition: opacity 0.06s ease, transform 0.04s ease;
+  transform-origin: 50% 30%;
   will-change: transform, opacity;
 }
 
 .avatar-mouth {
   width: 100%;
   height: 100%;
-  border-radius: 4px 4px 12px 12px;
+  border-radius: 3px 3px 10px 10px;
   background: linear-gradient(180deg, #ffffff 0%, #ffffff 28%, #5c1822 28%, #360a10 100%);
   border: 1px solid rgba(180, 110, 110, 0.45);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 -2px 3px rgba(0, 0, 0, 0.4);
 }
 
-/* Natural Eyelid Blinks */
+/* Natural Eyelid Blinks: Accurately aligned with Appu's eyes at 10.5% top (left 46.2%, right 53.0%) */
 .avatar-eye-blink {
   position: absolute;
-  top: 19.8%;
-  width: 18px;
+  top: 10.5%;
+  width: 13px;
   height: 0px;
   border-radius: 999px;
-  background: #c2ada7;
-  box-shadow: 0 1px 2px rgba(80, 40, 30, 0.25);
+  background: #9d7b70;
+  box-shadow: 0 1px 2px rgba(60, 30, 20, 0.35);
   opacity: 0;
   transition: height 0.07s ease-in-out, opacity 0.07s ease-in-out;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
 .avatar-eye-blink.eye-left {
-  left: 44.2%;
+  left: 46.2%;
 }
 .avatar-eye-blink.eye-right {
-  left: 56.8%;
+  left: 53.0%;
 }
 .avatar-eye-blink.is-blinking {
-  height: 10px;
+  height: 6px;
   opacity: 0.95;
 }
 
@@ -6562,14 +6569,14 @@ body.policy-page {
     max-height: 86px;
   }
   .avatar-mouth-wrap {
-    width: 22px;
-    height: 10px;
+    width: 15px;
+    height: 7px;
   }
   .avatar-eye-blink {
-    width: 14px;
+    width: 10px;
   }
   .avatar-eye-blink.is-blinking {
-    height: 7px;
+    height: 5px;
   }
 }
 

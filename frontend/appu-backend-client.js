@@ -25,10 +25,16 @@
     if (
       typeof globalThis !== 'undefined' &&
       globalThis.APPU_CONFIG &&
-      typeof globalThis.APPU_CONFIG.apiBaseUrl === 'string' &&
-      globalThis.APPU_CONFIG.apiBaseUrl.trim()
+      typeof globalThis.APPU_CONFIG.apiBaseUrl === 'string'
     ) {
       return globalThis.APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '');
+    }
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)
+    ) {
+      return '';
     }
     return 'https://api.appuai.online';
   }
@@ -54,7 +60,9 @@
     // Absolute URL: verify origin matches trusted APPU backend API origin
     try {
       const parsed = new URL(trimmed);
-      const trustedOrigin = new URL(base).origin;
+      const trustedOrigin = (base && base.startsWith('http'))
+        ? new URL(base).origin
+        : (typeof window !== 'undefined' ? window.location.origin : '');
       if (parsed.origin === trustedOrigin) {
         return parsed.toString();
       }

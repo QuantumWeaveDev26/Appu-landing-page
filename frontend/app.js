@@ -2498,6 +2498,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.appMascot) window.appMascot.setMood('explaining');
 
         showVoicePopup(sampleCard.plainText, sampleCard, targetMode);
+        if (voiceEngine) {
+          voiceEngine.speak(sampleCard.plainText);
+        }
 
         // Also populate chat drawer
         if (chatAgent) {
@@ -2544,6 +2547,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.demoTalkingAppu = (mode = 'lesson') => {
       window.AppuStudyModes.show(mode);
       if (avatarStage) avatarStage.setState('speaking');
+      if (voiceEngine) {
+        const text = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD?.plainText) || "Let's explore how photosynthesis powers our planet!";
+        voiceEngine.speak(text);
+      }
     };
     window.app.avatarStage = avatarStage;
     window.app.voiceEngine = voiceEngine;

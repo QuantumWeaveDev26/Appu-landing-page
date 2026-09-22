@@ -457,6 +457,9 @@ class VoiceEngine {
             return true;
         } catch (error) {
             console.warn('Backend audio playback was blocked.', error);
+            if (text && this.speakSynthesis(text)) {
+                return true;
+            }
             this.streamSubtitles(text || 'Tap the mic again to hear the answer.');
             this.handleSpeechFinish();
             return false;
@@ -484,9 +487,9 @@ class VoiceEngine {
             resolvedUrl = AppuBackendClient.resolveAudioStreamUrl(streamUrl);
         } else if (typeof streamUrl === 'string' && streamUrl.trim()) {
             const trimmed = streamUrl.trim();
-            const base = (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.apiBaseUrl)
+            const base = (typeof APPU_CONFIG !== 'undefined' && typeof APPU_CONFIG.apiBaseUrl === 'string')
                 ? APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '')
-                : 'https://api.appuai.online';
+                : ((typeof window !== 'undefined' && window.location && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)) ? '' : 'https://api.appuai.online');
             if (trimmed.startsWith('/')) {
                 resolvedUrl = `${base}${trimmed}`;
             } else {
@@ -582,7 +585,10 @@ class VoiceEngine {
                         if (bufferedSecs >= MIN_STARTUP_BUFFER_SECS || (streamDone && chunkQueue.length === 0)) {
                             hasStartedPlayback = true;
                             this.audioPlayer.play().catch(e => {
-                                if (!isDisposed) console.warn('Stream play error:', e);
+                                if (!isDisposed) {
+                                    console.warn('Stream play error:', e);
+                                    if (text) this.speakSynthesis(text);
+                                }
                             });
                         }
                     };
@@ -658,27 +664,100 @@ class VoiceEngine {
                 this.audioPlayer.playbackRate = this.rate;
                 this.audioPlayer.volume = 1.0;
                 this.audioPlayer.muted = false;
-                await this.audioPlayer.play();
-                return true;
+                try {
+                    await this.audioPlayer.play();
+                    return true;
+                } catch (playErr) {
+                    console.warn('Audio blob playback prevented:', playErr);
+                    if (text && this.speakSynthesis(text)) return true;
+                    this.handleSpeechFinish();
+                    return false;
+                }
             }
         } catch (error) {
             if (error && error.name === 'AbortError') {
                 return false;
             }
             console.warn('Audio stream error:', error);
+            if (text && this.speakSynthesis(text)) {
+                return true;
+            }
             this.handleSpeechFinish();
             return false;
         }
     }
 
-    speak(text, audioSource, audioStreamUrl = null, accessToken = '') {
-        if (audioStreamUrl) {
-            return this.playStream(audioStreamUrl, text, accessToken);
+    /**
+     * Synthesizes speech locally using Web Speech API as resilient zero-latency fallback.
+     * Drives subtitles, audio state, and avatar lip sync.
+     */
+    speakSynthesis(text, lang = '') {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            if (text) this.streamSubtitles(text);
+            this.handleSpeechFinish();
+            return false;
         }
-        return this.playBackendAudio(audioSource, text);
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const targetLang = lang || (this.currentLanguage === 'kn' ? 'kn-IN' : (this.currentLanguage === 'hi' ? 'hi-IN' : 'en-IN'));
+            utterance.lang = targetLang;
+            utterance.rate = this.rate || 1.0;
+            utterance.pitch = 1.05;
+
+            const voices = window.speechSynthesis.getVoices();
+            if (voices && voices.length > 0) {
+                const preferred = voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('India') || v.name.includes('Heera') || v.name.includes('Ravi')));
+                if (preferred) utterance.voice = preferred;
+            }
+
+            utterance.onstart = () => {
+                this.isSpeaking = true;
+                this.updateSpeakingUI(true);
+                this.onSpeechStart();
+            };
+            utterance.onend = () => {
+                this.handleSpeechFinish();
+            };
+            utterance.onerror = (e) => {
+                console.warn('[VoiceEngine] SpeechSynthesis error:', e);
+                this.handleSpeechFinish();
+            };
+
+            this.streamSubtitles(text);
+            window.speechSynthesis.speak(utterance);
+            return true;
+        } catch (e) {
+            console.warn('[VoiceEngine] SpeechSynthesis exception:', e);
+            if (text) this.streamSubtitles(text);
+            this.handleSpeechFinish();
+            return false;
+        }
+    }
+
+    async speak(text, audioSource, audioStreamUrl = null, accessToken = '') {
+        this.initWebAudio();
+        if (audioStreamUrl) {
+            const played = await this.playStream(audioStreamUrl, text, accessToken);
+            if (played) return true;
+        }
+        if (audioSource) {
+            const played = await this.playBackendAudio(audioSource, text);
+            if (played) return true;
+        }
+        // Resilient fallback to local SpeechSynthesis if server audio is absent or failed
+        if (text && this.autoSpeak) {
+            return this.speakSynthesis(text);
+        }
+        if (text) this.streamSubtitles(text);
+        this.handleSpeechFinish();
+        return false;
     }
 
     stopSpeaking() {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try { window.speechSynthesis.cancel(); } catch {}
+        }
         if (this.currentStreamController) {
             try { this.currentStreamController.abort(); } catch {}
             this.currentStreamController = null;
