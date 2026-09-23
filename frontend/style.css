@@ -596,9 +596,9 @@ select option:checked, .discovery-form select option:checked {
     transform: none;
     width: min(420px, 96vw);
     flex: 0 0 auto;
-    height: clamp(320px, 47vh, 412px);
-    min-height: 320px;
-    margin: 12px auto 0;
+    height: clamp(300px, 45vh, 384px);
+    min-height: 300px;
+    margin: 6px auto 12px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -624,7 +624,7 @@ select option:checked, .discovery-form select option:checked {
     display: block;
     width: auto;
     height: 100%;
-    max-height: clamp(280px, 40vh, 350px);
+    max-height: clamp(288px, 43vh, 374px);
     max-width: 100%;
     object-fit: contain;
     object-position: bottom center;
