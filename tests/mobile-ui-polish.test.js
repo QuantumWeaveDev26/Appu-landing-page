@@ -99,4 +99,50 @@ test.describe('Mobile UI & Sunshine & Sky Theme Polish Verification', () => {
     assert.ok(htmlContent.includes('id="btn-dock-expand"'));
     assert.ok(htmlContent.includes('id="btn-upload-notes"'));
   });
+
+  test.it('enforces mobile single-column vertical stack with zero element collisions', () => {
+    // 1) Mission deck hidden on mobile hero to prevent dock clipping
+    assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.mission-deck\s*\{[\s\S]*?display:\s*none\s*!important/);
+
+    // 2) Hero avatar stage has bounded height on mobile
+    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?height:\s*clamp\(200px,\s*32vh,\s*260px\)/);
+
+    // 3) When lesson is active on mobile: mission stage is an in-flow flex column
+    assert.match(cssContent, /\.mission-stage\.has-lesson-active\s*\{[\s\S]*?display:\s*flex\s*!important;\s*flex-direction:\s*column\s*!important/);
+
+    // 4) Appu model on mobile active lesson is in-flow relative (NEVER absolute over content)
+    assert.match(cssContent, /\.mission-stage\.has-lesson-active\s+\.avatar-stage\s*\{[\s\S]*?position:\s*relative\s*!important/);
+
+    // 5) Voice reply popup on mobile active lesson is in-flow relative (NEVER absolute over content)
+    assert.match(cssContent, /\.mission-stage\.has-lesson-active\s+\.voice-reply-popup\s*\{[\s\S]*?position:\s*relative\s*!important/);
+
+    // 6) Concept tree branches on mobile stack in a single full-width column
+    assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.concept-tree-branches-grid[\s\S]*?grid-template-columns:\s*1fr\s*!important/);
+  });
+
+  test.it('verifies nav drawer houses learning missions cleanly for mobile access', () => {
+    // Nav drawer must have missions section with 4 mission action buttons
+    assert.ok(htmlContent.includes('class="nav-drawer-missions"'));
+    assert.ok(htmlContent.includes('id="drawer-chip-explain"'));
+    assert.ok(htmlContent.includes('id="drawer-chip-quiz"'));
+    assert.ok(htmlContent.includes('id="drawer-chip-homework"'));
+    assert.ok(htmlContent.includes('id="drawer-chip-exam"'));
+
+    // Drawer mission buttons must have tap targets >= 48px
+    assert.match(cssContent, /\.nav-drawer-mission-btn\s*\{[^}]*min-height:\s*48px/);
+
+    // Drawer missions title translated in en, kn, and hi
+    assert.ok(appJsContent.includes('drawerMissionsTitle'));
+    assert.ok(appJsContent.includes("'Learning Missions'"));
+    assert.ok(appJsContent.includes("'ಕಲಿಕಾ ಕಾರ್ಯಗಳು'"));
+    assert.ok(appJsContent.includes("'सीखने के मिशन'"));
+  });
+
+  test.it('enforces desktop layout separation so Appu never collides with study content', () => {
+    // 1) Default mind map in lesson view stays in diagram column (flanking Appu)
+    assert.match(cssContent, /\.lesson-block-mindmap-default[\s\S]*?grid-area:\s*diagram/);
+
+    // 2) In dedicated study mode (mindmap, quiz, etc.), Appu moves to upper-right corner
+    assert.match(cssContent, /\.mission-stage\.has-lesson-active\.mode-is-study-card\s+\.avatar-stage\s*\{[\s\S]*?right:\s*24px\s*!important/);
+  });
 });

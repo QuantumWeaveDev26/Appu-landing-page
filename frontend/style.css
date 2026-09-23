@@ -812,6 +812,30 @@ select option:checked, .discovery-form select option:checked {
     background: transparent;
     box-shadow: none;
   }
+  .mission-stage.has-lesson-active.mode-is-study-card .avatar-stage {
+    position: absolute !important;
+    top: 14px !important;
+    right: 24px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 140px !important;
+    height: 140px !important;
+    min-height: 140px !important;
+    z-index: 12 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .mission-stage.has-lesson-active.mode-is-study-card .hero-appu-photo {
+    height: 125px !important;
+    max-height: 125px !important;
+    width: auto !important;
+  }
+  .mission-stage.has-lesson-active.mode-is-study-card .stage-halo,
+  .mission-stage.has-lesson-active.mode-is-study-card .appu-nameplate {
+    display: none !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1025,10 +1049,10 @@ select option:checked, .discovery-form select option:checked {
     bottom: auto;
     transform: none;
     width: min(340px, 92vw);
-    flex: 0 0 auto;
-    height: 175px;
-    min-height: 175px;
-    margin: 4px auto;
+    flex: 1 1 auto;
+    height: clamp(200px, 32vh, 260px);
+    min-height: 190px;
+    margin: 4px auto 8px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -1054,7 +1078,7 @@ select option:checked, .discovery-form select option:checked {
     display: block;
     width: auto;
     height: 100%;
-    max-height: 150px;
+    max-height: 220px;
     max-width: 100%;
     object-fit: contain;
     object-position: bottom center;
@@ -1095,23 +1119,9 @@ select option:checked, .discovery-form select option:checked {
   .appu-nameplate strong { font-size: 11px; color: #0f172a; font-weight: 800; }
   .appu-nameplate small { display: none; }
 
+  /* Mobile Hero: Quick action cards moved cleanly into Nav Drawer (match production appuai.online) */
   .mission-deck {
-    position: relative;
-    top: auto;
-    bottom: auto;
-    left: auto;
-    right: auto;
-    transform: none;
-    width: 100%;
-    box-sizing: border-box;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 4px 12px 10px;
-    margin-top: 0;
-    flex-shrink: 0;
-    z-index: 7;
-    pointer-events: auto;
+    display: none !important;
   }
   .mission-card {
     min-height: 54px;
@@ -1163,6 +1173,17 @@ select option:checked, .discovery-form select option:checked {
     display: none;
   }
 
+  /* Mobile Active Study / Lesson Layout: Single-column vertical stack (NEVER overlapping) */
+  .mission-stage.has-lesson-active {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    padding: 8px 8px 16px !important;
+    gap: 8px !important;
+  }
   .mission-stage.has-lesson-active .mission-intro,
   .mission-stage.has-lesson-active .mission-deck {
     display: none !important;
@@ -1172,38 +1193,49 @@ select option:checked, .discovery-form select option:checked {
     display: none !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 86px;
-    height: 86px;
-    min-height: 86px;
-    z-index: 20;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 140px !important;
+    height: 92px !important;
+    min-height: 92px !important;
+    margin: 0 auto !important;
+    flex: 0 0 92px !important;
     display: flex !important;
+    justify-content: center !important;
+    align-items: flex-end !important;
+    z-index: 5 !important;
   }
   .mission-stage.has-lesson-active .avatar-interactive-figure {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
     transform: none !important;
   }
   .mission-stage.has-lesson-active .hero-appu-photo {
-    height: 86px !important;
-    max-height: 86px !important;
+    height: 90px !important;
+    max-height: 90px !important;
     width: auto !important;
+    object-fit: contain !important;
+    margin: 0 auto !important;
     animation: none !important;
   }
   .voice-reply-popup {
-    top: 8px;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    width: auto;
-    max-height: calc(100% - 16px);
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    height: auto;
+    max-height: none;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -1214,21 +1246,30 @@ select option:checked, .discovery-form select option:checked {
     transform: none;
   }
   .mission-stage.has-lesson-active .voice-reply-popup {
-    top: 94px;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    max-height: calc(100% - 102px);
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
   .voice-reply-popup.is-visible {
     transform: none;
   }
   .voice-popup-body {
-    max-height: none;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     font-size: 13.5px;
     padding: 0;
   }
@@ -2983,6 +3024,66 @@ body.policy-page {
 .nav-drawer-slot { display: flex; flex-direction: column; gap: 8px; }
 .nav-drawer-slot .language-switch { display: flex; width: 100%; }
 .nav-drawer-slot .lang-btn { flex: 1; min-height: 44px; font-size: 12px; }
+
+.nav-drawer-missions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 14px;
+  border-bottom: 1.5px solid #f1f5f9;
+}
+.nav-drawer-section-title {
+  font: 800 11px/1.2 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #0284c7;
+  margin-bottom: 2px;
+}
+.nav-drawer-mission-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1.5px solid #bae6fd;
+  border-radius: 14px;
+  background: #f0f9ff;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+.nav-drawer-mission-btn:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  transform: translateX(2px);
+}
+.nav-drawer-mission-btn:active {
+  transform: scale(0.98);
+}
+.nav-drawer-mission-btn i {
+  font-size: 18px;
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-drawer-mission-btn div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nav-drawer-mission-btn strong {
+  font: 800 13px/1.2 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif);
+  color: #0f172a;
+}
+.nav-drawer-mission-btn small {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
 .nav-drawer-slot .icon-btn {
   display: flex;
   flex-direction: row;
@@ -4559,7 +4660,9 @@ body.policy-page {
     margin: 0 auto;
     pointer-events: auto;
   }
-  .lesson-block-diagram {
+  .lesson-block-diagram,
+  .lesson-block-mindmap,
+  .lesson-block-mindmap-default {
     grid-area: diagram;
     display: flex;
     flex-direction: column;
@@ -5879,7 +5982,7 @@ body.policy-page {
   box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .study-modes-toolbar {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -6735,6 +6838,29 @@ body.policy-page {
 .tree-dedicated .concept-tree-branches-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 18px;
+}
+
+@media (max-width: 768px) {
+  .concept-tree-central {
+    margin-bottom: 6px;
+    padding: 0 4px;
+  }
+  .central-node-pill {
+    font-size: 13.5px !important;
+    padding: 8px 16px !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  .concept-tree-branches-grid,
+  .tree-dedicated .concept-tree-branches-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .stalk-stem-h {
+    width: 96% !important;
+    margin-bottom: 12px !important;
+  }
 }
 
 /* Branch Cards */

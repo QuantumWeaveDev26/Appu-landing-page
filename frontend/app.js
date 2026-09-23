@@ -493,7 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notesGuidance: 'Answers, concept maps, and quizzes will be strictly grounded in this material.',
       notesBtnSubmit: 'Teach Me From This',
       notesBtnCancel: 'Cancel',
-      childProgressReport: 'Child Progress Report'
+      childProgressReport: 'Child Progress Report',
+      drawerMissionsTitle: 'Learning Missions'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -603,7 +604,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notesGuidance: 'ಉತ್ತರಗಳು, ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು ಮತ್ತು ರಸಪ್ರಶ್ನೆಗಳು ಸಂಪೂರ್ಣವಾಗಿ ಈ ಪಠ್ಯವನ್ನು ಆಧರಿಸಿರುತ್ತವೆ.',
       notesBtnSubmit: 'ಇದರಿಂದ ನನಗೆ ಕಲಿಸಿ',
       notesBtnCancel: 'ರದ್ದುಮಾಡಿ',
-      childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ'
+      childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
+      drawerMissionsTitle: 'ಕಲಿಕಾ ಕಾರ್ಯಗಳು'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -713,7 +715,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notesGuidance: 'उत्तर, कॉन्सेप्ट मैप और क्विज़ पूरी तरह से इस सामग्री पर आधारित होंगे।',
       notesBtnSubmit: 'इससे मुझे सिखाएं',
       notesBtnCancel: 'रद्द करें',
-      childProgressReport: 'बच्चे की प्रगति रिपोर्ट'
+      childProgressReport: 'बच्चे की प्रगति रिपोर्ट',
+      drawerMissionsTitle: 'सीखने के मिशन'
     }
   };
 
@@ -936,6 +939,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const drawerContactLink = document.querySelector('.nav-drawer-legal a[href*="contact-us"]');
     if (drawerContactLink) drawerContactLink.textContent = t.drawerContact;
 
+    // Nav drawer learning missions
+    const drawerMissionsTitle = document.getElementById('drawer-missions-title');
+    if (drawerMissionsTitle) drawerMissionsTitle.textContent = t.drawerMissionsTitle || 'Learning Missions';
+
+    const drawerChipExplain = document.getElementById('drawer-chip-explain');
+    if (drawerChipExplain) {
+      const title = drawerChipExplain.querySelector('.chip-title');
+      const desc = drawerChipExplain.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExplainTitle;
+      if (desc) desc.textContent = t.chipExplainDesc;
+      drawerChipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
+    }
+
+    const drawerChipQuiz = document.getElementById('drawer-chip-quiz');
+    if (drawerChipQuiz) {
+      const title = drawerChipQuiz.querySelector('.chip-title');
+      const desc = drawerChipQuiz.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipQuizTitle;
+      if (desc) desc.textContent = t.chipQuizDesc;
+      drawerChipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
+    }
+
+    const drawerChipHomework = document.getElementById('drawer-chip-homework');
+    if (drawerChipHomework) {
+      const title = drawerChipHomework.querySelector('.chip-title');
+      const desc = drawerChipHomework.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipHomeworkTitle;
+      if (desc) desc.textContent = t.chipHomeworkDesc;
+      drawerChipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
+    }
+
+    const drawerChipExam = document.getElementById('drawer-chip-exam');
+    if (drawerChipExam) {
+      const title = drawerChipExam.querySelector('.chip-title');
+      const desc = drawerChipExam.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExamTitle;
+      if (desc) desc.textContent = t.chipExamDesc;
+      drawerChipExam.setAttribute('data-prompt', t.chipExamPrompt);
+    }
+
     const posChildNicknameLabel = document.getElementById('pos-child-nickname-label');
     if (posChildNicknameLabel) posChildNicknameLabel.textContent = t.posChildNicknameLabel;
 
@@ -1114,6 +1157,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderVoicePopupStudyContent(mode = 'lesson') {
     if (!voicePopupContent) return;
     activePopupMode = mode;
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      if (mode === 'lesson') {
+        missionStage.classList.add('mode-is-lesson');
+        missionStage.classList.remove('mode-is-study-card');
+      } else {
+        missionStage.classList.remove('mode-is-lesson');
+        missionStage.classList.add('mode-is-study-card');
+      }
+    }
     voicePopupContent.innerHTML = '';
 
     if (activePopupLessonCard && typeof LessonCardRenderer !== 'undefined') {
@@ -1231,6 +1284,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const missionStage = document.querySelector('.mission-stage');
     if (missionStage) {
       missionStage.classList.add('has-lesson-active');
+      if ((initialMode || 'lesson') === 'lesson') {
+        missionStage.classList.add('mode-is-lesson');
+        missionStage.classList.remove('mode-is-study-card');
+      } else {
+        missionStage.classList.remove('mode-is-lesson');
+        missionStage.classList.add('mode-is-study-card');
+      }
     }
     let cardToRender = lessonCard;
     if (!cardToRender && text && typeof LessonCardRenderer !== 'undefined') {
@@ -1296,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const missionStage = document.querySelector('.mission-stage');
     if (missionStage) {
-      missionStage.classList.remove('has-lesson-active');
+      missionStage.classList.remove('has-lesson-active', 'mode-is-lesson', 'mode-is-study-card');
     }
     if (voiceReplyPopup) {
       voiceReplyPopup.classList.remove('is-visible');
@@ -1878,6 +1938,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnNavMenu) btnNavMenu.addEventListener('click', () => openNavDrawer());
   if (btnCloseNavDrawer) btnCloseNavDrawer.addEventListener('click', () => closeNavDrawer());
   if (navDrawerScrim) navDrawerScrim.addEventListener('click', () => closeNavDrawer());
+
+  const drawerMissionButtons = document.querySelectorAll('.nav-drawer-mission-btn');
+  drawerMissionButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      closeNavDrawer();
+    });
+  });
 
   // ==========================================
   // NATIVE APP SHELL: WELCOME GATE (post-loader sign-in screen)
