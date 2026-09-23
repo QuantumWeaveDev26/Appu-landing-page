@@ -534,9 +534,25 @@ select option:checked, .discovery-form select option:checked {
   }
   .mission-intro h1 {
     font-size: clamp(19px, 5.2vw, 24px);
-    line-height: 1.15;
-    margin: 0;
-    text-shadow: 0 4px 16px #000;
+    line-height: 1.2;
+    margin: 0 auto;
+    display: inline-block;
+    padding: 7px 18px;
+    border-radius: 16px;
+    background: rgba(4, 15, 30, 0.88);
+    border: 1px solid rgba(68, 215, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #ffffff;
+    text-shadow: none;
+  }
+  .mission-intro h1 span {
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff !important;
   }
   .mission-intro #mission-subtitle,
   .mission-intro > p:last-child {
