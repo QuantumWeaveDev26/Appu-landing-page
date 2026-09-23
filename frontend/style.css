@@ -578,9 +578,9 @@ select option:checked, .discovery-form select option:checked {
     transform: none;
     width: min(420px, 96vw);
     flex: 0 0 auto;
-    height: clamp(300px, 42vh, 370px);
-    min-height: 300px;
-    margin: 6px auto 0;
+    height: clamp(320px, 47vh, 412px);
+    min-height: 320px;
+    margin: 12px auto 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -596,7 +596,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.15);
+    transform: scale(1.0); /* was 1.15 - overshoot pushed head under subtitle */
     padding: 0;
     border: 0;
     background: transparent;
@@ -665,8 +665,8 @@ select option:checked, .discovery-form select option:checked {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 5px;
+    padding: 6px 12px 4px;
     border: 1px solid rgba(44, 211, 239, 0.3);
     border-radius: 18px;
     background: linear-gradient(110deg, rgba(5, 17, 34, 0.95), rgba(8, 18, 36, 0.88));
