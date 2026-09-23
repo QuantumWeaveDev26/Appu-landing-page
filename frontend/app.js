@@ -1875,6 +1875,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
       && typeof window !== 'undefined' && window.innerWidth <= 768) {
     document.body.classList.add('is-native');
+    // PROD (mobile web only): remove the top beta banner and relocate the signup CTA
+    // to the bottom of the app content (in-flow, below the input dock - no overlap).
+    const betaBannerBottomEl = document.getElementById('beta-banner');
+    const appShellForBottomBanner = document.getElementById('app-shell');
+    if (betaBannerBottomEl && appShellForBottomBanner && appShellForBottomBanner.lastElementChild !== betaBannerBottomEl) {
+      appShellForBottomBanner.appendChild(betaBannerBottomEl);
+    }
     const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
     const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
     const navAccountSlot = document.getElementById('nav-drawer-account-slot');

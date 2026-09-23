@@ -433,6 +433,25 @@ select option:checked, .discovery-form select option:checked {
     transform: scale(0.96);
   }
 
+  /* PROD (mobile only): remove top beta banner text, move signup CTA to a full-width button at the BOTTOM of the app content */
+  #beta-banner {
+    order: 999;
+    justify-content: center;
+    border-bottom: none;
+    border-top: 1px solid rgba(56, 189, 248, 0.35);
+    box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4);
+    padding: 12px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    margin-top: 6px;
+  }
+  #beta-banner .beta-banner-track { display: none !important; }
+  #beta-banner-cta,
+  .beta-banner-cta {
+    width: 100%;
+    max-width: 480px;
+    min-height: 46px;
+    font-size: 14px;
+  }
+
   .app-shell {
     display: flex;
     flex-direction: column;
