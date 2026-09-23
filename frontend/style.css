@@ -230,12 +230,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin: 8px 0 0;
 }
 
-.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -2%; width: min(540px, 40vw); height: 75%; max-height: calc(100% - 150px); transform: translateX(-50%); transition: transform .45s cubic-bezier(.2, .9, .2, 1), opacity .35s ease; display: flex; align-items: center; justify-content: center; }
+.avatar-stage { position: absolute; z-index: 5; left: 50%; bottom: -1%; width: min(760px, 56vw); height: 92%; max-height: calc(100% - 40px); transform: translateX(-50%); transition: transform .45s cubic-bezier(.2, .9, .2, 1), opacity .35s ease; display: flex; align-items: center; justify-content: center; }
 .avatar-interactive-figure { position: absolute; z-index: 3; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; outline: none; }
 .hero-appu-photo {
   display: block;
   width: auto;
-  height: 92%;
+  height: 98%;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -245,12 +245,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transform: none !important;
   animation: none !important;
 }
-.avatar-glow { position: absolute; z-index: -1; left: 50%; top: 50%; width: 82%; height: 65%; border-radius: 50%; background: radial-gradient(circle, rgba(14, 165, 233, .2), rgba(251, 191, 36, .15) 50%, transparent 72%); transform: translate(-50%, -50%) !important; filter: blur(28px); transition: background 0.4s ease, opacity 0.4s ease; pointer-events: none; }
-.stage-halo { position: absolute; left: 50%; bottom: 6%; width: 84%; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%) perspective(500px) rotateX(69deg); border: 1.5px solid rgba(14, 165, 233, .4); box-shadow: 0 0 30px rgba(14, 165, 233, .12), inset 0 0 28px rgba(251, 191, 36, .12); transition: border-color 0.3s ease, box-shadow 0.3s ease; }
-.stage-halo::before, .stage-halo::after { content: ''; position: absolute; border-radius: inherit; border: 1px solid rgba(14, 165, 233, .28); }
-.stage-halo::before { inset: 12%; }.stage-halo::after { inset: 28%; box-shadow: 0 0 28px rgba(14, 165, 233, .12); }
-.orbit { position: absolute; inset: 5%; border-radius: 50%; border-top: 2px solid var(--cyan); animation: orbit-spin 8s linear infinite; }.orbit-two { inset: 20%; border-top-color: #14b8a6; animation-direction: reverse; animation-duration: 6s; }
-.appu-nameplate { position: absolute; z-index: 8; left: 50%; bottom: 5%; display: flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1.5px solid #7dd3fc; border-radius: 999px; background: rgba(255, 255, 255, .95); box-shadow: 0 8px 24px rgba(15, 23, 42, .08); backdrop-filter: blur(12px); transform: translateX(-50%); white-space: nowrap; }
+.avatar-glow { position: absolute; z-index: -1; left: 50%; top: 52%; width: 70%; height: 58%; border-radius: 50%; background: radial-gradient(circle, rgba(14, 165, 233, .2), rgba(251, 191, 36, .15) 50%, transparent 72%); transform: translate(-50%, -50%) !important; filter: blur(28px); transition: background 0.4s ease, opacity 0.4s ease; pointer-events: none; }
+.stage-halo { position: absolute; left: 50%; bottom: 4%; width: 56%; max-width: 440px; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%) perspective(500px) rotateX(69deg); border: 1.5px solid rgba(14, 165, 233, .4); box-shadow: 0 0 24px rgba(14, 165, 233, .12), inset 0 0 22px rgba(251, 191, 36, .12); transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+.stage-halo::before, .stage-halo::after { content: ''; position: absolute; border-radius: inherit; border: 1px solid rgba(14, 165, 233, .25); }
+.stage-halo::before { inset: 14%; }.stage-halo::after { inset: 30%; box-shadow: 0 0 20px rgba(14, 165, 233, .1); }
+.orbit { position: absolute; inset: 5%; border-radius: 50%; border-top: 2px solid var(--cyan); animation: orbit-spin 8s linear infinite; }.orbit-two { inset: 22%; border-top-color: #14b8a6; animation-direction: reverse; animation-duration: 6s; }
+.appu-nameplate { position: absolute; z-index: 8; left: 50%; bottom: 3%; display: flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1.5px solid #7dd3fc; border-radius: 999px; background: rgba(255, 255, 255, .95); box-shadow: 0 8px 24px rgba(15, 23, 42, .08); backdrop-filter: blur(12px); transform: translateX(-50%); white-space: nowrap; }
 .appu-nameplate strong { font: 800 12px/1 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif); letter-spacing: .08em; color: #0f172a; }.appu-nameplate small { color: var(--muted); font-size: 10px; font-weight: 600; }
 .stage-halo.state-speaking, .stage-halo.state-listening { border-color: var(--cyan); animation: halo-pulse 1.15s ease-in-out infinite; }
 
@@ -285,11 +285,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .mission-stage.has-lesson-active .avatar-stage {
   left: 50% !important;
-  bottom: -3% !important;
+  bottom: -2% !important;
   top: auto;
   transform: translateX(-50%) !important;
-  width: min(560px, 41vw) !important;
-  height: 90% !important;
+  width: min(720px, 54vw) !important;
+  height: 92% !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -729,10 +729,10 @@ select option:checked, .discovery-form select option:checked {
   .mission-intro { top: 16px; }
   .mission-intro h1 { font-size: clamp(30px, 2.55vw, 42px); }
   .mission-intro > p:last-child { margin-top: 6px; font-size: 12px; }
-  .avatar-stage { bottom: -4%; width: min(620px, 43vw); height: 82%; }
-  .avatar-interactive-figure { inset: 0 4% 0; }
+  .avatar-stage { bottom: -2%; width: min(780px, 56vw); height: 92%; max-height: calc(100% - 40px); }
+  .avatar-interactive-figure { inset: 0 2% 0; }
   .avatar-interactive-figure img { height: 100%; }
-  .appu-nameplate { bottom: 5%; }
+  .appu-nameplate { bottom: 4%; }
   .mission-deck { top: 52%; grid-template-columns: minmax(220px, 270px) minmax(220px, 270px); gap: 13px; }
   .mission-card { min-height: 60px; grid-template-columns: 44px 1fr; gap: 11px; padding: 7px 18px 7px 8px; border-radius: 999px; }
   .mission-icon { width: 44px; height: 44px; border-radius: 50%; }
@@ -753,13 +753,13 @@ select option:checked, .discovery-form select option:checked {
   .topbar-actions { grid-column: 2; }
   .mission-intro { top: 18px; width: 90%; }
   .mission-intro h1 { font-size: clamp(28px, 5vw, 39px); }
-  .avatar-stage { bottom: 1%; width: min(390px, 46vw); height: 72%; }
+  .avatar-stage { bottom: 0; width: min(580px, 58vw); height: 88%; max-height: calc(100% - 45px); }
   .mission-deck { top: auto; bottom: 10px; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 12px; transform: none; }
   .mission-card { min-height: 62px; grid-template-columns: 39px 1fr 14px; padding: 8px 11px; }
   .mission-icon { width: 39px; height: 39px; border-radius: 12px; }
   .mission-copy strong { font-size: 12px; }
   .mission-copy small { font-size: 9px; }
-  .appu-nameplate { bottom: 21%; }
+  .appu-nameplate { bottom: 8%; }
   .response-dock { grid-template-columns: minmax(0, 1fr) 185px; }
   .response-card { padding: 13px 17px; min-height: 0; }
   .response-card p { max-height: 78px; }
@@ -777,17 +777,17 @@ select option:checked, .discovery-form select option:checked {
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
-    bottom: 1% !important;
+    bottom: 0 !important;
     top: auto;
-    width: min(390px, 46vw) !important;
-    height: 72% !important;
+    width: min(580px, 58vw) !important;
+    height: 88% !important;
     transform: translateX(-50%) !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
   }
   .mission-stage.has-lesson-active .hero-appu-photo {
-    height: 90% !important;
+    height: 98% !important;
   }
   .mission-stage.has-lesson-active .stage-halo {
     display: block !important;
@@ -1066,10 +1066,10 @@ select option:checked, .discovery-form select option:checked {
     left: auto;
     bottom: auto;
     transform: none;
-    width: min(400px, 94vw);
+    width: min(440px, 96vw);
     flex: 1 1 auto;
-    height: clamp(260px, 38vh, 340px);
-    min-height: 240px;
+    height: clamp(340px, 52vh, 480px);
+    min-height: 320px;
     margin: 2px auto 6px;
     display: flex;
     align-items: flex-end;
@@ -1086,7 +1086,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.1);
+    transform: scale(1.08);
     padding: 0;
     border: 0;
     background: transparent;
@@ -1096,11 +1096,11 @@ select option:checked, .discovery-form select option:checked {
     display: block;
     width: auto;
     height: 100%;
-    max-height: 310px;
+    max-height: 460px;
     max-width: 100%;
     object-fit: contain;
     object-position: bottom center;
-    filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.16));
+    filter: drop-shadow(0 14px 28px rgba(15, 23, 42, 0.18));
     transform: none !important;
     animation: none !important;
   }
@@ -1108,15 +1108,16 @@ select option:checked, .discovery-form select option:checked {
     position: absolute;
     left: 50%;
     bottom: 0;
-    width: 85%;
-    height: 60%;
+    width: 75%;
+    height: 55%;
     transform: translateX(-50%);
   }
   .stage-halo {
     position: absolute;
     left: 50%;
-    bottom: -2%;
-    width: 90%;
+    bottom: 0%;
+    width: 68%;
+    max-width: 320px;
     aspect-ratio: 1;
     transform: translateX(-50%) perspective(400px) rotateX(68deg);
   }
@@ -1467,11 +1468,12 @@ select option:checked, .discovery-form select option:checked {
     padding: 6px 10px;
   }
   .avatar-stage {
-    width: min(320px, 88vw);
-    height: 275px;
+    width: min(340px, 94vw);
+    height: clamp(300px, 48vh, 380px);
+    min-height: 290px;
   }
   .avatar-interactive-figure img {
-    max-height: 255px;
+    max-height: 360px;
   }
 }
 
@@ -1482,7 +1484,7 @@ select option:checked, .discovery-form select option:checked {
   .mission-intro h1 { font-size: 30px; }
   .mission-intro > p:last-child { margin-top: 4px; }
   .mission-card { min-height: 58px; }
-  .avatar-stage { height: 78%; }
+  .avatar-stage { height: 90%; }
   .response-card { padding: 10px 16px; min-height: 0; }
   .response-card p { max-height: 60px; }
 }
@@ -1492,15 +1494,7 @@ select option:checked, .discovery-form select option:checked {
   .mission-intro .eyebrow { display: none; }
   .mission-intro h1 { font-size: 36px; }
   .mission-intro > p:last-child { margin-top: 3px; font-size: 11px; }
-  .avatar-stage { height: 78%; }
-}
-
-@media (min-width: 1001px) and (min-height: 721px) and (max-height: 820px) {
-  .mission-intro { top: 10px; }
-  .mission-intro .eyebrow { display: none; }
-  .mission-intro h1 { font-size: 36px; }
-  .mission-intro > p:last-child { margin-top: 3px; font-size: 11px; }
-  .avatar-stage { height: 78%; }
+  .avatar-stage { height: 92%; }
 }
 
 /* ==========================================================================
@@ -3941,9 +3935,9 @@ body.policy-page {
     margin-top: 8px;
   }
   .avatar-stage {
-    bottom: -3%;
-    width: min(660px, 42vw);
-    height: 84%;
+    bottom: -2%;
+    width: min(840px, 50vw);
+    height: 92%;
   }
   .appu-nameplate {
     bottom: 6%;
@@ -4081,9 +4075,9 @@ body.policy-page {
     margin-top: 10px;
   }
   .avatar-stage {
-    bottom: -3%;
-    width: min(800px, 39vw);
-    height: 85%;
+    bottom: -2%;
+    width: min(1000px, 46vw);
+    height: 92%;
   }
   .appu-nameplate {
     bottom: 6%;
@@ -4255,9 +4249,9 @@ body.policy-page {
     font-size: 18px;
   }
   .avatar-stage {
-    bottom: -3%;
-    width: min(1000px, 38vw);
-    height: 86%;
+    bottom: -2%;
+    width: min(1200px, 45vw);
+    height: 92%;
   }
   .appu-nameplate {
     bottom: 6%;
@@ -5735,7 +5729,7 @@ body.policy-page {
 @media (min-width: 1800px) {
   .hero-appu-photo,
   .mission-stage.has-lesson-active .hero-appu-photo {
-    height: 94% !important;
+    height: 98% !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
@@ -5779,7 +5773,7 @@ body.policy-page {
 @media (min-width: 2400px) {
   .hero-appu-photo,
   .mission-stage.has-lesson-active .hero-appu-photo {
-    height: 94% !important;
+    height: 98% !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
@@ -5834,7 +5828,7 @@ body.policy-page {
 @media (min-width: 3600px) {
   .hero-appu-photo,
   .mission-stage.has-lesson-active .hero-appu-photo {
-    height: 94% !important;
+    height: 98% !important;
   }
   .mission-stage.has-lesson-active .avatar-stage {
     left: 50% !important;
@@ -7461,7 +7455,7 @@ body.policy-page {
    ========================================================================== */
 .avatar-model-frame {
   position: relative;
-  height: 92%;
+  height: 98%;
   width: auto;
   max-width: 100%;
   display: flex;
@@ -7618,7 +7612,7 @@ body.policy-page {
 @media (max-width: 768px) {
   .avatar-interactive-figure .avatar-model-frame {
     height: 100%;
-    max-height: 150px;
+    max-height: 460px;
     width: auto;
   }
   .mission-stage.has-lesson-active .avatar-model-frame {

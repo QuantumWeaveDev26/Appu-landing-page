@@ -104,9 +104,11 @@ test.describe('Mobile UI & Sunshine & Sky Theme Polish Verification', () => {
     // 1) Mission deck hidden on mobile hero to prevent dock clipping
     assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.mission-deck\s*\{[\s\S]*?display:\s*none\s*!important/);
 
-    // 2) Hero avatar stage is noticeably larger on mobile to fill stage
-    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?height:\s*clamp\(260px,\s*38vh,\s*340px\)/);
-    assert.match(cssContent, /\.avatar-interactive-figure\s+\.hero-appu-photo\s*\{[\s\S]*?max-height:\s*310px/);
+    // 2) Hero avatar stage is noticeably larger and dominant on mobile and desktop
+    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?height:\s*clamp\(340px,\s*52vh,\s*480px\)/);
+    assert.match(cssContent, /\.avatar-interactive-figure\s+\.hero-appu-photo\s*\{[\s\S]*?max-height:\s*460px/);
+    assert.match(cssContent, /\.avatar-interactive-figure\s+\.avatar-model-frame\s*\{[\s\S]*?max-height:\s*460px/);
+    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?width:\s*min\(760px,\s*56vw\);\s*height:\s*92%/);
 
     // 3) Mission eyebrow is hidden on mobile like production
     assert.match(cssContent, /#mission-eyebrow[\s\S]*?display:\s*none\s*!important/);
