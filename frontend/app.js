@@ -494,7 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notesBtnSubmit: 'Teach Me From This',
       notesBtnCancel: 'Cancel',
       childProgressReport: 'Child Progress Report',
-      drawerMissionsTitle: 'Learning Missions'
+      drawerMissionsTitle: 'Learning Missions',
+      drawerProgressTitle: 'My Progress'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -605,7 +606,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notesBtnSubmit: 'ಇದರಿಂದ ನನಗೆ ಕಲಿಸಿ',
       notesBtnCancel: 'ರದ್ದುಮಾಡಿ',
       childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
-      drawerMissionsTitle: 'ಕಲಿಕಾ ಕಾರ್ಯಗಳು'
+      drawerMissionsTitle: 'ಕಲಿಕಾ ಕಾರ್ಯಗಳು',
+      drawerProgressTitle: 'ನನ್ನ ಪ್ರಗತಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -716,7 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
       notesBtnSubmit: 'इससे मुझे सिखाएं',
       notesBtnCancel: 'रद्द करें',
       childProgressReport: 'बच्चे की प्रगति रिपोर्ट',
-      drawerMissionsTitle: 'सीखने के मिशन'
+      drawerMissionsTitle: 'सीखने के मिशन',
+      drawerProgressTitle: 'मेरी प्रगति'
     }
   };
 
@@ -942,6 +945,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Nav drawer learning missions
     const drawerMissionsTitle = document.getElementById('drawer-missions-title');
     if (drawerMissionsTitle) drawerMissionsTitle.textContent = t.drawerMissionsTitle || 'Learning Missions';
+
+    const drawerProgressTitle = document.getElementById('drawer-progress-title');
+    if (drawerProgressTitle) drawerProgressTitle.textContent = t.drawerProgressTitle || 'My Progress';
 
     const drawerChipExplain = document.getElementById('drawer-chip-explain');
     if (drawerChipExplain) {
@@ -1945,6 +1951,15 @@ document.addEventListener('DOMContentLoaded', () => {
       closeNavDrawer();
     });
   });
+
+  const navDrawerGamification = document.getElementById('nav-drawer-gamification');
+  if (navDrawerGamification) {
+    navDrawerGamification.addEventListener('click', () => {
+      closeNavDrawer();
+      const xpBtn = document.getElementById('btn-xp-badge');
+      if (xpBtn) xpBtn.click();
+    });
+  }
 
   // ==========================================
   // NATIVE APP SHELL: WELCOME GATE (post-loader sign-in screen)
@@ -3022,6 +3037,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (xpFillEl) xpFillEl.style.width = `${pct}%`;
     if (streakBtn) streakBtn.title = `${state.streak}-day learning streak!`;
     if (xpBtn) xpBtn.title = `${state.xp} Learning Stars! Click to view achievements`;
+
+    // Drawer Gamification Widgets
+    const drawerStreakCountEl = document.getElementById('drawer-streak-count');
+    const drawerXpCountEl = document.getElementById('drawer-xp-count');
+    const drawerLevelTagEl = document.getElementById('drawer-level-tag');
+    if (drawerStreakCountEl) drawerStreakCountEl.textContent = state.streak;
+    if (drawerXpCountEl) drawerXpCountEl.textContent = state.xp;
+    if (drawerLevelTagEl) drawerLevelTagEl.textContent = `Lvl ${currentLvlInfo.level}`;
 
     // Modal Details
     const modalStreakEl = document.getElementById('stat-streak-val');

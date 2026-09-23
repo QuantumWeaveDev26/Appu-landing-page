@@ -916,31 +916,50 @@ select option:checked, .discovery-form select option:checked {
     border: 1.5px solid #bae6fd;
     box-shadow: 0 4px 14px rgba(14, 165, 233, 0.08);
   }
-  .brand { gap: 8px; flex-shrink: 0; }
-  .brand-mark { width: 38px; height: 38px; border-radius: 50%; }
-  .brand-copy strong { font-size: 15px; color: #0f172a; font-weight: 800; }
+  .brand { gap: 6px; flex-shrink: 1; min-width: 0; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 50%; }
+  .brand-copy strong { font-size: 14px; color: #0f172a; font-weight: 800; white-space: nowrap; }
   .brand-copy small, .status-pill { display: none; }
   .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
     min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    overflow: visible;
   }
-  .topbar-actions::-webkit-scrollbar { display: none; }
-  .parent-session-badge { max-width: 92px; font-size: 10.5px; padding: 0 8px; min-height: 32px; gap: 4px; flex-shrink: 0; }
+  .topbar-actions #gamification-widget,
+  .topbar-actions .gamification-bar {
+    display: none !important;
+  }
+  .topbar-actions #btn-parent-setup,
+  .topbar-actions #btn-topbar-reports,
+  .topbar-actions #btn-settings,
+  .topbar-actions #btn-sound-toggle,
+  .topbar-actions #btn-quick-schedule {
+    display: none !important;
+  }
+  .parental-timer-pill {
+    padding: 3px 8px;
+    font-size: 11px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    border-radius: 999px;
+  }
+  .parent-session-badge { max-width: 80px; font-size: 10px; padding: 0 6px; min-height: 32px; gap: 3px; flex-shrink: 0; }
   .parent-session-badge > i { flex-shrink: 0; }
   .parent-session-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
-  .badge-logout-btn { width: 20px; height: 20px; font-size: 9.5px; margin-left: 2px; flex-shrink: 0; }
+  .badge-logout-btn { width: 18px; height: 18px; font-size: 9px; margin-left: 2px; flex-shrink: 0; }
   .auth-pill-btn {
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 12px;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
     font-weight: 800;
-    gap: 5px;
+    gap: 4px;
     border-radius: 999px;
     background: linear-gradient(135deg, #38bdf8, #0ea5e9);
     color: #ffffff;
@@ -948,17 +967,24 @@ select option:checked, .discovery-form select option:checked {
     box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25);
     flex-shrink: 0;
     cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
   }
-  .language-switch { padding: 2px; gap: 2px; flex-shrink: 0; }
-  .lang-btn { min-height: 32px; padding: 0 8px; font-size: 10.5px; font-weight: 700; border-radius: 8px; }
-  .parent-zone-btn { width: 34px; height: 34px; min-height: 34px; padding: 0; justify-content: center; border-radius: 10px; flex-shrink: 0; }
-  .parent-zone-btn span { display: none; }
-  .icon-btn { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; }
-  .topbar-actions #btn-sound-toggle, .topbar-actions #btn-quick-schedule { display: none; }
-  .gamification-bar { gap: 4px; flex-shrink: 0; }
-  .game-pill { padding: 4px 8px; font-size: 11px; font-weight: 800; }
-  .game-label { display: none; }
-  .game-level-pill { display: none; }
+  @media (max-width: 380px) {
+    .auth-pill-btn span {
+      display: none;
+    }
+    .auth-pill-btn {
+      width: 32px;
+      height: 32px;
+      min-height: 32px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+  .language-switch { padding: 2px; gap: 2px; flex-shrink: 0; display: flex; align-items: center; }
+  .lang-btn { min-height: 32px; padding: 0 7px; font-size: 10.5px; font-weight: 700; border-radius: 8px; flex-shrink: 0; }
 
   .mission-stage {
     position: relative;
@@ -982,25 +1008,17 @@ select option:checked, .discovery-form select option:checked {
     transform: none;
     width: 100%;
     max-width: 100%;
-    padding: 12px 14px 4px;
+    padding: 8px 12px 2px;
     margin: 0;
     text-align: center;
     box-sizing: border-box;
     flex-shrink: 0;
     z-index: 10;
   }
-  .mission-intro .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    margin: 0 0 5px;
-    color: #0284c7;
-    font: 800 10.5px/1.2 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif);
-    letter-spacing: .12em;
-    text-transform: uppercase;
+  .mission-intro .eyebrow,
+  #mission-eyebrow {
+    display: none !important;
   }
-  .mission-intro .eyebrow span { color: #f59e0b; }
   .mission-intro h1 {
     font-size: clamp(20px, 5.8vw, 26px);
     line-height: 1.15;
@@ -1048,11 +1066,11 @@ select option:checked, .discovery-form select option:checked {
     left: auto;
     bottom: auto;
     transform: none;
-    width: min(340px, 92vw);
+    width: min(400px, 94vw);
     flex: 1 1 auto;
-    height: clamp(200px, 32vh, 260px);
-    min-height: 190px;
-    margin: 4px auto 8px;
+    height: clamp(260px, 38vh, 340px);
+    min-height: 240px;
+    margin: 2px auto 6px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -1068,7 +1086,7 @@ select option:checked, .discovery-form select option:checked {
     align-items: flex-end;
     justify-content: center;
     transform-origin: center bottom;
-    transform: scale(1.04);
+    transform: scale(1.1);
     padding: 0;
     border: 0;
     background: transparent;
@@ -1078,11 +1096,11 @@ select option:checked, .discovery-form select option:checked {
     display: block;
     width: auto;
     height: 100%;
-    max-height: 220px;
+    max-height: 310px;
     max-width: 100%;
     object-fit: contain;
     object-position: bottom center;
-    filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.14));
+    filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.16));
     transform: none !important;
     animation: none !important;
   }
@@ -3024,6 +3042,73 @@ body.policy-page {
 .nav-drawer-slot { display: flex; flex-direction: column; gap: 8px; }
 .nav-drawer-slot .language-switch { display: flex; width: 100%; }
 .nav-drawer-slot .lang-btn { flex: 1; min-height: 44px; font-size: 12px; }
+.nav-drawer-gamification {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 14px;
+  border-bottom: 1.5px solid #f1f5f9;
+}
+.nav-drawer-gamification-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.nav-game-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  text-align: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.nav-game-pill:hover {
+  transform: translateY(-1px);
+}
+.nav-game-pill:active {
+  transform: scale(0.97);
+}
+.nav-game-pill .game-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.nav-game-pill strong {
+  font: 800 13px/1.2 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif);
+  color: #0f172a;
+}
+.nav-game-pill .game-label {
+  font-size: 9.5px;
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.nav-game-pill.game-streak {
+  background: #fffbeb;
+  border-color: #fef08a;
+}
+.nav-game-pill.game-streak strong {
+  color: #b45309;
+}
+.nav-game-pill.game-xp {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.nav-game-pill.game-xp strong {
+  color: #1d4ed8;
+}
+.nav-game-pill.game-level {
+  background: #fdf4ff;
+  border-color: #f5d0fe;
+}
+.nav-game-pill.game-level strong {
+  color: #a21caf;
+}
 
 .nav-drawer-missions {
   display: flex;

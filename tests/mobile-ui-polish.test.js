@@ -104,20 +104,42 @@ test.describe('Mobile UI & Sunshine & Sky Theme Polish Verification', () => {
     // 1) Mission deck hidden on mobile hero to prevent dock clipping
     assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.mission-deck\s*\{[\s\S]*?display:\s*none\s*!important/);
 
-    // 2) Hero avatar stage has bounded height on mobile
-    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?height:\s*clamp\(200px,\s*32vh,\s*260px\)/);
+    // 2) Hero avatar stage is noticeably larger on mobile to fill stage
+    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?height:\s*clamp\(260px,\s*38vh,\s*340px\)/);
+    assert.match(cssContent, /\.avatar-interactive-figure\s+\.hero-appu-photo\s*\{[\s\S]*?max-height:\s*310px/);
 
-    // 3) When lesson is active on mobile: mission stage is an in-flow flex column
+    // 3) Mission eyebrow is hidden on mobile like production
+    assert.match(cssContent, /#mission-eyebrow[\s\S]*?display:\s*none\s*!important/);
+
+    // 4) When lesson is active on mobile: mission stage is an in-flow flex column
     assert.match(cssContent, /\.mission-stage\.has-lesson-active\s*\{[\s\S]*?display:\s*flex\s*!important;\s*flex-direction:\s*column\s*!important/);
 
-    // 4) Appu model on mobile active lesson is in-flow relative (NEVER absolute over content)
+    // 5) Appu model on mobile active lesson is in-flow relative (NEVER absolute over content)
     assert.match(cssContent, /\.mission-stage\.has-lesson-active\s+\.avatar-stage\s*\{[\s\S]*?position:\s*relative\s*!important/);
 
-    // 5) Voice reply popup on mobile active lesson is in-flow relative (NEVER absolute over content)
+    // 6) Voice reply popup on mobile active lesson is in-flow relative (NEVER absolute over content)
     assert.match(cssContent, /\.mission-stage\.has-lesson-active\s+\.voice-reply-popup\s*\{[\s\S]*?position:\s*relative\s*!important/);
 
-    // 6) Concept tree branches on mobile stack in a single full-width column
+    // 7) Concept tree branches on mobile stack in a single full-width column
     assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.concept-tree-branches-grid[\s\S]*?grid-template-columns:\s*1fr\s*!important/);
+  });
+
+  test.it('verifies mobile topbar fits without horizontal clipping and houses gamification in nav drawer', () => {
+    // Topbar actions hides crammed gamification bar on mobile to prevent clipping
+    assert.match(cssContent, /\.topbar-actions\s+#gamification-widget[\s\S]*?display:\s*none\s*!important/);
+
+    // Nav drawer houses learning progress widget cleanly
+    assert.ok(htmlContent.includes('id="nav-drawer-gamification"'));
+    assert.ok(htmlContent.includes('id="drawer-streak-count"'));
+    assert.ok(htmlContent.includes('id="drawer-xp-count"'));
+    assert.ok(htmlContent.includes('id="drawer-level-tag"'));
+    assert.match(cssContent, /\.nav-drawer-gamification\s*\{/);
+
+    // Multilingual support for drawer progress title
+    assert.ok(appJsContent.includes('drawerProgressTitle'));
+    assert.ok(appJsContent.includes("'My Progress'"));
+    assert.ok(appJsContent.includes("'ನನ್ನ ಪ್ರಗತಿ'"));
+    assert.ok(appJsContent.includes("'मेरी प्रगति'"));
   });
 
   test.it('verifies nav drawer houses learning missions cleanly for mobile access', () => {
