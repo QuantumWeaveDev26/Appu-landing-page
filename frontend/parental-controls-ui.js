@@ -202,29 +202,28 @@
 
   function tickActivity() {
     const now = Date.now();
-    const elapsed = Math.max(0, Math.min(5000, now - lastTickTimestamp));
+    // Count real elapsed wall-clock time. Cap each tick at 5 min so background-tab
+    // timer throttling or machine sleep can't drop or over-count a huge single gap.
+    const elapsed = Math.max(0, Math.min(300000, now - lastTickTimestamp));
     lastTickTimestamp = now;
 
     if (isLocked) {
-      // While locked, time does not advance active learning
+      // While locked, time does not advance toward a new limit
       awayMsAccumulator += elapsed;
       return;
     }
 
-    const isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
-    const isUserActive = (now - lastUserActivityTimestamp) < IDLE_TIMEOUT_MS;
-
-    if (isVisible && isUserActive) {
-      activeMsAccumulator += elapsed;
-      if (isEnabled && timeRemainingSeconds > 0) {
-        timeRemainingSeconds = Math.max(0, timeRemainingSeconds - Math.round(elapsed / 1000));
-        updateTimerBadge();
-        if (timeRemainingSeconds <= 0 && !isLocked) {
-          triggerLock();
-        }
+    // Wall-clock policy: the 30-minute window counts real time from when the child
+    // opened the site — whether the tab is focused, backgrounded, or idle. This
+    // sends all elapsed time to the backend as active, so it locks after exactly
+    // 30 real minutes even if the child switches away from the tab.
+    activeMsAccumulator += elapsed;
+    if (isEnabled && timeRemainingSeconds > 0) {
+      timeRemainingSeconds = Math.max(0, timeRemainingSeconds - Math.round(elapsed / 1000));
+      updateTimerBadge();
+      if (timeRemainingSeconds <= 0 && !isLocked) {
+        triggerLock();
       }
-    } else {
-      awayMsAccumulator += elapsed;
     }
   }
 
