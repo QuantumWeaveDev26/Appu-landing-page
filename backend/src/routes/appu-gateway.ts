@@ -14,6 +14,7 @@ import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
 import { PersonalisationRepository } from '../domain/personalisation/repository.js';
 import type { GuestMentorContext } from '../domain/personalisation/types.js';
+import { AdaptiveLearningService } from '../domain/adaptive-learning/service.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
@@ -52,6 +53,7 @@ export interface AppuGatewayRouteOptions {
   db: TransactionalQueryable;
   authVerifier: AuthVerifier;
   n8nClient: N8nClient;
+  devN8nClient?: N8nClient;
   guestSessionSecret?: string;
   betaMode?: boolean;
   betaChatLimit?: number;
@@ -74,7 +76,10 @@ const authenticatedMessageSchema = z.object({
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Invalid language code format (e.g. en, kn, hi)')
     .optional(),
   includeAudio: z.boolean().optional(),
-  imageBase64: z.string().trim().max(6_000_000, 'Image payload too large').optional()
+  imageBase64: z.string().trim().max(6_000_000, 'Image payload too large').optional(),
+  // Develop-only flag: opts this request into Phase B/C experimental learning
+  // (adaptive difficulty + out-of-syllabus tracking). Absent for all prod users.
+  experimentalLearning: z.boolean().optional()
 });
 
 const guestMessageSchema = z.object({
@@ -213,7 +218,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         });
       }
 
-      const { childId, conversationId, newConversation, message, language, includeAudio, imageBase64 } = parseResult.data;
+      const { childId, conversationId, newConversation, message, language, includeAudio, imageBase64, experimentalLearning } = parseResult.data;
 
       let imagePayload: { mimeType: string; base64: string } | null = null;
       if (imageBase64) {
@@ -439,14 +444,19 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
         mentorContext,
         parentPhone,
-        whatsappConsent
+        whatsappConsent,
+        ...(experimentalLearning ? { experimentalLearning: true } : {})
       };
 
-      // 6. Forward to n8n via secure client with reservation rollback on failure
+      // 6. Forward to n8n via secure client with reservation rollback on failure.
+      // Experimental-learning (Phase B/C) requests route to the dev brain when
+      // configured; the live brain is never touched. Falls back to the live brain
+      // when no dev brain is set.
+      const brainClient = experimentalLearning && opts.devN8nClient ? opts.devN8nClient : opts.n8nClient;
       const tN8nStart = performance.now();
       let response: any;
       try {
-        response = await opts.n8nClient.sendMessage(envelope);
+        response = await brainClient.sendMessage(envelope);
       } catch (error: any) {
         if (error?.code !== ErrorCodes.SERVICE_TEMPORARILY_UNAVAILABLE) {
           await AppuRequestService.reconcile(opts.db, {
@@ -491,6 +501,20 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         } catch (err) {
           request.log.error({ err, requestId: lifecycle.id }, 'Failed to persist conversation exchange; returning success anyway');
         }
+      }
+
+      // Phase B/C (experimental requests only): persist adaptive-learning +
+      // out-of-syllabus signals from the brain's response. Fail-safe internally.
+      if (experimentalLearning) {
+        await AdaptiveLearningService.applyTurn(
+          opts.db,
+          household.id,
+          child.id,
+          `appu_request_${lifecycle.id}`,
+          (response as any)?.decision ?? null,
+          (response as any)?.syllabus ?? null,
+          message
+        );
       }
 
       // 8. DUPLICATE TTS SAFETY: If the response text is Kannada or Hindi (even from an English learner

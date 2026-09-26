@@ -121,6 +121,9 @@ export class DefaultN8nClient implements N8nClient {
       text: text || 'Namaskara! I am listening.',
       audioSource,
       audioDurationMs,
+      // Phase B/C (experimental dev brain): pass through the learning signals.
+      decision: (data as any).decision ?? undefined,
+      syllabus: (data as any).syllabus ?? undefined,
       raw: parsed
     };
   }

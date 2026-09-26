@@ -42,6 +42,7 @@ export class MentorContextBuilder {
       nickname?: string | null;
       dob?: string | null;
       gender?: string | null;
+      learnerLevel?: number | null;
     },
     personalisation: {
       preferredLanguage?: string;
@@ -65,6 +66,7 @@ export class MentorContextBuilder {
       learnerName: effectiveName,
       grade: child.gradeBand,
       gender: child.gender ?? null,
+      learnerLevel: child.learnerLevel ?? null,
       primaryLanguage: multilingualEnabled
         ? (personalisation?.preferredLanguage ?? 'en')
         : 'en',

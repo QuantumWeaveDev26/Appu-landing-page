@@ -24,6 +24,15 @@ export interface ChildPerformanceReport {
   topicsCovered: string[]; // 0-12 chips
   recommendations: string[]; // 3-5 actionable
   engagement: ReportEngagement;
+  // Phase C: off-syllabus topics the child explored, framed positively.
+  // Optional/empty by default; the report UI hides the section when empty.
+  curiosityBeyondSyllabus?: CuriosityTopic[];
+}
+
+export interface CuriosityTopic {
+  topic: string;
+  expectedGrade: string | null;
+  when: string; // ISO-8601
 }
 
 export interface LlmReportOutput {

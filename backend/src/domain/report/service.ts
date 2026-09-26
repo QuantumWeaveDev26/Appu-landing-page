@@ -8,6 +8,7 @@ import { TenancyRepository } from '../tenancy/repository.js';
 import { PersonalisationRepository } from '../personalisation/repository.js';
 import { EntitlementEnforcementService } from '../entitlements/enforcement-service.js';
 import { FamilyFeedbackService } from '../feedback/service.js';
+import { AdaptiveLearningService } from '../adaptive-learning/service.js';
 import { ReportAggregator } from './aggregator.js';
 import { ReportLlmClient } from './llm.js';
 import { renderReportPdf } from './pdf-renderer.js';
@@ -98,6 +99,20 @@ export class ReportService {
       apiKey: options?.apiKey
     });
 
+    // Phase C: off-syllabus topics the child explored (positively framed).
+    // Fail-safe: never let this break report generation.
+    let curiosityBeyondSyllabus: ChildPerformanceReport['curiosityBeyondSyllabus'] = [];
+    try {
+      const events = await AdaptiveLearningService.listOutOfSyllabusEvents(db, householdId, childId, 90, 20);
+      curiosityBeyondSyllabus = events.map((e) => ({
+        topic: e.topic,
+        expectedGrade: e.expectedGrade,
+        when: e.createdAt.toISOString()
+      }));
+    } catch {
+      curiosityBeyondSyllabus = [];
+    }
+
     const report: ChildPerformanceReport = {
       childName: effectiveName,
       grade: child.gradeBand,
@@ -111,7 +126,8 @@ export class ReportService {
       improvements: llmOutput.improvements,
       topicsCovered: llmOutput.topicsCovered,
       recommendations: llmOutput.recommendations,
-      engagement
+      engagement,
+      curiosityBeyondSyllabus
     };
 
     return report;

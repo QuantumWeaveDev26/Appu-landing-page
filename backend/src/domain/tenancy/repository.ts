@@ -41,6 +41,8 @@ interface ChildProfileRow {
   nickname?: string | null;
   dob?: Date | string | null;
   gender?: string | null;
+  learner_level?: number | string | null;
+  learner_level_samples?: number | string | null;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -88,6 +90,8 @@ function mapChildProfileRow(row: ChildProfileRow): ChildProfile {
     nickname: row.nickname ?? null,
     dob: dobStr,
     gender: row.gender ?? null,
+    learnerLevel: row.learner_level === null || row.learner_level === undefined ? null : Number(row.learner_level),
+    learnerLevelSamples: row.learner_level_samples === null || row.learner_level_samples === undefined ? 0 : Number(row.learner_level_samples),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at)
   };
@@ -264,7 +268,7 @@ export class TenancyRepository {
     const result = await db.query<ChildProfileRow>(
       `INSERT INTO child_profiles (household_id, preferred_name, grade_band, status, nickname, dob, gender, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-       RETURNING id, household_id, preferred_name, grade_band, status, nickname, dob, gender, created_at, updated_at;`,
+       RETURNING id, household_id, preferred_name, grade_band, status, nickname, dob, gender, learner_level, learner_level_samples, created_at, updated_at;`,
       [
         input.householdId,
         input.preferredName,
@@ -290,7 +294,7 @@ export class TenancyRepository {
     childId: string
   ): Promise<ChildProfile | null> {
     const result = await db.query<ChildProfileRow>(
-      `SELECT id, household_id, preferred_name, grade_band, status, nickname, dob, gender, created_at, updated_at
+      `SELECT id, household_id, preferred_name, grade_band, status, nickname, dob, gender, learner_level, learner_level_samples, created_at, updated_at
        FROM child_profiles
        WHERE household_id = $1 AND id = $2;`,
       [householdId, childId]
@@ -311,7 +315,7 @@ export class TenancyRepository {
     householdId: string
   ): Promise<ChildProfile[]> {
     const result = await db.query<ChildProfileRow>(
-      `SELECT id, household_id, preferred_name, grade_band, status, nickname, dob, gender, created_at, updated_at
+      `SELECT id, household_id, preferred_name, grade_band, status, nickname, dob, gender, learner_level, learner_level_samples, created_at, updated_at
        FROM child_profiles
        WHERE household_id = $1
        ORDER BY created_at ASC;`,
@@ -386,6 +390,17 @@ export class TenancyRepository {
       values.push(input.gender);
     }
 
+    if (input.learnerLevel !== undefined) {
+      fields.push(`learner_level = $${idx++}`);
+      values.push(input.learnerLevel);
+      fields.push('learner_level_updated_at = NOW()');
+    }
+
+    if (input.learnerLevelSamples !== undefined) {
+      fields.push(`learner_level_samples = $${idx++}`);
+      values.push(input.learnerLevelSamples);
+    }
+
     if (fields.length === 0) {
       return TenancyRepository.getChildProfile(db, householdId, childId);
     }
@@ -396,7 +411,7 @@ export class TenancyRepository {
       `UPDATE child_profiles
        SET ${fields.join(', ')}
        WHERE household_id = $1 AND id = $2
-       RETURNING id, household_id, preferred_name, grade_band, status, nickname, dob, gender, created_at, updated_at;`,
+       RETURNING id, household_id, preferred_name, grade_band, status, nickname, dob, gender, learner_level, learner_level_samples, created_at, updated_at;`,
       values
     );
 

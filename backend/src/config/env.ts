@@ -68,6 +68,12 @@ export const envSchema = z
       .string()
       .url('N8N_APPU_WEBHOOK_URL must be a valid URL')
       .optional(),
+    // Develop-only brain for Phase B/C experimental-learning requests. When set,
+    // the gateway routes ONLY experimentalLearning requests here; unset in prod.
+    N8N_APPU_DEV_WEBHOOK_URL: z
+      .string()
+      .url('N8N_APPU_DEV_WEBHOOK_URL must be a valid URL')
+      .optional(),
     N8N_APPU_REQUEST_HMAC_SECRET: z
       .string()
       .min(32, 'N8N_APPU_REQUEST_HMAC_SECRET must be at least 32 characters')

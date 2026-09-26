@@ -33,6 +33,7 @@ async function runSmokeTest() {
         learnerName: 'SmokeTestChild',
         grade: 'Grade 5',
         gender: null,
+        learnerLevel: null,
         primaryLanguage: 'en',
         learningStyle: 'visual',
         responseStyle: 'playful',

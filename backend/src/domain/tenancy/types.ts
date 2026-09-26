@@ -38,6 +38,8 @@ export interface ChildProfile {
   nickname: string | null;
   dob: string | null;
   gender: string | null;
+  learnerLevel: number | null;
+  learnerLevelSamples: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +71,8 @@ export interface UpdateChildProfileInput {
   nickname?: string | null;
   dob?: string | null;
   gender?: string | null;
+  learnerLevel?: number | null;
+  learnerLevelSamples?: number;
 }
 
 export interface HouseholdNotificationPreferences {

@@ -41,6 +41,7 @@ export interface BuildAppOptions {
   authVerifier?: AuthVerifier;
   razorpayClient?: RazorpayClient;
   n8nClient?: N8nClient;
+  devN8nClient?: N8nClient;
   elevenLabsStreamService?: ElevenLabsStreamService;
 }
 
@@ -224,6 +225,18 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     });
   }
 
+  // Optional develop-only brain for Phase B/C experimental-learning requests.
+  // When set, the gateway routes ONLY experimentalLearning requests here; the
+  // live brain is never touched. Unset in production -> flag falls back to live brain.
+  let devN8nClient: N8nClient | undefined = options.devN8nClient;
+  if (!devN8nClient && config.N8N_APPU_DEV_WEBHOOK_URL) {
+    devN8nClient = new DefaultN8nClient({
+      webhookUrl: config.N8N_APPU_DEV_WEBHOOK_URL,
+      timeoutMs: config.N8N_APPU_TIMEOUT_MS,
+      requestSigningSecret: config.N8N_APPU_REQUEST_HMAC_SECRET
+    });
+  }
+
   // Resolve ElevenLabsStreamService
   let elevenLabsStreamService = options.elevenLabsStreamService;
   if (!elevenLabsStreamService) {
@@ -355,6 +368,7 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         db: options.database,
         authVerifier,
         n8nClient,
+        devN8nClient,
         guestSessionSecret: config.GUEST_SESSION_SECRET,
         betaMode: config.APPU_BETA_MODE,
         betaChatLimit: config.APPU_BETA_CHAT_LIMIT,

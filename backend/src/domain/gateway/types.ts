@@ -18,6 +18,7 @@ export interface N8nMessageEnvelope {
   mentorContext: MentorContext;
   parentPhone?: string | null;
   whatsappConsent?: boolean;
+  experimentalLearning?: boolean;
 }
 
 export interface N8nMessageResponse {
@@ -25,6 +26,9 @@ export interface N8nMessageResponse {
   audioSource: string | null;
   audioDurationMs?: number | null;
   raw?: unknown;
+  // Phase B/C (experimental): decision record + syllabus classification for this turn.
+  decision?: unknown;
+  syllabus?: unknown;
 }
 
 export interface N8nClient {
