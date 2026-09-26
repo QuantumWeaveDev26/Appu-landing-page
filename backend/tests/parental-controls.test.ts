@@ -401,10 +401,10 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
       locked: false,
       activeSeconds: 40,
       awaySeconds: 10,
-      timeRemainingSeconds: 60
+      timeRemainingSeconds: 50
     });
 
-    // 2. Send second heartbeat (40s active, 5s away) -> total 80s active
+    // 2. Send second heartbeat (40s active, 5s away) -> 80s active + 15s away = 95s wall-clock
     const res2 = await app.inject({
       method: 'POST',
       url: '/api/appu/session/heartbeat',
@@ -422,10 +422,10 @@ describe('APPU Parental Controls & WhatsApp Dispatch Suite', () => {
       locked: false,
       activeSeconds: 80,
       awaySeconds: 15,
-      timeRemainingSeconds: 20
+      timeRemainingSeconds: 5
     });
 
-    // 3. Send third heartbeat (30s active) -> total 110s active -> crosses 100s threshold!
+    // 3. Send third heartbeat (30s active) -> 110s active + 15s away = 125s wall-clock -> crosses 100s threshold!
     const res3 = await app.inject({
       method: 'POST',
       url: '/api/appu/session/heartbeat',

@@ -54,6 +54,7 @@ export interface AuthenticatedMentorContext {
   learnerId: string;
   learnerName: string;
   grade: string;
+  gender: string | null;
   primaryLanguage: string;
   learningStyle: LearningStyle;
   responseStyle: ResponseStyle;

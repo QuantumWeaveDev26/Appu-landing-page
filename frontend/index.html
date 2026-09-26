@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260925-01">
+  <link rel="stylesheet" href="style.css?v=20260925-12">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -447,88 +447,115 @@
       <!-- STEP 4: PERSONALISATION QUESTIONNAIRE -->
       <div id="pos-step-pers" class="pos-step-pers-content" style="display:none;">
         <p class="pos-subtitle"><span id="pos-pers-intro-text">Personalize Appu for</span> <strong id="pos-pers-child-name" class="text-cyan">Learner</strong>:</p>
-        <form id="pos-pers-form" class="discovery-form">
-          <div class="field-grid">
-            <label><span id="pos-child-nickname-label">Learner Nickname</span>
-              <input id="pos-child-nickname" type="text" maxlength="50" placeholder="e.g. Shree or Alex">
-            </label>
-            <label><span id="pos-child-dob-label">Date of Birth</span>
-              <input id="pos-child-dob" type="date">
-            </label>
-          </div>
-          <div class="field-grid">
-            <label><span id="pos-pers-lang-label">Primary Language</span>
-              <select id="pos-pers-lang">
-                <option value="en" selected>English</option>
-                <option value="kn">Kannada (ಕನ್ನಡ)</option>
-                <option value="hi">Hindi (हिंदी)</option>
-                <option value="te">Telugu (తెలుగు)</option>
-                <option value="ta">Tamil (தமிழ்)</option>
-              </select>
-            </label>
-            <label><span id="pos-pers-style-label">Learning Style</span>
-              <select id="pos-pers-style">
-                <option id="pos-style-opt-interactive" value="interactive" selected>Interactive (conversations & questions)</option>
-                <option id="pos-style-opt-visual" value="visual">Visual (examples & diagrams)</option>
-                <option id="pos-style-opt-auditory" value="auditory">Auditory (spoken explanations)</option>
-                <option id="pos-style-opt-reading" value="reading_writing">Reading & Writing (structured notes)</option>
-              </select>
-            </label>
-          </div>
-          <div class="field-grid">
-            <label><span id="pos-pers-response-label">Response Style</span>
-              <select id="pos-pers-response">
-                <option id="pos-response-opt-playful" value="playful" selected>Playful & Encouraging</option>
-                <option id="pos-response-opt-balanced" value="balanced">Balanced & Clear</option>
-                <option id="pos-response-opt-focused" value="focused">Focused & Direct</option>
-              </select>
-            </label>
-            <label><span id="pos-pers-font-label">Reading Font Style</span>
-              <select id="pos-pers-font">
-                <option id="pos-font-opt-rounded" value="rounded" selected>Friendly Rounded</option>
-                <option id="pos-font-opt-friendly" value="friendly">Friendly Standard</option>
-                <option id="pos-font-opt-clean" value="clean">Clean Minimal</option>
-              </select>
-            </label>
-          </div>
-          <div class="field-grid">
-            <label><span id="pos-pers-theme-label">Theme Mode</span>
-              <select id="pos-pers-theme">
-                <option id="pos-theme-opt-auto" value="auto" selected>Auto</option>
-                <option id="pos-theme-opt-bright" value="bright">Bright & Energetic</option>
-                <option id="pos-theme-opt-calm" value="calm">Calm & Focused</option>
-              </select>
-            </label>
-            <label><span id="pos-pers-subjects-label">Favorite Subjects</span>
-              <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
-            </label>
-          </div>
-          <label><span id="pos-pers-interests-label">Favorite Interests & Hobbies (comma-separated)</span>
-            <input id="pos-pers-interests" type="text" placeholder="Space, Robotics, Astronomy, Dinosaurs">
-          </label>
-          <label><span id="pos-pers-goals-label">Learning Goal for Appu</span>
-            <input id="pos-pers-goals" type="text" placeholder="Master school science and build creative curiosity">
-          </label>
 
-          <div class="pos-whatsapp-section">
-            <div class="pos-whatsapp-header">
-              <span class="pos-whatsapp-icon" aria-hidden="true"><i class="fa-brands fa-whatsapp"></i></span>
-              <div class="pos-whatsapp-header-text">
-                <strong id="pos-whatsapp-title">Parent WhatsApp Learning Updates</strong>
-                <span id="pos-whatsapp-badge" class="pos-optional-badge required">Required</span>
-              </div>
+        <div class="pos-tabs" role="tablist" aria-label="Personalization Sections">
+          <button id="pos-pers-tab-basic" class="pos-tab active" type="button" role="tab" aria-selected="true" aria-controls="pos-pers-panel-basic">
+            <i class="fa-solid fa-user-graduate" aria-hidden="true" style="margin-right: 6px;"></i><span id="pos-pers-tab-basic-text">Basic Profile</span>
+          </button>
+          <button id="pos-pers-tab-advanced" class="pos-tab" type="button" role="tab" aria-selected="false" aria-controls="pos-pers-panel-advanced">
+            <i class="fa-solid fa-sliders" aria-hidden="true" style="margin-right: 6px;"></i><span id="pos-pers-tab-advanced-text">Advanced Preferences</span>
+          </button>
+        </div>
+
+        <form id="pos-pers-form" class="discovery-form">
+          <!-- BASIC PROFILE PANEL -->
+          <div id="pos-pers-panel-basic" class="pos-pers-tab-panel" role="tabpanel">
+            <div class="field-grid">
+              <label><span id="pos-child-nickname-label">Learner Nickname</span>
+                <input id="pos-child-nickname" type="text" maxlength="50" placeholder="e.g. Shree or Alex">
+              </label>
+              <label><span id="pos-child-gender-label">Gender</span>
+                <select id="pos-child-gender">
+                  <option value="">Select Gender (Optional)</option>
+                  <option value="boy">Boy</option>
+                  <option value="girl">Girl</option>
+                  <option value="other">Prefer not to say</option>
+                </select>
+              </label>
             </div>
-            <label><span id="pos-parent-phone-label">Parent WhatsApp Number</span>
-              <input id="pos-parent-phone" type="tel" autocomplete="tel" placeholder="+91 98765 43210">
+            <div class="field-grid">
+              <label><span id="pos-child-dob-label">Date of Birth</span>
+                <input id="pos-child-dob" type="date">
+              </label>
+              <label><span id="pos-pers-lang-label">Primary Language</span>
+                <select id="pos-pers-lang">
+                  <option value="en" selected>English</option>
+                  <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                  <option value="hi">Hindi (हिंदी)</option>
+                  <option value="te">Telugu (తెలుగు)</option>
+                  <option value="ta">Tamil (தமிழ்)</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="pos-whatsapp-section">
+              <div class="pos-whatsapp-header">
+                <span class="pos-whatsapp-icon" aria-hidden="true"><i class="fa-brands fa-whatsapp"></i></span>
+                <div class="pos-whatsapp-header-text">
+                  <strong id="pos-whatsapp-title">Parent WhatsApp Learning Updates</strong>
+                  <span id="pos-whatsapp-badge" class="pos-optional-badge required">Required</span>
+                </div>
+              </div>
+              <label><span id="pos-parent-phone-label">Parent WhatsApp Number</span>
+                <input id="pos-parent-phone" type="tel" autocomplete="tel" placeholder="+91 98765 43210">
+              </label>
+              <label class="pos-whatsapp-consent-row">
+                <input id="pos-whatsapp-consent" type="checkbox">
+                <span id="pos-whatsapp-consent-label">Send me occasional learning milestones, daily study summaries, and study notes for my child on WhatsApp.</span>
+              </label>
+              <p class="pos-whatsapp-rationale">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                <span id="pos-whatsapp-rationale-text">Why we ask: We use your number exclusively to share study summaries and learning milestones. We never share phone numbers with third parties or send promotional spam. You can opt out anytime.</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- ADVANCED PREFERENCES PANEL -->
+          <div id="pos-pers-panel-advanced" class="pos-pers-tab-panel" role="tabpanel" style="display: none;">
+            <div class="field-grid">
+              <label><span id="pos-pers-style-label">Learning Style</span>
+                <select id="pos-pers-style">
+                  <option id="pos-style-opt-interactive" value="interactive" selected>Interactive (conversations & questions)</option>
+                  <option id="pos-style-opt-visual" value="visual">Visual (examples & diagrams)</option>
+                  <option id="pos-style-opt-auditory" value="auditory">Auditory (spoken explanations)</option>
+                  <option id="pos-style-opt-reading" value="reading_writing">Reading & Writing (structured notes)</option>
+                </select>
+              </label>
+              <label><span id="pos-pers-response-label">Response Style</span>
+                <select id="pos-pers-response">
+                  <option id="pos-response-opt-playful" value="playful" selected>Playful & Encouraging</option>
+                  <option id="pos-response-opt-balanced" value="balanced">Balanced & Clear</option>
+                  <option id="pos-response-opt-focused" value="focused">Focused & Direct</option>
+                </select>
+              </label>
+            </div>
+            <div class="field-grid">
+              <label><span id="pos-pers-font-label">Reading Font Style</span>
+                <select id="pos-pers-font">
+                  <option id="pos-font-opt-rounded" value="rounded" selected>Friendly Rounded</option>
+                  <option id="pos-font-opt-friendly" value="friendly">Friendly Standard</option>
+                  <option id="pos-font-opt-clean" value="clean">Clean Minimal</option>
+                </select>
+              </label>
+              <label><span id="pos-pers-theme-label">Theme Mode</span>
+                <select id="pos-pers-theme">
+                  <option id="pos-theme-opt-auto" value="auto" selected>Auto</option>
+                  <option id="pos-theme-opt-bright" value="bright">Bright & Energetic</option>
+                  <option id="pos-theme-opt-calm" value="calm">Calm & Focused</option>
+                </select>
+              </label>
+            </div>
+            <div class="field-grid">
+              <label><span id="pos-pers-subjects-label">Favorite Subjects</span>
+                <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
+              </label>
+            </div>
+            <label><span id="pos-pers-interests-label">Favorite Interests & Hobbies (comma-separated)</span>
+              <input id="pos-pers-interests" type="text" placeholder="Space, Robotics, Astronomy, Dinosaurs">
             </label>
-            <label class="pos-whatsapp-consent-row">
-              <input id="pos-whatsapp-consent" type="checkbox">
-              <span id="pos-whatsapp-consent-label">Send me occasional learning milestones, daily study summaries, and study notes for my child on WhatsApp.</span>
+            <label><span id="pos-pers-goals-label">Learning Goal for Appu</span>
+              <input id="pos-pers-goals" type="text" placeholder="Master school science and build creative curiosity">
             </label>
-            <p class="pos-whatsapp-rationale">
-              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-              <span id="pos-whatsapp-rationale-text">Why we ask: We use your number exclusively to share study summaries and learning milestones. We never share phone numbers with third parties or send promotional spam. You can opt out anytime.</span>
-            </p>
           </div>
 
           <button id="pos-btn-pers-submit" class="primary-modal-btn" type="submit">Save Preferences & Launch</button>
@@ -687,19 +714,19 @@
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260925-01"></script>
-  <script src="appu-config.js?v=20260925-01"></script>
-  <script src="appu-session.js?v=20260925-01"></script>
-  <script src="appu-backend-client.js?v=20260925-01"></script>
-  <script src="parent-onboarding-shell.js?v=20260925-01"></script>
-  <script src="parent-setup-ui.js?v=20260925-01"></script>
-  <script src="prompt-library-ui.js?v=20260925-01"></script>
-  <script src="avatar-stage.js?v=20260925-01"></script>
-  <script src="voice-engine.js?v=20260925-01"></script>
-  <script src="chat-history.js?v=20260925-01"></script>
-  <script src="chat-agent.js?v=20260925-01"></script>
-  <script src="parent-reports-ui.js?v=20260925-01"></script>
-  <script src="parental-controls-ui.js?v=20260925-01"></script>
-  <script src="app.js?v=20260925-01"></script>
+  <script src="voice-contract.js?v=20260925-12"></script>
+  <script src="appu-config.js?v=20260925-12"></script>
+  <script src="appu-session.js?v=20260925-12"></script>
+  <script src="appu-backend-client.js?v=20260925-12"></script>
+  <script src="parent-onboarding-shell.js?v=20260925-12"></script>
+  <script src="parent-setup-ui.js?v=20260925-12"></script>
+  <script src="prompt-library-ui.js?v=20260925-12"></script>
+  <script src="avatar-stage.js?v=20260925-12"></script>
+  <script src="voice-engine.js?v=20260925-12"></script>
+  <script src="chat-history.js?v=20260925-12"></script>
+  <script src="chat-agent.js?v=20260925-12"></script>
+  <script src="parent-reports-ui.js?v=20260925-12"></script>
+  <script src="parental-controls-ui.js?v=20260925-12"></script>
+  <script src="app.js?v=20260925-12"></script>
 </body>
 </html>

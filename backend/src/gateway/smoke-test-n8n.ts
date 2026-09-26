@@ -32,6 +32,7 @@ async function runSmokeTest() {
         learnerId: '00000000-0000-0000-0000-000000000000',
         learnerName: 'SmokeTestChild',
         grade: 'Grade 5',
+        gender: null,
         primaryLanguage: 'en',
         learningStyle: 'visual',
         responseStyle: 'playful',

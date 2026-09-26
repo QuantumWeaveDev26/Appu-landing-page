@@ -143,7 +143,8 @@ const updatePersonalisationSchema = z.object({
   parentPhone: z.string().nullable().optional(),
   whatsappConsent: z.boolean().optional(),
   nickname: nicknameSchema,
-  dob: dobSchema
+  dob: dobSchema,
+  gender: z.enum(['boy', 'girl', 'other']).nullable().optional()
 });
 
 const paramsSchema = z.object({
@@ -205,6 +206,7 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         preferredName: child.preferredName,
         nickname: child.nickname,
         dob: child.dob,
+        gender: child.gender,
         gradeBand: child.gradeBand,
         status: child.status,
         createdAt: child.createdAt,
@@ -236,6 +238,7 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         preferredName: c.preferredName,
         nickname: c.nickname,
         dob: c.dob,
+        gender: c.gender,
         gradeBand: c.gradeBand,
         status: c.status,
         createdAt: c.createdAt,
@@ -278,6 +281,7 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         preferredName: child.preferredName,
         nickname: child.nickname,
         dob: child.dob,
+        gender: child.gender,
         gradeBand: child.gradeBand,
         status: child.status,
         createdAt: child.createdAt,
@@ -332,6 +336,7 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
         preferredName: updatedChild.preferredName,
         nickname: updatedChild.nickname,
         dob: updatedChild.dob,
+        gender: updatedChild.gender,
         gradeBand: updatedChild.gradeBand,
         status: updatedChild.status,
         createdAt: updatedChild.createdAt,
@@ -424,15 +429,16 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       throw new NotFoundError('Child profile not found');
     }
 
-    const { parentPhone, whatsappConsent, nickname, dob, ...personalisationData } = bodyResult.data;
+    const { parentPhone, whatsappConsent, nickname, dob, gender, ...personalisationData } = bodyResult.data;
 
     let updated;
     try {
       updated = await opts.db.transaction(async (tx) => {
-        if (nickname !== undefined || dob !== undefined) {
+        if (nickname !== undefined || dob !== undefined || gender !== undefined) {
           await TenancyRepository.updateChildProfile(tx, household.id, child.id, {
             ...(nickname !== undefined ? { nickname } : {}),
-            ...(dob !== undefined ? { dob } : {})
+            ...(dob !== undefined ? { dob } : {}),
+            ...(gender !== undefined ? { gender } : {})
           });
         }
 

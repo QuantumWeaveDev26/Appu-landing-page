@@ -37,6 +37,7 @@ export interface ChildProfile {
   status: ChildStatus;
   nickname: string | null;
   dob: string | null;
+  gender: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +59,7 @@ export interface CreateChildProfileInput {
   status?: ChildStatus;
   nickname?: string | null;
   dob?: string | null;
+  gender?: string | null;
 }
 
 export interface UpdateChildProfileInput {
@@ -66,6 +68,7 @@ export interface UpdateChildProfileInput {
   status?: ChildStatus;
   nickname?: string | null;
   dob?: string | null;
+  gender?: string | null;
 }
 
 export interface HouseholdNotificationPreferences {

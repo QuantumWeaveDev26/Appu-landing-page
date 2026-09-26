@@ -148,8 +148,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .stage-backdrop { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(3, 9, 20, .48), rgba(3, 10, 21, .05) 44%, rgba(3, 9, 20, .44)), linear-gradient(180deg, rgba(4, 11, 24, .06), rgba(4, 10, 22, .4)), url('assets/keynote-stage.jpg') center 38%/cover; opacity: 1; filter: brightness(1.16) saturate(1.08); }
 .stage-grid { position: absolute; inset: 0; opacity: .14; background-image: linear-gradient(rgba(68, 215, 255, .2) 1px, transparent 1px), linear-gradient(90deg, rgba(68, 215, 255, .16) 1px, transparent 1px); background-size: 68px 68px; mask-image: linear-gradient(to bottom, transparent 0, black 35%, black); transform: perspective(450px) rotateX(58deg) scale(1.6) translateY(29%); transform-origin: bottom; }
 .mission-intro { position: absolute; z-index: 12; top: 20px; left: 50%; width: min(700px, 70%); text-align: center; transform: translateX(-50%); }
-.mission-intro .eyebrow { margin: 0 0 7px; color: #7cecff; font: 700 11px/1.2 Space Grotesk, sans-serif; letter-spacing: .15em; text-transform: uppercase; }
-.mission-intro h1 { margin: 0; font: 700 clamp(30px, 3vw, 48px)/1.02 Space Grotesk, sans-serif; letter-spacing: -.045em; text-wrap: balance; text-shadow: 0 5px 24px #000; }
+.mission-intro h1 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 8px 24px;
+  border-radius: 999px;
+  background: rgba(4, 15, 30, 0.85);
+  border: 1px solid rgba(68, 215, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font: 700 clamp(24px, 2.6vw, 40px)/1.15 Space Grotesk, sans-serif;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+  color: #fff;
+  text-shadow: none;
+  max-width: 95%;
+  box-sizing: border-box;
+}
 .mission-intro h1 span { color: var(--cyan-bright); }
 .mission-intro #mission-subtitle, .mission-intro > p:last-child {
   display: inline-flex;
@@ -548,13 +566,6 @@ select option:checked, .discovery-form select option:checked {
     -webkit-backdrop-filter: blur(10px);
     color: #ffffff;
     text-shadow: none;
-  }
-  .mission-intro h1 span {
-    background: none !important;
-    -webkit-background-clip: border-box !important;
-    background-clip: border-box !important;
-    -webkit-text-fill-color: #ffffff !important;
-    color: #ffffff !important;
   }
   .mission-intro #mission-subtitle,
   .mission-intro > p:last-child {

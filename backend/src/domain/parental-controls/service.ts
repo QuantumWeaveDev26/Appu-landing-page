@@ -132,8 +132,11 @@ export class ParentalControlsService {
       addAwaySec
     );
 
-    const locked = usage.activeSeconds >= lockInterval;
-    const timeRemainingSeconds = Math.max(0, lockInterval - usage.activeSeconds);
+    // Lock on total wall-clock time (active + away): the 30-min limit counts
+    // from session entry regardless of whether the tab was focused or backgrounded.
+    const totalSeconds = usage.activeSeconds + usage.awaySeconds;
+    const locked = totalSeconds >= lockInterval;
+    const timeRemainingSeconds = Math.max(0, lockInterval - totalSeconds);
 
     return {
       enabled: true,
@@ -178,8 +181,11 @@ export class ParentalControlsService {
       };
     }
 
-    const locked = usage.activeSeconds >= lockInterval;
-    const timeRemainingSeconds = Math.max(0, lockInterval - usage.activeSeconds);
+    // Lock on total wall-clock time (active + away): the 30-min limit counts
+    // from session entry regardless of whether the tab was focused or backgrounded.
+    const totalSeconds = usage.activeSeconds + usage.awaySeconds;
+    const locked = totalSeconds >= lockInterval;
+    const timeRemainingSeconds = Math.max(0, lockInterval - totalSeconds);
 
     return {
       enabled: true,
