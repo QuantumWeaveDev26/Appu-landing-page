@@ -233,13 +233,6 @@
       return;
     }
 
-    const session = getSession();
-    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
-    if (isAuthedChild && !otpVerifiedThisSession) {
-      // Session start OTP gate pending: do not advance 30-min window before verification
-      return;
-    }
-
     // Wall-clock: window counts real time from entry whether focused, backgrounded or idle.
     // Attribute the slice to ACTIVE when visible, AWAY when hidden — but count BOTH toward the limit.
     const isHidden = (typeof document !== 'undefined' && document.visibilityState === 'hidden');
@@ -259,9 +252,7 @@
 
   function updateTimerBadge() {
     if (!timerBadgeEl || !timerTextEl) return;
-    const session = getSession();
-    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
-    if (!isEnabled || (isAuthedChild && !otpVerifiedThisSession)) {
+    if (!isEnabled) {
       timerBadgeEl.hidden = true;
       return;
     }
