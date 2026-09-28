@@ -23,6 +23,29 @@
   'use strict';
 
   /**
+   * Safe access to LottieCatalog (browser global or Node CommonJS module)
+   */
+  function getLottieCatalog() {
+    if (typeof LottieCatalog !== 'undefined') return LottieCatalog;
+    if (typeof window !== 'undefined' && window.LottieCatalog) return window.LottieCatalog;
+    if (typeof globalThis !== 'undefined' && globalThis.LottieCatalog) return globalThis.LottieCatalog;
+    if (typeof require === 'function') {
+      try {
+        return require('./lottie-catalog.js');
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function resolveCategoryForCard(cardOrData) {
+    const catalog = getLottieCatalog();
+    if (!catalog || typeof catalog.getCategoryForLesson !== 'function') return null;
+    return catalog.getCategoryForLesson(cardOrData);
+  }
+
+  /**
    * ==============================================================================
    * STUDY OUTPUT MODES DATA SHAPES CONTRACT (for n8n AI agent payload)
    * ==============================================================================
@@ -763,7 +786,7 @@
             const icon = themeIcons[idx % themeIcons.length];
             const children = Array.isArray(b.children) ? b.children : [];
             return `
-              <div class="concept-branch-card to-node branch-theme-${theme}">
+              <div class="concept-branch-card to-node branch-theme-${theme}" style="--node-index: ${idx};">
                 <div class="branch-card-top">
                   <span class="branch-order-chip" aria-hidden="true">${idx + 1}</span>
                   <span class="branch-theme-icon"><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
@@ -846,9 +869,38 @@
         case 'hook': {
           const hookDiv = document.createElement('div');
           hookDiv.className = 'lesson-block lesson-block-hook';
+          const cat = resolveCategoryForCard(data);
+          const catalog = getLottieCatalog();
+          let stickerHTML = '';
+          let watchPanelHTML = '';
+          if (cat) {
+            stickerHTML = `<span class="lesson-topic-sticker" title="${escapeHTML(cat.label)}" style="--cat-accent: ${cat.accentColor};"><span class="sticker-emoji">${cat.emoji}</span> <span class="sticker-label">${escapeHTML(cat.label)}</span></span>`;
+            if (catalog && typeof catalog.getAnimatedSVG === 'function') {
+              const svgMarkup = catalog.getAnimatedSVG(cat.id, { size: 120 });
+              watchPanelHTML = `
+                <div class="lesson-watch-panel" data-category="${cat.id}">
+                  <div class="watch-panel-header">
+                    <div class="watch-panel-title">
+                      <i class="fa-solid fa-circle-play text-emerald" aria-hidden="true"></i>
+                      <span>Watch: ${escapeHTML(cat.label)} Motion</span>
+                    </div>
+                    <span class="watch-badge"><span class="watch-dot"></span> 60 FPS</span>
+                  </div>
+                  <div class="watch-lottie-stage" aria-label="${escapeHTML(cat.label)} animation">
+                    ${svgMarkup}
+                  </div>
+                  <div class="watch-panel-caption">${escapeHTML(cat.description)}</div>
+                </div>
+              `;
+            }
+          }
           hookDiv.innerHTML = `
-            <div class="hook-kicker"><i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i> <span>Did you know?</span></div>
+            <div class="hook-kicker-row">
+              <div class="hook-kicker"><i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i> <span>Did you know?</span></div>
+              ${stickerHTML}
+            </div>
             <p class="hook-text">${escapeHTML(block.text || '')}</p>
+            ${watchPanelHTML}
           `;
           container.appendChild(hookDiv);
           break;
@@ -1424,6 +1476,7 @@
     const definitions = Array.isArray(guide.definitions) ? guide.definitions : [];
     const mustRemember = Array.isArray(guide.mustRemember) ? guide.mustRemember : [];
 
+    const cat = resolveCategoryForCard(options.card || guide);
     const cit = formatCitationDisplay(guide.citation || (options && options.citation));
 
     container.innerHTML = `
@@ -1434,6 +1487,7 @@
             <span>Study Guide</span>
             <span class="guide-grade-pill">${escapeHTML(guide.grade || 'Revision Notes')}</span>
           </div>
+          ${cat ? `<span class="category-badge category-${cat.id}"><span class="cat-emoji">${cat.emoji}</span> ${escapeHTML(cat.label)}</span>` : ''}
           ${cit ? `
             <div class="lesson-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
               <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
@@ -1534,6 +1588,7 @@
       }
     }
 
+    const cat = resolveCategoryForCard(options.card || mapData);
     const cit = formatCitationDisplay(mapData.citation || (options && options.citation));
 
     container.innerHTML = `
@@ -1544,6 +1599,7 @@
             <span>Concept Tree</span>
             ${isShimmer ? '<span class="diagram-loading-badge"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Generating...</span>' : '<span class="diagram-live-badge">Live Visual</span>'}
           </div>
+          ${cat ? `<span class="category-badge category-${cat.id}"><span class="cat-emoji">${cat.emoji}</span> ${escapeHTML(cat.label)}</span>` : ''}
           ${cit ? `
             <div class="lesson-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
               <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
@@ -2152,7 +2208,7 @@
         const stepBadgeText = layout === 'flow' ? `Step ${idx + 1}` : (layout === 'parts' ? `Part ${idx + 1}` : `${idx + 1}`);
 
         return `
-          <button type="button" class="diagram-node diagram-node-${layout} ${layout === 'parts' ? 'diagram-node-part' : ''} ${idx === 0 ? 'is-selected' : ''}" data-part-id="${p.id}" data-index="${idx}" aria-pressed="${idx === 0 ? 'true' : 'false'}" aria-label="${escapeHTML(p.label)}">
+          <button type="button" class="diagram-node diagram-node-${layout} ${layout === 'parts' ? 'diagram-node-part' : ''} ${idx === 0 ? 'is-selected' : ''}" data-part-id="${p.id}" data-index="${idx}" style="--node-index: ${idx};" aria-pressed="${idx === 0 ? 'true' : 'false'}" aria-label="${escapeHTML(p.label)}">
             <span class="node-step-badge">${stepBadgeText}</span>
             <span class="node-label">${escapeHTML(p.label)}</span>
             ${layout === 'parts' ? '<i class="fa-solid fa-circle-info node-info-icon" aria-hidden="true"></i>' : ''}
@@ -2180,7 +2236,7 @@
         const stepBadgeText = layout === 'flow' ? `Step ${idx + 1}` : `Slot ${idx + 1}`;
 
         return `
-          <div class="diagram-slot" data-slot-id="${p.id}" data-target-id="${p.id}" data-index="${idx}" tabindex="0" role="button" aria-label="Slot ${idx + 1}">
+          <div class="diagram-slot" data-slot-id="${p.id}" data-target-id="${p.id}" data-index="${idx}" style="--node-index: ${idx};" tabindex="0" role="button" aria-label="Slot ${idx + 1}">
             <span class="slot-badge">${stepBadgeText}</span>
             <div class="slot-content">
               <span class="slot-placeholder">${i18n.dropPlaceholder}</span>
@@ -2234,6 +2290,8 @@
       `;
     }
 
+    const cat = resolveCategoryForCard(options.card || targetCard || diagramData);
+
     container.innerHTML = `
       <div class="diagram-header">
         <div class="diagram-badge-row">
@@ -2245,6 +2303,7 @@
             <i class="fa-solid ${layoutIcon}" aria-hidden="true"></i>
             <span>${layoutLabel}</span>
           </span>
+          ${cat ? `<span class="category-badge category-${cat.id}"><span class="cat-emoji">${cat.emoji}</span> ${escapeHTML(cat.label)}</span>` : ''}
           ${citationHtml}
         </div>
 
@@ -2460,9 +2519,15 @@
         if (nIdx === currentExploreIdx) {
           n.classList.add('is-selected');
           n.setAttribute('aria-pressed', 'true');
+          n.classList.remove('pulse-glow');
+          if (typeof n.offsetWidth !== 'undefined') {
+            void n.offsetWidth;
+          }
+          n.classList.add('pulse-glow');
         } else {
           n.classList.remove('is-selected');
           n.setAttribute('aria-pressed', 'false');
+          n.classList.remove('pulse-glow');
         }
       });
 
@@ -3938,6 +4003,8 @@
     resolvePodcastEndpoint,
     fetchStudyImage,
     resolveStudyImageEndpoint,
-    purgeMermaidErrorElements
+    purgeMermaidErrorElements,
+    getLottieCatalog,
+    resolveCategoryForCard
   };
 });

@@ -11692,3 +11692,489 @@ body.is-authenticated #beta-banner {
 .nav-drawer-parent-btn i:first-child { color: #f59e0b; font-size: 15px; width: 18px; text-align: center; }
 
 
+
+/* ==============================================================================
+   PACK D: LIVING DIAGRAMS & LOTTIE EDUCATIONAL MOTION (v20260928-09)
+   60fps mobile hardware-accelerated transforms, zero layout thrashing,
+   strict prefers-reduced-motion accessibility support.
+   ============================================================================== */
+
+/* Ambient Stage Floating Particles (GPU-only translate3d) */
+.stage-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.stage-particles .particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.35;
+  filter: blur(1px);
+  will-change: transform, opacity;
+  animation: floatParticle 18s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+
+.stage-particles .p-1 {
+  width: 6px;
+  height: 6px;
+  top: 15%;
+  left: 12%;
+  background: radial-gradient(circle, #38bdf8 0%, rgba(56, 189, 248, 0) 70%);
+  box-shadow: 0 0 10px #38bdf8;
+  animation-duration: 16s;
+}
+
+.stage-particles .p-2 {
+  width: 8px;
+  height: 8px;
+  top: 65%;
+  left: 8%;
+  background: radial-gradient(circle, #a855f7 0%, rgba(168, 85, 247, 0) 70%);
+  box-shadow: 0 0 12px #a855f7;
+  animation-duration: 22s;
+  animation-delay: -4s;
+}
+
+.stage-particles .p-3 {
+  width: 5px;
+  height: 5px;
+  top: 25%;
+  right: 14%;
+  background: radial-gradient(circle, #10b981 0%, rgba(16, 185, 129, 0) 70%);
+  box-shadow: 0 0 8px #10b981;
+  animation-duration: 19s;
+  animation-delay: -7s;
+}
+
+.stage-particles .p-4 {
+  width: 7px;
+  height: 7px;
+  top: 75%;
+  right: 18%;
+  background: radial-gradient(circle, #f59e0b 0%, rgba(245, 158, 11, 0) 70%);
+  box-shadow: 0 0 10px #f59e0b;
+  animation-duration: 24s;
+  animation-delay: -2s;
+}
+
+.stage-particles .p-5 {
+  width: 4px;
+  height: 4px;
+  top: 45%;
+  left: 48%;
+  background: radial-gradient(circle, #ec4899 0%, rgba(236, 72, 153, 0) 70%);
+  box-shadow: 0 0 8px #ec4899;
+  animation-duration: 20s;
+  animation-delay: -11s;
+}
+
+.stage-particles .p-6 {
+  width: 6px;
+  height: 6px;
+  top: 85%;
+  left: 55%;
+  background: radial-gradient(circle, #06b6d4 0%, rgba(6, 182, 212, 0) 70%);
+  box-shadow: 0 0 10px #06b6d4;
+  animation-duration: 17s;
+  animation-delay: -5s;
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.2;
+  }
+  33% {
+    transform: translate3d(24px, -35px, 0);
+    opacity: 0.55;
+  }
+  66% {
+    transform: translate3d(-18px, -65px, 0);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate3d(12px, -90px, 0);
+    opacity: 0.5;
+  }
+}
+
+/* Lesson Topic Sticker & Hook Kicker Row */
+.hook-kicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.lesson-topic-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid var(--cat-accent, rgba(14, 165, 233, 0.4));
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 0 12px -2px var(--cat-accent, rgba(14, 165, 233, 0.25));
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.lesson-topic-sticker:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 0 16px 0 var(--cat-accent, rgba(14, 165, 233, 0.45));
+}
+
+.lesson-topic-sticker .sticker-emoji {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.lesson-topic-sticker .sticker-label {
+  letter-spacing: 0.02em;
+}
+
+/* Watch Mini-Panel inside Lesson Hook Block */
+.lesson-watch-panel {
+  margin-top: 14px;
+  background: rgba(10, 18, 36, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 14px;
+  padding: 12px 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lesson-watch-panel:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.watch-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.watch-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.01em;
+}
+
+.watch-panel-title i {
+  color: #10b981;
+  font-size: 0.9rem;
+}
+
+.watch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  letter-spacing: 0.04em;
+}
+
+.watch-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: watchPulseDot 1.8s infinite ease-in-out;
+}
+
+@keyframes watchPulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
+
+.watch-lottie-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0;
+  min-height: 120px;
+  position: relative;
+}
+
+.watch-panel-caption {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Category Badges in Header Rows */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.category-badge .cat-emoji {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* Lottie SVG Keyframes (GPU-accelerated transforms & opacities) */
+.lottie-sun {
+  animation: lottieRotateSun 12s linear infinite;
+  will-change: transform;
+}
+@keyframes lottieRotateSun {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lottie-leaf-left {
+  animation: lottieSwayLeafLeft 3.6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes lottieSwayLeafLeft {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-7deg); }
+}
+
+.lottie-leaf-right {
+  animation: lottieSwayLeafRight 3.4s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes lottieSwayLeafRight {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(7deg); }
+}
+
+.lottie-bubble-1 {
+  animation: lottieBubbleUp1 2.8s ease-in infinite;
+  will-change: transform, opacity;
+}
+@keyframes lottieBubbleUp1 {
+  0% { transform: translate3d(0, 0, 0); opacity: 0.2; }
+  50% { opacity: 0.9; }
+  100% { transform: translate3d(-6px, -24px, 0); opacity: 0; }
+}
+
+.lottie-bubble-2 {
+  animation: lottieBubbleUp2 3.2s ease-in 1.2s infinite;
+  will-change: transform, opacity;
+}
+@keyframes lottieBubbleUp2 {
+  0% { transform: translate3d(0, 0, 0); opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { transform: translate3d(8px, -28px, 0); opacity: 0; }
+}
+
+.lottie-planet {
+  animation: lottieBobPlanet 4s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes lottieBobPlanet {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { transform: translate3d(0, -6px, 0) rotate(3deg); }
+}
+
+.lottie-rocket {
+  animation: lottieOrbitRocket 6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes lottieOrbitRocket {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { transform: translate3d(-10px, -8px, 0) rotate(-6deg); }
+}
+
+.lottie-star-1 {
+  animation: lottieStarTwinkle 1.8s ease-in-out infinite alternate;
+}
+.lottie-star-2 {
+  animation: lottieStarTwinkle 2.4s ease-in-out 0.8s infinite alternate;
+}
+@keyframes lottieStarTwinkle {
+  0% { opacity: 0.3; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+.lottie-pendulum-bob {
+  animation: lottieSwingPendulum 2.4s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes lottieSwingPendulum {
+  0% { transform: rotate(-22deg); }
+  100% { transform: rotate(22deg); }
+}
+
+.lottie-beaker-bubbles {
+  animation: lottieBeakerBubbles 2.2s ease-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes lottieBeakerBubbles {
+  0% { transform: translate3d(0, 0, 0); opacity: 0.2; }
+  50% { opacity: 0.9; }
+  100% { transform: translate3d(0, -18px, 0); opacity: 0; }
+}
+
+.lottie-compass-needle {
+  animation: lottieNeedleSwing 3.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+  will-change: transform;
+}
+@keyframes lottieNeedleSwing {
+  0% { transform: rotate(-18deg); }
+  100% { transform: rotate(18deg); }
+}
+
+.lottie-globe-ring {
+  animation: lottieSpinGlobe 8s linear infinite;
+  will-change: transform;
+}
+@keyframes lottieSpinGlobe {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lottie-column {
+  animation: lottieFadeInColumn 1.5s ease-out forwards;
+}
+
+.lottie-flask-bubbles {
+  animation: lottieFlaskRise 2s ease-in infinite;
+  will-change: transform, opacity;
+}
+@keyframes lottieFlaskRise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0.3; }
+  100% { transform: translate3d(0, -20px, 0); opacity: 0; }
+}
+
+.lottie-spark {
+  animation: lottieSparkPulse 1.6s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes lottieSparkPulse {
+  0% { transform: scale(0.85); opacity: 0.5; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+/* Staggered Entrance for Interactive Diagram Parts & Branches */
+.diagram-node,
+.diagram-slot,
+.concept-branch-card {
+  animation: nodeStaggerEnter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--node-index, 0) * 45ms);
+}
+
+@keyframes nodeStaggerEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Hotspot Tap Glow Ripple on Diagram Nodes */
+.diagram-node.pulse-glow {
+  animation: hotspotPulseGlow 750ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes hotspotPulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7), 0 0 20px rgba(14, 165, 233, 0.4);
+    transform: scale(0.97);
+  }
+  40% {
+    box-shadow: 0 0 0 10px rgba(14, 165, 233, 0), 0 0 26px rgba(14, 165, 233, 0.55);
+    transform: scale(1.03);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0), 0 0 0 rgba(14, 165, 233, 0);
+    transform: scale(1);
+  }
+}
+
+/* Smooth Entrance Transition for Study Cards and Tab Switching */
+.appu-study-card,
+.appu-lesson-card {
+  animation: studyTabEnter 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes studyTabEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Reduced Motion Accessibility Overrides */
+@media (prefers-reduced-motion: reduce) {
+  .stage-particles .particle,
+  .diagram-node,
+  .diagram-slot,
+  .concept-branch-card,
+  .diagram-node.pulse-glow,
+  .appu-study-card,
+  .appu-lesson-card,
+  .lottie-sun,
+  .lottie-leaf-left,
+  .lottie-leaf-right,
+  .lottie-bubble-1,
+  .lottie-bubble-2,
+  .lottie-planet,
+  .lottie-rocket,
+  .lottie-star-1,
+  .lottie-star-2,
+  .lottie-pendulum-bob,
+  .lottie-beaker-bubbles,
+  .lottie-compass-needle,
+  .lottie-globe-ring,
+  .lottie-column,
+  .lottie-flask-bubbles,
+  .lottie-spark,
+  .watch-dot {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
