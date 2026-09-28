@@ -871,37 +871,222 @@
           hookDiv.className = 'lesson-block lesson-block-hook';
           const cat = resolveCategoryForCard(data);
           const catalog = getLottieCatalog();
+          const topic = data.topic || data.title || (data.mindMap && data.mindMap.central) || (cat && cat.label) || 'Learning Mission';
+          const existingIllustrationUrl = data.__diagramIllustrationUrl || data.diagramIllustrationUrl || null;
+
           let stickerHTML = '';
-          let watchPanelHTML = '';
           if (cat) {
             stickerHTML = `<span class="lesson-topic-sticker" title="${escapeHTML(cat.label)}" style="--cat-accent: ${cat.accentColor};"><span class="sticker-emoji">${cat.emoji}</span> <span class="sticker-label">${escapeHTML(cat.label)}</span></span>`;
-            if (catalog && typeof catalog.getAnimatedSVG === 'function') {
-              const svgMarkup = catalog.getAnimatedSVG(cat.id, { size: 120 });
-              watchPanelHTML = `
-                <div class="lesson-watch-panel" data-category="${cat.id}">
-                  <div class="watch-panel-header">
-                    <div class="watch-panel-title">
-                      <i class="fa-solid fa-circle-play text-emerald" aria-hidden="true"></i>
-                      <span>Watch: ${escapeHTML(cat.label)} Motion</span>
-                    </div>
-                    <span class="watch-badge"><span class="watch-dot"></span> 60 FPS</span>
-                  </div>
-                  <div class="watch-lottie-stage" aria-label="${escapeHTML(cat.label)} animation">
-                    ${svgMarkup}
-                  </div>
-                  <div class="watch-panel-caption">${escapeHTML(cat.description)}</div>
-                </div>
-              `;
-            }
           }
+
+          // 1. Hero AI Visual Image HTML (prominent hero)
+          let heroImageHTML = '';
+          if (existingIllustrationUrl) {
+            heroImageHTML = `
+              <div class="lesson-hero-media-card has-image" data-active-source="ai">
+                <div class="hero-image-frame">
+                  <img class="hero-main-img" src="${existingIllustrationUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
+                  <div class="hero-media-badge-bar">
+                    <span class="hero-media-tag ai-tag"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i> AI Concept Visual</span>
+                    <span class="hero-media-source-pill">Grounded Topic</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            heroImageHTML = `
+              <div class="lesson-hero-media-card is-loading" role="status" aria-label="Painting visual illustration">
+                <div class="hero-media-shimmer">
+                  <div class="shimmer-sparkle"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i></div>
+                  <span class="shimmer-text">Painting visual illustration for ${escapeHTML(topic)}...</span>
+                </div>
+              </div>
+            `;
+          }
+
+          // 2. Real Photos Gallery HTML (hidden until photos load)
+          const photosGalleryHTML = `
+            <div class="lesson-photos-gallery" style="display: none;" role="region" aria-label="Real world photos">
+              <div class="photos-gallery-header">
+                <div class="photos-gallery-title">
+                  <i class="fa-solid fa-camera-retro text-amber" aria-hidden="true"></i>
+                  <span>Real World Field Photos</span>
+                  <span class="photos-count-badge"></span>
+                </div>
+                <span class="photos-license-badge" title="Verified Safe Creative Commons content"><i class="fa-brands fa-creative-commons" aria-hidden="true"></i> CC Safe</span>
+              </div>
+              <div class="photos-gallery-track"></div>
+            </div>
+          `;
+
+          // 3. Watch: Rich Lottie Explainer Mini-Panel
+          let watchPanelHTML = '';
+          if (cat) {
+            const svgMarkup = catalog && typeof catalog.getAnimatedSVG === 'function'
+              ? catalog.getAnimatedSVG(cat.id, { size: 130 })
+              : '';
+            watchPanelHTML = `
+              <div class="lesson-watch-panel" data-category="${cat.id}">
+                <div class="watch-panel-header">
+                  <div class="watch-panel-title">
+                    <i class="fa-solid fa-circle-play text-emerald" aria-hidden="true"></i>
+                    <span>Watch: ${escapeHTML(cat.label)} Explainer</span>
+                  </div>
+                  <span class="watch-badge"><span class="watch-dot"></span> 60 FPS</span>
+                </div>
+                <div class="watch-lottie-stage" aria-label="${escapeHTML(cat.label)} animation">
+                  ${svgMarkup}
+                </div>
+                <div class="watch-panel-caption">${escapeHTML(cat.description)}</div>
+              </div>
+            `;
+          }
+
           hookDiv.innerHTML = `
             <div class="hook-kicker-row">
               <div class="hook-kicker"><i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i> <span>Did you know?</span></div>
               ${stickerHTML}
             </div>
             <p class="hook-text">${escapeHTML(block.text || '')}</p>
+            <div class="lesson-rich-media-wrap">
+              ${heroImageHTML}
+              ${photosGalleryHTML}
+            </div>
             ${watchPanelHTML}
           `;
+
+          // Asynchronously mount Lottie player on stage
+          if (typeof window !== 'undefined' && catalog && typeof catalog.mountAnimation === 'function') {
+            setTimeout(() => {
+              const stage = hookDiv.querySelector ? hookDiv.querySelector('.watch-lottie-stage') : null;
+              if (stage) {
+                catalog.mountAnimation(stage, cat ? cat.id : 'idea');
+              }
+            }, 0);
+          }
+
+          // Asynchronously fetch AI illustration if not already present
+          if (typeof window !== 'undefined' && options.disableIllustration !== true) {
+            const heroCard = hookDiv.querySelector ? hookDiv.querySelector('.lesson-hero-media-card') : null;
+            if (heroCard && heroCard.classList && heroCard.classList.contains('is-loading')) {
+              const gradeToFetch = options.grade || (data && data.grade) || '6';
+              const imgPromise = data.__diagramIllustrationPromise || fetchStudyImage({
+                topic,
+                grade: gradeToFetch,
+                timeoutMs: options.imageTimeoutMs || 28000
+              });
+
+              if (!data.__diagramIllustrationPromise) {
+                try {
+                  Object.defineProperty(data, '__diagramIllustrationPromise', {
+                    value: imgPromise,
+                    writable: true,
+                    enumerable: false,
+                    configurable: true
+                  });
+                } catch (_) {
+                  data.__diagramIllustrationPromise = imgPromise;
+                }
+              }
+
+              imgPromise.then(res => {
+                const currentHero = hookDiv.querySelector ? hookDiv.querySelector('.lesson-hero-media-card') : null;
+                if (!currentHero) return;
+                if (res && res.imageUrl) {
+                  try {
+                    Object.defineProperty(data, '__diagramIllustrationUrl', {
+                      value: res.imageUrl,
+                      writable: true,
+                      enumerable: false,
+                      configurable: true
+                    });
+                  } catch (_) {
+                    data.__diagramIllustrationUrl = res.imageUrl;
+                  }
+
+                  currentHero.className = 'lesson-hero-media-card has-image';
+                  if (typeof currentHero.removeAttribute === 'function') {
+                    currentHero.removeAttribute('role');
+                    currentHero.removeAttribute('aria-label');
+                  }
+                  currentHero.innerHTML = `
+                    <div class="hero-image-frame">
+                      <img class="hero-main-img" src="${res.imageUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
+                      <div class="hero-media-badge-bar">
+                        <span class="hero-media-tag ai-tag"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i> AI Concept Visual</span>
+                        <span class="hero-media-source-pill">Grounded Topic</span>
+                      </div>
+                    </div>
+                  `;
+                }
+              });
+            }
+
+            // Asynchronously fetch Openverse Real Photos
+            const galleryEl = hookDiv.querySelector ? hookDiv.querySelector('.lesson-photos-gallery') : null;
+            if (galleryEl) {
+              fetchOpenversePhotos({ topic }).then(result => {
+                if (!result || !Array.isArray(result.photos) || result.photos.length < 2) {
+                  return;
+                }
+
+                const track = galleryEl.querySelector ? galleryEl.querySelector('.photos-gallery-track') : null;
+                const countBadge = galleryEl.querySelector ? galleryEl.querySelector('.photos-count-badge') : null;
+                if (!track) return;
+
+                if (countBadge) countBadge.textContent = `${result.photos.length} Photos`;
+
+                track.innerHTML = result.photos.map(p => `
+                  <div class="photo-card" data-photo-url="${escapeHTML(p.url)}" data-photo-title="${escapeHTML(p.title)}" data-creator="${escapeHTML(p.creator)}" data-license="${escapeHTML(p.license)}" data-landing="${escapeHTML(p.foreignLandingUrl)}">
+                    <div class="photo-thumb-wrap">
+                      <img src="${escapeHTML(p.thumbnail)}" alt="${escapeHTML(p.title)}" loading="lazy" class="photo-thumb" />
+                      <span class="photo-license-pill">${escapeHTML(p.license)}</span>
+                    </div>
+                    <div class="photo-card-info">
+                      <a href="${escapeHTML(p.foreignLandingUrl)}" target="_blank" rel="noopener noreferrer" class="photo-attribution-link" title="Open CC source: ${escapeHTML(p.title)}">
+                        <span class="photo-creator-name">${escapeHTML(p.creator)}</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                      </a>
+                    </div>
+                  </div>
+                `).join('');
+
+                if (galleryEl.style) galleryEl.style.display = 'block';
+                if (galleryEl.classList) galleryEl.classList.add('pop-in');
+
+                if (typeof track.querySelectorAll === 'function') {
+                  const cards = track.querySelectorAll('.photo-card');
+                  cards.forEach(card => {
+                    card.addEventListener('click', (e) => {
+                      if (e.target && e.target.closest && e.target.closest('.photo-attribution-link')) return;
+                      const heroFrame = hookDiv.querySelector ? hookDiv.querySelector('.hero-image-frame') : null;
+                      if (!heroFrame) return;
+
+                      const photoUrl = card.getAttribute('data-photo-url');
+                      const photoTitle = card.getAttribute('data-photo-title');
+                      const creator = card.getAttribute('data-creator');
+                      const license = card.getAttribute('data-license');
+                      const landing = card.getAttribute('data-landing');
+
+                      cards.forEach(c => c.classList && c.classList.remove('is-active'));
+                      if (card.classList) card.classList.add('is-active');
+
+                      heroFrame.innerHTML = `
+                        <img class="hero-main-img" src="${photoUrl}" alt="${photoTitle}" />
+                        <div class="hero-media-badge-bar">
+                          <span class="hero-media-tag real-tag"><i class="fa-solid fa-camera-retro text-amber" aria-hidden="true"></i> Real Field Photo</span>
+                          <a href="${landing}" target="_blank" rel="noopener noreferrer" class="hero-media-source-pill cc-pill" title="View Source on Flickr/Wikimedia">
+                            ${license} • ${creator} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                          </a>
+                        </div>
+                      `;
+                    });
+                  });
+                }
+              });
+            }
+          }
+
           container.appendChild(hookDiv);
           break;
         }
@@ -3961,6 +4146,92 @@
     }
   }
 
+  /**
+   * Fetches real, educational, Creative Commons licensed photos from Openverse API.
+   * Hard Kid-Safety Invariants:
+   * 1. Always mature=false
+   * 2. Query built strictly from sanitized topic/subject (never raw child free-text)
+   * 3. Cap to 3-5 images with valid thumbnail and attribution
+   * 4. Full CC licensing metadata and source links (foreign_landing_url)
+   * 5. If < 2 results, API error, or timeout -> returns null (clean fallback to AI image only)
+   */
+  async function fetchOpenversePhotos({ topic, timeoutMs = 8000 } = {}) {
+    if (!topic || !String(topic).trim()) return null;
+
+    const rawTopic = String(topic).trim();
+    const cleanTopic = rawTopic
+      .replace(/[\?\!\.\,\:\;\"\'\(\)\[\]\{\}\/\\\#\$\%\^\&\*\@\_\+\=\<\>]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (cleanTopic.length < 2) return null;
+
+    const query = cleanTopic
+      .replace(/^(what is|explain|tell me about|how does|how do|introduction to|lesson on)\s+/i, '')
+      .trim() || cleanTopic;
+
+    const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&mature=false&license_type=commercial,modification&page_size=8`;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: controller ? controller.signal : undefined
+      });
+
+      if (timeoutId) clearTimeout(timeoutId);
+      if (!res.ok) {
+        console.warn(`[Openverse] API responded with status ${res.status}`);
+        return null;
+      }
+
+      const data = await res.json();
+      const rawResults = Array.isArray(data?.results) ? data.results : [];
+
+      const validPhotos = [];
+      for (const item of rawResults) {
+        if (!item || !item.url) continue;
+        const photoUrl = item.url;
+        const thumbUrl = item.thumbnail || item.url;
+        const landingUrl = item.foreign_landing_url || item.url;
+        const creator = (item.creator && String(item.creator).trim()) || 'Openverse Contributor';
+        const title = (item.title && String(item.title).trim()) || query;
+        const licenseCode = item.license ? `CC ${String(item.license).toUpperCase()} ${item.license_version || ''}`.trim() : 'CC Licensed';
+        const licenseUrl = item.license_url || 'https://creativecommons.org/';
+
+        validPhotos.push({
+          id: item.id || String(Math.random().toString(36).substring(2, 9)),
+          title,
+          url: photoUrl,
+          thumbnail: thumbUrl,
+          creator,
+          creatorUrl: item.creator_url || landingUrl,
+          foreignLandingUrl: landingUrl,
+          license: licenseCode,
+          licenseUrl,
+          attribution: item.attribution || `"${title}" by ${creator} (${licenseCode})`
+        });
+
+        if (validPhotos.length >= 4) break;
+      }
+
+      if (validPhotos.length < 2) {
+        return null;
+      }
+
+      return {
+        topic: query,
+        source: 'Openverse / Creative Commons',
+        photos: validPhotos
+      };
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.warn('[Openverse] Request notice:', err?.name === 'AbortError' ? 'Timeout' : err);
+      return null;
+    }
+  }
+
   return {
     parse,
     render,
@@ -4003,6 +4274,7 @@
     resolvePodcastEndpoint,
     fetchStudyImage,
     resolveStudyImageEndpoint,
+    fetchOpenversePhotos,
     purgeMermaidErrorElements,
     getLottieCatalog,
     resolveCategoryForCard

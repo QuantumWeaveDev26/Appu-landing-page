@@ -254,10 +254,10 @@ describe('PACK D: DOM & CSS Motion Invariants', () => {
   });
 
   test('index.html includes lottie-catalog.js before lesson-card-renderer.js', () => {
-    const lottieIdx = html.indexOf('lottie-catalog.js?v=20260928-09');
-    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20260928-09');
-    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20260928-09');
-    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20260928-09');
+    const lottieIdx = html.indexOf('lottie-catalog.js?v=20260928-10');
+    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20260928-10');
+    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20260928-10');
+    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20260928-10');
     assert.ok(lottieIdx < rendererIdx, 'lottie-catalog.js must be loaded before lesson-card-renderer.js');
   });
 
@@ -280,4 +280,132 @@ describe('PACK D: DOM & CSS Motion Invariants', () => {
     assert.ok(css.includes('@media (prefers-reduced-motion: reduce)'));
     assert.ok(css.includes('.stage-particles .particle'));
   });
+
+  test('style.css defines prominent AI hero card and real photo gallery styles', () => {
+    assert.ok(css.includes('.lesson-hero-media-card'));
+    assert.ok(css.includes('.hero-image-frame'));
+    assert.ok(css.includes('.lesson-photos-gallery'));
+    assert.ok(css.includes('.photo-card'));
+    assert.ok(css.includes('@keyframes galleryPopIn'));
+  });
 });
+
+describe('RICH MEDIA: Real Photos Gallery (Openverse) & AI Hero Integration', () => {
+  test('LessonCardRenderer exports fetchOpenversePhotos', () => {
+    assert.equal(typeof LessonCardRenderer.fetchOpenversePhotos, 'function');
+  });
+
+  test('fetchOpenversePhotos returns null safely for empty or single char query', async () => {
+    const res1 = await LessonCardRenderer.fetchOpenversePhotos({ topic: '' });
+    assert.equal(res1, null);
+
+    const res2 = await LessonCardRenderer.fetchOpenversePhotos({ topic: '?' });
+    assert.equal(res2, null);
+  });
+
+  test('fetchOpenversePhotos enforces mature=false and extracts CC attribution', async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedUrl = '';
+
+    globalThis.fetch = async (url) => {
+      capturedUrl = url;
+      return {
+        ok: true,
+        json: async () => ({
+          results: [
+            {
+              id: 'test-1',
+              title: 'Leaf Cell in Sunlight',
+              url: 'https://example.com/photo1.jpg',
+              thumbnail: 'https://example.com/thumb1.jpg',
+              creator: 'Dr. Jane Botany',
+              license: 'by',
+              license_version: '2.0',
+              license_url: 'https://creativecommons.org/licenses/by/2.0/',
+              foreign_landing_url: 'https://flickr.com/photos/123'
+            },
+            {
+              id: 'test-2',
+              title: 'Chloroplast Stomata',
+              url: 'https://example.com/photo2.jpg',
+              thumbnail: 'https://example.com/thumb2.jpg',
+              creator: 'BioCommons',
+              license: 'by-sa',
+              license_version: '4.0',
+              license_url: 'https://creativecommons.org/licenses/by-sa/4.0/',
+              foreign_landing_url: 'https://commons.wikimedia.org/456'
+            }
+          ]
+        })
+      };
+    };
+
+    try {
+      const result = await LessonCardRenderer.fetchOpenversePhotos({ topic: 'What is photosynthesis?' });
+      assert.ok(result, 'Result should be present');
+      assert.ok(capturedUrl.includes('mature=false'), 'Must enforce mature=false strictly for kid safety');
+      assert.ok(capturedUrl.includes('license_type=commercial%2Cmodification') || capturedUrl.includes('license_type=commercial,modification'));
+      assert.ok(capturedUrl.includes('photosynthesis'));
+      assert.equal(result.photos.length, 2);
+      assert.equal(result.photos[0].creator, 'Dr. Jane Botany');
+      assert.equal(result.photos[0].license, 'CC BY 2.0');
+      assert.equal(result.photos[0].foreignLandingUrl, 'https://flickr.com/photos/123');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('fetchOpenversePhotos falls back cleanly to null if < 2 results found', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            id: 'only-one',
+            title: 'Lone Image',
+            url: 'https://example.com/1.jpg'
+          }
+        ]
+      })
+    });
+
+    try {
+      const result = await LessonCardRenderer.fetchOpenversePhotos({ topic: 'Obscure abstract math item' });
+      assert.equal(result, null, 'Must fall back to null when sparse to avoid broken gallery');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('SAMPLE_CARD hook block includes AI hero media card and real photos gallery placeholder', () => {
+    const el = LessonCardRenderer.render(LessonCardRenderer.SAMPLE_CARD);
+    assert.equal(el.children.length, 5, '5 child blocks invariant preserved');
+
+    const hookBlock = el.children[0];
+    const html = hookBlock.innerHTML;
+    assert.ok(html.includes('lesson-hero-media-card'), 'Must render AI hero media card');
+    assert.ok(html.includes('lesson-photos-gallery'), 'Must render photos gallery container');
+    assert.ok(html.includes('Real World Field Photos'), 'Must include gallery title');
+    assert.ok(html.includes('CC Safe'), 'Must include CC Safe verified badge');
+  });
+
+  test('LottieCatalog has valid Bodymovin JSON files on disk for all 9 categories', () => {
+    const lottieDir = path.join(__dirname, '../frontend/assets/lottie');
+    const categories = ['biology', 'space', 'physics', 'chemistry', 'math', 'geography', 'history', 'science', 'idea'];
+
+    categories.forEach(cat => {
+      const filePath = path.join(lottieDir, `${cat}.json`);
+      assert.ok(fs.existsSync(filePath), `Lottie file for ${cat} must exist on disk`);
+      const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      assert.equal(content.v, '5.7.4');
+      assert.ok(content.fr >= 30);
+      assert.ok(Array.isArray(content.layers));
+      assert.ok(content.layers.length >= 2, `${cat} must have multiple animation layers`);
+      // Under 150KB constraint
+      const sizeKb = fs.statSync(filePath).size / 1024;
+      assert.ok(sizeKb < 150, `${cat}.json (${sizeKb.toFixed(1)}KB) must be under 150KB`);
+    });
+  });
+});
+

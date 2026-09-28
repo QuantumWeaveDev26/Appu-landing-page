@@ -533,8 +533,66 @@
     };
   }
 
+  let lottieWebPromise = null;
+
+  /**
+   * Lazy loads lottie-web engine from CDN without blocking page render.
+   */
+  function loadLottieWeb() {
+    if (typeof window === 'undefined') return Promise.resolve(null);
+    if (window.lottie) return Promise.resolve(window.lottie);
+    if (lottieWebPromise) return lottieWebPromise;
+
+    lottieWebPromise = new Promise((resolve) => {
+      const existing = document.querySelector('script[src*="lottie-web"]');
+      if (existing) {
+        if (window.lottie) {
+          resolve(window.lottie);
+        } else {
+          existing.addEventListener('load', () => resolve(window.lottie));
+          existing.addEventListener('error', () => resolve(null));
+        }
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.onload = () => {
+        resolve(window.lottie);
+      };
+      script.onerror = () => {
+        console.warn('[LottieCatalog] Could not load lottie-web from CDN, using SVG fallback');
+        resolve(null);
+      };
+      document.head.appendChild(script);
+    });
+
+    return lottieWebPromise;
+  }
+
+  /**
+   * Fetches the category's rich Bodymovin Lottie JSON file on demand.
+   */
+  async function fetchLottieJSON(categoryId) {
+    const cat = CATEGORIES[categoryId] || CATEGORIES.idea;
+    if (typeof fetch === 'function' && typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`assets/lottie/${cat.id}.json`);
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (_) {
+        // Fallback to embedded standard JSON
+      }
+    }
+    return getLottieJSON(cat.id);
+  }
+
   /**
    * Mounts a high-performance, lazy-loaded Lottie animation inside a target DOM container.
+   * Instant SVG placeholder + asynchronous upgrade to rich Lottie player.
    */
   function mountAnimation(container, categoryId, options = {}) {
     if (!container) return null;
@@ -544,6 +602,7 @@
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // 1. Instant fallback display (zero layout shift, zero blank box)
     container.innerHTML = getAnimatedSVG(cat.id, {
       size: options.size || 140,
       reducedMotion: isReduced
@@ -551,19 +610,49 @@
     container.classList.add('lottie-mounted');
     container.setAttribute('data-category', cat.id);
 
-    // Performance optimization: Pause animation when offscreen using IntersectionObserver
-    if (typeof window !== 'undefined' && 'IntersectionObserver' in window && !isReduced) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            container.classList.remove('is-paused');
-          } else {
-            container.classList.add('is-paused');
-          }
-        });
-      }, { threshold: 0.1 });
+    // 2. Asynchronously upgrade to rich Lottie animation with lottie-web
+    if (typeof window !== 'undefined' && !options.svgOnly) {
+      Promise.all([loadLottieWeb(), fetchLottieJSON(cat.id)]).then(([lottie, animData]) => {
+        if (!lottie || !animData) return;
+        if (typeof container.isConnected === 'boolean' && !container.isConnected) return;
 
-      observer.observe(container);
+        try {
+          container.innerHTML = '';
+          const anim = lottie.loadAnimation({
+            container,
+            renderer: 'svg',
+            loop: !isReduced,
+            autoplay: !isReduced,
+            animationData: animData
+          });
+
+          if (isReduced) {
+            anim.goToAndStop(0, true);
+          }
+
+          // Off-screen pause optimization via IntersectionObserver
+          if ('IntersectionObserver' in window && !isReduced) {
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  anim.play();
+                  container.classList.remove('is-paused');
+                } else {
+                  anim.pause();
+                  container.classList.add('is-paused');
+                }
+              });
+            }, { threshold: 0.1 });
+            observer.observe(container);
+          }
+        } catch (err) {
+          console.warn('[LottieCatalog] Lottie render notice:', err);
+          container.innerHTML = getAnimatedSVG(cat.id, {
+            size: options.size || 140,
+            reducedMotion: isReduced
+          });
+        }
+      });
     }
 
     return cat;
@@ -574,6 +663,8 @@
     getCategoryForLesson,
     getAnimatedSVG,
     getLottieJSON,
-    mountAnimation
+    mountAnimation,
+    loadLottieWeb,
+    fetchLottieJSON
   };
 });
