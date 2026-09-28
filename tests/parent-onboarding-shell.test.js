@@ -404,7 +404,6 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
         learningStyle: 'interactive',
         fontPreference: 'rounded',
         responseStyle: 'playful',
-        themePreference: 'auto',
         interests: ['space', 'robotics'],
         favoriteSubjects: ['science']
       });

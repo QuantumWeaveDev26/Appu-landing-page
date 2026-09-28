@@ -25,10 +25,16 @@
     if (
       typeof globalThis !== 'undefined' &&
       globalThis.APPU_CONFIG &&
-      typeof globalThis.APPU_CONFIG.apiBaseUrl === 'string' &&
-      globalThis.APPU_CONFIG.apiBaseUrl.trim()
+      typeof globalThis.APPU_CONFIG.apiBaseUrl === 'string'
     ) {
       return globalThis.APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '');
+    }
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)
+    ) {
+      return '';
     }
     return 'https://api.appuai.online';
   }
@@ -54,7 +60,9 @@
     // Absolute URL: verify origin matches trusted APPU backend API origin
     try {
       const parsed = new URL(trimmed);
-      const trustedOrigin = new URL(base).origin;
+      const trustedOrigin = (base && base.startsWith('http'))
+        ? new URL(base).origin
+        : (typeof window !== 'undefined' ? window.location.origin : '');
       if (parsed.origin === trustedOrigin) {
         return parsed.toString();
       }
@@ -208,6 +216,22 @@
 
     if (typeof imageBase64 === 'string' && imageBase64.trim()) {
       payload.imageBase64 = imageBase64.trim();
+    }
+
+    // Presentation mode (rich lesson-cards for DEV frontend)
+    const presentationMode = params.presentationMode
+      || (typeof globalThis !== 'undefined' && globalThis.APPU_CONFIG && globalThis.APPU_CONFIG.presentationMode)
+      || undefined;
+    if (presentationMode) {
+      payload.presentationMode = presentationMode;
+    }
+
+    // Experimental learning mode (Phase B/C adaptive difficulty & curiosity tracking for DEV frontend)
+    const experimentalLearning = (typeof params.experimentalLearning === 'boolean')
+      ? params.experimentalLearning
+      : Boolean(typeof globalThis !== 'undefined' && globalThis.APPU_CONFIG && globalThis.APPU_CONFIG.experimentalLearning);
+    if (experimentalLearning) {
+      payload.experimentalLearning = true;
     }
 
     if (isAuthenticated) {
@@ -396,9 +420,43 @@
       };
     }
 
+    let lessonCard = null;
+    let resolvedText = typeof data.text === 'string' ? data.text : '';
+
+    if (data.lessonCard && typeof data.lessonCard === 'object') {
+      lessonCard = data.lessonCard;
+    } else if (data.blocks && Array.isArray(data.blocks)) {
+      lessonCard = {
+        mood: data.mood || 'explaining',
+        gradeTone: data.gradeTone || 'junior',
+        blocks: data.blocks,
+        plainText: data.plainText || resolvedText
+      };
+    } else if (typeof data.text === 'string' && data.text.trim().startsWith('{') && data.text.includes('"blocks"')) {
+      try {
+        const parsedCard = JSON.parse(data.text.trim());
+        if (parsedCard && Array.isArray(parsedCard.blocks)) {
+          lessonCard = parsedCard;
+          if (parsedCard.plainText) {
+            resolvedText = parsedCard.plainText;
+          }
+        }
+      } catch {
+        // Not valid JSON, keep as plain text
+      }
+    }
+
+    const plainText = (lessonCard && typeof lessonCard.plainText === 'string' && lessonCard.plainText.trim())
+      ? lessonCard.plainText.trim()
+      : resolvedText;
+
     return {
       requestId: data.requestId || null,
-      text: typeof data.text === 'string' ? data.text : '',
+      text: resolvedText,
+      plainText,
+      lessonCard,
+      mood: (lessonCard && lessonCard.mood) || data.mood || null,
+      gradeTone: (lessonCard && lessonCard.gradeTone) || data.gradeTone || null,
       audioSource: data.audioSource || null,
       audioStreamUrl: resolveAudioStreamUrl(data.audioStreamUrl, baseUrl),
       audioDurationMs: data.audioDurationMs || null,

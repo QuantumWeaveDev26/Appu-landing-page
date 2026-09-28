@@ -91,7 +91,6 @@ function setupDomMock() {
     'pos-pers-style',
     'pos-pers-font',
     'pos-pers-response',
-    'pos-pers-theme',
     'pos-pers-subjects',
     'pos-pers-interests',
     'pos-pers-goals',

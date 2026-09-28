@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" class="theme-dark">
 <head>
   <script>
     // Capture the email-verification redirect signal before the Supabase SDK loads and
@@ -7,6 +7,20 @@
     // later code can still tell this page load came from an auth redirect.
     window.__APPU_AUTH_REDIRECT__ = /access_token|type=signup|type=email_verification/.test(window.location.hash)
       || /code=/.test(window.location.search);
+  </script>
+  <script>
+    // Theme initializer: lock to dark theme matching production
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem('appu_theme');
+        var theme = 'dark';
+        localStorage.setItem('appu_theme', 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          document.documentElement.classList.add('theme-dark');
+        }
+      } catch (e) {}
+    })();
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,15 +31,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260925-13">
+  <link rel="stylesheet" href="style.css?v=20260928-07">
+  <link rel="stylesheet" href="saved-lessons.css?v=20260928-07">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
     <div class="beta-banner-track">
-      <span class="beta-banner-item" data-i18n="betaBannerText">🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required</span>
-      <span class="beta-banner-item" data-i18n="betaBannerText">🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required</span>
+      <span class="beta-banner-item">🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required</span>
+      <span class="beta-banner-item">🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required</span>
     </div>
-    <button id="beta-banner-cta" type="button" class="beta-banner-cta" data-i18n="betaBannerCta">Try Beta — Sign Up Free</button>
+    <button id="beta-banner-cta" type="button" class="beta-banner-cta">Try Beta — Sign Up Free</button>
   </div>
 
   <!-- NATIVE APP WELCOME GATE: shown once per cold start, only when
@@ -64,31 +79,44 @@
       <button id="btn-nav-menu" class="topbar-hamburger icon-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav-drawer"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
       <a class="brand" href="#mission-title" aria-label="IGR Academy home">
         <span class="brand-mark"><img class="brand-logo-img" src="assets/igr-logo.png" alt="IGr Academy" width="44" height="44"></span>
-        <span class="brand-copy"><strong>IGR <em>Academy</em></strong><small data-i18n="brandTagline">Learn with Appu</small></span>
+        <span class="brand-copy"><strong>IGR <em>Academy</em></strong><small>Learn with Appu</small></span>
       </a>
-      <div class="topbar-center">
-        <div id="avatar-status-pill" class="status-pill idle" role="status">
-          <span class="status-dot" aria-hidden="true"></span><span id="status-label" data-i18n="statusLabel">Appu is ready</span>
-        </div>
-        <button id="btn-explore-prompts" class="explore-prompts-pill topbar-explore-pill" type="button">
-          <i class="fa-solid fa-compass text-cyan" aria-hidden="true"></i>
-          <span id="btn-explore-prompts-text" data-i18n="btnExplorePrompts">Explore Prompts</span>
-          <i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i>
-        </button>
+      <div id="avatar-status-pill" class="status-pill idle" role="status">
+        <span class="status-dot" aria-hidden="true"></span><span id="status-label">Appu is ready</span>
       </div>
       <div class="topbar-actions">
+        <div id="gamification-widget" class="gamification-bar" role="region" aria-label="Learning Progress">
+          <button id="btn-streak-badge" class="game-pill game-streak" type="button" title="3-day learning streak!" aria-label="Learning Streak: 3 days">
+            <span class="game-icon" aria-hidden="true">🔥</span>
+            <strong id="game-streak-count">3</strong>
+            <span class="game-label">Streak</span>
+          </button>
+          <button id="btn-xp-badge" class="game-pill game-xp" type="button" title="120 Learning Stars! Click to view achievements" aria-label="XP Stars: 120">
+            <span class="game-icon" aria-hidden="true">⭐</span>
+            <strong id="game-xp-count">120</strong>
+            <span class="game-label">XP</span>
+          </button>
+          <div class="game-level-pill" title="Level 2: Curious Explorer">
+            <span id="game-level-tag" class="level-tag">Lvl 2</span>
+            <div class="level-progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">
+              <div id="game-xp-fill" class="level-progress-fill" style="width: 70%;"></div>
+            </div>
+          </div>
+        </div>
         <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
         <div id="parental-timer-badge" class="parental-timer-pill" role="status" title="Parental study timer" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span id="parental-timer-text">30m</span></div>
-        <button id="btn-main-auth" class="auth-pill-btn" type="button"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i><span data-i18n="authPill">Sign in / Sign up</span></button>
+        <button id="btn-main-auth" class="auth-pill-btn" type="button"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i><span>Sign in / Sign up</span></button>
         <div class="language-switch" aria-label="Choose language" role="radiogroup">
           <button id="lang-en" class="lang-btn is-active" type="button" role="radio" aria-checked="true">ENG</button>
           <button id="lang-kn" class="lang-btn" type="button" lang="kn" role="radio" aria-checked="false">ಕನ್ನಡ</button>
           <button id="lang-hi" class="lang-btn" type="button" lang="hi" role="radio" aria-checked="false">हिंदी</button>
         </div>
-        <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span data-i18n="parentSetup">Parent Setup</span></button>
-        <button id="btn-topbar-reports" class="parent-zone-btn topbar-reports-btn" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span data-i18n="reportButton">Report</span></button>
-        <button id="btn-quick-schedule" class="icon-btn" type="button" aria-label="Schedule support call" title="Schedule Support Call"><i class="fa-solid fa-calendar-check text-cyan" aria-hidden="true"></i><span data-i18n="drawerScheduleCall">Schedule Support Call</span></button>
-        <button id="btn-sound-toggle" class="icon-btn" type="button" aria-label="Toggle sound effects"><i id="sound-icon" class="fa-solid fa-volume-high text-cyan" aria-hidden="true"></i><span data-i18n="drawerSoundEffects">Sound Effects</span></button>
+        <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Setup</span></button>
+        <button id="btn-topbar-saved-lessons" class="parent-zone-btn topbar-saved-btn" type="button" title="My Learning — Saved Lessons" aria-label="My Learning"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i><span>My Learning</span> <span class="topbar-saved-count-pill" id="topbar-saved-count" style="display:none">0</span></button>
+        <button id="btn-topbar-reports" class="parent-zone-btn topbar-reports-btn" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Report</span></button>
+        <button id="btn-quick-schedule" class="icon-btn" type="button" aria-label="Schedule support call" title="Schedule Support Call"><i class="fa-solid fa-calendar-check text-cyan" aria-hidden="true"></i><span>Schedule Support Call</span></button>
+        <button id="btn-sound-toggle" class="icon-btn" type="button" aria-label="Toggle sound effects"><i id="sound-icon" class="fa-solid fa-volume-high text-cyan" aria-hidden="true"></i><span>Sound Effects</span></button>
+        <button id="btn-theme-toggle" class="icon-btn theme-toggle-btn" type="button" aria-label="Switch to dark theme" title="Switch to dark theme" aria-pressed="true" style="display: none !important;"><i id="theme-icon" class="fa-solid fa-moon text-cyan" aria-hidden="true"></i><span>Dark theme</span></button>
         <button id="btn-settings" class="icon-btn" type="button" aria-label="Open voice settings"><i class="fa-solid fa-sliders" aria-hidden="true"></i></button>
       </div>
     </header>
@@ -97,16 +125,32 @@
       <div class="stage-backdrop" aria-hidden="true"></div><div class="stage-grid" aria-hidden="true"></div>
       <section class="mission-intro">
         <p id="mission-eyebrow" class="eyebrow"><span aria-hidden="true">✦</span> Your learning mission starts here</p>
-        <h1 id="mission-title" data-i18n-html="missionTitleHtml">Start your <span>academic success</span> now!</h1>
-        <p id="mission-subtitle" data-i18n="missionSubtitle">Choose a mission or ask Appu anything from class 5 to 12.</p>
+        <h1 id="mission-title" style="color: #ffffff !important; background: rgba(15, 23, 42, 0.82) !important; border: 1.5px solid rgba(14, 165, 233, 0.35) !important;" data-i18n-html="missionTitleHtml">Start your <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">academic success</span> now!</h1>
+        <p id="mission-subtitle">Choose a mission or ask Appu anything from class 5 to 12.</p>
       </section>
 
-      <div id="avatar-3d-wrapper" class="avatar-stage state-idle">
+      <div id="avatar-3d-wrapper" class="avatar-stage state-idle mood-idle">
         <div id="stage-halo" class="stage-halo state-idle" aria-hidden="true"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span></div>
         <button id="avatar-figure-container" class="avatar-interactive-figure" type="button" aria-label="Ask Appu to introduce himself">
-          <span class="avatar-glow" aria-hidden="true"></span><img src="assets/appu_cutout_new.png" alt="Appu, your friendly AI learning companion">
+          <span class="avatar-glow" aria-hidden="true"></span>
+          <div id="avatar-model-frame" class="avatar-model-frame">
+            <img id="hero-appu-img" class="hero-appu-photo" src="assets/appu-cutout-new.png" alt="Appu, your AI learning companion" width="560" height="700">
+            <div id="avatar-face-mesh" class="avatar-face-mesh" aria-hidden="true">
+              <div id="avatar-eye-left" class="avatar-eye-blink eye-left"></div>
+              <div id="avatar-eye-right" class="avatar-eye-blink eye-right"></div>
+              <div id="avatar-mouth-wrap" class="avatar-mouth-wrap">
+                <div id="avatar-mouth" class="avatar-mouth"></div>
+              </div>
+            </div>
+          </div>
+          <div class="photo-sparkles" aria-hidden="true">
+            <span class="psp psp-1">✦</span>
+            <span class="psp psp-2">✦</span>
+            <span class="psp psp-3">✦</span>
+            <span class="psp psp-4">✦</span>
+          </div>
         </button>
-        <div class="appu-nameplate"><span class="online-dot" aria-hidden="true"></span><strong>APPU</strong><small id="appu-companion-tag" data-i18n="companionTag">AI learning companion</small></div>
+        <div class="appu-nameplate"><span class="online-dot" aria-hidden="true"></span><strong>APPU</strong><small id="appu-companion-tag">AI learning companion</small></div>
       </div>
 
       <div id="mobile-status-slot" class="mobile-status-slot"></div>
@@ -120,43 +164,61 @@
 
       <div class="mission-deck" aria-label="Choose a learning mission">
         <button id="chip-explain" class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title" data-i18n="chipExplainTitle">Explain My Topic</strong><small class="chip-desc" data-i18n="chipExplainDesc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
         <button id="chip-quiz" class="mission-card chip-action-btn mission-violet" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong class="chip-title" data-i18n="chipQuizTitle">Play a Quick Quiz</strong><small class="chip-desc" data-i18n="chipQuizDesc">Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
         <button id="chip-homework" class="mission-card chip-action-btn mission-green" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong class="chip-title" data-i18n="chipHomeworkTitle">Homework Helper</strong><small class="chip-desc" data-i18n="chipHomeworkDesc">Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
         <button id="chip-exam" class="mission-card chip-action-btn mission-amber" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title" data-i18n="chipExamTitle">Exam Practice</strong><small class="chip-desc" data-i18n="chipExamDesc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
         </button>
+      </div>
+
+      <!-- VOICE RESPONSE POPUP: persistent assistant reply view during hands-free voice sessions -->
+      <div id="voice-reply-popup" class="voice-reply-popup" role="region" aria-live="polite" aria-label="Appu's response" hidden>
+        <div class="voice-popup-header">
+          <div class="voice-popup-title">
+            <span class="online-dot" aria-hidden="true"></span>
+            <strong id="voice-popup-title-text">Appu says</strong>
+          </div>
+          <button id="btn-close-voice-popup" class="icon-btn voice-popup-close" type="button" aria-label="Dismiss response">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="voice-popup-content" class="voice-popup-body"></div>
       </div>
     </main>
 
-    <!-- VOICE RESPONSE POPUP: persistent assistant reply view during hands-free voice sessions -->
-    <div id="voice-reply-popup" class="voice-reply-popup" role="region" aria-live="polite" aria-label="Appu's response" hidden>
-      <div class="voice-popup-header">
-        <div class="voice-popup-title">
-          <span class="online-dot" aria-hidden="true"></span>
-          <strong id="voice-popup-title-text" data-i18n="appuSaysLabel">Appu says</strong>
-        </div>
-        <button id="btn-close-voice-popup" class="icon-btn voice-popup-close" type="button" aria-label="Dismiss response">
+    <!-- Active Document Banner (Dock Mode) -->
+    <div id="active-doc-banner-dock" class="active-doc-banner" hidden>
+      <div class="active-doc-pill">
+        <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+        <span class="active-doc-name" id="active-doc-name-dock">Notes</span>
+        <span class="active-doc-badge">Teaching from this</span>
+        <button id="btn-clear-doc-dock" class="active-doc-clear-btn" type="button" aria-label="Clear active document and return to standard mode" title="Clear document">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
-      <div id="voice-popup-content" class="voice-popup-body"></div>
     </div>
 
     <section class="response-dock" aria-label="Talk to Appu">
       <div class="response-card" id="response-card" role="button" tabindex="0" aria-label="Tap to type a message to Appu">
-        <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong id="appu-says-label" data-i18n="appuSaysLabel">Appu says</strong><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
-        <p id="subtitles-text" data-i18n="subtitlesDefault">Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.</p>
+        <div id="appu-mascot-container" class="appu-mascot-container" aria-hidden="true"></div>
+        <div class="response-card-main">
+          <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong id="appu-says-label">Appu says</strong><button id="btn-dock-expand" class="dock-expand-hint" type="button" aria-label="Expand in chat drawer" title="Expand in chat drawer"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i><span>Expand</span></button><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
+          <p id="subtitles-text">Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.</p>
+        </div>
       </div>
       <div class="control-dock">
-        <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span data-i18n="typeInstead">Type instead</span></button>
+        <div class="dock-btn-group">
+          <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span>Type instead</span></button>
+          <button id="btn-upload-notes" class="dock-btn notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i><span>Upload notes</span></button>
+        </div>
         <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Tap to speak to Appu"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
-        <span class="mic-label" data-i18n="micCta">Tap to speak</span>
+        <span class="mic-label">Tap to speak</span>
       </div>
     </section>
   </div>
@@ -164,17 +226,17 @@
   <footer class="landing-footer-strip" role="contentinfo">
     <span>&copy; 2026 IGR Academy</span>
     <span class="sep" aria-hidden="true">•</span>
-    <a href="privacy-policy.html" data-i18n="drawerPrivacy">Privacy Policy</a>
+    <a href="privacy-policy.html">Privacy Policy</a>
     <span class="sep" aria-hidden="true">•</span>
-    <a href="terms-and-conditions.html" data-i18n="drawerTerms">Terms & Conditions</a>
+    <a href="terms-and-conditions.html">Terms & Conditions</a>
     <span class="sep" aria-hidden="true">•</span>
-    <a href="cancellation-refund-policy.html" data-i18n="drawerCancellation">Cancellation & Refunds</a>
+    <a href="cancellation-refund-policy.html">Cancellation & Refunds</a>
     <span class="sep" aria-hidden="true">•</span>
-    <a href="shipping-delivery-policy.html" data-i18n="drawerShipping">Shipping & Delivery</a>
+    <a href="shipping-delivery-policy.html">Shipping & Delivery</a>
     <span class="sep" aria-hidden="true">•</span>
-    <a href="pricing.html" data-i18n="drawerPricing">Pricing</a>
+    <a href="pricing.html">Pricing</a>
     <span class="sep" aria-hidden="true">•</span>
-    <a href="contact-us.html" data-i18n="drawerContact">Contact Us</a>
+    <a href="contact-us.html">Contact Us</a>
   </footer>
 
   <!-- LEFT NAV DRAWER (native app only: account/settings/nav, relocated from the topbar) -->
@@ -182,40 +244,66 @@
   <aside id="nav-drawer" class="nav-drawer" role="dialog" aria-modal="true" aria-labelledby="nav-drawer-title" aria-hidden="true">
     <header class="nav-drawer-header">
       <span class="brand-mark"><img class="brand-logo-img" src="assets/igr-logo.png" alt="" width="36" height="36"></span>
-      <span id="nav-drawer-title" class="nav-drawer-brand-copy"><strong>IGR <em>Academy</em></strong><small data-i18n="drawerLearnWithAppu">Learn with Appu</small></span>
+      <span id="nav-drawer-title" class="nav-drawer-brand-copy"><strong>IGR <em>Academy</em></strong><small>Learn with Appu</small></span>
       <button id="btn-close-nav-drawer" class="icon-btn close-btn" type="button" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </header>
     <nav class="nav-drawer-body">
       <div id="nav-drawer-lang-slot" class="nav-drawer-slot"></div>
+      <div id="nav-drawer-gamification" class="nav-drawer-gamification" role="region" aria-label="Learning Progress">
+        <span class="nav-drawer-section-title" id="drawer-progress-title">My Progress</span>
+        <div class="nav-drawer-gamification-pills">
+          <div class="nav-game-pill game-streak" title="Learning Streak">
+            <span class="game-icon" aria-hidden="true">🔥</span>
+            <strong id="drawer-streak-count">3</strong>
+            <span class="game-label">Streak</span>
+          </div>
+          <div class="nav-game-pill game-xp" title="Learning Stars">
+            <span class="game-icon" aria-hidden="true">⭐</span>
+            <strong id="drawer-xp-count">120</strong>
+            <span class="game-label">Stars</span>
+          </div>
+          <div class="nav-game-pill game-level" title="Learner Level">
+            <span class="game-icon" aria-hidden="true">🏆</span>
+            <strong id="drawer-level-tag">Lvl 2</strong>
+            <span class="game-label">Explorer</span>
+          </div>
+        </div>
+      </div>
       <div class="nav-drawer-missions">
-        <span class="nav-drawer-section-title" data-i18n="drawerMissionsTitle">Learning Missions</span>
-        <button class="nav-drawer-mission-btn drawer-chip-explain" type="button" data-prompt="Explain this concept simply with a fun real-world example: ">
+        <span class="nav-drawer-section-title" id="drawer-missions-title">Learning Missions</span>
+        <button id="drawer-chip-explain" class="nav-drawer-mission-btn drawer-chip-explain chip-action-btn" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
           <i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i>
-          <div><strong data-i18n="chipExplainTitle">Explain Concept</strong><small data-i18n="chipExplainDesc">Simple breakdown</small></div>
+          <div><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></div>
         </button>
-        <button class="nav-drawer-mission-btn drawer-chip-quiz" type="button" data-prompt="Give me a quick 3-question quiz with multiple choice options on: ">
-          <i class="fa-solid fa-circle-question text-cyan" aria-hidden="true"></i>
-          <div><strong data-i18n="chipQuizTitle">Play Quiz</strong><small data-i18n="chipQuizDesc">Test knowledge</small></div>
+        <button id="drawer-chip-quiz" class="nav-drawer-mission-btn drawer-chip-quiz chip-action-btn" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
+          <i class="fa-solid fa-bolt text-cyan" aria-hidden="true"></i>
+          <div><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></div>
         </button>
-        <button class="nav-drawer-mission-btn drawer-chip-homework" type="button" data-prompt="Help me understand how to solve this step by step: ">
+        <button id="drawer-chip-homework" class="nav-drawer-mission-btn drawer-chip-homework chip-action-btn" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
           <i class="fa-solid fa-book-open-reader text-green" aria-hidden="true"></i>
-          <div><strong data-i18n="chipHomeworkTitle">Homework Helper</strong><small data-i18n="chipHomeworkDesc">Step-by-step guidance</small></div>
+          <div><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></div>
         </button>
-        <button class="nav-drawer-mission-btn drawer-chip-exam" type="button" data-prompt="Give me an exam-style question and marking scheme on: ">
+        <button id="drawer-chip-exam" class="nav-drawer-mission-btn drawer-chip-exam chip-action-btn" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
           <i class="fa-solid fa-medal text-violet" aria-hidden="true"></i>
-          <div><strong data-i18n="chipExamTitle">Exam Practice</strong><small data-i18n="chipExamDesc">Revise smarter</small></div>
+          <div><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></div>
+        </button>
+        <button id="btn-explore-prompts" class="nav-drawer-mission-btn explore-prompts-drawer-btn" type="button">
+          <i class="fa-solid fa-compass text-cyan" aria-hidden="true"></i>
+          <div><strong id="btn-explore-prompts-text" class="chip-title">Explore Prompts</strong><small class="chip-desc">Curated study questions &amp; prompts</small></div>
         </button>
       </div>
       <div id="nav-drawer-actions-slot" class="nav-drawer-slot"></div>
       <button id="btn-drawer-parent-zone" class="nav-drawer-parent-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> <span data-i18n="drawerParentZone">Parent Zone & Controls</span></button>
-      <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span data-i18n="drawerReports">Child Progress Report</span></button>
+      <button id="btn-drawer-saved-lessons" class="nav-drawer-saved-link" type="button"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>My Learning <small class="saved-count-pill" id="nav-drawer-saved-count" style="display:none">0</small></span></button>
+      <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Child Progress Report</span></button>
+      <button id="btn-drawer-theme-toggle" class="nav-drawer-theme-link" type="button" aria-label="Switch to dark theme" title="Switch to dark theme" style="display: none !important;"><i id="drawer-theme-icon" class="fa-solid fa-moon text-cyan" aria-hidden="true"></i> <span id="drawer-theme-text">Dark Mode</span></button>
       <div class="nav-drawer-legal">
-        <a href="privacy-policy.html" data-i18n="drawerPrivacy">Privacy Policy</a>
-        <a href="terms-and-conditions.html" data-i18n="drawerTerms">Terms &amp; Conditions</a>
-        <a href="cancellation-refund-policy.html" data-i18n="drawerCancellation">Cancellation &amp; Refunds</a>
-        <a href="shipping-delivery-policy.html" data-i18n="drawerShipping">Shipping &amp; Delivery</a>
-        <a href="pricing.html" data-i18n="drawerPricing">Pricing</a>
-        <a href="contact-us.html" data-i18n="drawerContact">Contact Us</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
+        <a href="cancellation-refund-policy.html">Cancellation &amp; Refunds</a>
+        <a href="shipping-delivery-policy.html">Shipping &amp; Delivery</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="contact-us.html">Contact Us</a>
       </div>
     </nav>
     <footer id="nav-drawer-footer" class="nav-drawer-footer">
@@ -227,7 +315,7 @@
   <div id="chat-scrim" class="drawer-scrim" aria-hidden="true"></div>
   <aside id="chat-drawer" class="chat-drawer" role="dialog" aria-modal="true" aria-labelledby="chat-title" aria-hidden="true">
     <header class="drawer-header">
-      <div><span class="online-dot" aria-hidden="true"></span><div><h2 id="chat-title" data-i18n="chatTitle">Chat with Appu</h2><p id="chat-subtitle" data-i18n="chatSubtitle">Ask, explore, understand</p></div></div>
+      <div><span class="online-dot" aria-hidden="true"></span><div><h2 id="chat-title">Chat with Appu</h2><p id="chat-subtitle">Ask, explore, understand</p></div></div>
       <div class="drawer-actions">
         <button id="btn-chat-history" class="icon-btn drawer-btn" type="button" aria-label="Recent chats" title="Recent chats"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></button>
         <button id="btn-clear-chat" class="icon-btn" type="button" aria-label="Clear chat"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
@@ -236,14 +324,14 @@
     </header>
     <section id="chat-history-panel" class="chat-history-panel" aria-labelledby="chat-history-title" hidden>
       <header class="chat-history-header">
-        <h3 id="chat-history-title" data-i18n="historyTitle">Recent chats</h3>
+        <h3 id="chat-history-title">Recent chats</h3>
         <button id="btn-close-chat-history" type="button" aria-label="Close recent chats"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </header>
-      <button id="btn-new-chat" class="history-new-chat" type="button"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span data-i18n="newChat">New chat</span></button>
-      <p id="chat-history-empty" data-i18n="historyEmpty" hidden>No saved conversations yet.</p>
-      <p id="chat-history-error" role="alert" data-i18n="historyError" hidden>Could not load recent chats. Try again.</p>
+      <button id="btn-new-chat" class="history-new-chat" type="button"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>New chat</span></button>
+      <p id="chat-history-empty" hidden>No saved conversations yet.</p>
+      <p id="chat-history-error" role="alert" hidden>Could not load recent chats. Try again.</p>
       <div id="chat-history-list" class="chat-history-list"></div>
-      <button id="btn-clear-all-history" class="history-clear-all" type="button" data-i18n="clearAllHistory">Clear all history</button>
+      <button id="btn-clear-all-history" class="history-clear-all" type="button">Clear all history</button>
     </section>
     <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
     <div id="chat-typing" class="chat-typing" aria-label="Appu is thinking"><span></span><span></span><span></span></div>
@@ -255,11 +343,23 @@
       <img id="chat-image-preview-thumb" alt="Attached photo preview">
       <button id="btn-remove-chat-image" class="chat-image-remove" type="button" aria-label="Remove attached photo"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
+    <!-- Active Document Banner (Drawer Mode) -->
+    <div id="active-doc-banner-drawer" class="active-doc-banner in-drawer" hidden>
+      <div class="active-doc-pill">
+        <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+        <span class="active-doc-name" id="active-doc-name-drawer">Notes</span>
+        <span class="active-doc-badge">Teaching from this</span>
+        <button id="btn-clear-doc-drawer" class="active-doc-clear-btn" type="button" aria-label="Clear active document and return to standard mode" title="Clear document">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
     <form id="chat-form" class="chat-composer">
       <label class="sr-only" for="chat-input">Your question for Appu</label>
-      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homework…" data-i18n-placeholder="chatPlaceholder">
+      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homework…">
       <input id="chat-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden aria-hidden="true">
       <button id="btn-chat-attach" class="composer-attach" type="button" aria-label="Attach a photo of your homework"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></button>
+      <button id="btn-chat-upload-notes" class="composer-notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></button>
       <button id="btn-chat-mic" class="composer-mic" type="button" aria-label="Ask using your voice"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
       <button class="composer-send" type="submit" aria-label="Send question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
     </form>
@@ -271,14 +371,14 @@
       <div class="prompt-library-title-group">
         <span class="online-dot" aria-hidden="true"></span>
         <div>
-          <h2 id="prompt-library-title" data-i18n="promptLibraryTitle">Prompt Library</h2>
-          <p id="prompt-library-subtitle" data-i18n="promptLibrarySubtitle">Personalized sparks for your learning journey</p>
+          <h2 id="prompt-library-title">Prompt Library</h2>
+          <p id="prompt-library-subtitle">Personalized sparks for your learning journey</p>
         </div>
       </div>
       <div class="prompt-library-actions">
         <button id="btn-refresh-prompts" class="icon-btn prompt-refresh-btn" type="button" aria-label="Refresh prompts" title="Refresh prompts">
           <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
-          <span class="sr-only" data-i18n="btnRefreshPrompts">Refresh prompts</span>
+          <span class="sr-only">Refresh prompts</span>
         </button>
         <button id="btn-close-prompt-library" class="icon-btn close-btn" type="button" aria-label="Close prompt library">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -287,27 +387,50 @@
     </header>
     <nav class="prompt-category-tabs" aria-label="Prompt categories" role="tablist">
       <button class="prompt-cat-tab is-active" type="button" role="tab" aria-selected="true" data-category="all">
-        <span id="tab-cat-all" data-i18n="categoryAll">All</span>
+        <span id="tab-cat-all">All</span>
       </button>
       <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="quick_concepts">
         <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
-        <span id="tab-cat-quick-concepts" data-i18n="categoryQuickConcepts">Quick Concepts</span>
+        <span id="tab-cat-quick-concepts">Quick Concepts</span>
       </button>
       <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="homework_hints">
         <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
-        <span id="tab-cat-homework-hints" data-i18n="categoryHomeworkHints">Homework Hints</span>
+        <span id="tab-cat-homework-hints">Homework Hints</span>
       </button>
       <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="curious_mind">
         <i class="fa-solid fa-rocket" aria-hidden="true"></i>
-        <span id="tab-cat-curious-mind" data-i18n="categoryCuriousMind">Curious Mind</span>
+        <span id="tab-cat-curious-mind">Curious Mind</span>
       </button>
       <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="exam_drills">
         <i class="fa-solid fa-medal" aria-hidden="true"></i>
-        <span id="tab-cat-exam-drills" data-i18n="categoryExamDrills">Exam Drills</span>
+        <span id="tab-cat-exam-drills">Exam Drills</span>
       </button>
     </nav>
     <div id="prompt-cards-container" class="prompt-cards-container" role="region" aria-live="polite">
       <!-- Dynamically populated by prompt-library-ui.js -->
+    </div>
+  </aside>
+
+  <!-- SAVED LESSONS PANEL (My Learning: persistent revisit & WhatsApp sharing) -->
+  <div id="saved-lessons-scrim" class="drawer-scrim" aria-hidden="true" style="display:none;"></div>
+  <aside id="saved-lessons-panel" class="saved-lessons-panel" role="dialog" aria-modal="true" aria-labelledby="saved-lessons-title" aria-hidden="true" style="display:none;">
+    <header class="saved-lessons-header">
+      <div class="saved-lessons-title-group">
+        <span class="online-dot" aria-hidden="true"></span>
+        <div>
+          <h2 id="saved-lessons-title">My Learning</h2>
+          <p id="saved-lessons-subtitle">Your saved study cards, mind maps &amp; revision notes</p>
+        </div>
+      </div>
+      <div class="saved-lessons-header-actions">
+        <span class="saved-count-badge" id="saved-lessons-count-badge">0 saved</span>
+        <button id="btn-close-saved-lessons" class="icon-btn close-btn" type="button" aria-label="Close saved lessons">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+    <div id="saved-lessons-list" class="saved-lessons-list" role="region" aria-live="polite">
+      <!-- Dynamically populated by saved-lessons-ui.js -->
     </div>
   </aside>
 
@@ -316,19 +439,19 @@
     <div class="modal-sheet guest-limit-sheet">
       <button id="btn-close-guest-limit" class="icon-btn modal-close close-btn" type="button" aria-label="Close dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       <div class="modal-kicker"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> APPU AI Companion</div>
-      <h2 id="guest-limit-title" data-i18n="guestLimitTitle">Your complimentary APPU chats are complete</h2>
-      <p class="modal-lead" data-i18n="guestLimitLead">Sign in to continue learning, save your progress, and unlock tailored study plans.</p>
+      <h2 id="guest-limit-title">Your complimentary APPU chats are complete</h2>
+      <p class="modal-lead">Sign in to continue learning, save your progress, and unlock tailored study plans.</p>
 
       <div class="guest-gate-features">
-        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span data-i18n="guestFeature1">Personalized explanations for your syllabus</span></div>
-        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span data-i18n="guestFeature2">Save chat history across all your devices</span></div>
-        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span data-i18n="guestFeature3">Voice practice in English and Kannada</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Personalized explanations for your syllabus</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Save chat history across all your devices</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Voice practice in English and Kannada</span></div>
       </div>
 
       <div class="guest-gate-actions">
-        <button id="btn-guest-signin" class="primary-modal-btn" type="button"><span data-i18n="guestSignIn">Sign in</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
-        <button id="btn-guest-register" class="secondary-modal-btn" type="button"><span data-i18n="guestRegister">Create free account</span></button>
-        <button id="btn-guest-plans" class="tertiary-modal-btn" type="button"><span data-i18n="guestViewPlans">View learning plans</span><i class="fa-solid fa-tags" aria-hidden="true"></i></button>
+        <button id="btn-guest-signin" class="primary-modal-btn" type="button"><span>Sign in</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+        <button id="btn-guest-register" class="secondary-modal-btn" type="button"><span>Create free account</span></button>
+        <button id="btn-guest-plans" class="tertiary-modal-btn" type="button"><span>View learning plans</span><i class="fa-solid fa-tags" aria-hidden="true"></i></button>
       </div>
     </div>
   </section>
@@ -529,27 +652,16 @@
                 </select>
               </label>
             </div>
-            <div class="field-grid">
-              <label><span id="pos-pers-font-label">Reading Font Style</span>
-                <select id="pos-pers-font">
-                  <option id="pos-font-opt-rounded" value="rounded" selected>Friendly Rounded</option>
-                  <option id="pos-font-opt-friendly" value="friendly">Friendly Standard</option>
-                  <option id="pos-font-opt-clean" value="clean">Clean Minimal</option>
-                </select>
-              </label>
-              <label><span id="pos-pers-theme-label">Theme Mode</span>
-                <select id="pos-pers-theme">
-                  <option id="pos-theme-opt-auto" value="auto" selected>Auto</option>
-                  <option id="pos-theme-opt-bright" value="bright">Bright & Energetic</option>
-                  <option id="pos-theme-opt-calm" value="calm">Calm & Focused</option>
-                </select>
-              </label>
-            </div>
-            <div class="field-grid">
-              <label><span id="pos-pers-subjects-label">Favorite Subjects</span>
-                <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
-              </label>
-            </div>
+            <label><span id="pos-pers-font-label">Reading Font Style</span>
+              <select id="pos-pers-font">
+                <option id="pos-font-opt-rounded" value="rounded" selected>Friendly Rounded</option>
+                <option id="pos-font-opt-friendly" value="friendly">Friendly Standard</option>
+                <option id="pos-font-opt-clean" value="clean">Clean Minimal</option>
+              </select>
+            </label>
+            <label><span id="pos-pers-subjects-label">Favorite Subjects</span>
+              <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
+            </label>
             <label><span id="pos-pers-interests-label">Favorite Interests & Hobbies (comma-separated)</span>
               <input id="pos-pers-interests" type="text" placeholder="Space, Robotics, Astronomy, Dinosaurs">
             </label>
@@ -577,17 +689,17 @@
   <section id="reports-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reports-modal-title" aria-hidden="true" tabindex="-1">
     <div class="modal-sheet reports-sheet">
       <button class="icon-btn modal-close close-btn" type="button" aria-label="Close reports" data-close-reports><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-      <div class="modal-kicker"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span data-i18n="reportsKicker">Parent Zone • Progress</span></div>
-      <h2 id="reports-modal-title" data-i18n="reportsTitle">Child Performance Report</h2>
+      <div class="modal-kicker"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Parent Zone • Progress</div>
+      <h2 id="reports-modal-title">Child Performance Report</h2>
 
       <div id="report-view-loading" class="report-view" hidden>
-        <p class="modal-lead" data-i18n="reportsLoading">Checking your reports…</p>
+        <p class="modal-lead">Checking your reports…</p>
       </div>
 
       <div id="report-view-locked" class="report-view" hidden>
-        <p class="modal-lead" data-i18n="reportsLockedLead">Appu can generate a detailed performance report for your child — with a score, strengths, and what to improve. To unlock it, please share quick feedback first. Once you do, your child's report is generated on demand and appears here, in the app, and on WhatsApp.</p>
+        <p class="modal-lead">Appu can generate a detailed performance report for your child — with a score, strengths, and what to improve. To unlock it, please share quick feedback first. Once you do, your child's report is generated on demand and appears here, in the app, and on WhatsApp.</p>
         <div class="report-fb-block">
-          <span class="report-fb-label" data-i18n="reportsRatingLabel">How is Appu working for your family?</span>
+          <span class="report-fb-label">How is Appu working for your family?</span>
           <div id="report-rating" class="report-rating" role="radiogroup" aria-label="Overall rating">
             <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="1 star"><i class="fa-solid fa-star"></i></button>
             <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="2 stars"><i class="fa-solid fa-star"></i></button>
@@ -596,7 +708,7 @@
             <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="5 stars"><i class="fa-solid fa-star"></i></button>
           </div>
         </div>
-        <label class="report-fb-field"><span data-i18n="reportsWorkingWell">What's working well?</span>
+        <label class="report-fb-field"><span>What's working well?</span>
           <select id="report-fb-working" class="report-fb-select">
             <option value="" disabled selected>Choose what you like most…</option>
             <option>Explanations are clear and easy to understand</option>
@@ -609,7 +721,7 @@
           </select>
           <input type="text" id="report-fb-working-other" class="report-fb-other" maxlength="200" placeholder="Tell us what you like most about Appu…" hidden />
         </label>
-        <label class="report-fb-field"><span data-i18n="reportsImprove">What would make it even better?</span>
+        <label class="report-fb-field"><span>What would make it even better?</span>
           <select id="report-fb-improve" class="report-fb-select">
             <option value="" disabled selected>Choose one…</option>
             <option>More practice quizzes and questions</option>
@@ -622,19 +734,32 @@
           <input type="text" id="report-fb-improve-other" class="report-fb-other" maxlength="200" placeholder="Tell us what would make Appu even better…" hidden />
         </label>
         <p id="report-feedback-note" class="report-note" role="alert"></p>
-        <button id="report-fb-submit" class="primary-modal-btn" type="button" data-i18n="reportsSubmit">Submit feedback & unlock report</button>
-        <button id="report-fb-later" class="report-later-btn" type="button" data-close-reports data-i18n="reportsLater">Maybe later</button>
+        <button id="report-fb-submit" class="primary-modal-btn" type="button">Submit feedback & unlock report</button>
+        <button id="report-fb-later" class="report-later-btn" type="button" data-close-reports>Maybe later</button>
       </div>
 
       <div id="report-view-unlocked" class="report-view" hidden>
-        <p class="modal-lead" data-i18n="reportsUnlockedLead">Your child's report is ready to generate. It analyzes their conversations with Appu across the app, website, and WhatsApp, and produces a designed PDF with an overall score, subject breakdown, strengths, and recommendations.</p>
-        <button id="report-download-btn" class="primary-modal-btn" type="button"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> <span data-i18n="reportsDownload">Download performance report (PDF)</span></button>
+        <p class="modal-lead">Your child's report is ready to generate. It analyzes their conversations with Appu across the app, website, and WhatsApp, and produces a designed PDF with an overall score, subject breakdown, strengths, and recommendations.</p>
+
+        <!-- Phase C: Curiosity Beyond Syllabus -->
+        <div id="report-curiosity-section" class="report-curiosity-section" hidden>
+          <div class="report-curiosity-header">
+            <span class="report-curiosity-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span>
+            <div class="report-curiosity-text">
+              <h3 class="report-curiosity-title">Curiosity Beyond Syllabus 🌟</h3>
+              <p class="report-curiosity-desc">Your child explored these advanced topics with great curiosity. We celebrate their enthusiasm for learning beyond grade-level expectations!</p>
+            </div>
+          </div>
+          <div id="report-curiosity-list" class="report-curiosity-list"></div>
+        </div>
+
+        <button id="report-download-btn" class="primary-modal-btn" type="button"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> <span>Download performance report (PDF)</span></button>
         <p id="report-download-status" class="report-note" role="status"></p>
       </div>
 
       <div id="report-view-error" class="report-view" hidden>
-        <p class="modal-lead" data-i18n="reportsError">We couldn't load your reports right now.</p>
-        <button id="report-retry-btn" class="secondary-modal-btn" type="button" data-i18n="reportsRetry">Try again</button>
+        <p class="modal-lead">We couldn't load your reports right now.</p>
+        <button id="report-retry-btn" class="secondary-modal-btn" type="button">Try again</button>
       </div>
     </div>
   </section>
@@ -709,24 +834,157 @@
     </div>
   </section>
 
+  <!-- GAMIFICATION QUEST & ACHIEVEMENTS MODAL -->
+  <div id="gamification-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="game-modal-title" hidden>
+    <div class="game-modal-overlay" id="gamification-modal-overlay"></div>
+    <div class="game-modal-card">
+      <header class="game-modal-header">
+        <div class="game-modal-title-wrap">
+          <span class="game-modal-trophy">🏆</span>
+          <div>
+            <h3 id="game-modal-title">Learning Quest</h3>
+            <p id="game-level-subtitle">Level 2: Curious Explorer 🚀</p>
+          </div>
+        </div>
+        <button id="btn-close-gamification" class="icon-btn close-btn" type="button" aria-label="Close Quest Modal"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </header>
+      <div class="game-modal-body">
+        <div class="game-stats-grid">
+          <div class="stat-card">
+            <span class="stat-emoji">🔥</span>
+            <strong id="stat-streak-val">3 Days</strong>
+            <small>Daily Streak</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-emoji">⭐</span>
+            <strong id="stat-xp-val">120 XP</strong>
+            <small>Total Stars</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-emoji">🎯</span>
+            <strong id="stat-badges-val">3 Badges</strong>
+            <small>Unlocked</small>
+          </div>
+        </div>
+        <div class="game-progress-section">
+          <div class="progress-labels">
+            <span>Next: Level 3</span>
+            <strong id="game-progress-text">70 / 100 XP</strong>
+          </div>
+          <div class="modal-progress-bar">
+            <div id="modal-xp-fill" class="modal-progress-fill" style="width: 70%;"></div>
+          </div>
+        </div>
+        <div class="game-badges-section">
+          <h4>Badges Earned</h4>
+          <div class="badges-grid">
+            <div class="badge-item is-unlocked" title="Unlocked: Solved a Science Lesson!">
+              <span class="badge-icon">🌿</span>
+              <span class="badge-name">Plant Detective</span>
+            </div>
+            <div class="badge-item is-unlocked" title="Unlocked: Quick on the Quiz!">
+              <span class="badge-icon">⚡</span>
+              <span class="badge-name">Quick Thinker</span>
+            </div>
+            <div class="badge-item is-unlocked" title="Unlocked: Asked your first question!">
+              <span class="badge-icon">🚀</span>
+              <span class="badge-name">Curious Mind</span>
+            </div>
+            <div class="badge-item is-locked" title="Ask 5 questions to unlock!">
+              <span class="badge-icon">🪐</span>
+              <span class="badge-name">Space Cadet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES & TEXTBOOK UPLOAD MODAL -->
+  <section id="notes-upload-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-upload-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet notes-upload-sheet">
+      <button id="btn-close-notes-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close upload dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i> <span>Grounded Chapter Tutor</span></div>
+      <h2 id="notes-upload-title">Learn from Your Notes or Textbook</h2>
+      <p class="modal-lead">Upload your class notes, textbook PDF, or paste text. Appu will create a mind map, step-by-step lesson, and quiz directly from your material!</p>
+
+      <div class="notes-tabs" role="tablist" aria-label="Upload method">
+        <button id="tab-notes-file" class="notes-tab is-active" type="button" role="tab" aria-selected="true"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>Upload PDF / File</span></button>
+        <button id="tab-notes-paste" class="notes-tab" type="button" role="tab" aria-selected="false"><i class="fa-solid fa-paste" aria-hidden="true"></i><span>Paste Text</span></button>
+      </div>
+
+      <!-- Tab 1: File Dropzone -->
+      <div id="notes-tabpanel-file" class="notes-tabpanel" role="tabpanel" aria-labelledby="tab-notes-file">
+        <div id="notes-dropzone" class="notes-dropzone" tabindex="0" role="button" aria-label="Drag and drop PDF or text file here, or browse">
+          <input id="notes-file-input" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" hidden>
+          <div class="notes-dropzone-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></div>
+          <p class="notes-dropzone-title">Drop your PDF or textbook chapter here</p>
+          <p class="notes-dropzone-subtitle">Supports PDF, TXT or Markdown files (up to 10MB)</p>
+          <button id="btn-browse-notes-file" class="secondary-modal-btn notes-browse-btn" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>Browse File</span></button>
+        </div>
+        <div id="notes-file-status" class="notes-status-card" hidden>
+          <div class="notes-file-meta">
+            <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+            <div class="notes-file-info">
+              <strong id="notes-filename">chapter-notes.pdf</strong>
+              <small id="notes-file-stats">Extracting text...</small>
+            </div>
+          </div>
+          <button id="btn-remove-notes-file" class="icon-btn notes-remove-btn" type="button" aria-label="Remove selected file"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Paste Text -->
+      <div id="notes-tabpanel-paste" class="notes-tabpanel" role="tabpanel" aria-labelledby="tab-notes-paste" hidden>
+        <label for="notes-paste-input" class="sr-only">Paste textbook or notes content</label>
+        <textarea id="notes-paste-input" class="notes-paste-textarea" rows="8" placeholder="Paste text from your digital notes, PDF, or study guide here..."></textarea>
+        <div class="notes-paste-counter">
+          <span id="notes-char-count">0 / 16,000 characters</span>
+        </div>
+      </div>
+
+      <div class="notes-guidance-pill">
+        <i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i>
+        <span>Answers, concept maps, and quizzes will be strictly grounded in this material.</span>
+      </div>
+
+      <div class="notes-modal-actions">
+        <button id="btn-submit-notes" class="primary-modal-btn notes-submit-btn" type="button" disabled>
+          <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+          <span>Teach Me From This</span>
+        </button>
+        <button id="btn-cancel-notes" class="secondary-modal-btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Confetti Canvas & XP Toast Container -->
+  <canvas id="game-confetti-canvas" class="game-confetti-canvas" aria-hidden="true"></canvas>
+  <div id="game-toast-container" class="game-toast-container" aria-live="polite" aria-atomic="true"></div>
+
   <!-- External SDKs for Phase 2 Integration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20260925-13"></script>
-  <script src="appu-config.js?v=20260925-13"></script>
-  <script src="appu-session.js?v=20260925-13"></script>
-  <script src="appu-backend-client.js?v=20260925-13"></script>
-  <script src="parent-onboarding-shell.js?v=20260925-13"></script>
-  <script src="parent-setup-ui.js?v=20260925-13"></script>
-  <script src="prompt-library-ui.js?v=20260925-13"></script>
-  <script src="avatar-stage.js?v=20260925-13"></script>
-  <script src="voice-engine.js?v=20260925-13"></script>
-  <script src="chat-history.js?v=20260925-13"></script>
-  <script src="chat-agent.js?v=20260925-13"></script>
-  <script src="parent-reports-ui.js?v=20260925-13"></script>
-  <script src="parental-controls-ui.js?v=20260925-13"></script>
-  <script src="app.js?v=20260925-13"></script>
+  <script src="voice-contract.js?v=20260928-07"></script>
+  <script src="appu-config.js?v=20260928-07"></script>
+  <script src="appu-session.js?v=20260928-07"></script>
+  <script src="appu-backend-client.js?v=20260928-07"></script>
+  <script src="parent-onboarding-shell.js?v=20260928-07"></script>
+  <script src="parent-setup-ui.js?v=20260928-07"></script>
+  <script src="prompt-library-ui.js?v=20260928-07"></script>
+  <script src="avatar-stage.js?v=20260928-07"></script>
+  <script src="mascot-avatar.js?v=20260928-07"></script>
+  <script src="lesson-card-renderer.js?v=20260928-07"></script>
+  <script src="voice-engine.js?v=20260928-07"></script>
+  <script src="chat-history.js?v=20260928-07"></script>
+  <script src="chat-agent.js?v=20260928-07"></script>
+  <script src="parent-reports-ui.js?v=20260928-07"></script>
+  <script src="parental-controls-ui.js?v=20260928-07"></script>
+  <script src="saved-lessons-ui.js?v=20260928-07"></script>
+  <script src="app.js?v=20260928-07"></script>
 </body>
 </html>

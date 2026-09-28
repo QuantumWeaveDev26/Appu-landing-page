@@ -30,13 +30,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize Core Subsystems
   const avatarStage = new AvatarStage();
+
+  // Initialize Mascot Avatar (Hero Stage Presenter + Response Dock)
+  let appMascot = null;
+  if (typeof MascotAvatar !== 'undefined') {
+    const heroEl = document.getElementById('hero-mascot-container');
+    const dockEl = document.getElementById('appu-mascot-container');
+    const heroMascot = heroEl ? new MascotAvatar(heroEl, { initialMood: 'idle' }) : null;
+    const dockMascot = dockEl ? new MascotAvatar(dockEl, { initialMood: 'idle' }) : null;
+
+    appMascot = {
+      get mood() {
+        return (heroMascot || dockMascot)?.mood || window.__heroMood || 'idle';
+      },
+      setMood(mood, durationMs) {
+        window.__heroMood = mood;
+        if (heroMascot) heroMascot.setMood(mood, durationMs);
+        if (dockMascot) dockMascot.setMood(mood, durationMs);
+        const heroWrapper = document.getElementById('avatar-3d-wrapper');
+        if (heroWrapper) {
+          heroWrapper.classList.remove('mood-idle', 'mood-listening', 'mood-thinking', 'mood-explaining', 'mood-celebrating');
+          heroWrapper.classList.add(`mood-${mood}`);
+        }
+        if (durationMs && durationMs > 0 && mood !== 'idle') {
+          setTimeout(() => {
+            if (window.__heroMood === mood) {
+              this.setMood('idle');
+            }
+          }, durationMs);
+        }
+        return this;
+      },
+      idle() { return this.setMood('idle'); },
+      listen() { return this.setMood('listening'); },
+      think() { return this.setMood('thinking'); },
+      explain() { return this.setMood('explaining'); },
+      celebrate(durationMs = 3200) { return this.setMood('celebrating', durationMs); },
+      getMood() { return this.mood; },
+      hero: heroMascot,
+      dock: dockMascot
+    };
+    window.appMascot = appMascot;
+  }
+
   const voiceEngine = new VoiceEngine({
-    onSpeechStart: () => avatarStage.setState('speaking'),
-    onSpeechEnd: () => avatarStage.setState('idle'),
+    onSpeechStart: () => {
+      avatarStage.setState('speaking');
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('explaining');
+      }
+    },
+    onSpeechEnd: () => {
+      avatarStage.setState('idle');
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('idle');
+      }
+    },
+    onListeningStart: () => {
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('listening');
+      }
+    },
+    onListeningEnd: () => {
+      if (window.appMascot && window.appMascot.mood === 'listening') {
+        window.appMascot.setMood('idle');
+      }
+    },
     onTranscript: (transcript) => handleUserInteraction(transcript),
     onInterimTranscript: (transcript) => {
       const subtitlesText = document.getElementById('subtitles-text');
-      if (subtitlesText) subtitlesText.textContent = transcript;
+      if (subtitlesText) {
+        subtitlesText.textContent = `"${transcript}"`;
+      }
     },
     onVoiceUnavailable: (notice) => {
       const subtitlesText = document.getElementById('subtitles-text');
@@ -54,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeBtn) typeBtn.classList.add('pulse-highlight');
     }
   });
+  avatarStage.setVoiceEngine(voiceEngine);
 
   voiceEngine.setPlaybackRate(savedRate);
   voiceEngine.autoSpeak = savedAutoSpeak;
@@ -102,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     voiceEngine,
     chatAgent,
     chatHistoryController,
+    mascot: appMascot,
     openDiscoveryModal,
     closeDiscoveryModal,
     openSettingsModal,
@@ -321,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     en: {
       statusLabel: 'Appu is ready',
       missionEyebrow: '✦ Your learning mission starts here',
-      missionTitleHtml: 'Start your <span>academic success</span> now!',
+      missionTitleHtml: 'Start your <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">academic success</span> now!',
       missionSubtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
       companionTag: 'AI learning companion',
       chipExplainTitle: 'Explain My Topic',
@@ -384,6 +451,8 @@ document.addEventListener('DOMContentLoaded', () => {
       btnDoneDiscovery: 'Return to Appu',
       drawerLearnWithAppu: 'Learn with Appu',
       drawerCloseMenu: 'Close menu',
+      drawerParentZone: 'Parent Zone & Controls',
+      drawerReports: 'Child Progress Report',
       drawerScheduleCall: 'Schedule Support Call',
       drawerSoundEffects: 'Sound Effects',
       drawerPrivacy: 'Privacy Policy',
@@ -392,7 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerShipping: 'Shipping & Delivery',
       drawerPricing: 'Pricing',
       drawerContact: 'Contact Us',
-      drawerMissionsTitle: 'Learning Missions',
       posChildNicknameLabel: 'Learner Nickname',
       posChildDobLabel: 'Date of Birth',
       dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).',
@@ -406,43 +474,35 @@ document.addEventListener('DOMContentLoaded', () => {
       btnRefreshPrompts: 'Refresh prompts',
       btnExplorePrompts: 'Explore Prompts',
       promptCardAskAppu: 'Ask Appu',
-      brandTagline: 'Learn with Appu',
-      authPill: 'Sign in / Sign up',
-      reportButton: 'Report',
-      subtitlesDefault: 'Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.',
-      historyTitle: 'Recent chats',
-      newChat: 'New chat',
-      historyEmpty: 'No saved conversations yet.',
-      historyError: 'Could not load recent chats. Try again.',
-      clearAllHistory: 'Clear all history',
-      drawerParentZone: 'Parent Zone & Controls',
-      drawerReports: 'Child Progress Report',
       guestLimitTitle: 'Your complimentary APPU chats are complete',
       guestLimitLead: 'Sign in to continue learning, save your progress, and unlock tailored study plans.',
       guestFeature1: 'Personalized explanations for your syllabus',
       guestFeature2: 'Save chat history across all your devices',
-      guestFeature3: 'Voice practice in English and Kannada',
-      guestSignIn: 'Sign in',
-      guestRegister: 'Create free account',
-      guestViewPlans: 'View learning plans',
-      reportsKicker: 'Parent Zone • Progress',
-      reportsTitle: 'Child Performance Report',
-      reportsLoading: 'Checking your reports…',
-      reportsLockedLead: "Appu can generate a detailed performance report for your child — with a score, strengths, and what to improve. To unlock it, please share quick feedback first. Once you do, your child's report is generated on demand and appears here, in the app, and on WhatsApp.",
-      reportsRatingLabel: 'How is Appu working for your family?',
-      reportsWorkingWell: "What's working well?",
-      reportsImprove: 'What would make it even better?',
-      reportsSubmit: 'Submit feedback & unlock report',
-      reportsLater: 'Maybe later',
-      reportsUnlockedLead: "Your child's report is ready to generate. It analyzes their conversations with Appu across the app, website, and WhatsApp, and produces a designed PDF with an overall score, subject breakdown, strengths, and recommendations.",
-      reportsDownload: 'Download performance report (PDF)',
-      reportsError: "We couldn't load your reports right now.",
-      reportsRetry: 'Try again'
+      guestFeature3: 'Voice practice in English, Kannada and Hindi',
+      guestBtnSignin: 'Sign in',
+      guestBtnRegister: 'Create free account',
+      guestBtnPlans: 'View learning plans',
+      uploadNotesBtn: 'Upload notes',
+      dockExpandBtn: 'Expand',
+      notesModalKicker: 'Grounded Chapter Tutor',
+      notesModalTitle: 'Learn from Your Notes or Textbook',
+      notesModalLead: 'Upload your class notes, textbook PDF, or paste text. Appu will create a mind map, step-by-step lesson, and quiz directly from your material!',
+      notesTabFile: 'Upload PDF / File',
+      notesTabPaste: 'Paste Text',
+      notesDropzoneTitle: 'Drop your PDF or textbook chapter here',
+      notesDropzoneSubtitle: 'Supports PDF, TXT or Markdown files (up to 10MB)',
+      notesBrowseBtn: 'Browse File',
+      notesGuidance: 'Answers, concept maps, and quizzes will be strictly grounded in this material.',
+      notesBtnSubmit: 'Teach Me From This',
+      notesBtnCancel: 'Cancel',
+      childProgressReport: 'Child Progress Report',
+      drawerMissionsTitle: 'Learning Missions',
+      drawerProgressTitle: 'My Progress'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
       missionEyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
-      missionTitleHtml: 'ಈಗಲೇ ನಿಮ್ಮ <span>ಶೈಕ್ಷಣಿಕ ಯಶಸ್ಸನ್ನು</span> ಆರಂಭಿಸಿ!',
+      missionTitleHtml: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">ಸಿದ್ಧರಿದ್ದೀರಾ?</span>',
       missionSubtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
       companionTag: 'ಎಐ ಕಲಿಕಾ ಸಂಗಾತಿ',
       chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
@@ -505,6 +565,8 @@ document.addEventListener('DOMContentLoaded', () => {
       btnDoneDiscovery: 'ಅಪ್ಪುಗೆ ಹಿಂತಿರುಗಿ',
       drawerLearnWithAppu: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಕಲಿಯಿರಿ',
       drawerCloseMenu: 'ಮೆನು ಮುಚ್ಚಿ',
+      drawerParentZone: 'ಪೋಷಕರ ವಲಯ & ನಿಯಂತ್ರಣಗಳು',
+      drawerReports: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
       drawerScheduleCall: 'ಬೆಂಬಲ ಕರೆ ನಿಗದಿಪಡಿಸಿ',
       drawerSoundEffects: 'ಧ್ವನಿ ಪರಿಣಾಮಗಳು',
       drawerPrivacy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
@@ -513,7 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerShipping: 'ರವಾನೆ ಮತ್ತು ವಿತರಣೆ',
       drawerPricing: 'ದರ ವಿವರ',
       drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
-      drawerMissionsTitle: 'ಕಲಿಕಾ ಮಿಷನ್‌ಗಳು',
       posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
       posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
       dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).',
@@ -527,43 +588,35 @@ document.addEventListener('DOMContentLoaded', () => {
       btnRefreshPrompts: 'ಹೊಸ ಪ್ರಾಂಪ್ಟ್‌ಗಳು',
       btnExplorePrompts: 'ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
       promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
-      brandTagline: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಕಲಿಯಿರಿ',
-      authPill: 'ಸೈನ್ ಇನ್ / ನೋಂದಣಿ',
-      reportButton: 'ವರದಿ',
-      subtitlesDefault: 'ನಮಸ್ಕಾರ! ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ, ಪ್ರಶ್ನೆ ಟೈಪ್ ಮಾಡಿ, ಅಥವಾ ಮಾತನಾಡಲು ಮೈಕ್ರೊಫೋನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.',
-      historyTitle: 'ಇತ್ತೀಚಿನ ಸಂಭಾಷಣೆಗಳು',
-      newChat: 'ಹೊಸ ಸಂಭಾಷಣೆ',
-      historyEmpty: 'ಇನ್ನೂ ಯಾವುದೇ ಸಂಭಾಷಣೆಗಳು ಉಳಿಸಲಾಗಿಲ್ಲ.',
-      historyError: 'ಸಂಭಾಷಣೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
-      clearAllHistory: 'ಎಲ್ಲಾ ಇತಿಹಾಸ ತೆರವುಗೊಳಿಸಿ',
-      drawerParentZone: 'ಪೋಷಕರ ವಲಯ & ನಿಯಂತ್ರಣಗಳು',
-      drawerReports: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
       guestLimitTitle: 'ನಿಮ್ಮ ಉಚಿತ ಅಪ್ಪು ಸಂಭಾಷಣೆಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ',
-      guestLimitLead: 'ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲು ಮತ್ತು ಸೂಕ್ತವಾದ ಅಧ್ಯಯನ ಯೋಜನೆಗಳನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
-      guestFeature1: 'ನಿಮ್ಮ ಪಠ್ಯಕ್ರಮಕ್ಕಾಗಿ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿವರಣೆಗಳು',
-      guestFeature2: 'ನಿಮ್ಮ ಎಲ್ಲಾ ಸಾಧನಗಳಲ್ಲಿ ಚಾಟ್ ಇತಿಹಾಸವನ್ನು ಉಳಿಸಿ',
-      guestFeature3: 'ಇಂಗ್ಲಿಷ್ ಮತ್ತು ಕನ್ನಡದಲ್ಲಿ ಧ್ವನಿ ಅಭ್ಯಾಸ',
-      guestSignIn: 'ಸೈನ್ ಇನ್',
-      guestRegister: 'ಉಚಿತ ಖಾತೆ ರಚಿಸಿ',
-      guestViewPlans: 'ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
-      reportsKicker: 'ಪೋಷಕರ ವಲಯ • ಪ್ರಗತಿ',
-      reportsTitle: 'ಮಗುವಿನ ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿ',
-      reportsLoading: 'ನಿಮ್ಮ ವರದಿಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…',
-      reportsLockedLead: 'ಅಪ್ಪು ನಿಮ್ಮ ಮಗುವಿಗೆ ವಿವರವಾದ ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿಯನ್ನು ಸಿದ್ಧಪಡಿಸಬಹುದು — ಅಂಕಗಳು, ಸಾಮರ್ಥ್ಯಗಳು ಮತ್ತು ಸುಧಾರಣೆಯ ಕ್ಷೇತ್ರಗಳೊಂದಿಗೆ. ಅದನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು, ದಯವಿಟ್ಟು ಮೊದಲು ಸಂಕ್ಷಿಪ್ತ ಪ್ರತಿಕ್ರಿಯೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ.',
-      reportsRatingLabel: 'ನಿಮ್ಮ ಕುಟುಂಬಕ್ಕೆ ಅಪ್ಪು ಹೇಗೆ ಸಹಾಯಕವಾಗಿದೆ?',
-      reportsWorkingWell: 'ಯಾವುದು ಉತ್ತಮವಾಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿದೆ?',
-      reportsImprove: 'ಇದನ್ನು ಇನ್ನಷ್ಟು ಉತ್ತಮಗೊಳಿಸಲು ಏನು ಮಾಡಬಹುದು?',
-      reportsSubmit: 'ಪ್ರತಿಕ್ರಿಯೆ ಸಲ್ಲಿಸಿ & ವರದಿ ಅನ್‌ಲಾಕ್ ಮಾಡಿ',
-      reportsLater: 'ನಂತರ ನೋಡೋಣ',
-      reportsUnlockedLead: 'ನಿಮ್ಮ ಮಗುವಿನ ವರದಿ ರಚಿಸಲು ಸಿದ್ಧವಾಗಿದೆ. ಇದು ಆ್ಯಪ್, ವೆಬ್‌ಸೈಟ್ ಮತ್ತು WhatsApp ನಾದ್ಯಂತ ಸಂಭಾಷಣೆಗಳನ್ನು ವಿಶ್ಲೇಷಿಸಿ, ವಿನ್ಯಾಸಗೊಳಿಸಿದ PDF ವರದಿ ನೀಡುತ್ತದೆ.',
-      reportsDownload: 'ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ (PDF)',
-      reportsError: 'ಇದೀಗ ನಿಮ್ಮ ವರದಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.',
-      reportsRetry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ'
+      guestLimitLead: 'ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲು ಮತ್ತು ವೈಯಕ್ತಿಕ ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+      guestFeature1: 'ನಿಮ್ಮ ಪಠ್ಯಕ್ರಮಕ್ಕೆ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿವರಣೆಗಳು',
+      guestFeature2: 'ನಿಮ್ಮ ಎಲ್ಲ ಸಾಧನಗಳಲ್ಲಿ ಚಾಟ್ ಇತಿಹಾಸವನ್ನು ಉಳಿಸಿ',
+      guestFeature3: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಮತ್ತು ಹಿಂದಿಯಲ್ಲಿ ಧ್ವನಿ ಅಭ್ಯಾಸ',
+      guestBtnSignin: 'ಸೈನ್ ಇನ್',
+      guestBtnRegister: 'ಉಚಿತ ಖಾತೆ ರಚಿಸಿ',
+      guestBtnPlans: 'ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+      uploadNotesBtn: 'ಟಿಪ್ಪಣಿ ಅಪ್‌ಲೋಡ್',
+      dockExpandBtn: 'ವಿಸ್ತರಿಸಿ',
+      notesModalKicker: 'ಪಠ್ಯ ಆಧಾರಿತ ಬೋಧಕ',
+      notesModalTitle: 'ನಿಮ್ಮ ಟಿಪ್ಪಣಿಗಳು ಅಥವಾ ಪಠ್ಯಪುಸ್ತಕದಿಂದ ಕಲಿಯಿರಿ',
+      notesModalLead: 'ನಿಮ್ಮ ತರಗತಿ ಟಿಪ್ಪಣಿಗಳು, ಪಠ್ಯಪುಸ್ತಕ PDF ಅಪ್‌ಲೋಡ್ ಮಾಡಿ ಅಥವಾ ಪಠ್ಯ ಅಂಟಿಸಿ. ಅಪ್ಪು ನಿಮ್ಮ ಪಠ್ಯದಿಂದಲೇ ಮೈಂಡ್ ಮ್ಯಾಪ್, ಹಂತ-ಹಂತದ ಪಾಠ ಮತ್ತು ರಸಪ್ರಶ್ನೆ ರಚಿಸುತ್ತಾನೆ!',
+      notesTabFile: 'PDF / ಫೈಲ್ ಅಪ್‌ಲೋಡ್',
+      notesTabPaste: 'ಪಠ್ಯ ಅಂಟಿಸಿ',
+      notesDropzoneTitle: 'ನಿಮ್ಮ PDF ಅಥವಾ ಅಧ್ಯಾಯವನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ',
+      notesDropzoneSubtitle: 'PDF, TXT ಅಥವಾ Markdown ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತ (10MB ವರೆಗೆ)',
+      notesBrowseBtn: 'ಫೈಲ್ ಹುಡುಕಿ',
+      notesGuidance: 'ಉತ್ತರಗಳು, ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು ಮತ್ತು ರಸಪ್ರಶ್ನೆಗಳು ಸಂಪೂರ್ಣವಾಗಿ ಈ ಪಠ್ಯವನ್ನು ಆಧರಿಸಿರುತ್ತವೆ.',
+      notesBtnSubmit: 'ಇದರಿಂದ ನನಗೆ ಕಲಿಸಿ',
+      notesBtnCancel: 'ರದ್ದುಮಾಡಿ',
+      childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
+      drawerMissionsTitle: 'ಕಲಿಕಾ ಕಾರ್ಯಗಳು',
+      drawerProgressTitle: 'ನನ್ನ ಪ್ರಗತಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
       missionEyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
-      missionTitleHtml: 'अभी अपनी <span>शैक्षणिक सफलता</span> शुरू करें!',
+      missionTitleHtml: 'शैक्षणिक उत्कृष्टता के लिए <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">तैयार हैं?</span>',
       missionSubtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
       companionTag: 'एआई लर्निंग साथी',
       chipExplainTitle: 'विषय समझाओ',
@@ -626,6 +679,8 @@ document.addEventListener('DOMContentLoaded', () => {
       btnDoneDiscovery: 'अप्पू पर वापस जाएं',
       drawerLearnWithAppu: 'अप्पू के साथ सीखें',
       drawerCloseMenu: 'मेनू बंद करें',
+      drawerParentZone: 'पेरेंट ज़ोन और नियंत्रण',
+      drawerReports: 'बच्चे की प्रगति रिपोर्ट',
       drawerScheduleCall: 'सहायता कॉल बुक करें',
       drawerSoundEffects: 'ध्वनि प्रभाव',
       drawerPrivacy: 'गोपनीयता नीति',
@@ -634,7 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
       drawerShipping: 'शिपिंग और डिलीवरी',
       drawerPricing: 'मूल्य निर्धारण',
       drawerContact: 'संपर्क करें',
-      drawerMissionsTitle: 'लर्निंग मिशन्स',
       posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
       posChildDobLabel: 'जन्म तिथि',
       dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।',
@@ -648,70 +702,36 @@ document.addEventListener('DOMContentLoaded', () => {
       btnRefreshPrompts: 'प्रॉम्प्ट ताज़ा करें',
       btnExplorePrompts: 'प्रॉम्प्ट देखें',
       promptCardAskAppu: 'अप्पू से पूछें',
-      brandTagline: 'अप्पू के साथ सीखें',
-      authPill: 'साइन इन / साइन अप',
-      reportButton: 'रिपोर्ट',
-      subtitlesDefault: 'नमस्ते! कोई विषय चुनें, प्रश्न टाइप करें, या बात करने के लिए माइक दबाएं।',
-      historyTitle: 'हाल की चैट',
-      newChat: 'नई चैट',
-      historyEmpty: 'अभी तक कोई बातचीत सुरक्षित नहीं है।',
-      historyError: 'हाल की चैट लोड नहीं हो सकीं। पुनः प्रयास करें।',
-      clearAllHistory: 'सारा इतिहास साफ़ करें',
-      drawerParentZone: 'पेरेंट ज़ोन और नियंत्रण',
-      drawerReports: 'बच्चे की प्रगति रिपोर्ट',
-      guestLimitTitle: 'आपकी निःशुल्क अप्पू बातचीत पूरी हो गई हैं',
-      guestLimitLead: 'सीखना जारी रखने, अपनी प्रगति सहेजने और अनुकूलित अध्ययन योजनाओं को अनलॉक करने के लिए साइन इन करें।',
-      guestFeature1: 'आपके पाठ्यक्रम के लिए व्यक्तिगत स्पष्टीकरण',
-      guestFeature2: 'अपने सभी उपकरणों पर चैट इतिहास सहेजें',
-      guestFeature3: 'अंग्रेजी और कन्नड़ में वॉयस अभ्यास',
-      guestSignIn: 'साइन इन',
-      guestRegister: 'मुफ़्त खाता बनाएं',
-      guestViewPlans: 'लर्निंग प्लान देखें',
-      reportsKicker: 'पेरेंट ज़ोन • प्रगति',
-      reportsTitle: 'बच्चे की प्रदर्शन रिपोर्ट',
-      reportsLoading: 'आपकी रिपोर्ट जांची जा रही हैं…',
-      reportsLockedLead: 'अप्पू आपके बच्चे के लिए विस्तृत प्रदर्शन रिपोर्ट तैयार कर सकता है — स्कोर, ताकत और सुधार के सुझावों के साथ। इसे अनलॉक करने के लिए, कृपया पहले संक्षिप्त प्रतिक्रिया साझा करें।',
-      reportsRatingLabel: 'अप्पू आपके परिवार के लिए कैसा काम कर रहा है?',
-      reportsWorkingWell: 'क्या अच्छा काम कर रहा है?',
-      reportsImprove: 'इसे और बेहतर क्या बनाएगा?',
-      reportsSubmit: 'प्रतिक्रिया सबमिट करें और रिपोर्ट अनलॉक करें',
-      reportsLater: 'शायद बाद में',
-      reportsUnlockedLead: 'आपके बच्चे की रिपोर्ट तैयार है। यह ऐप, वेबसाइट और व्हाट्सएप पर बातचीत का विश्लेषण करके पीडीएफ रिपोर्ट तैयार करती है।',
-      reportsDownload: 'प्रदर्शन रिपोर्ट डाउनलोड करें (PDF)',
-      reportsError: 'हम अभी आपकी रिपोर्ट लोड नहीं कर सके।',
-      reportsRetry: 'पुनः प्रयास करें'
+      guestLimitTitle: 'आपकी निःशुल्क अप्पू बातचीत पूरी हो चुकी है',
+      guestLimitLead: 'सीखना जारी रखने, अपनी प्रगति सहेजने और व्यक्तिगत अध्ययन योजनाओं को अनलॉक करने के लिए साइन इन करें।',
+      guestFeature1: 'आपके पाठ्यक्रम के लिए व्यक्तिगत विवरण',
+      guestFeature2: 'अपने सभी उपकरणों में चैट इतिहास सहेजें',
+      guestFeature3: 'अंग्रेज़ी, कन्नड़ और हिंदी में वॉइस अभ्यास',
+      guestBtnSignin: 'साइन इन करें',
+      guestBtnRegister: 'मुफ़्त खाता बनाएं',
+      guestBtnPlans: 'अध्ययन योजनाएं देखें',
+      uploadNotesBtn: 'नोट्स अपलोड करें',
+      dockExpandBtn: 'विस्तार करें',
+      notesModalKicker: 'पाठ्य-आधारित ट्यूटर',
+      notesModalTitle: 'अपने नोट्स या पाठ्यपुस्तक से सीखें',
+      notesModalLead: 'अपने क्लास नोट्स, पाठ्यपुस्तक PDF अपलोड करें या टेक्स्ट पेस्ट करें। अप्पू सीधे आपकी सामग्री से माइंड मैप, चरण-दर-चरण पाठ और क्विज़ बनाएगा!',
+      notesTabFile: 'PDF / फ़ाइल अपलोड',
+      notesTabPaste: 'टेक्स्ट पेस्ट करें',
+      notesDropzoneTitle: 'अपनी PDF या अध्याय फ़ाइल यहाँ छोड़ें',
+      notesDropzoneSubtitle: 'PDF, TXT या Markdown फ़ाइलें समर्थित (10MB तक)',
+      notesBrowseBtn: 'फ़ाइल चुनें',
+      notesGuidance: 'उत्तर, कॉन्सेप्ट मैप और क्विज़ पूरी तरह से इस सामग्री पर आधारित होंगे।',
+      notesBtnSubmit: 'इससे मुझे सिखाएं',
+      notesBtnCancel: 'रद्द करें',
+      childProgressReport: 'बच्चे की प्रगति रिपोर्ट',
+      drawerMissionsTitle: 'सीखने के मिशन',
+      drawerProgressTitle: 'मेरी प्रगति'
     }
   };
 
   function applyUiTranslations(lang) {
     const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
-    if (document.documentElement) {
-      document.documentElement.lang = lang;
-    }
-
-    // Generic declarative data-i18n attributes across the entire page
-    if (typeof document.querySelectorAll === 'function') {
-      document.querySelectorAll('[data-i18n]').forEach((el) => {
-        const key = el.getAttribute('data-i18n');
-        if (t && t[key] !== undefined) el.textContent = t[key];
-      });
-      document.querySelectorAll('[data-i18n-html]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-html');
-        if (t && t[key] !== undefined) el.innerHTML = t[key];
-      });
-      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-placeholder');
-        if (t && t[key] !== undefined) el.placeholder = t[key];
-      });
-      document.querySelectorAll('[data-i18n-title]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-title');
-        if (t && t[key] !== undefined) el.title = t[key];
-      });
-      document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-aria');
-        if (t && t[key] !== undefined) el.setAttribute('aria-label', t[key]);
-      });
-    }
+    document.documentElement.lang = lang;
 
     const statusLabel = document.getElementById('status-label');
     if (statusLabel) statusLabel.textContent = t.statusLabel;
@@ -720,7 +740,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (missionEyebrow) missionEyebrow.innerHTML = `<span aria-hidden="true">✦</span> ${t.missionEyebrow.replace(/^[✦\s]+/, '')}`;
 
     const missionTitle = document.getElementById('mission-title');
-    if (missionTitle) missionTitle.innerHTML = t.missionTitleHtml;
+    if (missionTitle) {
+      missionTitle.innerHTML = t.missionTitleHtml;
+      missionTitle.style.setProperty('color', '#ffffff', 'important');
+      missionTitle.style.setProperty('background', 'rgba(15, 23, 42, 0.82)', 'important');
+      missionTitle.style.setProperty('border', '1.5px solid rgba(14, 165, 233, 0.35)', 'important');
+    }
 
     const missionSubtitle = document.getElementById('mission-subtitle');
     if (missionSubtitle) missionSubtitle.textContent = t.missionSubtitle;
@@ -762,39 +787,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (title) title.textContent = t.chipExamTitle;
       if (desc) desc.textContent = t.chipExamDesc;
       chipExam.setAttribute('data-prompt', t.chipExamPrompt);
-    }
-
-    const drawerChipExplain = document.querySelector('.drawer-chip-explain');
-    if (drawerChipExplain) {
-      const title = drawerChipExplain.querySelector('strong');
-      const desc = drawerChipExplain.querySelector('small');
-      if (title) title.textContent = t.chipExplainTitle;
-      if (desc) desc.textContent = t.chipExplainDesc;
-      drawerChipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
-    }
-    const drawerChipQuiz = document.querySelector('.drawer-chip-quiz');
-    if (drawerChipQuiz) {
-      const title = drawerChipQuiz.querySelector('strong');
-      const desc = drawerChipQuiz.querySelector('small');
-      if (title) title.textContent = t.chipQuizTitle;
-      if (desc) desc.textContent = t.chipQuizDesc;
-      drawerChipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
-    }
-    const drawerChipHomework = document.querySelector('.drawer-chip-homework');
-    if (drawerChipHomework) {
-      const title = drawerChipHomework.querySelector('strong');
-      const desc = drawerChipHomework.querySelector('small');
-      if (title) title.textContent = t.chipHomeworkTitle;
-      if (desc) desc.textContent = t.chipHomeworkDesc;
-      drawerChipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
-    }
-    const drawerChipExam = document.querySelector('.drawer-chip-exam');
-    if (drawerChipExam) {
-      const title = drawerChipExam.querySelector('strong');
-      const desc = drawerChipExam.querySelector('small');
-      if (title) title.textContent = t.chipExamTitle;
-      if (desc) desc.textContent = t.chipExamDesc;
-      drawerChipExam.setAttribute('data-prompt', t.chipExamPrompt);
     }
 
     const appuSaysLabel = document.getElementById('appu-says-label');
@@ -928,6 +920,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseNavDrawer = document.getElementById('btn-close-nav-drawer');
     if (btnCloseNavDrawer) btnCloseNavDrawer.setAttribute('aria-label', t.drawerCloseMenu);
 
+    const btnDrawerParentZone = document.getElementById('btn-drawer-parent-zone');
+    if (btnDrawerParentZone) {
+      const span = btnDrawerParentZone.querySelector('span');
+      if (span) span.textContent = t.drawerParentZone;
+    }
+
+    const btnDrawerReports = document.getElementById('btn-drawer-reports');
+    if (btnDrawerReports) {
+      const span = btnDrawerReports.querySelector('span');
+      if (span) span.textContent = t.drawerReports || t.childProgressReport;
+    }
+
     const btnQuickSchedule = document.getElementById('btn-quick-schedule');
     if (btnQuickSchedule) {
       btnQuickSchedule.setAttribute('aria-label', t.drawerScheduleCall);
@@ -960,6 +964,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const drawerContactLink = document.querySelector('.nav-drawer-legal a[href*="contact-us"]');
     if (drawerContactLink) drawerContactLink.textContent = t.drawerContact;
+
+    // Nav drawer learning missions
+    const drawerMissionsTitle = document.getElementById('drawer-missions-title');
+    if (drawerMissionsTitle) drawerMissionsTitle.textContent = t.drawerMissionsTitle || 'Learning Missions';
+
+    const drawerProgressTitle = document.getElementById('drawer-progress-title');
+    if (drawerProgressTitle) drawerProgressTitle.textContent = t.drawerProgressTitle || 'My Progress';
+
+    const drawerChipExplain = document.getElementById('drawer-chip-explain');
+    if (drawerChipExplain) {
+      const title = drawerChipExplain.querySelector('.chip-title');
+      const desc = drawerChipExplain.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExplainTitle;
+      if (desc) desc.textContent = t.chipExplainDesc;
+      drawerChipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
+    }
+
+    const drawerChipQuiz = document.getElementById('drawer-chip-quiz');
+    if (drawerChipQuiz) {
+      const title = drawerChipQuiz.querySelector('.chip-title');
+      const desc = drawerChipQuiz.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipQuizTitle;
+      if (desc) desc.textContent = t.chipQuizDesc;
+      drawerChipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
+    }
+
+    const drawerChipHomework = document.getElementById('drawer-chip-homework');
+    if (drawerChipHomework) {
+      const title = drawerChipHomework.querySelector('.chip-title');
+      const desc = drawerChipHomework.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipHomeworkTitle;
+      if (desc) desc.textContent = t.chipHomeworkDesc;
+      drawerChipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
+    }
+
+    const drawerChipExam = document.getElementById('drawer-chip-exam');
+    if (drawerChipExam) {
+      const title = drawerChipExam.querySelector('.chip-title');
+      const desc = drawerChipExam.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExamTitle;
+      if (desc) desc.textContent = t.chipExamDesc;
+      drawerChipExam.setAttribute('data-prompt', t.chipExamPrompt);
+    }
 
     const posChildNicknameLabel = document.getElementById('pos-child-nickname-label');
     if (posChildNicknameLabel) posChildNicknameLabel.textContent = t.posChildNicknameLabel;
@@ -1000,6 +1047,68 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sr) sr.textContent = t.btnRefreshPrompts;
     }
 
+    // Guest limit modal
+    const guestLimitTitle = document.getElementById('guest-limit-title');
+    if (guestLimitTitle && t.guestLimitTitle) guestLimitTitle.textContent = t.guestLimitTitle;
+    const guestLimitLead = document.querySelector('.guest-limit-sheet .modal-lead');
+    if (guestLimitLead && t.guestLimitLead) guestLimitLead.textContent = t.guestLimitLead;
+    const guestFeatures = document.querySelectorAll('.guest-gate-feature span');
+    if (guestFeatures.length >= 3) {
+      if (t.guestFeature1) guestFeatures[0].textContent = t.guestFeature1;
+      if (t.guestFeature2) guestFeatures[1].textContent = t.guestFeature2;
+      if (t.guestFeature3) guestFeatures[2].textContent = t.guestFeature3;
+    }
+    const btnGuestSigninSpan = document.querySelector('#btn-guest-signin span');
+    if (btnGuestSigninSpan && t.guestBtnSignin) btnGuestSigninSpan.textContent = t.guestBtnSignin;
+    const btnGuestRegisterSpan = document.querySelector('#btn-guest-register span');
+    if (btnGuestRegisterSpan && t.guestBtnRegister) btnGuestRegisterSpan.textContent = t.guestBtnRegister;
+    const btnGuestPlansSpan = document.querySelector('#btn-guest-plans span');
+    if (btnGuestPlansSpan && t.guestBtnPlans) btnGuestPlansSpan.textContent = t.guestBtnPlans;
+
+    // Dock buttons
+    const uploadNotesSpan = document.querySelector('#btn-upload-notes span');
+    if (uploadNotesSpan && t.uploadNotesBtn) uploadNotesSpan.textContent = t.uploadNotesBtn;
+    const dockExpandSpan = document.querySelector('#btn-dock-expand span');
+    if (dockExpandSpan && t.dockExpandBtn) dockExpandSpan.textContent = t.dockExpandBtn;
+
+    // Upload notes modal
+    const notesUploadTitle = document.getElementById('notes-upload-title');
+    if (notesUploadTitle && t.notesModalTitle) notesUploadTitle.textContent = t.notesModalTitle;
+    const notesUploadLead = document.querySelector('.notes-upload-sheet .modal-lead');
+    if (notesUploadLead && t.notesModalLead) notesUploadLead.textContent = t.notesModalLead;
+    const tabNotesFileSpan = document.querySelector('#tab-notes-file span');
+    if (tabNotesFileSpan && t.notesTabFile) tabNotesFileSpan.textContent = t.notesTabFile;
+    const tabNotesPasteSpan = document.querySelector('#tab-notes-paste span');
+    if (tabNotesPasteSpan && t.notesTabPaste) tabNotesPasteSpan.textContent = t.notesTabPaste;
+    const dropzoneTitle = document.querySelector('.notes-dropzone-title');
+    if (dropzoneTitle && t.notesDropzoneTitle) dropzoneTitle.textContent = t.notesDropzoneTitle;
+    const dropzoneSub = document.querySelector('.notes-dropzone-subtitle');
+    if (dropzoneSub && t.notesDropzoneSubtitle) dropzoneSub.textContent = t.notesDropzoneSubtitle;
+    const browseNotesSpan = document.querySelector('#btn-browse-notes-file span');
+    if (browseNotesSpan && t.notesBrowseBtn) browseNotesSpan.textContent = t.notesBrowseBtn;
+    const notesGuidanceSpan = document.querySelector('.notes-guidance-pill span');
+    if (notesGuidanceSpan && t.notesGuidance) notesGuidanceSpan.textContent = t.notesGuidance;
+    const notesSubmitSpan = document.querySelector('#btn-submit-notes span');
+    if (notesSubmitSpan && t.notesBtnSubmit) notesSubmitSpan.textContent = t.notesBtnSubmit;
+    const btnCancelNotes = document.getElementById('btn-cancel-notes');
+    if (btnCancelNotes && t.notesBtnCancel) btnCancelNotes.textContent = t.notesBtnCancel;
+
+    // Nav drawer report button
+    const drawerReportSpan = document.querySelector('#btn-drawer-reports span');
+    if (drawerReportSpan && t.childProgressReport) drawerReportSpan.textContent = t.childProgressReport;
+
+    // Study toolbar tabs if present
+    const studyToolbar = document.querySelector('.study-modes-toolbar');
+    if (studyToolbar && typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.STUDY_TOOLBAR_LABELS) {
+      const lMap = LessonCardRenderer.STUDY_TOOLBAR_LABELS[lang] || LessonCardRenderer.STUDY_TOOLBAR_LABELS.en;
+      if (lMap) {
+        Object.keys(lMap).forEach(mId => {
+          const btnSpan = studyToolbar.querySelector(`.study-tab-${mId} span`);
+          if (btnSpan) btnSpan.textContent = lMap[mId];
+        });
+      }
+    }
+
     // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
     if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
       window.ParentSetupUI.applyTranslations(lang);
@@ -1008,6 +1117,589 @@ document.addEventListener('DOMContentLoaded', () => {
     // Parental Controls modal (delegated to its own module with its own translation dictionary)
     if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.applyTranslations === 'function') {
       window.ParentalControlsUI.applyTranslations(lang);
+    }
+  }
+
+  // ==========================================
+  // VOICE RESPONSE POPUP (PERSISTENT HEADS-UP DISPLAY) & STUDY MODES
+  // ==========================================
+  let voicePopupTimer = null;
+  const voiceReplyPopup = document.getElementById('voice-reply-popup');
+  const voicePopupContent = document.getElementById('voice-popup-content');
+  const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
+  let activePopupLessonCard = null;
+  let activePopupMode = 'lesson';
+  let activeLangSwitchSeq = 0;
+
+  function cancelVoicePopupTimer() {
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.__appuCancelVoicePopupTimer = cancelVoicePopupTimer;
+  }
+
+  /**
+   * Seeds or accesses the non-enumerable per-language cache on lesson cards:
+   * card.__langVariants = { en: {...}, kn: {...}, hi: {...} }
+   */
+  function ensureLangVariantsCache(card, fallbackLang = 'en') {
+    if (!card || typeof card !== 'object') return null;
+    if (!card.__langVariants) {
+      const birthLang = card.language || card.lang || fallbackLang || 'en';
+      card.language = birthLang;
+      const variants = {};
+      variants[birthLang] = card;
+      Object.defineProperty(card, '__langVariants', {
+        value: variants,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+    return card.__langVariants;
+  }
+
+  /**
+   * Swaps the active card to a language variant, carrying over visual assets,
+   * non-enumerable variant caches, and preserving saved status without re-speaking.
+   */
+  function applyLanguageVariant(newCard, targetLang) {
+    if (!newCard) return;
+
+    const previousCard = activePopupLessonCard;
+
+    // 1. Maintain shared __langVariants across all variants
+    const variants = (previousCard && previousCard.__langVariants) || ensureLangVariantsCache(previousCard, targetLang);
+    if (variants) {
+      variants[targetLang] = newCard;
+      if (!newCard.__langVariants) {
+        Object.defineProperty(newCard, '__langVariants', {
+          value: variants,
+          writable: true,
+          enumerable: false,
+          configurable: true
+        });
+      }
+    }
+
+    // 2. Carry over illustration image and runtime promise (language-agnostic visuals)
+    if (previousCard) {
+      const imgUrl = previousCard.__diagramIllustrationUrl || (previousCard.diagram && previousCard.diagram.__diagramIllustrationUrl);
+      if (imgUrl) {
+        if (!newCard.__diagramIllustrationUrl) {
+          Object.defineProperty(newCard, '__diagramIllustrationUrl', {
+            value: imgUrl,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (newCard.diagram && !newCard.diagram.__diagramIllustrationUrl) {
+          Object.defineProperty(newCard.diagram, '__diagramIllustrationUrl', {
+            value: imgUrl,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+
+      const imgPromise = previousCard.__diagramIllustrationPromise || (previousCard.diagram && previousCard.diagram.__diagramIllustrationPromise);
+      if (imgPromise) {
+        if (!newCard.__diagramIllustrationPromise) {
+          Object.defineProperty(newCard, '__diagramIllustrationPromise', {
+            value: imgPromise,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (newCard.diagram && !newCard.diagram.__diagramIllustrationPromise) {
+          Object.defineProperty(newCard.diagram, '__diagramIllustrationPromise', {
+            value: imgPromise,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+
+      // Preserve stable card ID, question, grade, and citation
+      if (!newCard.id && previousCard.id) newCard.id = previousCard.id;
+      if (!newCard.question && previousCard.question) newCard.question = previousCard.question;
+      if (!newCard.grade && previousCard.grade) newCard.grade = previousCard.grade;
+      if (!newCard.citation && previousCard.citation) newCard.citation = previousCard.citation;
+    }
+    newCard.language = targetLang;
+
+    // 3. Preserve Saved State
+    const wasSaved = (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function')
+      ? (window.SavedLessonsUI.isLessonSaved(previousCard) || window.SavedLessonsUI.isLessonSaved(newCard))
+      : false;
+
+    if (wasSaved && typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.saveLesson === 'function') {
+      window.SavedLessonsUI.saveLesson(newCard, { language: targetLang });
+    }
+
+    // 4. Update active card reference
+    activePopupLessonCard = newCard;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = newCard;
+    }
+
+    // 5. Re-render the active mode tab
+    renderVoicePopupStudyContent(activePopupMode || 'lesson');
+
+    // 6. Update subtitles HUD quietly (no duplicate chat drawer bubble, no auto-TTS)
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText && newCard.plainText) {
+      subtitlesText.textContent = newCard.plainText;
+      if (typeof subtitlesText.scrollTop !== 'undefined') {
+        subtitlesText.scrollTop = 0;
+      }
+    }
+  }
+
+  /**
+   * Switches the active study card to the target language (en/kn/hi)
+   * Instant if cached; otherwise renders a shimmer and regenerates the card.
+   */
+  async function switchActiveCardLanguage(targetLang) {
+    if (!activePopupLessonCard) return;
+
+    // Guard if already in this language variant
+    if (activePopupLessonCard.language === targetLang && (!activePopupLessonCard.__langVariants || activePopupLessonCard.__langVariants[targetLang] === activePopupLessonCard)) {
+      return;
+    }
+
+    const previousCard = activePopupLessonCard;
+    const variants = ensureLangVariantsCache(previousCard, currentLang);
+
+    // CACHE HIT: Instant 0ms swap
+    if (variants && variants[targetLang]) {
+      applyLanguageVariant(variants[targetLang], targetLang);
+      return;
+    }
+
+    // Rapid-toggle sequence guard:
+    const switchSeq = ++activeLangSwitchSeq;
+
+    // CACHE MISS: Render immediate shimmer placeholder while keeping toolbar active
+    if (voicePopupContent) {
+      voicePopupContent.innerHTML = '';
+      if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.renderStudyToolbar === 'function') {
+        const toolbar = LessonCardRenderer.renderStudyToolbar(activePopupMode, (newMode) => {
+          activePopupMode = newMode;
+        }, targetLang, () => {
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+            window.SavedLessonsUI.shareLessonToWhatsApp(previousCard);
+          }
+        }, { card: previousCard });
+        voicePopupContent.appendChild(toolbar);
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'voice-popup-study-wrapper is-loading-lang';
+
+      const langNames = { en: 'English', kn: 'ಕನ್ನಡ', hi: 'हिंदी' };
+      const langLabel = langNames[targetLang] || targetLang;
+
+      const shimmerBox = document.createElement('div');
+      shimmerBox.className = 'diagram-illustration-card is-loading';
+      shimmerBox.style.cssText = 'margin: 24px auto; max-width: 440px; padding: 36px 16px; text-align: center; border-radius: 16px;';
+
+      const shimmerInner = document.createElement('div');
+      shimmerInner.className = 'diagram-illustration-shimmer';
+      shimmerInner.innerHTML = `<i class="fa-solid fa-sparkles shimmer-sparkle"></i> <span class="shimmer-text">Translating into ${langLabel}...</span>`;
+
+      shimmerBox.appendChild(shimmerInner);
+      wrapper.appendChild(shimmerBox);
+      voicePopupContent.appendChild(wrapper);
+    }
+
+    const question = previousCard.question || previousCard.mindMap?.central || previousCard.topic || previousCard.plainText || '';
+    const childGrade = (typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
+      ? window.appuSession.getGrade()
+      : (previousCard.grade || '6');
+
+    const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+    const isDocMode = Boolean(
+      (activeDoc && activeDoc.text && activeDoc.text.trim()) ||
+      (previousCard.citation?.isUpload || previousCard.citation?.source === 'upload' || previousCard.isUploadSource)
+    );
+
+    let generatedCard = null;
+
+    try {
+      if (isDocMode) {
+        const docText = activeDoc?.text || previousCard.documentText || '';
+        if (docText && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function') {
+          const notesRes = await LessonCardRenderer.fetchNotesTutor({
+            question,
+            documentText: docText,
+            grade: childGrade,
+            language: targetLang,
+            timeoutMs: 25000
+          });
+          if (notesRes && notesRes.lessonCard) {
+            generatedCard = notesRes.lessonCard;
+            if (notesRes.answer && !generatedCard.plainText) {
+              generatedCard.plainText = notesRes.answer;
+            }
+          }
+        }
+      } else {
+        // Normal Mode:
+        // 1) Regenerate answer text in targetLang via backendClient if available
+        let regeneratedAnswer = '';
+        const backendClient = (typeof window !== 'undefined') ? window.AppuBackendClient : null;
+        if (backendClient && typeof backendClient.sendAppuMessage === 'function') {
+          try {
+            const hasSecureSession = (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.isAuthenticated === 'function') && window.AppuSession.isAuthenticated();
+            const payload = hasSecureSession ? {
+              accessToken: window.AppuSession.accessToken,
+              childId: window.AppuSession.childId,
+              message: question,
+              language: targetLang,
+              includeAudio: false
+            } : {
+              message: question,
+              language: targetLang,
+              includeAudio: false
+            };
+            const backendRes = await backendClient.sendAppuMessage(payload);
+            if (backendRes && backendRes.text) {
+              regeneratedAnswer = backendRes.text.replace(/\\n/g, '\n');
+            }
+          } catch (backendErr) {
+            console.warn('[LangSwitch] Backend message regen notice:', backendErr);
+          }
+        }
+
+        // 2) Fetch study visualizer with the question & answer in targetLang
+        if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
+          const visualizerCard = await LessonCardRenderer.fetchStudyVisualizer({
+            question,
+            answer: regeneratedAnswer || previousCard.plainText || '',
+            grade: childGrade,
+            language: targetLang,
+            timeoutMs: 25000
+          });
+          if (visualizerCard) {
+            generatedCard = visualizerCard;
+          }
+        }
+
+        // 3) Fallback if visualizer timed out or was offline
+        if (!generatedCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+          generatedCard = LessonCardRenderer.buildMinimalAnswerCard(
+            question,
+            regeneratedAnswer || previousCard.plainText || '',
+            childGrade
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('[LangSwitch] Failed regenerating card for language:', targetLang, err);
+      if (!generatedCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+        generatedCard = LessonCardRenderer.buildMinimalAnswerCard(question, previousCard.plainText || '', childGrade);
+      }
+    }
+
+    if (!generatedCard) {
+      if (switchSeq === activeLangSwitchSeq) {
+        renderVoicePopupStudyContent(activePopupMode || 'lesson');
+      }
+      return;
+    }
+
+    // Cache the generated variant unconditionally
+    if (variants) {
+      variants[targetLang] = generatedCard;
+    }
+
+    // Check interaction sequence guard
+    if (switchSeq !== activeLangSwitchSeq) {
+      console.log(`[LangSwitch] Discarding stale variant for ${targetLang} (current seq: ${activeLangSwitchSeq}, req: ${switchSeq})`);
+      return;
+    }
+
+    // Apply the newly generated variant
+    applyLanguageVariant(generatedCard, targetLang);
+  }
+
+  function renderVoicePopupStudyContent(mode = 'lesson') {
+    if (!voicePopupContent) return;
+    activePopupMode = mode;
+    if (mode !== 'lesson') {
+      cancelVoicePopupTimer();
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      if (mode === 'lesson') {
+        missionStage.classList.add('mode-is-lesson');
+        missionStage.classList.remove('mode-is-study-card');
+      } else {
+        missionStage.classList.remove('mode-is-lesson');
+        missionStage.classList.add('mode-is-study-card');
+      }
+    }
+    voicePopupContent.innerHTML = '';
+
+    if (activePopupLessonCard && typeof LessonCardRenderer !== 'undefined') {
+      // 1) Render Study Modes Toolbar above the content
+      if (typeof LessonCardRenderer.renderStudyToolbar === 'function') {
+        const toolbar = LessonCardRenderer.renderStudyToolbar(mode, (newMode) => {
+          renderVoicePopupStudyContent(newMode);
+        }, currentLang, () => {
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+            window.SavedLessonsUI.shareLessonToWhatsApp(activePopupLessonCard);
+          }
+        }, {
+          card: activePopupLessonCard
+        });
+        voicePopupContent.appendChild(toolbar);
+      }
+
+      // 2) Render the active study mode inside wrapper
+      const wrapper = document.createElement('div');
+      wrapper.className = 'voice-popup-study-wrapper';
+
+      // Dynamic live fetch for Podcast mode if not yet generated
+      if (mode === 'podcast') {
+        const topic = activePopupLessonCard.mindMap?.central || activePopupLessonCard.topic || activePopupLessonCard.title || 'Lesson';
+        if (!activePopupLessonCard.podcastScript?.isLiveFetched && !activePopupLessonCard.__isFetchingPodcast) {
+          if (typeof LessonCardRenderer.createPodcastLoadingCard === 'function') {
+            wrapper.appendChild(LessonCardRenderer.createPodcastLoadingCard(topic));
+          }
+          voicePopupContent.appendChild(wrapper);
+
+          activePopupLessonCard.__isFetchingPodcast = true;
+          const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+          const docText = activeDoc?.text || null;
+          const childGrade = (window.appuSession && typeof window.appuSession.getGrade === 'function')
+            ? window.appuSession.getGrade()
+            : '6';
+          const lang = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+
+          LessonCardRenderer.fetchPodcast({
+            topic,
+            question: activePopupLessonCard.question || topic,
+            answer: activePopupLessonCard.plainText || '',
+            grade: childGrade,
+            language: lang,
+            documentText: docText,
+            timeoutMs: 22000
+          }).then(result => {
+            activePopupLessonCard.__isFetchingPodcast = false;
+            if (result && (result.script || (Array.isArray(result.segments) && result.segments.length > 0))) {
+              activePopupLessonCard.podcastScript = {
+                ...result,
+                isLiveFetched: true,
+                citation: activePopupLessonCard.citation
+              };
+            } else if (!activePopupLessonCard.podcastScript) {
+              activePopupLessonCard.podcastScript = LessonCardRenderer.buildFallbackPodcastScript(
+                topic,
+                activePopupLessonCard.plainText,
+                activePopupLessonCard.citation
+              );
+            }
+            if (activePopupMode === 'podcast') {
+              renderVoicePopupStudyContent('podcast');
+            }
+          }).catch(err => {
+            console.warn('[Appu] Live podcast fetch notice:', err);
+            activePopupLessonCard.__isFetchingPodcast = false;
+            if (!activePopupLessonCard.podcastScript) {
+              activePopupLessonCard.podcastScript = LessonCardRenderer.buildFallbackPodcastScript(
+                topic,
+                activePopupLessonCard.plainText,
+                activePopupLessonCard.citation
+              );
+            }
+            if (activePopupMode === 'podcast') {
+              renderVoicePopupStudyContent('podcast');
+            }
+          });
+          return;
+        } else if (activePopupLessonCard.__isFetchingPodcast) {
+          if (typeof LessonCardRenderer.createPodcastLoadingCard === 'function') {
+            wrapper.appendChild(LessonCardRenderer.createPodcastLoadingCard(topic));
+          }
+          voicePopupContent.appendChild(wrapper);
+          return;
+        }
+      }
+
+      const contentEl = typeof LessonCardRenderer.renderStudyMode === 'function'
+        ? LessonCardRenderer.renderStudyMode(mode, activePopupLessonCard, {
+            language: currentLang,
+            card: activePopupLessonCard,
+            onCelebrate: () => {
+              if (window.AppuGamification && typeof window.AppuGamification.awardXP === 'function') {
+                window.AppuGamification.awardXP(20, 'Awesome work! ⭐');
+              } else if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                window.appMascot.celebrate(3200);
+              }
+            }
+          })
+        : (mode === 'lesson'
+            ? LessonCardRenderer.render(activePopupLessonCard, {
+                language: currentLang,
+                onCelebrate: () => {
+                  if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                    window.appMascot.celebrate(3200);
+                  }
+                }
+              })
+            : document.createElement('div'));
+
+      wrapper.appendChild(contentEl);
+      voicePopupContent.appendChild(wrapper);
+    } else {
+      voicePopupContent.textContent = activePopupLessonCard?.plainText || '';
+    }
+  }
+
+  function showVoicePopup(text, lessonCard = null, initialMode = 'lesson') {
+    if (!voiceReplyPopup || (!text && !lessonCard)) return;
+    if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      missionStage.classList.add('has-lesson-active');
+      if ((initialMode || 'lesson') === 'lesson') {
+        missionStage.classList.add('mode-is-lesson');
+        missionStage.classList.remove('mode-is-study-card');
+      } else {
+        missionStage.classList.remove('mode-is-lesson');
+        missionStage.classList.add('mode-is-study-card');
+      }
+    }
+    let cardToRender = lessonCard;
+    if (!cardToRender && text && typeof LessonCardRenderer !== 'undefined') {
+      const parsed = LessonCardRenderer.parse(text);
+      if (parsed && parsed.isRich) {
+        cardToRender = parsed;
+      }
+    }
+    if (cardToRender && !cardToRender.question && text) {
+      cardToRender.question = text;
+    }
+    if (cardToRender) {
+      cardToRender.language = cardToRender.language || currentLang || 'en';
+      ensureLangVariantsCache(cardToRender, currentLang);
+    }
+    activePopupLessonCard = cardToRender;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = cardToRender;
+    }
+    if (cardToRender) {
+      if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+        if (window.SavedLessonsUI.isLessonSaved(cardToRender)) {
+          window.SavedLessonsUI.saveLesson(cardToRender);
+        }
+      }
+      renderVoicePopupStudyContent(initialMode || 'lesson');
+    } else if (voicePopupContent) {
+      voicePopupContent.innerHTML = '';
+      voicePopupContent.textContent = text || '';
+    }
+    voiceReplyPopup.hidden = false;
+    voiceReplyPopup.removeAttribute('hidden');
+    voiceReplyPopup.classList.add('is-visible');
+
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+
+    // Only set auto-hide timer for default 'lesson' mode when not in interactive study card
+    if ((initialMode || 'lesson') === 'lesson') {
+      const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+      const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
+      const timeoutMs = lessonCard ? Math.max(60000, readingDurationMs) : Math.max(30000, readingDurationMs);
+
+      voicePopupTimer = setTimeout(() => {
+        hideVoicePopup();
+      }, timeoutMs);
+    }
+  }
+
+  function updateVoicePopupCard(newCard) {
+    if (!newCard) return;
+    if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    }
+    newCard.language = newCard.language || currentLang || 'en';
+    if (activePopupLessonCard && activePopupLessonCard.__langVariants) {
+      Object.defineProperty(newCard, '__langVariants', {
+        value: activePopupLessonCard.__langVariants,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+      activePopupLessonCard.__langVariants[newCard.language] = newCard;
+    } else {
+      ensureLangVariantsCache(newCard, currentLang);
+    }
+    if (activePopupLessonCard && activePopupLessonCard.__diagramIllustrationUrl && !newCard.__diagramIllustrationUrl) {
+      Object.defineProperty(newCard, '__diagramIllustrationUrl', {
+        value: activePopupLessonCard.__diagramIllustrationUrl,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+    activePopupLessonCard = newCard;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = newCard;
+    }
+    if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+      if (window.SavedLessonsUI.isLessonSaved(newCard)) {
+        window.SavedLessonsUI.saveLesson(newCard);
+      }
+    }
+    if (voiceReplyPopup) {
+      if (!voiceReplyPopup.classList.contains('is-visible')) {
+        showVoicePopup(newCard.plainText || '', newCard);
+      } else {
+        renderVoicePopupStudyContent(activePopupMode || 'lesson');
+      }
+    }
+  }
+
+  function hideVoicePopup() {
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {
+        // ignore
+      }
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      missionStage.classList.remove('has-lesson-active', 'mode-is-lesson', 'mode-is-study-card');
+    }
+    if (voiceReplyPopup) {
+      voiceReplyPopup.classList.remove('is-visible');
+      voiceReplyPopup.hidden = true;
+      voiceReplyPopup.setAttribute('hidden', 'true');
+    }
+    if (window.appMascot && (window.appMascot.mood === 'explaining' || window.appMascot.mood === 'celebrating')) {
+      window.appMascot.setMood('idle');
+    }
+    if (avatarStage && avatarStage.state === 'speaking') {
+      avatarStage.setState('idle');
     }
   }
 
@@ -1021,6 +1713,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function setLanguage(lang, announce = true) {
     if (lang !== 'en' && lang !== 'kn' && lang !== 'hi') lang = 'en';
     currentLang = lang;
+    if (typeof window !== 'undefined') {
+      window.currentLang = lang;
+      if (window.app) window.app.currentLang = lang;
+    }
     localStorage.setItem('appu_lang', lang);
     voiceEngine.setLanguage(lang);
     if (chatAgent) chatAgent.language = lang;
@@ -1040,7 +1736,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyUiTranslations(lang);
 
-    if (announce && voiceEngine) {
+    if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.applyTranslations === 'function') {
+      window.ParentalControlsUI.applyTranslations(lang);
+    }
+
+    const isVoicePopupVisible = voiceReplyPopup && (voiceReplyPopup.classList.contains('is-visible') || !voiceReplyPopup.hidden);
+    if (activePopupLessonCard && isVoicePopupVisible) {
+      // Study card is open! Regenerate or swap card in target language quietly (no greeting, no TTS)
+      switchActiveCardLanguage(lang);
+    } else if (announce && voiceEngine) {
       const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
       if (!voiceEngine.isVoiceSupported) {
         voiceEngine.streamSubtitles(t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat");
@@ -1052,12 +1756,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize UI language state on load
   setLanguage(currentLang, false);
-  window.AppuI18n = {
-    translations: UI_TRANSLATIONS,
-    setLanguage: setLanguage,
-    applyUiTranslations: applyUiTranslations,
-    getCurrentLang: () => currentLang
-  };
   if (voiceEngine && !voiceEngine.isVoiceSupported) {
     const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
     const subtitlesText = document.getElementById('subtitles-text');
@@ -1070,54 +1768,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
   if (langHiBtn) langHiBtn.addEventListener('click', () => setLanguage('hi'));
 
-  // ==========================================
-  // VOICE RESPONSE POPUP (PERSISTENT HEADS-UP DISPLAY)
-  // ==========================================
-  let voicePopupTimer = null;
-  const voiceReplyPopup = document.getElementById('voice-reply-popup');
-  const voicePopupContent = document.getElementById('voice-popup-content');
-  const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
-
-  function showVoicePopup(text) {
-    if (!voiceReplyPopup || !text) return;
-    if (voicePopupContent) {
-      voicePopupContent.textContent = text;
-    }
-    voiceReplyPopup.hidden = false;
-    voiceReplyPopup.removeAttribute('hidden');
-    voiceReplyPopup.classList.add('is-visible');
-
-    if (voicePopupTimer) {
-      clearTimeout(voicePopupTimer);
-      voicePopupTimer = null;
-    }
-
-    const wordCount = String(text).trim().split(/\s+/).filter(Boolean).length;
-    const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
-    const timeoutMs = Math.max(30000, readingDurationMs);
-
-    voicePopupTimer = setTimeout(() => {
-      hideVoicePopup();
-    }, timeoutMs);
-  }
-
-  function hideVoicePopup() {
-    if (voicePopupTimer) {
-      clearTimeout(voicePopupTimer);
-      voicePopupTimer = null;
-    }
-    if (voiceReplyPopup) {
-      voiceReplyPopup.classList.remove('is-visible');
-      voiceReplyPopup.hidden = true;
-      voiceReplyPopup.setAttribute('hidden', 'true');
-    }
-  }
 
   if (btnCloseVoicePopup) {
     btnCloseVoicePopup.addEventListener('click', () => {
       voiceEngine.playClick();
       hideVoicePopup();
     });
+  }
+
+  if (voiceReplyPopup) {
+    voiceReplyPopup.addEventListener('click', cancelVoicePopupTimer);
+    voiceReplyPopup.addEventListener('pointerdown', cancelVoicePopupTimer);
   }
 
   // ==========================================
@@ -1135,6 +1796,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // If parental controls 30-min hard lock is active, block chatting and trigger lock modal
       if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
         window.ParentalControlsUI.triggerLock();
+        return false;
+      }
+
+      // If session start OTP gate is currently active, block chatting until parent OTP verification succeeds
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isSessionStartGateActive) {
         return false;
       }
 
@@ -1185,44 +1851,241 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
+  function getActiveChildGrade() {
+    try {
+      if (window.parentSetupUI && typeof window.parentSetupUI.getActiveChild === 'function') {
+        const child = window.parentSetupUI.getActiveChild();
+        if (child && (child.grade || child.gradeBand)) return String(child.grade || child.gradeBand);
+      }
+      const stored = localStorage.getItem('appu_active_child');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && (parsed.grade || parsed.gradeBand)) return String(parsed.grade || parsed.gradeBand);
+      }
+    } catch (_) {}
+    return '6';
+  }
+
   // ==========================================
   // CORE INTERACTION HANDLER
   // ==========================================
-  async function handleUserInteraction(text, image = null) {
-    if (!text || !text.trim()) return;
+  let activeInteractionSeq = 0;
 
-    if (!ensureChatSessionReady(text)) {
+  async function handleUserInteraction(text, image = null) {
+    const isDocActive = Boolean(window.activeTutorDocument && window.activeTutorDocument.text);
+    if (!isDocActive && (!text || !text.trim())) return;
+
+    if (window.ParentalControlsUI && typeof window.ParentalControlsUI.enforceSessionStartGate === 'function') {
+      const allowed = await window.ParentalControlsUI.enforceSessionStartGate(() => {
+        handleUserInteraction(text, image);
+      });
+      if (!allowed) {
+        return;
+      }
+    }
+
+    const interactionTurnId = ++activeInteractionSeq;
+
+    if (!ensureChatSessionReady(text || (isDocActive ? window.activeTutorDocument.name : ''))) {
       return;
     }
 
     voiceEngine.playClick();
     avatarStage.setState('thinking');
+    if (window.appMascot) window.appMascot.setMood('thinking');
+
+    // If active document mode: Route directly to appu-notes-tutor webhook
+    if (isDocActive) {
+      const rawQuestion = (text && text.trim()) ? text.trim() : '';
+      const displayQuery = rawQuestion || `Teach me from "${window.activeTutorDocument.name}"`;
+
+      // Update Subtitles HUD
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = `"${displayQuery}"`;
+      }
+
+      // Append user turn to chat drawer
+      if (chatAgent && typeof chatAgent.addMessage === 'function') {
+        chatAgent.addMessage('user', displayQuery);
+      }
+
+      // Immediate shimmer loading card
+      const childGrade = getActiveChildGrade();
+      const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+      const initialCard = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+        ? LessonCardRenderer.createLoadingCard(displayQuery, 'Reading your notes and crafting your grounded lesson...', childGrade)
+        : null;
+
+      // Close typing drawer if open so learner sees the live stage
+      const chatDrawer = document.getElementById('chat-drawer');
+      if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+        if (typeof toggleChatDrawer === 'function') {
+          toggleChatDrawer(false);
+        }
+      }
+      if (typeof showVoicePopup === 'function') {
+        showVoicePopup('Reading your notes and crafting your grounded lesson...', initialCard);
+      }
+
+      try {
+        const notesResult = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function')
+          ? await LessonCardRenderer.fetchNotesTutor({
+              question: rawQuestion,
+              documentText: window.activeTutorDocument.text,
+              grade: childGrade,
+              language: currentLangCode,
+              timeoutMs: 22000
+            })
+          : null;
+
+        if (interactionTurnId !== activeInteractionSeq) {
+          console.log('[NotesTutor] Discarding stale response from previous turn');
+          return;
+        }
+
+        if (notesResult && notesResult.answer) {
+          const reply = notesResult.answer;
+          const lessonCard = notesResult.lessonCard;
+
+          avatarStage.setState('speaking');
+          if (window.appMascot) window.appMascot.setMood('explaining');
+
+          if (typeof showVoicePopup === 'function') {
+            showVoicePopup(reply, lessonCard);
+          }
+          if (chatAgent && typeof chatAgent.addMessage === 'function') {
+            chatAgent.addMessage('appu', reply, null, null, { lessonCard });
+          }
+
+          const notesAudio = notesResult.audio_base64
+            ? (notesResult.audio_base64.startsWith('data:') ? notesResult.audio_base64 : `data:audio/mpeg;base64,${notesResult.audio_base64}`)
+            : null;
+          voiceEngine.playMessage();
+          await voiceEngine.speak(reply, notesAudio);
+        } else {
+          throw new Error('No valid response from notes tutor webhook');
+        }
+      } catch (err) {
+        if (interactionTurnId !== activeInteractionSeq) return;
+        console.warn('[NotesTutor] Interaction failed or timed out:', err);
+        avatarStage.setState('idle');
+        if (window.appMascot) window.appMascot.setMood('idle');
+        const fallbackMsg = "I couldn't process this document right now. Please try asking a specific question or re-uploading your notes!";
+        if (typeof showVoicePopup === 'function') {
+          showVoicePopup(fallbackMsg, null);
+        }
+        if (chatAgent && typeof chatAgent.addMessage === 'function') {
+          chatAgent.addMessage('appu', fallbackMsg);
+        }
+        voiceEngine.speak(fallbackMsg);
+      }
+      return;
+    }
 
     // Update Subtitles HUD to show user's query
     const subtitlesText = document.getElementById('subtitles-text');
     if (subtitlesText) {
       subtitlesText.textContent = `"${text}"`;
+      if (typeof subtitlesText.scrollTop !== 'undefined') {
+        subtitlesText.scrollTop = 0;
+      }
     }
 
     const result = await chatAgent.sendMessage(
       text,
-      () => avatarStage.setState('thinking'),
-      async (reply, audioData, audioStreamUrl, accessToken) => {
+      () => {
+        avatarStage.setState('thinking');
+        if (window.appMascot) window.appMascot.setMood('thinking');
+      },
+      async (reply, audioData, audioStreamUrl, accessToken, fullResult) => {
         avatarStage.setState('speaking');
-        if (typeof showVoicePopup === 'function') {
-          const chatDrawer = document.getElementById('chat-drawer');
-          if (!chatDrawer || !chatDrawer.classList.contains('is-open')) {
-            showVoicePopup(reply);
+        const mood = (fullResult && fullResult.mood) || 'explaining';
+        if (window.appMascot) window.appMascot.setMood(mood);
+
+        const childGrade = getActiveChildGrade();
+        const hasCompleteCard = Boolean(
+          fullResult?.lessonCard?.mindMap?.branches?.length > 0 &&
+          (fullResult?.lessonCard?.quizItems?.length > 0 || fullResult?.lessonCard?.blocks?.some(b => b.type === 'check'))
+        );
+
+        // 1) Prepare immediate loading card with plain text + shimmer Concept Map
+        const initialCard = hasCompleteCard
+          ? fullResult.lessonCard
+          : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+              ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
+              : (fullResult ? fullResult.lessonCard : null));
+
+        // 2) Close typing drawer if open and render stage presentation for EVERY real answer
+        const chatDrawer = document.getElementById('chat-drawer');
+        if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+          if (typeof toggleChatDrawer === 'function') {
+            toggleChatDrawer(false);
           }
         }
-        await voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
+        if (typeof showVoicePopup === 'function') {
+          showVoicePopup(reply, initialCard);
+        }
+
+        // 3) Speak immediately (ElevenLabs TTS / audio-reactive Appu)
+        const speakPromise = voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
         voiceEngine.playMessage();
+
+        // 4) In parallel: call Study Visualizer brain if complete card not already present
+        if (!hasCompleteCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
+          const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+          LessonCardRenderer.fetchStudyVisualizer({
+            question: text,
+            answer: reply,
+            grade: childGrade,
+            language: currentLangCode,
+            timeoutMs: 22000
+          }).then((realCard) => {
+            if (interactionTurnId !== activeInteractionSeq) {
+              console.log('[StudyVisualizer] Discarding stale card from previous turn');
+              return;
+            }
+
+            // TOPIC GUARD: Verify card matches current question before displaying
+            let finalCard = null;
+            if (realCard && typeof LessonCardRenderer.isCardTopicMatching === 'function' && LessonCardRenderer.isCardTopicMatching(realCard, text, reply)) {
+              finalCard = realCard;
+            } else {
+              // Build grounded minimal card directly from actual answer text - NEVER SAMPLE_CARD!
+              console.warn('[StudyVisualizer] Real visualizer timed out or topic mismatched, building grounded card from actual answer');
+              if (typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+                finalCard = LessonCardRenderer.buildMinimalAnswerCard(text, reply, childGrade);
+              }
+            }
+
+            if (finalCard) {
+              updateVoicePopupCard(finalCard);
+              if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
+                chatAgent.updateLastAppuMessageCard(finalCard);
+              }
+            }
+          }).catch((err) => {
+            if (interactionTurnId !== activeInteractionSeq) return;
+            console.warn('[StudyVisualizer] Background fetch caught error:', err);
+            // Build grounded minimal card directly from actual answer text - NEVER SAMPLE_CARD!
+            if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+              const groundedFallback = LessonCardRenderer.buildMinimalAnswerCard(text, reply, childGrade);
+              updateVoicePopupCard(groundedFallback);
+              if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
+                chatAgent.updateLastAppuMessageCard(groundedFallback);
+              }
+            }
+          });
+        }
+
+        await speakPromise;
       },
       image
     );
 
     if (!result) {
       avatarStage.setState('idle');
+      if (window.appMascot) window.appMascot.setMood('idle');
     }
   }
 
@@ -1320,6 +2183,127 @@ document.addEventListener('DOMContentLoaded', () => {
       voiceEngine.toggleSound();
       updateSoundUI();
     });
+  }
+
+  // ==========================================
+  // DARK / LIGHT THEME CONTROLLER
+  // ==========================================
+  const THEME_STORAGE_KEY = 'appu_theme';
+  const btnThemeToggle = document.getElementById('btn-theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  const btnDrawerThemeToggle = document.getElementById('btn-drawer-theme-toggle');
+  const drawerThemeIcon = document.getElementById('drawer-theme-icon');
+  const drawerThemeText = document.getElementById('drawer-theme-text');
+
+  function getStoredTheme() {
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'dark' || stored === 'light') return stored;
+    } catch (e) {}
+    return 'dark';
+  }
+
+  function getEffectiveTheme() {
+    return (document.documentElement && document.documentElement.getAttribute('data-theme')) || getStoredTheme();
+  }
+
+  function updateThemeUI(theme) {
+    const isDark = theme === 'dark';
+
+    // Desktop topbar toggle button
+    if (btnThemeToggle) {
+      btnThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      const span = btnThemeToggle.querySelector('span');
+      if (span) span.textContent = isDark ? 'Light theme' : 'Dark theme';
+    }
+    if (themeIcon) {
+      themeIcon.className = isDark ? 'fa-solid fa-sun text-amber' : 'fa-solid fa-moon text-cyan';
+    }
+
+    // Mobile drawer toggle button
+    if (btnDrawerThemeToggle) {
+      btnDrawerThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnDrawerThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnDrawerThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    }
+    if (drawerThemeIcon) {
+      drawerThemeIcon.className = isDark ? 'fa-solid fa-sun text-amber' : 'fa-solid fa-moon text-cyan';
+    }
+    if (drawerThemeText) {
+      drawerThemeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    }
+
+    // Dynamic meta theme-color sync
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', '#06101f');
+    }
+  }
+
+  function applyTheme(theme, animate = false) {
+    const nextTheme = theme === 'dark' ? 'dark' : 'light';
+
+    if (animate && typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.classList.add('theme-transitioning');
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      }, 320);
+    }
+
+    if (document.documentElement) {
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      document.documentElement.classList.toggle('theme-dark', nextTheme === 'dark');
+      document.documentElement.classList.toggle('theme-light', nextTheme === 'light');
+    }
+
+    if (document.body) {
+      document.body.setAttribute('data-theme', nextTheme);
+      document.body.classList.toggle('theme-dark', nextTheme === 'dark');
+      document.body.classList.toggle('theme-light', nextTheme === 'light');
+    }
+
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (e) {}
+
+    updateThemeUI(nextTheme);
+    return nextTheme;
+  }
+
+  function toggleTheme(animate = true) {
+    if (voiceEngine && typeof voiceEngine.playClick === 'function') {
+      voiceEngine.playClick();
+    }
+    const current = getEffectiveTheme();
+    const target = current === 'dark' ? 'light' : 'dark';
+    return applyTheme(target, animate);
+  }
+
+  // Initialize theme from storage
+  applyTheme(getStoredTheme(), false);
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  if (btnDrawerThemeToggle) {
+    btnDrawerThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  window.appuTheme = {
+    getTheme: getEffectiveTheme,
+    setTheme: (t) => applyTheme(t, true),
+    toggleTheme: () => toggleTheme(true),
+    applyTheme: applyTheme
+  };
+  if (typeof globalThis !== 'undefined') {
+    globalThis.appuTheme = window.appuTheme;
   }
 
   // ==========================================
@@ -1434,16 +2418,30 @@ document.addEventListener('DOMContentLoaded', () => {
       toggleChatDrawer(true);
     });
   }
-  // Tapping the center "Appu says" card also opens the typing window.
+  // Tapping the center "Appu says" card or Expand button opens the typing window.
   const responseCard = document.getElementById('response-card');
+  const btnDockExpand = document.getElementById('btn-dock-expand');
+
   if (responseCard) {
     const openTyping = () => {
       if (!ensureChatSessionReady()) return;
       toggleChatDrawer(true);
     };
-    responseCard.addEventListener('click', openTyping);
+    responseCard.addEventListener('click', (e) => {
+      const selection = window.getSelection ? window.getSelection().toString() : '';
+      if (selection && selection.length > 0) return;
+      openTyping();
+    });
     responseCard.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTyping(); }
+    });
+  }
+
+  if (btnDockExpand) {
+    btnDockExpand.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
     });
   }
   if (btnCloseChat) {
@@ -1482,19 +2480,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseNavDrawer) btnCloseNavDrawer.addEventListener('click', () => closeNavDrawer());
   if (navDrawerScrim) navDrawerScrim.addEventListener('click', () => closeNavDrawer());
 
-  // Nav drawer learning mission chips: populate chat input and open chat drawer
-  document.querySelectorAll('.nav-drawer-mission-btn').forEach((btn) => {
+  const drawerMissionButtons = document.querySelectorAll('.nav-drawer-mission-btn');
+  drawerMissionButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const prompt = btn.getAttribute('data-prompt') || '';
       closeNavDrawer();
-      toggleChatDrawer(true);
-      const chatInput = document.getElementById('chat-input');
-      if (chatInput) {
-        chatInput.value = prompt;
-        chatInput.focus();
-      }
     });
   });
+
+  const navDrawerGamification = document.getElementById('nav-drawer-gamification');
+  if (navDrawerGamification) {
+    navDrawerGamification.addEventListener('click', () => {
+      closeNavDrawer();
+      const xpBtn = document.getElementById('btn-xp-badge');
+      if (xpBtn) xpBtn.click();
+    });
+  }
 
   // ==========================================
   // NATIVE APP SHELL: WELCOME GATE (post-loader sign-in screen)
@@ -1629,6 +2629,9 @@ document.addEventListener('DOMContentLoaded', () => {
       chatInput.value = '';
       const imageToSend = pendingImage;
       clearPendingImage();
+      if (typeof toggleChatDrawer === 'function') {
+        toggleChatDrawer(false);
+      }
       handleUserInteraction(text, imageToSend);
     });
   }
@@ -1820,6 +2823,270 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ==========================================
+  // ACTIVE DOCUMENT & NOTES TUTOR (GROUNDED CHAPTER TEACHING)
+  // ==========================================
+  window.activeTutorDocument = null;
+
+  const activeDocBannerDock = document.getElementById('active-doc-banner-dock');
+  const activeDocNameDock = document.getElementById('active-doc-name-dock');
+  const btnClearDocDock = document.getElementById('btn-clear-doc-dock');
+  const activeDocBannerDrawer = document.getElementById('active-doc-banner-drawer');
+  const activeDocNameDrawer = document.getElementById('active-doc-name-drawer');
+  const btnClearDocDrawer = document.getElementById('btn-clear-doc-drawer');
+  const btnUploadNotes = document.getElementById('btn-upload-notes');
+  const btnChatUploadNotes = document.getElementById('btn-chat-upload-notes');
+
+  const notesUploadModal = document.getElementById('notes-upload-modal');
+  const btnCloseNotesModal = document.getElementById('btn-close-notes-modal');
+  const btnCancelNotes = document.getElementById('btn-cancel-notes');
+  const tabNotesFile = document.getElementById('tab-notes-file');
+  const tabNotesPaste = document.getElementById('tab-notes-paste');
+  const notesTabpanelFile = document.getElementById('notes-tabpanel-file');
+  const notesTabpanelPaste = document.getElementById('notes-tabpanel-paste');
+  const notesDropzone = document.getElementById('notes-dropzone');
+  const notesFileInput = document.getElementById('notes-file-input');
+  const btnBrowseNotesFile = document.getElementById('btn-browse-notes-file');
+  const notesFileStatus = document.getElementById('notes-file-status');
+  const notesFilename = document.getElementById('notes-filename');
+  const notesFileStats = document.getElementById('notes-file-stats');
+  const btnRemoveNotesFile = document.getElementById('btn-remove-notes-file');
+  const notesPasteInput = document.getElementById('notes-paste-input');
+  const notesCharCount = document.getElementById('notes-char-count');
+  const btnSubmitNotes = document.getElementById('btn-submit-notes');
+
+  let pendingExtractedDoc = null;
+
+  function setActiveTutorDocument(doc) {
+    if (!doc || !doc.text) return;
+    const name = doc.name || 'Your Notes';
+    const text = String(doc.text).slice(0, 16000).trim();
+    window.activeTutorDocument = { name, text };
+    window.__APPU_ACTIVE_DOCUMENT__ = { name, text };
+
+    if (activeDocNameDock) activeDocNameDock.textContent = name;
+    if (activeDocNameDrawer) activeDocNameDrawer.textContent = name;
+    if (activeDocBannerDock) {
+      activeDocBannerDock.hidden = false;
+      activeDocBannerDock.removeAttribute('hidden');
+    }
+    if (activeDocBannerDrawer) {
+      activeDocBannerDrawer.hidden = false;
+      activeDocBannerDrawer.removeAttribute('hidden');
+    }
+  }
+
+  function clearActiveTutorDocument() {
+    window.activeTutorDocument = null;
+    window.__APPU_ACTIVE_DOCUMENT__ = null;
+    pendingExtractedDoc = null;
+    if (activeDocBannerDock) activeDocBannerDock.hidden = true;
+    if (activeDocBannerDrawer) activeDocBannerDrawer.hidden = true;
+    resetNotesUploadState();
+    if (voiceEngine && typeof voiceEngine.playClick === 'function') {
+      voiceEngine.playClick();
+    }
+  }
+
+  function openNotesUploadModal() {
+    if (!notesUploadModal) return;
+    notesUploadModal.classList.add('is-visible');
+    activateDialog(notesUploadModal, tabNotesFile || notesUploadModal);
+  }
+
+  function closeNotesUploadModal() {
+    if (!notesUploadModal) return;
+    notesUploadModal.classList.remove('is-visible');
+    deactivateDialog(notesUploadModal);
+  }
+
+  function resetNotesUploadState() {
+    pendingExtractedDoc = null;
+    if (notesFileInput) notesFileInput.value = '';
+    if (notesFileStatus) notesFileStatus.hidden = true;
+    if (notesPasteInput) notesPasteInput.value = '';
+    if (notesCharCount) notesCharCount.textContent = '0 / 16,000 characters';
+    if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+  }
+
+  function switchNotesTab(activeTab) {
+    if (!tabNotesFile || !tabNotesPaste) return;
+    if (activeTab === 'file') {
+      tabNotesFile.classList.add('is-active');
+      tabNotesFile.setAttribute('aria-selected', 'true');
+      tabNotesPaste.classList.remove('is-active');
+      tabNotesPaste.setAttribute('aria-selected', 'false');
+      if (notesTabpanelFile) notesTabpanelFile.hidden = false;
+      if (notesTabpanelPaste) notesTabpanelPaste.hidden = true;
+      if (btnSubmitNotes) {
+        btnSubmitNotes.disabled = !pendingExtractedDoc;
+      }
+    } else {
+      tabNotesPaste.classList.add('is-active');
+      tabNotesPaste.setAttribute('aria-selected', 'true');
+      tabNotesFile.classList.remove('is-active');
+      tabNotesFile.setAttribute('aria-selected', 'false');
+      if (notesTabpanelPaste) notesTabpanelPaste.hidden = false;
+      if (notesTabpanelFile) notesTabpanelFile.hidden = true;
+      if (notesPasteInput) {
+        notesPasteInput.focus();
+        if (btnSubmitNotes) {
+          btnSubmitNotes.disabled = !(notesPasteInput.value && notesPasteInput.value.trim().length > 0);
+        }
+      }
+    }
+  }
+
+  async function extractTextFromPdfFile(file) {
+    if (typeof window !== 'undefined' && window.pdfjsLib) {
+      try {
+        if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += (fullText ? '\n\n' : '') + pageText;
+          if (fullText.length >= 16000) break;
+        }
+        return fullText.slice(0, 16000);
+      } catch (pdfErr) {
+        console.warn('[NotesTutor] pdfjsLib extraction failed, falling back to text read:', pdfErr);
+      }
+    }
+    return await file.text();
+  }
+
+  async function processSelectedFile(file) {
+    if (!file) return;
+    if (notesFilename) notesFilename.textContent = file.name;
+    if (notesFileStats) notesFileStats.textContent = 'Extracting text...';
+    if (notesFileStatus) notesFileStatus.hidden = false;
+    if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+
+    try {
+      let extracted = '';
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        extracted = await extractTextFromPdfFile(file);
+      } else {
+        extracted = await file.text();
+      }
+
+      const capped = String(extracted || '').slice(0, 16000).trim();
+      if (!capped) {
+        if (notesFileStats) notesFileStats.textContent = 'Could not extract readable text from this file.';
+        return;
+      }
+
+      pendingExtractedDoc = {
+        name: file.name,
+        text: capped
+      };
+
+      if (notesFileStats) {
+        notesFileStats.textContent = `Ready • ${capped.length.toLocaleString()} characters extracted`;
+      }
+      if (btnSubmitNotes) btnSubmitNotes.disabled = false;
+    } catch (err) {
+      console.warn('[NotesTutor] File text extraction failed:', err);
+      if (notesFileStats) notesFileStats.textContent = 'Extraction failed. Please try pasting the text instead.';
+    }
+  }
+
+  // Event Listeners for Notes Upload UI
+  if (btnUploadNotes) btnUploadNotes.addEventListener('click', openNotesUploadModal);
+  if (btnChatUploadNotes) btnChatUploadNotes.addEventListener('click', openNotesUploadModal);
+  if (btnCloseNotesModal) btnCloseNotesModal.addEventListener('click', closeNotesUploadModal);
+  if (btnCancelNotes) btnCancelNotes.addEventListener('click', closeNotesUploadModal);
+
+  if (btnClearDocDock) btnClearDocDock.addEventListener('click', clearActiveTutorDocument);
+  if (btnClearDocDrawer) btnClearDocDrawer.addEventListener('click', clearActiveTutorDocument);
+
+  if (tabNotesFile) tabNotesFile.addEventListener('click', () => switchNotesTab('file'));
+  if (tabNotesPaste) tabNotesPaste.addEventListener('click', () => switchNotesTab('paste'));
+
+  if (notesDropzone) {
+    notesDropzone.addEventListener('click', () => {
+      if (notesFileInput) notesFileInput.click();
+    });
+    notesDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      notesDropzone.classList.add('dragover');
+    });
+    notesDropzone.addEventListener('dragleave', () => {
+      notesDropzone.classList.remove('dragover');
+    });
+    notesDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      notesDropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  if (notesFileInput) {
+    notesFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        processSelectedFile(e.target.files[0]);
+      }
+    });
+  }
+
+  if (btnRemoveNotesFile) {
+    btnRemoveNotesFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pendingExtractedDoc = null;
+      if (notesFileInput) notesFileInput.value = '';
+      if (notesFileStatus) notesFileStatus.hidden = true;
+      if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+    });
+  }
+
+  if (notesPasteInput) {
+    notesPasteInput.addEventListener('input', () => {
+      const val = notesPasteInput.value || '';
+      const len = val.length;
+      if (notesCharCount) {
+        notesCharCount.textContent = `${len.toLocaleString()} / 16,000 characters`;
+      }
+      if (tabNotesPaste && tabNotesPaste.classList.contains('is-active')) {
+        if (btnSubmitNotes) {
+          btnSubmitNotes.disabled = len === 0;
+        }
+      }
+    });
+  }
+
+  if (btnSubmitNotes) {
+    btnSubmitNotes.addEventListener('click', () => {
+      let docToActivate = null;
+      const isPasteActive = tabNotesPaste && tabNotesPaste.classList.contains('is-active');
+
+      if (isPasteActive) {
+        const text = (notesPasteInput && notesPasteInput.value ? notesPasteInput.value : '').slice(0, 16000).trim();
+        if (!text) return;
+        const firstLine = text.split('\n')[0].replace(/^#+\s*/, '').slice(0, 30).trim();
+        const docName = firstLine ? `Notes: ${firstLine}` : 'Pasted Notes';
+        docToActivate = { name: docName, text };
+      } else {
+        if (!pendingExtractedDoc || !pendingExtractedDoc.text) return;
+        docToActivate = pendingExtractedDoc;
+      }
+
+      setActiveTutorDocument(docToActivate);
+      closeNotesUploadModal();
+
+      // Auto-send on Upload: If user uploads without typing a question, auto-send empty question
+      handleUserInteraction('');
+    });
+  }
+
   // Initialize Phase 2 Parent Setup UI
   if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.init === 'function') {
     window.ParentSetupUI.init();
@@ -1867,21 +3134,19 @@ document.addEventListener('DOMContentLoaded', () => {
     maybeShowNativeWelcomeGate();
   }
 
-  // Mobile web (narrow screen, non-native): adopt minimal chrome.
-  // Add is-native to body and relocate crowded header controls into nav drawer
-  // so the mobile topbar restores the clean original layout (hamburger menu,
-  // timer pill, language switch, settings), while keeping the top #beta-banner
-  // visible for instant sign-up access.
+  // Native app only: the email verification link opens as an Android App Link (see
+  // AndroidManifest.xml) straight into this already-running app instead of a browser.
+  // Supabase's own detectSessionInUrl only runs once at client construction against the
+  // page's own URL, so a link arriving later has to be applied manually.
+  // Mobile web (narrow, non-native) adopts the app's minimal chrome: add the same
+  // is-native class and relocate the crowded header controls (language switch, sign-in,
+  // parent, etc.) into the nav drawer, exactly as the native path below does — minus the
+  // Capacitor/legal-viewer specifics that only apply inside the packaged app.
   if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
-      && typeof window !== 'undefined' && window.innerWidth <= 768) {
+      && typeof window !== 'undefined' && window.innerWidth <= 640) {
     document.body.classList.add('is-native');
-    // PROD (mobile web only): remove the top beta banner and relocate the signup CTA
-    // to the bottom of the app content (in-flow, below the input dock - no overlap).
-    const betaBannerBottomEl = document.getElementById('beta-banner');
-    const appShellForBottomBanner = document.getElementById('app-shell');
-    if (betaBannerBottomEl && appShellForBottomBanner && appShellForBottomBanner.lastElementChild !== betaBannerBottomEl) {
-      appShellForBottomBanner.appendChild(betaBannerBottomEl);
-    }
+    // NOTE: unlike the native app, mobile web KEEPS the language switch in the top bar
+    // (user request) — only the other controls move into the drawer.
     const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
     const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
     const navAccountSlot = document.getElementById('nav-drawer-account-slot');
@@ -1890,11 +3155,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnParentSetupEl = document.getElementById('btn-parent-setup');
     const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
     const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
-    if (navActionsSlot && btnQuickScheduleEl && !navActionsSlot.contains(btnQuickScheduleEl)) navActionsSlot.appendChild(btnQuickScheduleEl);
-    if (navActionsSlot && btnSoundToggleEl && !navActionsSlot.contains(btnSoundToggleEl)) navActionsSlot.appendChild(btnSoundToggleEl);
-    if (navBadgeSlot && parentSessionBadgeEl && !navBadgeSlot.contains(parentSessionBadgeEl)) navBadgeSlot.appendChild(parentSessionBadgeEl);
-    if (navAccountSlot && btnMainAuthEl && !navAccountSlot.contains(btnMainAuthEl)) navAccountSlot.appendChild(btnMainAuthEl);
-    if (navAccountSlot && btnParentSetupEl && !navAccountSlot.contains(btnParentSetupEl)) navAccountSlot.appendChild(btnParentSetupEl);
+    if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
+    if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
+    if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnMainAuthEl) navAccountSlot.appendChild(btnMainAuthEl);
+    if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
     if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
     if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
     if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
@@ -2110,6 +3375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === discoveryModal) closeDiscoveryModal();
     if (e.target === settingsModal) closeSettingsModal();
     if (e.target === guestLimitModal) closeGuestGateModal();
+    if (e.target === notesUploadModal) closeNotesUploadModal();
     if (e.target === parentSetupModal && parentSetupModal) {
       if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
         window.ParentSetupUI.closeModal();
@@ -2164,6 +3430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeDiscoveryModal();
       closeSettingsModal();
       closeGuestGateModal();
+      closeNotesUploadModal();
       toggleChatDrawer(false);
       closeNavDrawer();
       closeWelcomeGate();
@@ -2180,4 +3447,466 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.init === 'function') {
     window.ParentalControlsUI.init();
   }
+
+  // ==========================================
+  // PLAYFUL GAMIFICATION ENGINE & QUEST MODAL
+  // ==========================================
+  const GAMIFICATION_STORAGE_KEY = 'appu_gamification_v1';
+  const LEVEL_THRESHOLDS = [
+    { level: 1, title: 'Seedling Scholar 🌱', minXp: 0, maxXp: 50 },
+    { level: 2, title: 'Curious Explorer 🚀', minXp: 50, maxXp: 150 },
+    { level: 3, title: 'Brain Booster 💡', minXp: 150, maxXp: 300 },
+    { level: 4, title: 'Star Student 🌟', minXp: 300, maxXp: 500 },
+    { level: 5, title: 'Master Mind 🏆', minXp: 500, maxXp: 1000 }
+  ];
+
+  function playChime(type = 'xp') {
+    try {
+      if (voiceEngine && !voiceEngine.soundEnabled) return;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'level-up') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.38);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.14);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      }
+    } catch (_) {}
+  }
+
+  function launchGameConfetti() {
+    const canvas = document.getElementById('game-confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = 'block';
+
+    const colors = ['#0ea5e9', '#38bdf8', '#fbbf24', '#f59e0b', '#fb7185', '#ff8a65', '#14b8a6', '#4ade80'];
+    const particles = [];
+    const count = 48;
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 260,
+        y: canvas.height / 2 + (Math.random() - 0.5) * 120,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 1.1) * 13,
+        size: Math.random() * 8 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        alpha: 1,
+        shape: Math.random() > 0.4 ? 'rect' : 'circle'
+      });
+    }
+
+    let startTime = null;
+    const duration = 2000;
+
+    function frame(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = elapsed / duration;
+
+      if (progress >= 1) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35;
+        p.rotation += p.rotSpeed;
+        p.alpha = Math.max(0, 1 - progress);
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function getGamificationState() {
+    try {
+      const raw = localStorage.getItem(GAMIFICATION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          xp: typeof parsed.xp === 'number' ? parsed.xp : 120,
+          streak: typeof parsed.streak === 'number' ? parsed.streak : 3,
+          badges: Array.isArray(parsed.badges) ? parsed.badges : ['plant-detective', 'quick-thinker', 'curious-mind']
+        };
+      }
+    } catch (_) {}
+    return {
+      xp: 120,
+      streak: 3,
+      badges: ['plant-detective', 'quick-thinker', 'curious-mind']
+    };
+  }
+
+  function saveGamificationState(state) {
+    try {
+      localStorage.setItem(GAMIFICATION_STORAGE_KEY, JSON.stringify(state));
+    } catch (_) {}
+  }
+
+  function calculateLevel(xp) {
+    for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+      if (xp >= LEVEL_THRESHOLDS[i].minXp) {
+        return LEVEL_THRESHOLDS[i];
+      }
+    }
+    return LEVEL_THRESHOLDS[0];
+  }
+
+  function showXpToast(amount, reason) {
+    const container = document.getElementById('game-toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'game-xp-toast';
+    toast.innerHTML = `<span class="toast-star">⭐</span><strong>+${amount} XP</strong><span class="toast-reason">${reason || 'Great job!'}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('is-floating');
+    }, 20);
+
+    setTimeout(() => {
+      toast.classList.add('is-fadeout');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 400);
+    }, 2200);
+  }
+
+  function updateGamificationUI() {
+    const state = getGamificationState();
+    const currentLvlInfo = calculateLevel(state.xp);
+    const span = currentLvlInfo.maxXp - currentLvlInfo.minXp;
+    const progressInLvl = state.xp - currentLvlInfo.minXp;
+    const pct = Math.min(100, Math.max(5, Math.round((progressInLvl / span) * 100)));
+
+    // Topbar Widgets
+    const streakCountEl = document.getElementById('game-streak-count');
+    const xpCountEl = document.getElementById('game-xp-count');
+    const levelTagEl = document.getElementById('game-level-tag');
+    const xpFillEl = document.getElementById('game-xp-fill');
+    const streakBtn = document.getElementById('btn-streak-badge');
+    const xpBtn = document.getElementById('btn-xp-badge');
+
+    if (streakCountEl) streakCountEl.textContent = state.streak;
+    if (xpCountEl) xpCountEl.textContent = state.xp;
+    if (levelTagEl) levelTagEl.textContent = `Lvl ${currentLvlInfo.level}`;
+    if (xpFillEl) xpFillEl.style.width = `${pct}%`;
+    if (streakBtn) streakBtn.title = `${state.streak}-day learning streak!`;
+    if (xpBtn) xpBtn.title = `${state.xp} Learning Stars! Click to view achievements`;
+
+    // Drawer Gamification Widgets
+    const drawerStreakCountEl = document.getElementById('drawer-streak-count');
+    const drawerXpCountEl = document.getElementById('drawer-xp-count');
+    const drawerLevelTagEl = document.getElementById('drawer-level-tag');
+    if (drawerStreakCountEl) drawerStreakCountEl.textContent = state.streak;
+    if (drawerXpCountEl) drawerXpCountEl.textContent = state.xp;
+    if (drawerLevelTagEl) drawerLevelTagEl.textContent = `Lvl ${currentLvlInfo.level}`;
+
+    // Modal Details
+    const modalStreakEl = document.getElementById('stat-streak-val');
+    const modalXpEl = document.getElementById('stat-xp-val');
+    const modalBadgesEl = document.getElementById('stat-badges-val');
+    const modalLevelSubtitle = document.getElementById('game-level-subtitle');
+    const modalProgressText = document.getElementById('game-progress-text');
+    const modalXpFill = document.getElementById('modal-xp-fill');
+
+    if (modalStreakEl) modalStreakEl.textContent = `${state.streak} Days`;
+    if (modalXpEl) modalXpEl.textContent = `${state.xp} XP`;
+    if (modalBadgesEl) modalBadgesEl.textContent = `${state.badges.length} Badges`;
+    if (modalLevelSubtitle) modalLevelSubtitle.textContent = `Level ${currentLvlInfo.level}: ${currentLvlInfo.title}`;
+    if (modalProgressText) modalProgressText.textContent = `${progressInLvl} / ${span} XP`;
+    if (modalXpFill) modalXpFill.style.width = `${pct}%`;
+  }
+
+  const AppuGamification = {
+    awardXP(amount, reason) {
+      const state = getGamificationState();
+      const prevLvl = calculateLevel(state.xp);
+      state.xp += amount;
+      const nextLvl = calculateLevel(state.xp);
+      saveGamificationState(state);
+      updateGamificationUI();
+
+      showXpToast(amount, reason);
+      launchGameConfetti();
+
+      if (nextLvl.level > prevLvl.level) {
+        playChime('level-up');
+        if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+          window.appMascot.celebrate(3000);
+        }
+      } else {
+        playChime('xp');
+      }
+    },
+    getState: getGamificationState,
+    updateUI: updateGamificationUI,
+    launchConfetti: launchGameConfetti
+  };
+
+  // Expose to window and globalThis
+  window.AppuGamification = AppuGamification;
+  if (typeof globalThis !== 'undefined') {
+    globalThis.AppuGamification = AppuGamification;
+  }
+
+  // Hook up Gamification Modal Open / Close
+  const gameModal = document.getElementById('gamification-modal');
+  const gameModalOverlay = document.getElementById('gamification-modal-overlay');
+  const btnCloseGamification = document.getElementById('btn-close-gamification');
+  const btnStreakBadge = document.getElementById('btn-streak-badge');
+  const btnXpBadge = document.getElementById('btn-xp-badge');
+
+  function openGamificationModal() {
+    updateGamificationUI();
+    if (gameModal) {
+      gameModal.removeAttribute('hidden');
+      gameModal.classList.add('is-open');
+    }
+  }
+
+  function closeGamificationModal() {
+    if (gameModal) {
+      gameModal.setAttribute('hidden', '');
+      gameModal.classList.remove('is-open');
+    }
+  }
+
+  btnStreakBadge?.addEventListener('click', openGamificationModal);
+  btnXpBadge?.addEventListener('click', openGamificationModal);
+  btnCloseGamification?.addEventListener('click', closeGamificationModal);
+  gameModalOverlay?.addEventListener('click', closeGamificationModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && gameModal && !gameModal.hasAttribute('hidden')) {
+      closeGamificationModal();
+    }
+  });
+
+  // Initial UI refresh
+  updateGamificationUI();
+
+  // ==========================================
+  // DEV-ONLY VISUALS & STUDY MODES DEMO HARNESS (?demo=1)
+  // ==========================================
+  function initVisualsDemo() {
+    const sampleCard = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || {
+      mood: 'explaining',
+      gradeTone: 'junior',
+      blocks: [
+        { type: 'hook', text: 'Ever wonder how a plant eats without a mouth? 🌱' },
+        { type: 'diagram', kind: 'mermaid', spec: 'flowchart LR; Sun-->Leaf; Water-->Leaf; CO2-->Leaf; Leaf-->Sugar; Leaf-->Oxygen' },
+        { type: 'steps', items: ['Leaves catch sunlight', 'Roots drink water', 'Leaf mixes them into sugar', 'Plant breathes out oxygen'] },
+        { type: 'analogy', text: 'A leaf is like a tiny solar-powered kitchen.' },
+        { type: 'check', q: 'What gas does the plant breathe out?', a: 'Oxygen' }
+      ],
+      plainText: 'Plants make their food through photosynthesis. Leaves catch sunlight, roots absorb water from the soil, and they take in carbon dioxide from the air. Inside the leaf, these mix together to produce sugar for energy, and the plant releases oxygen for us to breathe!'
+    };
+
+    const existingBar = document.getElementById('dev-demo-bar');
+    if (existingBar) existingBar.remove();
+
+    const bar = document.createElement('div');
+    bar.id = 'dev-demo-bar';
+    bar.className = 'dev-demo-bar';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Study Modes & Visuals Demo Controls');
+    bar.innerHTML = `
+      <span class="demo-badge">🎬 STUDY MODES DEMO</span>
+      <button id="btn-demo-replay" class="demo-btn" type="button"><i class="fa-solid fa-play" aria-hidden="true"></i> <span>Run Flow</span></button>
+      <button id="btn-demo-quiz" class="demo-btn" type="button"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Quiz Me</span></button>
+      <button id="btn-demo-flashcards" class="demo-btn" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> <span>Flashcards</span></button>
+      <button id="btn-demo-guide" class="demo-btn" type="button"><i class="fa-solid fa-book-open-reader" aria-hidden="true"></i> <span>Study Guide</span></button>
+      <button id="btn-demo-mindmap" class="demo-btn" type="button"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> <span>Mind Map</span></button>
+      <button id="btn-demo-podcast" class="demo-btn" type="button"><i class="fa-solid fa-headphones" aria-hidden="true"></i> <span>Podcast</span></button>
+      <button id="btn-demo-chat" class="demo-btn" type="button"><i class="fa-solid fa-comments" aria-hidden="true"></i> <span>In Chat</span></button>
+      <button id="btn-demo-celebrate" class="demo-btn" type="button"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> <span>Celebrate</span></button>
+      <button id="btn-demo-close" class="demo-close-btn" type="button" aria-label="Close demo bar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    `;
+    document.body.appendChild(bar);
+
+    document.getElementById('btn-demo-close')?.addEventListener('click', () => {
+      bar.remove();
+    });
+
+    document.getElementById('btn-demo-celebrate')?.addEventListener('click', () => {
+      if (window.AppuGamification) {
+        window.AppuGamification.awardXP(25, 'Super Learner! 🚀');
+      } else if (window.appMascot) {
+        window.appMascot.celebrate(3500);
+      }
+    });
+
+    document.getElementById('btn-demo-chat')?.addEventListener('click', () => {
+      toggleChatDrawer(true);
+    });
+
+    const runDemoFlow = (targetMode = 'lesson') => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = '"How does photosynthesis work?"';
+      }
+
+      // Step 1: Thinking
+      if (avatarStage) avatarStage.setState('thinking');
+      if (window.appMascot) window.appMascot.setMood('thinking');
+
+      setTimeout(() => {
+        // Step 2: Explaining + Reveal Lesson Card / Study Mode
+        if (avatarStage) avatarStage.setState('speaking');
+        if (window.appMascot) window.appMascot.setMood('explaining');
+
+        showVoicePopup(sampleCard.plainText, sampleCard, targetMode);
+        if (voiceEngine) {
+          voiceEngine.speak(sampleCard.plainText);
+        }
+
+        // Also populate chat drawer
+        if (chatAgent) {
+          const exists = chatAgent.messages.some(m => m.lessonCard);
+          if (!exists) {
+            chatAgent.addMessage('user', 'How does photosynthesis work?');
+            chatAgent.addMessage('appu', sampleCard.plainText, null, null, {
+              lessonCard: sampleCard,
+              mood: 'explaining'
+            });
+          }
+        }
+      }, 1000);
+    };
+
+    document.getElementById('btn-demo-replay')?.addEventListener('click', () => runDemoFlow('lesson'));
+    document.getElementById('btn-demo-quiz')?.addEventListener('click', () => runDemoFlow('quiz'));
+    document.getElementById('btn-demo-flashcards')?.addEventListener('click', () => runDemoFlow('flashcards'));
+    document.getElementById('btn-demo-guide')?.addEventListener('click', () => runDemoFlow('guide'));
+    document.getElementById('btn-demo-mindmap')?.addEventListener('click', () => runDemoFlow('mindmap'));
+    document.getElementById('btn-demo-podcast')?.addEventListener('click', () => runDemoFlow('podcast'));
+
+    return { runDemoFlow };
+  }
+
+  // Expose Study Modes and Voice Popup API
+  window.AppuStudyModes = {
+    show: (mode = 'lesson') => {
+      const card = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || null;
+      showVoicePopup(card?.plainText || '', card, mode);
+    },
+    showQuiz: () => window.AppuStudyModes.show('quiz'),
+    showFlashcards: () => window.AppuStudyModes.show('flashcards'),
+    showGuide: () => window.AppuStudyModes.show('guide'),
+    showMindMap: () => window.AppuStudyModes.show('mindmap'),
+    showPodcast: () => window.AppuStudyModes.show('podcast')
+  };
+
+  if (window.app) {
+    window.app.showVoicePopup = showVoicePopup;
+    window.app.updateVoicePopupCard = updateVoicePopupCard;
+    window.app.hideVoicePopup = hideVoicePopup;
+    window.app.showStudyMode = (mode) => window.AppuStudyModes.show(mode);
+    window.app.demoTalkingAppu = (mode = 'lesson') => {
+      window.AppuStudyModes.show(mode);
+      if (avatarStage) avatarStage.setState('speaking');
+      if (voiceEngine) {
+        const text = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD?.plainText) || "Let's explore how photosynthesis powers our planet!";
+        voiceEngine.speak(text);
+      }
+    };
+    window.app.cancelVoicePopupTimer = cancelVoicePopupTimer;
+    window.app.switchActiveCardLanguage = switchActiveCardLanguage;
+    window.app.ensureLangVariantsCache = ensureLangVariantsCache;
+    window.app.applyLanguageVariant = applyLanguageVariant;
+    window.app.setLanguage = setLanguage;
+    window.app.getLangVariants = (card) => (card || activePopupLessonCard)?.__langVariants || null;
+    window.app.avatarStage = avatarStage;
+    window.app.voiceEngine = voiceEngine;
+    window.app.setActiveTutorDocument = setActiveTutorDocument;
+    window.app.getActiveLessonCard = () => activePopupLessonCard;
+
+    window.app.saveLesson = (card, meta) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.saveLesson === 'function' ? window.SavedLessonsUI.saveLesson(card, meta) : null);
+    window.app.getSavedLessons = () => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.getSavedLessons === 'function' ? window.SavedLessonsUI.getSavedLessons() : []);
+    window.app.isLessonSaved = (card) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function' ? window.SavedLessonsUI.isLessonSaved(card) : false);
+    window.app.toggleSaveLesson = (card, meta) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.toggleSaveLesson === 'function' ? window.SavedLessonsUI.toggleSaveLesson(card, meta) : { isSaved: false, entry: null });
+    window.app.clearActiveTutorDocument = clearActiveTutorDocument;
+    window.app.openNotesUploadModal = openNotesUploadModal;
+    window.app.closeNotesUploadModal = closeNotesUploadModal;
+    window.app.getTheme = () => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.getTheme() : 'light');
+    window.app.setTheme = (t) => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.setTheme(t) : t);
+    window.app.toggleTheme = () => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.toggleTheme() : 'dark');
+  }
+
+  if (typeof window !== 'undefined' && /[?&]demo=/i.test(window.location.search)) {
+    const demoControls = initVisualsDemo();
+    let initialMode = 'lesson';
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const demoVal = (params.get('demo') || '').toLowerCase();
+      if (demoVal === 'quiz') initialMode = 'quiz';
+      else if (demoVal === 'flashcards' || demoVal === 'flashcard') initialMode = 'flashcards';
+      else if (demoVal === 'guide' || demoVal === 'studyguide') initialMode = 'guide';
+      else if (demoVal === 'mindmap' || demoVal === 'mind-map') initialMode = 'mindmap';
+      else if (demoVal === 'podcast') initialMode = 'podcast';
+    } catch (e) {
+      initialMode = 'lesson';
+    }
+
+    // Auto-trigger the demo sequence after 600ms on first load
+    setTimeout(() => {
+      if (demoControls && typeof demoControls.runDemoFlow === 'function') {
+        demoControls.runDemoFlow(initialMode);
+      }
+    }, 600);
+  }
 });
+

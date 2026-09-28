@@ -173,6 +173,23 @@
     return (typeof window !== 'undefined' && window.AppuSession) ? window.AppuSession : null;
   }
 
+  function isSessionStartOtpGateEnabled() {
+    if (typeof window !== 'undefined' && typeof window.__APPU_SESSION_START_OTP_GATE__ === 'boolean') {
+      return window.__APPU_SESSION_START_OTP_GATE__;
+    }
+    if (typeof globalThis !== 'undefined' && typeof globalThis.__APPU_SESSION_START_OTP_GATE__ === 'boolean') {
+      return globalThis.__APPU_SESSION_START_OTP_GATE__;
+    }
+    const cfg = (typeof window !== 'undefined' && window.APPU_CONFIG) || (typeof globalThis !== 'undefined' && globalThis.APPU_CONFIG);
+    if (cfg && typeof cfg.sessionStartOtpGate === 'boolean') {
+      return cfg.sessionStartOtpGate;
+    }
+    if (typeof window !== 'undefined' && window.location && typeof window.location.host === 'string') {
+      return /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host);
+    }
+    return true;
+  }
+
   function getOrCreateSessionId() {
     if (sessionId) return sessionId;
     try {
@@ -233,6 +250,13 @@
       return;
     }
 
+    const session = getSession();
+    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
+    if (isSessionStartOtpGateEnabled() && isAuthedChild && !otpVerifiedThisSession) {
+      // Session start OTP gate pending: do not advance 30-min window before verification
+      return;
+    }
+
     // Wall-clock: window counts real time from entry whether focused, backgrounded or idle.
     // Attribute the slice to ACTIVE when visible, AWAY when hidden — but count BOTH toward the limit.
     const isHidden = (typeof document !== 'undefined' && document.visibilityState === 'hidden');
@@ -252,7 +276,9 @@
 
   function updateTimerBadge() {
     if (!timerBadgeEl || !timerTextEl) return;
-    if (!isEnabled) {
+    const session = getSession();
+    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
+    if (!isEnabled || (isSessionStartOtpGateEnabled() && isAuthedChild && !otpVerifiedThisSession)) {
       timerBadgeEl.hidden = true;
       return;
     }
@@ -570,6 +596,10 @@
   }
 
   async function enforceSessionStartGate(pendingAction) {
+    if (!isSessionStartOtpGateEnabled()) {
+      return true;
+    }
+
     const session = getSession();
     const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
 
@@ -859,6 +889,7 @@
     applyTranslations,
     updateTimerBadge,
     enforceSessionStartGate,
+    isSessionStartOtpGateEnabled,
     isOtpVerifiedThisSession: () => otpVerifiedThisSession,
     setOtpVerifiedThisSession: (v) => {
       otpVerifiedThisSession = Boolean(v);

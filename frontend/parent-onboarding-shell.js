@@ -29,10 +29,16 @@
     if (
       typeof globalThis !== 'undefined' &&
       globalThis.APPU_CONFIG &&
-      typeof globalThis.APPU_CONFIG.apiBaseUrl === 'string' &&
-      globalThis.APPU_CONFIG.apiBaseUrl.trim()
+      typeof globalThis.APPU_CONFIG.apiBaseUrl === 'string'
     ) {
       return globalThis.APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '');
+    }
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)
+    ) {
+      return '';
     }
     return 'https://api.appuai.online';
   }

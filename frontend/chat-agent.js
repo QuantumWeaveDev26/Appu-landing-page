@@ -53,9 +53,23 @@ class ChatAgent {
       bubble.appendChild(label);
     }
 
-    const textSpan = document.createElement('span');
-    textSpan.textContent = msg.text;
-    bubble.appendChild(textSpan);
+    const renderer = (typeof window !== 'undefined' && window.LessonCardRenderer) || (typeof LessonCardRenderer !== 'undefined' ? LessonCardRenderer : null);
+    const parsedCard = renderer ? renderer.parse(msg.lessonCard || msg.text) : null;
+
+    if (parsedCard && parsedCard.isRich) {
+      const celebrateCallback = () => {
+        if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
+          window.appMascot.celebrate(3200);
+        }
+      };
+      const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback });
+      bubble.appendChild(cardEl);
+      msg.plainText = parsedCard.plainText || msg.text;
+    } else {
+      const textSpan = document.createElement('span');
+      textSpan.textContent = msg.text;
+      bubble.appendChild(textSpan);
+    }
 
     // Optional interactive card inside bubble
     if (msg.actionCard) {
@@ -259,6 +273,12 @@ class ChatAgent {
 
       const forceNew = !activeConvId && typeof this.getForceNewConversation === 'function' && Boolean(this.getForceNewConversation());
 
+      const isExperimentalLearning = Boolean(
+        typeof window !== 'undefined' &&
+        window.APPU_CONFIG &&
+        window.APPU_CONFIG.experimentalLearning
+      );
+
       const requestPayload = hasSecureSession
         ? {
             accessToken: window.AppuSession.accessToken,
@@ -267,12 +287,14 @@ class ChatAgent {
             ...(forceNew ? { newConversation: true } : {}),
             message: cleanInput,
             language: this.language || 'en',
-            includeAudio
+            includeAudio,
+            ...(isExperimentalLearning ? { experimentalLearning: true } : {})
           }
         : {
             message: cleanInput,
             language: this.language || 'en',
-            includeAudio
+            includeAudio,
+            ...(isExperimentalLearning ? { experimentalLearning: true } : {})
           };
 
       if (image && image.dataUrl) {
@@ -338,10 +360,14 @@ class ChatAgent {
       }
 
       if (this.typingIndicator) this.typingIndicator.style.display = 'none';
-      if (onFinishThinking) onFinishThinking(responseText, audioSource, result.audioStreamUrl || null, requestPayload.accessToken || null);
+      if (onFinishThinking) onFinishThinking(responseText, audioSource, result.audioStreamUrl || null, requestPayload.accessToken || null, result);
 
       const isSystemNotice = Boolean(result.error || result.code);
-      const appuMsg = this.addMessage('appu', responseText, actionCard, null, { isSystem: isSystemNotice });
+      const appuMsg = this.addMessage('appu', responseText, actionCard, null, {
+        isSystem: isSystemNotice,
+        lessonCard: result.lessonCard || null,
+        mood: result.mood || null
+      });
       return appuMsg;
 
     } catch (error) {
@@ -380,6 +406,37 @@ class ChatAgent {
       };
       this.messages.push(msgObj);
       this.renderMessage(msgObj);
+    }
+  }
+
+  updateLastAppuMessageCard(lessonCard) {
+    if (!lessonCard || !this.messages || this.messages.length === 0) return;
+    const lastAppu = [...this.messages].reverse().find(m => m.sender === 'appu');
+    if (!lastAppu) return;
+    lastAppu.lessonCard = lessonCard;
+    if (this.messagesContainer) {
+      const appuBubbles = this.messagesContainer.querySelectorAll('.msg-row.appu-msg');
+      if (appuBubbles.length > 0) {
+        const lastRow = appuBubbles[appuBubbles.length - 1];
+        const bubble = lastRow.querySelector('.msg-bubble');
+        if (bubble) {
+          const renderer = (typeof window !== 'undefined' && window.LessonCardRenderer) || (typeof LessonCardRenderer !== 'undefined' ? LessonCardRenderer : null);
+          const parsedCard = renderer ? renderer.parse(lessonCard) : null;
+          if (renderer && parsedCard && parsedCard.isRich) {
+            bubble.innerHTML = '';
+            const celebrateCallback = () => {
+              if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                window.appMascot.celebrate(3200);
+              }
+            };
+            const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback });
+            bubble.appendChild(cardEl);
+            try {
+              lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (_) {}
+          }
+        }
+      }
     }
   }
 

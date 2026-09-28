@@ -46,10 +46,13 @@ class VoiceEngine {
     constructor(options = {}) {
         this.onSpeechStart = options.onSpeechStart || (() => {});
         this.onSpeechEnd = options.onSpeechEnd || (() => {});
+        this.onListeningStart = options.onListeningStart || (() => {});
+        this.onListeningEnd = options.onListeningEnd || (() => {});
         this.onTranscript = options.onTranscript || (() => {});
         this.onInterimTranscript = options.onInterimTranscript || (() => {});
         this.onVoiceUnavailable = options.onVoiceUnavailable || (() => {});
         this.onPermissionDenied = options.onPermissionDenied || (() => {});
+        this.onSpeechAmplitude = options.onSpeechAmplitude || null;
 
         this.soundEnabled = true;
         this.autoSpeak = true;
@@ -59,8 +62,14 @@ class VoiceEngine {
         this.isSpeaking = false;
         this.awaitingResponse = false;
         this.liveSessionActive = false;
+        this.silenceTimeoutMs = 60000;
+        this.silenceTimer = null;
+        this._isReconnecting = false;
         this.subtitleTimer = null;
         this.audioContext = null;
+        this.analyserNode = null;
+        this.mediaSourceNode = null;
+        this._freqDataArray = null;
         this.isVoiceSupported = VoiceEngine.isVoiceSupported();
 
         this.micButton = document.getElementById('btn-mic');
@@ -82,6 +91,7 @@ class VoiceEngine {
     initAudioPlayerEvents() {
         this.audioPlayer.addEventListener('play', () => {
             this.isSpeaking = true;
+            this.initAudioAnalyser();
             if (this.recognition) {
                 try { this.recognition.abort(); } catch {}
             }
@@ -95,10 +105,66 @@ class VoiceEngine {
         });
     }
 
+    initAudioAnalyser() {
+        if (this.analyserNode || !this.audioPlayer) return;
+        this.initWebAudio();
+        if (!this.audioContext) return;
+        try {
+            if (!this.mediaSourceNode && typeof this.audioContext.createMediaElementSource === 'function') {
+                this.mediaSourceNode = this.audioContext.createMediaElementSource(this.audioPlayer);
+                if (typeof this.audioContext.createAnalyser === 'function') {
+                    this.analyserNode = this.audioContext.createAnalyser();
+                    this.analyserNode.fftSize = 256;
+                    this.analyserNode.smoothingTimeConstant = 0.5;
+                    this.mediaSourceNode.connect(this.analyserNode);
+                    if (this.audioContext.destination) {
+                        this.analyserNode.connect(this.audioContext.destination);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[VoiceEngine] Web Audio Analyser init notice:', err);
+        }
+    }
+
+    getSpeechAmplitude() {
+        if (!this.isSpeaking) return 0;
+        if (this.analyserNode && this.audioContext && this.audioContext.state === 'running') {
+            try {
+                if (!this._freqDataArray) {
+                    this._freqDataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+                }
+                this.analyserNode.getByteFrequencyData(this._freqDataArray);
+                let sum = 0;
+                const endBin = Math.min(36, this._freqDataArray.length);
+                for (let i = 2; i < endBin; i++) {
+                    sum += this._freqDataArray[i];
+                }
+                const avg = sum / Math.max(1, endBin - 2);
+                const norm = Math.min(1, Math.max(0, avg / 120));
+                if (typeof this.onSpeechAmplitude === 'function') {
+                    this.onSpeechAmplitude(norm);
+                }
+                return norm;
+            } catch (_) {}
+        }
+        // Natural rhythmic fallback simulation when AnalyserNode is unattached or synthetic
+        const t = Date.now() / 1000;
+        const wave = Math.sin(t * 14) * 0.35 + Math.sin(t * 22) * 0.25 + 0.35;
+        const norm = Math.max(0.12, Math.min(1, wave));
+        if (typeof this.onSpeechAmplitude === 'function') {
+            this.onSpeechAmplitude(norm);
+        }
+        return norm;
+    }
+
     handleSpeechFinish() {
         this.awaitingResponse = false;
         this.isSpeaking = false;
         this.updateSpeakingUI(false);
+        if (typeof this.onSpeechAmplitude === 'function') {
+            this.onSpeechAmplitude(0);
+        }
         this.onSpeechEnd();
         if (this.liveSessionActive && !this.isListening) {
             window.setTimeout(() => this.startListening(), 350);
@@ -167,7 +233,7 @@ class VoiceEngine {
         }
 
         this.recognition = new Recognition();
-        this.recognition.continuous = false;
+        this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.lang = 'en-IN';
 
@@ -176,10 +242,27 @@ class VoiceEngine {
             this.lastErrorFatal = false;
             this._cycleStart = Date.now();
             this._cycleGotSpeech = false;
-            this.updateLiveSessionUI();
-            this.playListenStart();
-            this.streamSubtitles('Listening — tell me what you want to learn.');
+            if (!this._isReconnecting) {
+                this.updateLiveSessionUI();
+                this.playListenStart();
+                this.streamSubtitles('Listening — tell me what you want to learn.');
+                this.onListeningStart();
+            }
+            this._isReconnecting = false;
+            this.startSilenceTimer();
         };
+
+        try {
+            this.recognition.onspeechstart = () => {
+                this.resetSilenceTimer();
+            };
+        } catch (_) {}
+
+        try {
+            this.recognition.onaudiostart = () => {
+                this.resetSilenceTimer();
+            };
+        } catch (_) {}
 
         this.recognition.onresult = event => {
             let finalText = '';
@@ -189,9 +272,13 @@ class VoiceEngine {
                 if (event.results[index].isFinal) finalText += text;
                 else interimText += text;
             }
-            if (interimText || finalText) this._cycleGotSpeech = true;
+            if (interimText || finalText) {
+                this._cycleGotSpeech = true;
+                this.resetSilenceTimer();
+            }
             if (interimText) this.onInterimTranscript(interimText.trim());
             if (finalText) {
+                this.clearSilenceTimer();
                 this.awaitingResponse = true;
                 if (this.recognition) {
                     try { this.recognition.abort(); } catch {}
@@ -201,16 +288,22 @@ class VoiceEngine {
         };
 
         this.recognition.onerror = event => {
-            this.isListening = false;
-            // 'no-speech' just means the engine timed out waiting for the user to start
-            // talking (expected during natural pauses in a live session) -- not fatal.
-            // 'aborted' happens when we stop it ourselves. Anything else (permission
-            // denied, no mic, network) means retrying immediately would just loop forever.
-            this.lastErrorFatal = event.error !== 'no-speech' && event.error !== 'aborted';
-            if (this.lastErrorFatal) {
-                this.awaitingResponse = false;
+            // 'no-speech' is expected during silent pauses while listening; the 60s silence timer
+            // governs session end so we do not abruptly stop or flicker the UI.
+            if (event.error === 'no-speech') {
+                return;
             }
+            // 'aborted' happens when we deliberately stop or abort recognition (e.g. before playback or transcript)
+            if (event.error === 'aborted') {
+                return;
+            }
+
+            this.isListening = false;
+            this.clearSilenceTimer();
+            this.lastErrorFatal = true;
+            this.awaitingResponse = false;
             this.updateLiveSessionUI();
+
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 this.stopLiveSession();
                 const notice = this.getLocalizedVoiceNotice('permission-denied');
@@ -225,37 +318,32 @@ class VoiceEngine {
                 this.onVoiceUnavailable(notice);
                 return;
             }
-            if (this.lastErrorFatal) {
-                this.streamSubtitles('I missed that. Tap the microphone and try again.');
-            }
+            this.streamSubtitles('I missed that. Tap the microphone and try again.');
         };
 
         this.recognition.onend = () => {
-            this.isListening = false;
-            this.updateLiveSessionUI();
-            // Some devices (seen on certain Android Chrome builds) end recognition almost
-            // instantly without capturing anything. Auto-restarting then produces a rapid
-            // on/off/on/off flicker loop. Detect these empty, sub-second cycles and, after a
-            // few in a row, stop the live session gracefully instead of looping forever.
-            // Rate-limit restarts: on some devices recognition ends almost instantly and the
-            // auto-restart produces a rapid on/off/on/off flicker loop. Count short (<900ms)
-            // cycles in a 4s window — regardless of whether brief noise triggered interim
-            // results — and if too many happen, stop gracefully instead of looping forever.
-            const now = Date.now();
-            const cycleMs = now - (this._cycleStart || 0);
-            this._restartTimes = (this._restartTimes || []).filter((t) => now - t < 4000);
-            if (cycleMs < 900) this._restartTimes.push(now);
-            if (this._restartTimes.length >= 4) {
-                this._restartTimes = [];
-                this.stopLiveSession();
-                this.streamSubtitles("Voice had trouble starting on this device. Tap the mic to try again, or use “Type instead”.");
+            // If session was ended intentionally, or awaiting response, or Appu is speaking, or fatal error:
+            if (!this.liveSessionActive || this.awaitingResponse || this.isSpeaking || this.lastErrorFatal) {
+                this.isListening = false;
+                this.clearSilenceTimer();
+                this.updateLiveSessionUI();
+                this.onListeningEnd();
                 return;
             }
-            // Browsers stop listening after every pause even in a "live session" (there is
-            // no true continuous mode cross-browser) -- restart automatically so the user
-            // doesn't have to re-tap the mic between sentences, like a live conversation.
-            if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
-                window.setTimeout(() => this.startListening(), 400);
+
+            // Browser stopped recognition unexpectedly while still listening (e.g. native stream timeout).
+            // Restart gracefully without flickering UI or chiming:
+            this._isReconnecting = true;
+            try {
+                this.recognition.start();
+            } catch (err) {
+                window.setTimeout(() => {
+                    if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
+                        try {
+                            this.recognition.start();
+                        } catch (_) {}
+                    }
+                }, 100);
             }
         };
     }
@@ -329,9 +417,37 @@ class VoiceEngine {
         this.startListening();
     }
 
+    startSilenceTimer() {
+        this.clearSilenceTimer();
+        if (!this.liveSessionActive && !this.isListening) return;
+        this.silenceTimer = window.setTimeout(() => {
+            this.handleSilenceTimeout();
+        }, this.silenceTimeoutMs || 60000);
+    }
+
+    resetSilenceTimer() {
+        this.startSilenceTimer();
+    }
+
+    clearSilenceTimer() {
+        if (this.silenceTimer) {
+            window.clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+        }
+    }
+
+    handleSilenceTimeout() {
+        this.clearSilenceTimer();
+        if (!this.liveSessionActive && !this.isListening) return;
+        this.stopLiveSession();
+        this.streamSubtitles("Listening stopped after 60s of silence. Tap the mic to speak again.");
+    }
+
     stopLiveSession() {
         this.liveSessionActive = false;
         this.awaitingResponse = false;
+        this._isReconnecting = false;
+        this.clearSilenceTimer();
         this.stopListening();
         this.stopSpeaking();
         this.updateLiveSessionUI();
@@ -347,6 +463,8 @@ class VoiceEngine {
     }
 
     stopListening() {
+        this._isReconnecting = false;
+        this.clearSilenceTimer();
         if (!this.recognition || !this.isListening) return;
         this.recognition.stop();
         this.playListenStop();
@@ -392,6 +510,9 @@ class VoiceEngine {
             return true;
         } catch (error) {
             console.warn('Backend audio playback was blocked.', error);
+            if (text && this.speakSynthesis(text)) {
+                return true;
+            }
             this.streamSubtitles(text || 'Tap the mic again to hear the answer.');
             this.handleSpeechFinish();
             return false;
@@ -419,9 +540,9 @@ class VoiceEngine {
             resolvedUrl = AppuBackendClient.resolveAudioStreamUrl(streamUrl);
         } else if (typeof streamUrl === 'string' && streamUrl.trim()) {
             const trimmed = streamUrl.trim();
-            const base = (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.apiBaseUrl)
+            const base = (typeof APPU_CONFIG !== 'undefined' && typeof APPU_CONFIG.apiBaseUrl === 'string')
                 ? APPU_CONFIG.apiBaseUrl.replace(/\/+$/, '')
-                : 'https://api.appuai.online';
+                : ((typeof window !== 'undefined' && window.location && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host)) ? '' : 'https://api.appuai.online');
             if (trimmed.startsWith('/')) {
                 resolvedUrl = `${base}${trimmed}`;
             } else {
@@ -517,7 +638,10 @@ class VoiceEngine {
                         if (bufferedSecs >= MIN_STARTUP_BUFFER_SECS || (streamDone && chunkQueue.length === 0)) {
                             hasStartedPlayback = true;
                             this.audioPlayer.play().catch(e => {
-                                if (!isDisposed) console.warn('Stream play error:', e);
+                                if (!isDisposed) {
+                                    console.warn('Stream play error:', e);
+                                    if (text) this.speakSynthesis(text);
+                                }
                             });
                         }
                     };
@@ -593,27 +717,100 @@ class VoiceEngine {
                 this.audioPlayer.playbackRate = this.rate;
                 this.audioPlayer.volume = 1.0;
                 this.audioPlayer.muted = false;
-                await this.audioPlayer.play();
-                return true;
+                try {
+                    await this.audioPlayer.play();
+                    return true;
+                } catch (playErr) {
+                    console.warn('Audio blob playback prevented:', playErr);
+                    if (text && this.speakSynthesis(text)) return true;
+                    this.handleSpeechFinish();
+                    return false;
+                }
             }
         } catch (error) {
             if (error && error.name === 'AbortError') {
                 return false;
             }
             console.warn('Audio stream error:', error);
+            if (text && this.speakSynthesis(text)) {
+                return true;
+            }
             this.handleSpeechFinish();
             return false;
         }
     }
 
-    speak(text, audioSource, audioStreamUrl = null, accessToken = '') {
-        if (audioStreamUrl) {
-            return this.playStream(audioStreamUrl, text, accessToken);
+    /**
+     * Synthesizes speech locally using Web Speech API as resilient zero-latency fallback.
+     * Drives subtitles, audio state, and avatar lip sync.
+     */
+    speakSynthesis(text, lang = '') {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            if (text) this.streamSubtitles(text);
+            this.handleSpeechFinish();
+            return false;
         }
-        return this.playBackendAudio(audioSource, text);
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const targetLang = lang || (this.currentLanguage === 'kn' ? 'kn-IN' : (this.currentLanguage === 'hi' ? 'hi-IN' : 'en-IN'));
+            utterance.lang = targetLang;
+            utterance.rate = this.rate || 1.0;
+            utterance.pitch = 1.05;
+
+            const voices = window.speechSynthesis.getVoices();
+            if (voices && voices.length > 0) {
+                const preferred = voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('India') || v.name.includes('Heera') || v.name.includes('Ravi')));
+                if (preferred) utterance.voice = preferred;
+            }
+
+            utterance.onstart = () => {
+                this.isSpeaking = true;
+                this.updateSpeakingUI(true);
+                this.onSpeechStart();
+            };
+            utterance.onend = () => {
+                this.handleSpeechFinish();
+            };
+            utterance.onerror = (e) => {
+                console.warn('[VoiceEngine] SpeechSynthesis error:', e);
+                this.handleSpeechFinish();
+            };
+
+            this.streamSubtitles(text);
+            window.speechSynthesis.speak(utterance);
+            return true;
+        } catch (e) {
+            console.warn('[VoiceEngine] SpeechSynthesis exception:', e);
+            if (text) this.streamSubtitles(text);
+            this.handleSpeechFinish();
+            return false;
+        }
+    }
+
+    async speak(text, audioSource, audioStreamUrl = null, accessToken = '') {
+        this.initWebAudio();
+        if (audioStreamUrl) {
+            const played = await this.playStream(audioStreamUrl, text, accessToken);
+            if (played) return true;
+        }
+        if (audioSource) {
+            const played = await this.playBackendAudio(audioSource, text);
+            if (played) return true;
+        }
+        // Resilient fallback to local SpeechSynthesis if server audio is absent or failed
+        if (text && this.autoSpeak) {
+            return this.speakSynthesis(text);
+        }
+        if (text) this.streamSubtitles(text);
+        this.handleSpeechFinish();
+        return false;
     }
 
     stopSpeaking() {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try { window.speechSynthesis.cancel(); } catch {}
+        }
         if (this.currentStreamController) {
             try { this.currentStreamController.abort(); } catch {}
             this.currentStreamController = null;
@@ -627,6 +824,9 @@ class VoiceEngine {
         if (this.isSpeaking) {
             this.isSpeaking = false;
             this.updateSpeakingUI(false);
+            if (typeof this.onSpeechAmplitude === 'function') {
+                this.onSpeechAmplitude(0);
+            }
         }
     }
 
@@ -637,6 +837,9 @@ class VoiceEngine {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reducedMotion || words.length < 5) {
             this.subtitleElement.textContent = text;
+            if (typeof this.subtitleElement.scrollTop !== 'undefined') {
+                this.subtitleElement.scrollTop = this.subtitleElement.scrollHeight || 0;
+            }
             return;
         }
         let cursor = 0;
@@ -644,6 +847,9 @@ class VoiceEngine {
         this.subtitleTimer = window.setInterval(() => {
             cursor = Math.min(words.length, cursor + 3);
             this.subtitleElement.textContent = words.slice(0, cursor).join(' ');
+            if (typeof this.subtitleElement.scrollTop !== 'undefined') {
+                this.subtitleElement.scrollTop = this.subtitleElement.scrollHeight || 0;
+            }
             if (cursor >= words.length) window.clearInterval(this.subtitleTimer);
         }, 70);
     }

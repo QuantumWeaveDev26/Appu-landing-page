@@ -278,3 +278,88 @@ describe('Persistent Voice Response Popup', () => {
     global.window.setTimeout = origSetTimeout;
   });
 });
+
+describe('Response Dock Answer Area Bounded Scroll & Footer Safety', () => {
+  const CSS_PATH = path.join(__dirname, '..', 'frontend', 'style.css');
+  const cssSource = fs.readFileSync(CSS_PATH, 'utf8');
+
+  test('index.html contains #btn-dock-expand inside .response-card-head', () => {
+    const headMatch = htmlSource.match(/<div class="response-card-head"[\s\S]*?<\/div>/i);
+    assert.ok(headMatch, 'response-card-head must exist in index.html');
+    assert.ok(headMatch[0].includes('id="btn-dock-expand"'), 'Must contain #btn-dock-expand button');
+    assert.ok(headMatch[0].includes('dock-expand-hint'), 'Must have dock-expand-hint class');
+    assert.ok(headMatch[0].includes('Expand'), 'Must display Expand label');
+  });
+
+  test('style.css gives response-card p and #subtitles-text bounded max-height and overflow-y: auto', () => {
+    // Base rule check
+    assert.match(
+      cssSource,
+      /\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*max-height:\s*82px/s,
+      'Base response-card p must have bounded max-height of 82px'
+    );
+    assert.match(
+      cssSource,
+      /\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*overflow-y:\s*auto/s,
+      'Base response-card p must have overflow-y: auto for internal scrolling'
+    );
+    assert.match(
+      cssSource,
+      /\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*scrollbar-width:\s*thin/s,
+      'Base response-card p must have slim scrollbar styling'
+    );
+  });
+
+  test('style.css ensures mobile dock has bounded max-height, vertical scroll, and unregressed control dock buttons', () => {
+    // Mobile query check
+    assert.match(
+      cssSource,
+      /@media\s*\([^)]*max-width:\s*768px\)[\s\S]*?\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*max-height:\s*90px/s,
+      'Mobile response-card p must have bounded max-height of 90px'
+    );
+    assert.match(
+      cssSource,
+      /@media\s*\([^)]*max-width:\s*768px\)[\s\S]*?\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*overflow-y:\s*auto/s,
+      'Mobile response-card p must have internal vertical scroll'
+    );
+
+    // Verify all control dock affordances are present and unregressed in index.html
+    const controlDockMatch = htmlSource.match(/<div class="control-dock"[\s\S]*?<\/section>/i);
+    assert.ok(controlDockMatch, 'control-dock must exist');
+    assert.ok(controlDockMatch[0].includes('id="btn-toggle-chat"'), 'Must have Type instead button');
+    assert.ok(controlDockMatch[0].includes('id="btn-upload-notes"'), 'Must have Upload notes button');
+    assert.ok(controlDockMatch[0].includes('id="btn-mic"'), 'Must have Mic button');
+    assert.ok(controlDockMatch[0].includes('Tap to speak'), 'Must have Tap to speak label');
+  });
+
+  test('style.css enforces z-index and padding separation so footer strip never overlaps dock', () => {
+    // response-dock has z-index: 15
+    assert.match(
+      cssSource,
+      /\.response-dock\s*\{[^}]*z-index:\s*15/s,
+      'response-dock must have z-index: 15'
+    );
+    // landing-footer-strip has z-index: 5 (strictly lower than dock)
+    assert.match(
+      cssSource,
+      /\.landing-footer-strip\s*\{[^}]*z-index:\s*5/s,
+      'landing-footer-strip must have z-index: 5 so it never overlaps response-dock'
+    );
+    // app-shell has safe bottom padding
+    assert.match(
+      cssSource,
+      /\.app-shell\s*\{[^}]*padding:[^}]*calc\(14px\s*\+\s*env\(safe-area-inset-bottom\)\)/s,
+      'app-shell must maintain safe bottom padding above footer'
+    );
+  });
+
+  test('voice-engine.js streamSubtitles automatically scrolls subtitleElement during playback', () => {
+    const voiceSource = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'voice-engine.js'), 'utf8');
+    assert.match(
+      voiceSource,
+      /this\.subtitleElement\.scrollTop\s*=\s*this\.subtitleElement\.scrollHeight/,
+      'streamSubtitles must auto-scroll subtitleElement to bottom during word streaming'
+    );
+  });
+});
+

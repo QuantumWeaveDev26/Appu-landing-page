@@ -82,10 +82,6 @@
       fontOptRounded: 'Friendly Rounded',
       fontOptFriendly: 'Friendly Standard',
       fontOptClean: 'Clean Minimal',
-      persThemeLabel: 'Theme Mode',
-      themeOptAuto: 'Auto',
-      themeOptBright: 'Bright & Energetic',
-      themeOptCalm: 'Calm & Focused',
       persSubjectsLabel: 'Favorite Subjects',
       persSubjectsPlaceholder: 'Science, Mathematics, Coding',
       persInterestsLabel: 'Favorite Interests & Hobbies (comma-separated)',
@@ -183,10 +179,6 @@
       fontOptRounded: 'ಸ್ನೇಹಪರ ಸುತ್ತಿನ',
       fontOptFriendly: 'ಸ್ನೇಹಪರ ಪ್ರಮಾಣಿತ',
       fontOptClean: 'ಸ್ವಚ್ಛ ಮಿನಿಮಲ್',
-      persThemeLabel: 'ಥೀಮ್ ಮೋಡ್',
-      themeOptAuto: 'ಸ್ವಯಂಚಾಲಿತ',
-      themeOptBright: 'ಪ್ರಕಾಶಮಾನ ಮತ್ತು ಚೈತನ್ಯಶೀಲ',
-      themeOptCalm: 'ಶಾಂತ ಮತ್ತು ಕೇಂದ್ರೀಕೃತ',
       persSubjectsLabel: 'ಮೆಚ್ಚಿನ ವಿಷಯಗಳು',
       persSubjectsPlaceholder: 'ವಿಜ್ಞಾನ, ಗಣಿತ, ಕೋಡಿಂಗ್',
       persInterestsLabel: 'ಮೆಚ್ಚಿನ ಆಸಕ್ತಿಗಳು ಮತ್ತು ಹವ್ಯಾಸಗಳು (ಅಲ್ಪವಿರಾಮದಿಂದ ಬೇರ್ಪಡಿಸಿ)',
@@ -284,10 +276,6 @@
       fontOptRounded: 'फ्रेंडली राउंडेड',
       fontOptFriendly: 'फ्रेंडली स्टैंडर्ड',
       fontOptClean: 'क्लीन मिनिमल',
-      persThemeLabel: 'थीम मोड',
-      themeOptAuto: 'ऑटो',
-      themeOptBright: 'उज्ज्वल और ऊर्जावान',
-      themeOptCalm: 'शांत और केंद्रित',
       persSubjectsLabel: 'पसंदीदा विषय',
       persSubjectsPlaceholder: 'विज्ञान, गणित, कोडिंग',
       persInterestsLabel: 'पसंदीदा रुचियां और शौक (अल्पविराम से अलग करें)',
@@ -373,7 +361,6 @@
     const persStyle = document.getElementById('pos-pers-style');
     const persFont = document.getElementById('pos-pers-font');
     const persResponse = document.getElementById('pos-pers-response');
-    const persTheme = document.getElementById('pos-pers-theme');
     const persInterests = document.getElementById('pos-pers-interests');
     const persSubjects = document.getElementById('pos-pers-subjects');
     const persGoals = document.getElementById('pos-pers-goals');
@@ -497,14 +484,6 @@
       if (fontOptFriendly) fontOptFriendly.textContent = t('fontOptFriendly');
       const fontOptClean = document.getElementById('pos-font-opt-clean');
       if (fontOptClean) fontOptClean.textContent = t('fontOptClean');
-      const persThemeLabel = document.getElementById('pos-pers-theme-label');
-      if (persThemeLabel) persThemeLabel.textContent = t('persThemeLabel');
-      const themeOptAuto = document.getElementById('pos-theme-opt-auto');
-      if (themeOptAuto) themeOptAuto.textContent = t('themeOptAuto');
-      const themeOptBright = document.getElementById('pos-theme-opt-bright');
-      if (themeOptBright) themeOptBright.textContent = t('themeOptBright');
-      const themeOptCalm = document.getElementById('pos-theme-opt-calm');
-      if (themeOptCalm) themeOptCalm.textContent = t('themeOptCalm');
       const persSubjectsLabel = document.getElementById('pos-pers-subjects-label');
       if (persSubjectsLabel) persSubjectsLabel.textContent = t('persSubjectsLabel');
       if (persSubjects) persSubjects.placeholder = t('persSubjectsPlaceholder');
@@ -1708,7 +1687,6 @@
           if (persStyle) persStyle.value = pers.learningStyle || 'interactive';
           if (persFont) persFont.value = pers.fontPreference || 'rounded';
           if (persResponse) persResponse.value = pers.responseStyle || 'playful';
-          if (persTheme) persTheme.value = pers.themePreference || 'auto';
           if (persInterests) persInterests.value = (pers.interests || []).join(', ');
           if (persSubjects) persSubjects.value = (pers.favoriteSubjects || []).join(', ');
           if (persGoals) persGoals.value = (pers.goals || []).join(', ');
@@ -1833,7 +1811,6 @@
           learningStyle: persStyle?.value || 'interactive',
           fontPreference: persFont?.value || 'rounded',
           responseStyle: persResponse?.value || 'playful',
-          themePreference: persTheme?.value || 'auto',
           favoriteColor: '#1f6feb',
           interests: parseList(persInterests?.value || 'science, space'),
           favoriteSubjects: parseList(persSubjects?.value || 'Science, Mathematics'),
