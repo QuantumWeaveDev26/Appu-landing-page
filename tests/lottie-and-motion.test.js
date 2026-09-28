@@ -254,10 +254,10 @@ describe('PACK D: DOM & CSS Motion Invariants', () => {
   });
 
   test('index.html includes lottie-catalog.js before lesson-card-renderer.js', () => {
-    const lottieIdx = html.indexOf('lottie-catalog.js?v=20260928-10');
-    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20260928-10');
-    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20260928-10');
-    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20260928-10');
+    const lottieIdx = html.indexOf('lottie-catalog.js?v=20260928-11');
+    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20260928-11');
+    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20260928-11');
+    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20260928-11');
     assert.ok(lottieIdx < rendererIdx, 'lottie-catalog.js must be loaded before lesson-card-renderer.js');
   });
 
@@ -344,6 +344,7 @@ describe('RICH MEDIA: Real Photos Gallery (Openverse) & AI Hero Integration', ()
       const result = await LessonCardRenderer.fetchOpenversePhotos({ topic: 'What is photosynthesis?' });
       assert.ok(result, 'Result should be present');
       assert.ok(capturedUrl.includes('mature=false'), 'Must enforce mature=false strictly for kid safety');
+      assert.ok(capturedUrl.includes('source=wikimedia'), 'Must lock source to wikimedia to prevent inappropriate Flickr leaks');
       assert.ok(capturedUrl.includes('license_type=commercial%2Cmodification') || capturedUrl.includes('license_type=commercial,modification'));
       assert.ok(capturedUrl.includes('photosynthesis'));
       assert.equal(result.photos.length, 2);

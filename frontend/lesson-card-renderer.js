@@ -4170,7 +4170,7 @@
       .replace(/^(what is|explain|tell me about|how does|how do|introduction to|lesson on)\s+/i, '')
       .trim() || cleanTopic;
 
-    const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&mature=false&license_type=commercial,modification&page_size=8`;
+    const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&mature=false&license_type=commercial,modification&source=wikimedia&page_size=8`;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
