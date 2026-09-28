@@ -285,6 +285,20 @@ test('Dark & Light Theme: comprehensive audit fixes for badges, modals, and stud
     assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.mission-intro h1[\s\S]*?rgba\(6,\s*16,\s*32,\s*0\.85\)/);
     assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.mission-intro h1 span[\s\S]*?color:\s*#ffffff/);
   });
+
+  await t.test('guarantees zero mobile light leaks on topbar, nav-drawer header/footer, and chat drawer header', () => {
+    // Mobile topbar uses theme tokens and avoids hardcoded opaque white
+    assert.match(styleCss, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.topbar\s*\{[^}]*background:\s*var\(--surface-glass/);
+    assert.doesNotMatch(styleCss, /\.topbar\s*\{[^}]*rgba\(255,\s*255,\s*255,\s*0\.96\)/);
+
+    // Chat drawer header does not hardcode white background with !important
+    assert.doesNotMatch(styleCss, /\.chat-drawer \.drawer-header\s*\{[^}]*background:\s*#ffffff\s*!important/);
+    assert.match(styleCss, /\.chat-drawer \.drawer-header\s*\{[^}]*background:\s*var\(--surface-strong/);
+
+    // Nav drawer header and footer dark mode overrides exist
+    assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.nav-drawer-header[\s\S]*?background:\s*var\(--surface-strong/);
+    assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.nav-drawer-footer[\s\S]*?background:\s*var\(--surface-strong/);
+  });
 });
 
 
