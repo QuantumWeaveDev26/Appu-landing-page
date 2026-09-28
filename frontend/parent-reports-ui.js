@@ -31,6 +31,7 @@
   }
 
   let modal, elLoading, elLocked, elUnlocked, elError, elRating, elWorking, elImprove, elWorkingOther, elImproveOther, elSubmit, elDownload, elDownloadStatus;
+  let elCuriosity, elCuriosityList;
   let currentRating = 0;
   let feedbackUnlocked = false;
   let statusChecked = false;
@@ -100,6 +101,95 @@
     });
   }
 
+  function formatWhen(raw) {
+    if (!raw) return '';
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return String(raw);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return String(raw);
+    }
+  }
+
+  function renderCuriosityItems(items) {
+    if (!elCuriosity || !elCuriosityList) return;
+    if (!Array.isArray(items) || items.length === 0) {
+      elCuriosity.hidden = true;
+      elCuriosityList.innerHTML = '';
+      return;
+    }
+
+    elCuriosityList.innerHTML = '';
+    items.forEach((item) => {
+      if (!item) return;
+      const topic = item.topic || 'Advanced Topic';
+      const expectedGrade = item.expectedGrade || item.expected_grade || '';
+      const when = item.when ? formatWhen(item.when) : '';
+
+      const card = document.createElement('div');
+      card.className = 'report-curiosity-card';
+
+      const topicSpan = document.createElement('div');
+      topicSpan.className = 'report-curiosity-topic';
+      topicSpan.textContent = topic;
+
+      const metaSpan = document.createElement('div');
+      metaSpan.className = 'report-curiosity-meta';
+
+      if (expectedGrade) {
+        const gradeBadge = document.createElement('span');
+        gradeBadge.className = 'report-curiosity-badge';
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-graduation-cap';
+        icon.setAttribute('aria-hidden', 'true');
+        gradeBadge.appendChild(icon);
+        gradeBadge.appendChild(document.createTextNode(` Typically ${expectedGrade}`));
+        metaSpan.appendChild(gradeBadge);
+      }
+
+      if (when) {
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'report-curiosity-date';
+        dateSpan.textContent = when;
+        metaSpan.appendChild(dateSpan);
+      }
+
+      card.appendChild(topicSpan);
+      if (metaSpan.children.length > 0) {
+        card.appendChild(metaSpan);
+      }
+      elCuriosityList.appendChild(card);
+    });
+
+    elCuriosity.hidden = false;
+  }
+
+  async function loadCuriosityBeyondSyllabus() {
+    if (!elCuriosity || !elCuriosityList) return;
+    elCuriosity.hidden = true;
+    elCuriosityList.innerHTML = '';
+
+    const token = parentToken();
+    const childId = selectedChildId();
+    if (!token || !childId) return;
+
+    try {
+      const res = await fetch(`${apiBase()}/api/children/${childId}/report?format=json`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        elCuriosity.hidden = true;
+        return;
+      }
+      const data = await res.json();
+      const items = (data && (data.curiosityBeyondSyllabus || data.curiosity_beyond_syllabus || data.curiosityTopics)) || [];
+      renderCuriosityItems(items);
+    } catch (e) {
+      elCuriosity.hidden = true;
+    }
+  }
+
   async function loadStatus() {
     setView('loading');
     const token = parentToken();
@@ -113,6 +203,9 @@
       feedbackUnlocked = !!(data && data.reportsUnlocked);
       statusChecked = true;
       setView(feedbackUnlocked ? 'unlocked' : 'locked');
+      if (feedbackUnlocked) {
+        loadCuriosityBeyondSyllabus();
+      }
     } catch (e) {
       setView('error');
     }
@@ -149,6 +242,7 @@
         close();
       } else {
         setView('unlocked');
+        loadCuriosityBeyondSyllabus();
       }
     } catch (e) {
       flashLocked('Could not submit right now. Please try again.');
@@ -248,6 +342,8 @@
     elSubmit = modal.querySelector('#report-fb-submit');
     elDownload = modal.querySelector('#report-download-btn');
     elDownloadStatus = modal.querySelector('#report-download-status');
+    elCuriosity = modal.querySelector('#report-curiosity-section');
+    elCuriosityList = modal.querySelector('#report-curiosity-list');
 
     if (elRating) {
       Array.from(elRating.querySelectorAll('.report-star')).forEach((star, i) => {
@@ -288,5 +384,14 @@
     init();
   }
 
-  window.ParentReportsUI = { open, close, openForced, enforceFeedbackGate, noteAuthedChat, refreshUnlockStatus };
+  window.ParentReportsUI = {
+    open,
+    close,
+    openForced,
+    enforceFeedbackGate,
+    noteAuthedChat,
+    refreshUnlockStatus,
+    loadCuriosityBeyondSyllabus,
+    renderCuriosityItems
+  };
 })();

@@ -61,6 +61,10 @@
       _childId = childId.trim();
       _parentContext = parentContext;
 
+      if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.setOtpVerifiedThisSession === 'function') {
+        window.ParentalControlsUI.setOtpVerifiedThisSession(false);
+      }
+
       if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.sendHeartbeat === 'function') {
         setTimeout(() => window.ParentalControlsUI.sendHeartbeat(), 500);
       }
@@ -81,6 +85,10 @@
       _accessToken = null;
       _childId = null;
       _parentContext = null;
+
+      if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.setOtpVerifiedThisSession === 'function') {
+        window.ParentalControlsUI.setOtpVerifiedThisSession(false);
+      }
 
       if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.unlockSession === 'function') {
         window.ParentalControlsUI.unlockSession();

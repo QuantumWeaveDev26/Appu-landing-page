@@ -43,8 +43,13 @@
   let lastTickTimestamp = Date.now();
   let lastUserActivityTimestamp = Date.now();
 
+  let otpVerifiedThisSession = false;
+  let isSessionStartGateActive = false;
+  let pendingActionCallback = null;
+
   // DOM elements cache
   let modalEl = null;
+  let statsContainerEl = null;
   let statActiveEl = null;
   let statAwayEl = null;
   let viewRequestEl = null;
@@ -64,8 +69,11 @@
   const LOCALIZATION = {
     en: {
       kicker: 'Parent Zone • Study Time Limit',
+      startKicker: 'Parent Zone • Session Verification',
       title: 'Study Time Complete! 🌟',
+      startTitle: 'Parent Verification Required 🔒',
       lead: "You've completed 30 minutes of focused learning with Appu! It's a great time to stretch, hydrate, or take a quick break. To continue learning, ask your parent to unlock this session with a WhatsApp verification code.",
+      startLead: 'To ensure a safe learning space, we need a quick one-time verification from your parent via WhatsApp before you start chatting today.',
       labelActive: 'Active Learning',
       labelAway: 'Break / Away',
       statActiveMins: (m) => `${m} min${m === 1 ? '' : 's'}`,
@@ -87,12 +95,17 @@
       invalidLength: 'Please enter a 6-digit verification code.',
       verifyFailed: 'Verification failed or code expired. Please request a new code.',
       successTitle: 'Session Unlocked!',
-      successDesc: '30 minutes of study time has been added. Resuming your lesson now...'
+      startSuccessTitle: 'Session Verified! 🌟',
+      successDesc: '30 minutes of study time has been added. Resuming your lesson now...',
+      startSuccessDesc: 'Parent verified successfully. Resuming your lesson now...'
     },
     kn: {
       kicker: 'ಪೋಷಕರ ವಲಯ • ಕಲಿಕೆಯ ಸಮಯದ ಮಿತಿ',
+      startKicker: 'ಪೋಷಕರ ವಲಯ • ಸೆಷನ್ ಪರಿಶೀಲನೆ',
       title: 'ಕಲಿಕೆಯ ಸಮಯ ಮುಗಿದಿದೆ! 🌟',
+      startTitle: 'ಪೋಷಕರ ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ 🔒',
       lead: 'ನೀವು ಅಪ್ಪುವಿನೊಂದಿಗೆ 30 ನಿಮಿಷಗಳ ಕೇಂದ್ರೀಕೃತ ಕಲಿಕೆಯನ್ನು ಪೂರ್ಣಗೊಳಿಸಿದ್ದೀರಿ! ವಿಶ್ರಾಂತಿ ಪಡೆಯಲು ಇದು ಉತ್ತಮ ಸಮಯ. ಕಲಿಯುವುದನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪೋಷಕರ ವಾಟ್ಸಾಪ್ ಪರಿಶೀಲನಾ ಕೋಡ್‌ನೊಂದಿಗೆ ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಕೇಳಿ.',
+      startLead: 'ಸುರಕ್ಷಿತ ಕಲಿಕೆಯ ವಾತಾವರಣಕ್ಕಾಗಿ, ನೀವು ಚಾಟ್ ಪ್ರಾರಂಭಿಸುವ ಮೊದಲು ನಿಮ್ಮ ಪೋಷಕರ ವಾಟ್ಸಾಪ್ ಮೂಲಕ ಒಂದು ಬಾರಿಯ ಪರಿಶೀಲನೆ ಅಗತ್ಯವಿದೆ.',
       labelActive: 'ಸಕ್ರಿಯ ಕಲಿಕೆ',
       labelAway: 'ವಿಶ್ರಾಂತಿ ಸಮಯ',
       statActiveMins: (m) => `${m} ನಿಮಿಷ`,
@@ -114,12 +127,17 @@
       invalidLength: 'ದಯವಿಟ್ಟು 6-ಅಂಕಿಯ ಪರಿಶೀಲನಾ ಕೋಡ್ ನಮೂದಿಸಿ.',
       verifyFailed: 'ಪರಿಶೀಲನೆ ವಿಫಲವಾಗಿದೆ ಅಥವಾ ಕೋಡ್ ಅವಧಿ ಮೀರಿದೆ. ದಯವಿಟ್ಟು ಹೊಸ ಕೋಡ್ ವಿನಂತಿಸಿ.',
       successTitle: 'ಸೆಷನ್ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ!',
-      successDesc: '30 ನಿಮಿಷಗಳ ಅಧ್ಯಯನ ಸಮಯವನ್ನು ಸೇರಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ಪಾಠ ಮುಂದುವರಿಯುತ್ತಿದೆ...'
+      startSuccessTitle: 'ಸೆಷನ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ! 🌟',
+      successDesc: '30 ನಿಮಿಷಗಳ ಅಧ್ಯಯನ ಸಮಯವನ್ನು ಸೇರಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ಪಾಠ ಮುಂದುವರಿಯುತ್ತಿದೆ...',
+      startSuccessDesc: 'ಪೋಷಕರು ಯಶಸ್ವಿಯಾಗಿ ಪರಿಶೀಲಿಸಿದ್ದಾರೆ. ನಿಮ್ಮ ಪಾಠ ಮುಂದುವರಿಯುತ್ತಿದೆ...'
     },
     hi: {
       kicker: 'अभिभावक क्षेत्र • अध्ययन समय सीमा',
+      startKicker: 'अभिभावक क्षेत्र • सत्र सत्यापन',
       title: 'अध्ययन का समय समाप्त! 🌟',
+      startTitle: 'अभिभावक सत्यापन आवश्यक है 🔒',
       lead: 'आपने अप्पू के साथ 30 मिनट का ध्यानपूर्वक अध्ययन पूरा कर लिया है! थोड़ा आराम करने का यह अच्छा समय है। पढ़ाई जारी रखने के लिए, अपने माता-पिता से व्हाट्सएप सत्यापन कोड से इसे अनलॉक करने को कहें।',
+      startLead: 'सुरक्षित अध्ययन के लिए, आज बातचीत शुरू करने से पहले आपके माता-पिता के व्हाट्सएप के माध्यम से एक त्वरित सत्यापन की आवश्यकता है।',
       labelActive: 'सक्रिय अध्ययन',
       labelAway: 'विश्राम समय',
       statActiveMins: (m) => `${m} मिनट`,
@@ -141,7 +159,9 @@
       invalidLength: 'कृपया 6 अंकों का सत्यापन कोड दर्ज करें।',
       verifyFailed: 'सत्यापन विफल रहा या कोड समाप्त हो गया। कृपया नया कोड मांगें।',
       successTitle: 'सत्र अनलॉक हो गया!',
-      successDesc: '30 मिनट का अध्ययन समय जोड़ दिया गया है। आपका पाठ पुनः शुरू हो रहा है...'
+      startSuccessTitle: 'सत्र सत्यापित हुआ! 🌟',
+      successDesc: '30 मिनट का अध्ययन समय जोड़ दिया गया है। आपका पाठ पुनः शुरू हो रहा है...',
+      startSuccessDesc: 'माता-पिता का सत्यापन सफल रहा। आपका पाठ पुनः शुरू हो रहा है...'
     }
   };
 
@@ -151,6 +171,23 @@
 
   function getSession() {
     return (typeof window !== 'undefined' && window.AppuSession) ? window.AppuSession : null;
+  }
+
+  function isSessionStartOtpGateEnabled() {
+    if (typeof window !== 'undefined' && typeof window.__APPU_SESSION_START_OTP_GATE__ === 'boolean') {
+      return window.__APPU_SESSION_START_OTP_GATE__;
+    }
+    if (typeof globalThis !== 'undefined' && typeof globalThis.__APPU_SESSION_START_OTP_GATE__ === 'boolean') {
+      return globalThis.__APPU_SESSION_START_OTP_GATE__;
+    }
+    const cfg = (typeof window !== 'undefined' && window.APPU_CONFIG) || (typeof globalThis !== 'undefined' && globalThis.APPU_CONFIG);
+    if (cfg && typeof cfg.sessionStartOtpGate === 'boolean') {
+      return cfg.sessionStartOtpGate;
+    }
+    if (typeof window !== 'undefined' && window.location && typeof window.location.host === 'string') {
+      return /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.host);
+    }
+    return true;
   }
 
   function getOrCreateSessionId() {
@@ -202,35 +239,46 @@
 
   function tickActivity() {
     const now = Date.now();
-    const elapsed = Math.max(0, Math.min(5000, now - lastTickTimestamp));
+    // Count real elapsed wall-clock time. Cap each tick at 5 min so background-tab
+    // timer throttling or machine sleep can't drop or over-count a huge single gap.
+    const elapsed = Math.max(0, Math.min(300000, now - lastTickTimestamp));
     lastTickTimestamp = now;
 
     if (isLocked) {
-      // While locked, time does not advance active learning
+      // While locked, time does not advance toward a new limit
       awayMsAccumulator += elapsed;
       return;
     }
 
-    const isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
-    const isUserActive = (now - lastUserActivityTimestamp) < IDLE_TIMEOUT_MS;
+    const session = getSession();
+    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
+    if (isSessionStartOtpGateEnabled() && isAuthedChild && !otpVerifiedThisSession) {
+      // Session start OTP gate pending: do not advance 30-min window before verification
+      return;
+    }
 
-    if (isVisible && isUserActive) {
-      activeMsAccumulator += elapsed;
-      if (isEnabled && timeRemainingSeconds > 0) {
-        timeRemainingSeconds = Math.max(0, timeRemainingSeconds - Math.round(elapsed / 1000));
-        updateTimerBadge();
-        if (timeRemainingSeconds <= 0 && !isLocked) {
-          triggerLock();
-        }
-      }
-    } else {
+    // Wall-clock: window counts real time from entry whether focused, backgrounded or idle.
+    // Attribute the slice to ACTIVE when visible, AWAY when hidden — but count BOTH toward the limit.
+    const isHidden = (typeof document !== 'undefined' && document.visibilityState === 'hidden');
+    if (isHidden) {
       awayMsAccumulator += elapsed;
+    } else {
+      activeMsAccumulator += elapsed;
+    }
+    if (isEnabled && timeRemainingSeconds > 0) {
+      timeRemainingSeconds = Math.max(0, timeRemainingSeconds - Math.round(elapsed / 1000));
+      updateTimerBadge();
+      if (timeRemainingSeconds <= 0 && !isLocked) {
+        triggerLock();
+      }
     }
   }
 
   function updateTimerBadge() {
     if (!timerBadgeEl || !timerTextEl) return;
-    if (!isEnabled) {
+    const session = getSession();
+    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
+    if (!isEnabled || (isSessionStartOtpGateEnabled() && isAuthedChild && !otpVerifiedThisSession)) {
       timerBadgeEl.hidden = true;
       return;
     }
@@ -302,11 +350,18 @@
 
     if (modalEl) {
       const kicker = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.modal-kicker') : null;
-      if (kicker) kicker.innerHTML = `<i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> ${dict.kicker}`;
+      if (kicker) {
+        const kickerText = isSessionStartGateActive ? dict.startKicker : dict.kicker;
+        kicker.innerHTML = `<i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> ${kickerText}`;
+      }
       const title = document.getElementById('parental-lock-title');
-      if (title) title.textContent = dict.title;
+      if (title) title.textContent = isSessionStartGateActive ? dict.startTitle : dict.title;
       const lead = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.modal-lead') : null;
-      if (lead) lead.textContent = dict.lead;
+      if (lead) lead.textContent = isSessionStartGateActive ? dict.startLead : dict.lead;
+
+      if (statsContainerEl) {
+        statsContainerEl.style.display = isSessionStartGateActive ? 'none' : '';
+      }
 
       const statLabels = typeof modalEl.querySelectorAll === 'function' ? modalEl.querySelectorAll('.lock-stat-label') : [];
       if (statLabels[0]) statLabels[0].textContent = dict.labelActive;
@@ -340,9 +395,9 @@
       }
 
       const successTitle = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.success-view h3') : null;
-      if (successTitle) successTitle.textContent = dict.successTitle;
+      if (successTitle) successTitle.textContent = isSessionStartGateActive ? dict.startSuccessTitle : dict.successTitle;
       const successDesc = typeof modalEl.querySelector === 'function' ? modalEl.querySelector('.success-view p') : null;
-      if (successDesc) successDesc.textContent = dict.successDesc;
+      if (successDesc) successDesc.textContent = isSessionStartGateActive ? dict.startSuccessDesc : dict.successDesc;
     }
 
     if (statActiveEl) {
@@ -357,11 +412,16 @@
 
   function triggerLock() {
     isLocked = true;
+    isSessionStartGateActive = false;
     updateTimerBadge();
 
     // Pause any active voice synthesis or playback
     if (typeof window !== 'undefined' && window.VoiceEngine && typeof window.VoiceEngine.stopSpeech === 'function') {
       window.VoiceEngine.stopSpeech();
+    }
+
+    if (statsContainerEl) {
+      statsContainerEl.style.display = '';
     }
 
     applyTranslations();
@@ -401,8 +461,12 @@
 
   function unlockSession() {
     isLocked = false;
+    isSessionStartGateActive = false;
     timeRemainingSeconds = 1800;
     activeSeconds = 0;
+    awaySeconds = 0;
+    activeMsAccumulator = 0;
+    awayMsAccumulator = 0;
     updateTimerBadge();
 
     if (modalEl) {
@@ -435,7 +499,11 @@
       btnRequestOtpEl.disabled = true;
       btnRequestOtpEl.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>${dict.sendingCode}</span>`;
     }
+    if (btnResendOtpEl) {
+      btnResendOtpEl.disabled = true;
+    }
     if (requestStatusEl) requestStatusEl.textContent = '';
+    if (verifyStatusEl && isSessionStartGateActive) verifyStatusEl.textContent = '';
 
     try {
       const res = await client.requestSessionOtp({
@@ -472,20 +540,32 @@
         if (requestStatusEl) {
           requestStatusEl.textContent = dict.rateLimited(waitMin);
         }
+        if (verifyStatusEl && isSessionStartGateActive) {
+          verifyStatusEl.textContent = dict.rateLimited(waitMin);
+        }
         return;
       }
 
       if (requestStatusEl) {
         requestStatusEl.textContent = dict.sendFailed;
       }
+      if (verifyStatusEl && isSessionStartGateActive) {
+        verifyStatusEl.textContent = dict.sendFailed;
+      }
     } catch (err) {
       if (requestStatusEl) {
         requestStatusEl.textContent = dict.networkError;
+      }
+      if (verifyStatusEl && isSessionStartGateActive) {
+        verifyStatusEl.textContent = dict.networkError;
       }
     } finally {
       if (btnRequestOtpEl) {
         btnRequestOtpEl.disabled = false;
         btnRequestOtpEl.innerHTML = `<i class="fa-brands fa-whatsapp"></i> <span>${dict.btnSendOtp}</span>`;
+      }
+      if (btnResendOtpEl && !resendCooldownTimerId) {
+        btnResendOtpEl.disabled = false;
       }
     }
   }
@@ -513,6 +593,109 @@
         btnResendOtpEl.innerHTML = `<i class="fa-solid fa-clock"></i> <span>${d.resendIn(remaining)}</span>`;
       }
     }, 1000);
+  }
+
+  async function enforceSessionStartGate(pendingAction) {
+    if (!isSessionStartOtpGateEnabled()) {
+      return true;
+    }
+
+    const session = getSession();
+    const isAuthedChild = Boolean(session && typeof session.isAuthenticated === 'function' && session.isAuthenticated());
+
+    // Anonymous or guest sessions are never gated by session-start OTP
+    if (!isAuthedChild) {
+      return true;
+    }
+
+    // Already verified this session: allow message through immediately
+    if (otpVerifiedThisSession) {
+      return true;
+    }
+
+    // If modal is already active and waiting for verification:
+    if (isSessionStartGateActive) {
+      if (typeof pendingAction === 'function') {
+        pendingActionCallback = pendingAction;
+      }
+      return false;
+    }
+
+    const client = getClient();
+    if (!client || typeof client.requestSessionOtp !== 'function') {
+      // Fail-safe: backend client unavailable, allow learner through
+      otpVerifiedThisSession = true;
+      return true;
+    }
+
+    // Fast-path graceful skip: if in-memory personalisation explicitly indicates no phone or no consent
+    const p = session?.personalisation;
+    if (p && (!p.parentPhone || !p.whatsappConsent)) {
+      otpVerifiedThisSession = true;
+      return true;
+    }
+
+    isSessionStartGateActive = true;
+    pendingActionCallback = (typeof pendingAction === 'function') ? pendingAction : null;
+
+    // Pause any active voice playback
+    if (typeof window !== 'undefined' && window.VoiceEngine && typeof window.VoiceEngine.stopSpeech === 'function') {
+      window.VoiceEngine.stopSpeech();
+    }
+
+    try {
+      const res = await client.requestSessionOtp({
+        sessionId: getOrCreateSessionId(),
+        childId: session.childId,
+        accessToken: session.accessToken
+      });
+
+      // Graceful skip: parent phone missing or no WhatsApp consent on backend, or parental controls disabled
+      if (res && (res.needsPhone || res.error === 'parental_controls_disabled')) {
+        otpVerifiedThisSession = true;
+        isSessionStartGateActive = false;
+        pendingActionCallback = null;
+        return true;
+      }
+
+      if (res && (res.requested || res.error === 'rate_limited')) {
+        applyTranslations();
+        if (statsContainerEl) statsContainerEl.style.display = 'none';
+        if (btnAddPhoneEl) btnAddPhoneEl.style.display = 'none';
+        showView('verify');
+        if (res.requested) {
+          startResendCooldown(60);
+        } else if (res.error === 'rate_limited') {
+          const waitMin = Math.ceil((res.retryAfterSeconds || 300) / 60);
+          const dict = LOCALIZATION[currentLanguage] || LOCALIZATION.en;
+          if (verifyStatusEl) {
+            verifyStatusEl.textContent = dict.rateLimited(waitMin);
+          }
+        }
+        if (otpInputEl) {
+          otpInputEl.value = '';
+          otpInputEl.focus();
+        }
+        if (modalEl) {
+          modalEl.classList.add('is-visible');
+          modalEl.setAttribute('aria-hidden', 'false');
+          modalEl.focus();
+        }
+        return false;
+      }
+
+      // Unexpected response: fail-safe proceed
+      otpVerifiedThisSession = true;
+      isSessionStartGateActive = false;
+      pendingActionCallback = null;
+      return true;
+    } catch (err) {
+      // Network failure on OTP request: fail-safe proceed
+      otpVerifiedThisSession = true;
+      isSessionStartGateActive = false;
+      pendingActionCallback = null;
+      return true;
+    }
   }
 
   async function handleVerifyOtp() {
@@ -543,9 +726,21 @@
       });
 
       if (res && res.verified) {
+        otpVerifiedThisSession = true;
         showView('success');
         setTimeout(() => {
+          const wasSessionStart = isSessionStartGateActive;
+          const callbackToRun = pendingActionCallback;
+          pendingActionCallback = null;
+          isSessionStartGateActive = false;
           unlockSession();
+          if (wasSessionStart && typeof callbackToRun === 'function') {
+            try {
+              callbackToRun();
+            } catch (cbErr) {
+              console.error('[ParentalControlsUI] Error executing resumed callback:', cbErr);
+            }
+          }
         }, 1600);
         return;
       }
@@ -574,7 +769,7 @@
         verifyStatusEl.textContent = dict.networkError;
       }
     } finally {
-      if (btnVerifyOtpEl && !isLocked) {
+      if (btnVerifyOtpEl && !isLocked && !isSessionStartGateActive) {
         btnVerifyOtpEl.disabled = false;
         btnVerifyOtpEl.innerHTML = `<i class="fa-solid fa-lock-open"></i> <span>${dict.btnVerify}</span>`;
       }
@@ -585,6 +780,7 @@
     if (typeof document === 'undefined') return;
 
     modalEl = document.getElementById('parental-lock-modal');
+    statsContainerEl = modalEl ? modalEl.querySelector('.parental-lock-stats') : null;
     statActiveEl = document.getElementById('lock-stat-active');
     statAwayEl = document.getElementById('lock-stat-away');
     viewRequestEl = document.getElementById('lock-view-request');
@@ -634,10 +830,10 @@
       });
     }
 
-    // Modal trap: prevent closing via Escape or backdrop click when locked
+    // Modal trap: prevent closing via Escape or backdrop click when locked or session-start gate is active
     if (modalEl) {
       modalEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isLocked) {
+        if (e.key === 'Escape' && (isLocked || isSessionStartGateActive)) {
           e.preventDefault();
           e.stopPropagation();
         }
@@ -651,6 +847,7 @@
 
     bindDomElements();
     setupActivityListeners();
+    updateTimerBadge();
 
     // 1-second ticker for precise active/away accumulation
     lastTickTimestamp = Date.now();
@@ -688,10 +885,21 @@
     triggerLock,
     unlockSession,
     sendHeartbeat,
+    tickActivity,
     applyTranslations,
+    updateTimerBadge,
+    enforceSessionStartGate,
+    isSessionStartOtpGateEnabled,
+    isOtpVerifiedThisSession: () => otpVerifiedThisSession,
+    setOtpVerifiedThisSession: (v) => {
+      otpVerifiedThisSession = Boolean(v);
+      updateTimerBadge();
+    },
+    get isSessionStartGateActive() { return isSessionStartGateActive; },
     get isLocked() { return isLocked; },
     get isEnabled() { return isEnabled; },
     get timeRemainingSeconds() { return timeRemainingSeconds; },
-    get activeSeconds() { return activeSeconds; }
+    get activeSeconds() { return activeSeconds; },
+    get awaySeconds() { return awaySeconds; }
   };
 });

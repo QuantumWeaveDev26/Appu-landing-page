@@ -289,6 +289,43 @@
     ]
   };
 
+  /**
+   * Data Contract: Interactive Topic Diagrams v1
+   * Returned by Appu Brain (Study Visualizer n8n) for topics with natural visual cycles/flows/parts.
+   */
+  const SAMPLE_DIAGRAM = {
+    title: 'The Water Cycle',
+    layout: 'cycle',
+    citation: {
+      label: 'NCERT Class 7 Science - Water: A Precious Resource',
+      class: 7,
+      subject: 'Science',
+      chapter: 'Water: A Precious Resource'
+    },
+    parts: [
+      {
+        id: 'p1',
+        label: 'Evaporation',
+        explanation: 'Heat from the sun warms water in lakes, rivers, and oceans, turning liquid water into invisible water vapour that rises high into the atmosphere.'
+      },
+      {
+        id: 'p2',
+        label: 'Condensation',
+        explanation: 'As warm water vapour climbs into the cool upper atmosphere, it cools down and clumps together to form fluffy clouds made of billions of tiny water droplets.'
+      },
+      {
+        id: 'p3',
+        label: 'Precipitation',
+        explanation: 'When condensed water droplets in clouds merge and grow too heavy to float, gravity pulls them down to Earth as rain, snow, sleet, or hail.'
+      },
+      {
+        id: 'p4',
+        label: 'Collection',
+        explanation: 'Fallen rainwater flows into rivers, lakes, oceans, and sinks into the ground as groundwater, completing the loop ready to evaporate again!'
+      }
+    ]
+  };
+
   // Sample lesson-card for testing and scaffolding
   const SAMPLE_CARD = {
     mood: 'explaining',
@@ -314,7 +351,8 @@
     flashcards: SAMPLE_FLASHCARDS,
     studyGuide: SAMPLE_STUDY_GUIDE,
     mindMap: SAMPLE_MIND_MAP,
-    podcastScript: SAMPLE_PODCAST_SCRIPT
+    podcastScript: SAMPLE_PODCAST_SCRIPT,
+    diagram: SAMPLE_DIAGRAM
   };
 
   let mermaidInitialized = false;
@@ -369,12 +407,58 @@
   }
 
   /**
+   * Normalizes interactive diagram payload from n8n Study Visualizer or card input into canonical structure.
+   * Format:
+   * {
+   *   title: string,
+   *   layout: "cycle" | "flow" | "parts",
+   *   parts: [ { id: string, label: string, explanation: string } ]
+   * }
+   */
+  function normalizeDiagram(raw, citation) {
+    if (!raw || typeof raw !== 'object') return null;
+    const partsArray = Array.isArray(raw.parts) ? raw.parts : [];
+    if (partsArray.length < 2) return null;
+
+    const validParts = partsArray
+      .map((p, idx) => {
+        if (!p || typeof p !== 'object') return null;
+        const label = typeof p.label === 'string' ? p.label.trim() : '';
+        if (!label) return null;
+        return {
+          id: p.id ? String(p.id).trim() : `p${idx + 1}`,
+          label,
+          explanation: typeof p.explanation === 'string' ? p.explanation.trim() : ''
+        };
+      })
+      .filter(Boolean);
+
+    if (validParts.length < 2) return null;
+
+    const rawLayout = typeof raw.layout === 'string' ? raw.layout.toLowerCase().trim() : 'flow';
+    const layout = ['cycle', 'flow', 'parts'].includes(rawLayout) ? rawLayout : 'flow';
+
+    const title = typeof raw.title === 'string' && raw.title.trim()
+      ? raw.title.trim()
+      : 'Interactive Topic Diagram';
+
+    const normCitation = normalizeCitation(raw.citation || citation);
+
+    return {
+      title,
+      layout,
+      parts: validParts,
+      citation: normCitation
+    };
+  }
+
+  /**
    * Attempts to parse raw JSON or JSON-in-markdown into a verified lesson-card structure.
    * NEVER throws: returns a safe normalized card object with mandatory plainText.
    */
   function parse(input) {
     if (!input) {
-      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: '' };
+      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: '', citation: null, diagram: null };
     }
 
     // Already an object
@@ -385,6 +469,10 @@
         : (typeof input.text === 'string' ? input.text : '');
       const rawMindMap = input.mindMap || (hasBlocks ? input.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
       const rawCitation = normalizeCitation(input.citation || (hasBlocks ? input.blocks.find(b => b && b.citation)?.citation : null) || (rawMindMap && rawMindMap.citation));
+      const rawDiagram = normalizeDiagram(
+        input.diagram || (hasBlocks ? input.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && Array.isArray(b.parts)))) : null) || null,
+        rawCitation
+      );
 
       return {
         isRich: hasBlocks,
@@ -397,17 +485,18 @@
         quizItems: input.quizItems || null,
         flashcards: input.flashcards || null,
         studyGuide: input.studyGuide || null,
-        podcastScript: input.podcastScript || null
+        podcastScript: input.podcastScript || null,
+        diagram: rawDiagram
       };
     }
 
     if (typeof input !== 'string') {
-      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: String(input), citation: null };
+      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: String(input), citation: null, diagram: null };
     }
 
     const trimmed = input.trim();
     if (!trimmed) {
-      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: '', citation: null };
+      return { isRich: false, mood: 'idle', gradeTone: 'junior', blocks: [], plainText: '', citation: null, diagram: null };
     }
 
     // Check if string contains JSON or code block containing JSON
@@ -428,6 +517,11 @@
 
           const rawMindMap = obj.mindMap || (hasBlocks ? obj.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
           const rawCitation = normalizeCitation(obj.citation || (hasBlocks ? obj.blocks.find(b => b && b.citation)?.citation : null) || (rawMindMap && rawMindMap.citation));
+          const rawDiagram = normalizeDiagram(
+            obj.diagram || (hasBlocks ? obj.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && Array.isArray(b.parts)))) : null) || null,
+            rawCitation
+          );
+
           return {
             isRich: hasBlocks,
             mood: typeof obj.mood === 'string' ? obj.mood : 'explaining',
@@ -439,7 +533,8 @@
             quizItems: obj.quizItems || null,
             flashcards: obj.flashcards || null,
             studyGuide: obj.studyGuide || null,
-            podcastScript: obj.podcastScript || null
+            podcastScript: obj.podcastScript || null,
+            diagram: rawDiagram
           };
         }
       } catch {
@@ -458,7 +553,8 @@
       quizItems: null,
       flashcards: null,
       studyGuide: null,
-      podcastScript: null
+      podcastScript: null,
+      diagram: null
     };
   }
 
@@ -1902,32 +1998,848 @@
     return container;
   }
 
+  const DIAGRAM_I18N = {
+    en: {
+      explore: 'Explore (Tap)',
+      practice: 'Practice (Drag)',
+      tapToExplore: 'Tap any part to explore how it works ✨',
+      dragToLabel: 'Drag or tap labels into the matching slots! 🎯',
+      dropPlaceholder: 'Drop label here',
+      labelBank: 'Label Bank',
+      reset: 'Reset',
+      correct: 'Correct',
+      tryAgain: 'Not quite! Try another slot.',
+      mastered: 'Diagram Mastered! 🎉',
+      masteredSub: 'You correctly identified and labeled every part of the diagram!',
+      nextPart: 'Next',
+      prevPart: 'Previous',
+      cycleBadge: 'Cycle',
+      flowBadge: 'Linear Flow',
+      partsBadge: 'Components',
+      stepOf: (curr, total) => `Part ${curr} of ${total}`,
+      xpAwarded: '+20 XP ⭐'
+    },
+    kn: {
+      explore: 'ಅನ್ವೇಷಿಸಿ (ಟ್ಯಾಪ್)',
+      practice: 'ಅಭ್ಯಾಸ (ಡ್ರ್ಯಾಗ್)',
+      tapToExplore: 'ವಿವರಣೆ ನೋಡಲು ಯಾವುದೇ ಭಾಗವನ್ನು ಟ್ಯಾಪ್ ಮಾಡಿ ✨',
+      dragToLabel: 'ಸೂಕ್ತ ಸ್ಲಾಟ್‌ಗೆ ಲೇಬಲ್ ಎಳೆಯಿರಿ ಅಥವಾ ಟ್ಯಾಪ್ ಮಾಡಿ! 🎯',
+      dropPlaceholder: 'ಇಲ್ಲಿ ಇರಿಸಿ',
+      labelBank: 'ಲೇಬಲ್ ಸಂಗ್ರಹ',
+      reset: 'ಮರುಹೊಂದಿಸಿ',
+      correct: 'ಸರಿ',
+      tryAgain: 'ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ!',
+      mastered: 'ಚಿತ್ರ ನಕ್ಷೆ ಪೂರ್ಣಗೊಂಡಿದೆ! 🎉',
+      masteredSub: 'ನೀವು ಎಲ್ಲಾ ಭಾಗಗಳನ್ನು ಸರಿಯಾಗಿ ಗುರುತಿಸಿ ಜೋಡಿಸಿದ್ದೀರಿ!',
+      nextPart: 'ಮುಂದಿನ ಭಾಗ',
+      prevPart: 'ಹಿಂದಿನ ಭಾಗ',
+      cycleBadge: 'ಚಕ್ರ',
+      flowBadge: 'ಹಂತಗಳ ಪ್ರಕ್ರಿಯೆ',
+      partsBadge: 'ಭಾಗಗಳು',
+      stepOf: (curr, total) => `ಭಾಗ ${curr} / ${total}`,
+      xpAwarded: '+20 XP ⭐'
+    },
+    hi: {
+      explore: 'अन्वेषण (टैप)',
+      practice: 'अभ्यास (ड्रैग)',
+      tapToExplore: 'विवरण देखने के लिए किसी भी भाग पर टैप करें ✨',
+      dragToLabel: 'लेबल को सही स्लॉट में खींचें या टैप करें! 🎯',
+      dropPlaceholder: 'यहाँ रखें',
+      labelBank: 'लेबल बैंक',
+      reset: 'रीसेट',
+      correct: 'सही',
+      tryAgain: 'पुनः प्रयास करें!',
+      mastered: 'आरेख पूरा हुआ! 🎉',
+      masteredSub: 'आपने आरेख के सभी भागों की सही पहचान कर ली है!',
+      nextPart: 'अगला',
+      prevPart: 'पिछला',
+      cycleBadge: 'चक्र',
+      flowBadge: 'क्रमिक प्रवाह',
+      partsBadge: 'घटक भाग',
+      stepOf: (curr, total) => `भाग ${curr} / ${total}`,
+      xpAwarded: '+20 XP ⭐'
+    }
+  };
+
+  function shuffleArray(arr) {
+    const copy = (arr || []).slice();
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = copy[i];
+      copy[i] = copy[j];
+      copy[j] = temp;
+    }
+    return copy;
+  }
+
+  /**
+   * 6) Interactive Topic Diagrams (v1):
+   * Supports "cycle" (ring), "flow" (step arrows), and "parts" (component grid) layouts.
+   * Mode 1: Tap-to-Explore with active highlights and sequential next/prev navigation.
+   * Mode 2: Drag-to-Label Practice with blank drop slots, shuffled label bank, HTML5 drag/drop,
+   * tap-to-place fallback for mobile/touch, instant feedback, and celebration XP.
+   */
+  function renderInteractiveDiagram(diagramData, options = {}) {
+    let raw = diagramData;
+    if (raw && typeof raw === 'object' && raw.diagram && typeof raw.diagram === 'object') {
+      raw = raw.diagram;
+    }
+    const diagram = normalizeDiagram(raw, options.citation) || SAMPLE_DIAGRAM;
+    const parts = diagram.parts;
+    const title = diagram.title;
+    const layout = diagram.layout;
+    const lang = options.language || (typeof window !== 'undefined' && (window.currentLang || (window.AppuApp && window.AppuApp.currentLang))) || 'en';
+    const i18n = DIAGRAM_I18N[lang] || DIAGRAM_I18N.en;
+
+    const citationDisplay = formatCitationDisplay(diagram.citation || options.citation);
+    const citationHtml = citationDisplay
+      ? `<div class="lesson-citation-pill ${citationDisplay.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(citationDisplay.label)}">
+           <i class="fa-solid ${citationDisplay.icon} text-amber" aria-hidden="true"></i>
+           <span>${escapeHTML(citationDisplay.text)}</span>
+         </div>`
+      : '';
+
+    let layoutIcon = 'fa-arrows-rotate';
+    let layoutLabel = i18n.cycleBadge;
+    if (layout === 'flow') {
+      layoutIcon = 'fa-arrow-right-long';
+      layoutLabel = i18n.flowBadge;
+    } else if (layout === 'parts') {
+      layoutIcon = 'fa-cubes';
+      layoutLabel = i18n.partsBadge;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'appu-study-card study-mode-diagram';
+    container.setAttribute('role', 'region');
+    container.setAttribute('aria-label', title);
+
+    let currentBank = shuffleArray(parts);
+    let currentExploreIdx = 0;
+    const solvedPartIds = new Set();
+    let selectedChipPartId = null;
+    let selectedSlotTargetId = null;
+
+    function safeQuery(selector, root = container) {
+      if (!root || typeof root.querySelector !== 'function') return null;
+      return root.querySelector(selector);
+    }
+
+    function safeQueryAll(selector, root = container) {
+      if (!root) return [];
+      if (typeof root.querySelectorAll === 'function') {
+        return Array.from(root.querySelectorAll(selector));
+      }
+      const single = root.querySelector ? root.querySelector(selector) : null;
+      return single ? [single] : [];
+    }
+
+    function buildExploreNodesHTML() {
+      return parts.map((p, idx) => {
+        let connector = '';
+        if (layout === 'cycle') {
+          if (idx < parts.length - 1) {
+            connector = '<div class="diagram-connector diagram-connector-cycle" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>';
+          } else {
+            connector = '<div class="diagram-connector diagram-connector-cycle diagram-connector-return" aria-hidden="true" title="Loop repeats"><i class="fa-solid fa-arrows-rotate"></i></div>';
+          }
+        } else if (layout === 'flow') {
+          if (idx < parts.length - 1) {
+            connector = '<div class="diagram-connector diagram-connector-flow" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></div>';
+          }
+        }
+
+        const stepBadgeText = layout === 'flow' ? `Step ${idx + 1}` : (layout === 'parts' ? `Part ${idx + 1}` : `${idx + 1}`);
+
+        return `
+          <button type="button" class="diagram-node diagram-node-${layout} ${layout === 'parts' ? 'diagram-node-part' : ''} ${idx === 0 ? 'is-selected' : ''}" data-part-id="${p.id}" data-index="${idx}" aria-pressed="${idx === 0 ? 'true' : 'false'}" aria-label="${escapeHTML(p.label)}">
+            <span class="node-step-badge">${stepBadgeText}</span>
+            <span class="node-label">${escapeHTML(p.label)}</span>
+            ${layout === 'parts' ? '<i class="fa-solid fa-circle-info node-info-icon" aria-hidden="true"></i>' : ''}
+          </button>
+          ${connector}
+        `;
+      }).join('');
+    }
+
+    function buildPracticeSlotsHTML() {
+      return parts.map((p, idx) => {
+        let connector = '';
+        if (layout === 'cycle') {
+          if (idx < parts.length - 1) {
+            connector = '<div class="diagram-connector diagram-connector-cycle" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></div>';
+          } else {
+            connector = '<div class="diagram-connector diagram-connector-cycle diagram-connector-return" aria-hidden="true" title="Loop repeats"><i class="fa-solid fa-arrows-rotate"></i></div>';
+          }
+        } else if (layout === 'flow') {
+          if (idx < parts.length - 1) {
+            connector = '<div class="diagram-connector diagram-connector-flow" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></div>';
+          }
+        }
+
+        const stepBadgeText = layout === 'flow' ? `Step ${idx + 1}` : `Slot ${idx + 1}`;
+
+        return `
+          <div class="diagram-slot" data-slot-id="${p.id}" data-target-id="${p.id}" data-index="${idx}" tabindex="0" role="button" aria-label="Slot ${idx + 1}">
+            <span class="slot-badge">${stepBadgeText}</span>
+            <div class="slot-content">
+              <span class="slot-placeholder">${i18n.dropPlaceholder}</span>
+              <span class="slot-placed-label" style="display:none;"></span>
+            </div>
+            <span class="slot-feedback-icon" aria-hidden="true"></span>
+          </div>
+          ${connector}
+        `;
+      }).join('');
+    }
+
+    function buildBankChipsHTML() {
+      return currentBank.map(p => `
+        <div class="diagram-label-chip ${solvedPartIds.has(p.id) ? 'is-placed' : ''}" draggable="true" data-part-id="${p.id}" tabindex="0" role="button" aria-label="Label: ${escapeHTML(p.label)}" style="${solvedPartIds.has(p.id) ? 'display:none;' : ''}">
+          <i class="fa-solid fa-grip-vertical chip-drag-handle" aria-hidden="true"></i>
+          <span class="chip-text">${escapeHTML(p.label)}</span>
+        </div>
+      `).join('');
+    }
+
+    const targetCard = options.card || (raw && typeof raw === 'object' && (raw.diagram || raw.parts || raw.topic || raw.title) ? raw : (diagramData && typeof diagramData === 'object' ? diagramData : null));
+    const existingIllustrationUrl = targetCard ? (targetCard.__diagramIllustrationUrl || targetCard.diagramIllustrationUrl) : null;
+
+    function buildIllustrationHTML() {
+      if (options.disableIllustration === true) return '';
+
+      if (existingIllustrationUrl) {
+        return `
+          <div class="diagram-illustration-card has-image">
+            <div class="diagram-illustration-header">
+              <span class="diagram-illustration-badge">
+                <i class="fa-solid fa-sparkles text-cyan" aria-hidden="true"></i>
+                <span>Visual Illustration</span>
+              </span>
+            </div>
+            <div class="diagram-illustration-frame">
+              <img class="diagram-illustration-img" src="${existingIllustrationUrl}" alt="${escapeHTML(title)}" loading="lazy" />
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="diagram-illustration-card is-loading" role="status" aria-label="Painting visual illustration">
+          <div class="diagram-illustration-shimmer">
+            <div class="shimmer-sparkle"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i></div>
+            <span class="shimmer-text">Painting visual illustration...</span>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="diagram-header">
+        <div class="diagram-badge-row">
+          <div class="diagram-badge">
+            <i class="fa-solid fa-shapes text-cyan" aria-hidden="true"></i>
+            <span class="diagram-title">${escapeHTML(title)}</span>
+          </div>
+          <span class="diagram-layout-pill">
+            <i class="fa-solid ${layoutIcon}" aria-hidden="true"></i>
+            <span>${layoutLabel}</span>
+          </span>
+          ${citationHtml}
+        </div>
+
+        <div class="diagram-mode-controls">
+          <div class="diagram-mode-segmented" role="tablist" aria-label="Diagram Modes">
+            <button type="button" class="diagram-mode-tab is-active" data-submode="explore" role="tab" aria-selected="true">
+              <i class="fa-solid fa-compass" aria-hidden="true"></i>
+              <span>${i18n.explore}</span>
+            </button>
+            <button type="button" class="diagram-mode-tab" data-submode="practice" role="tab" aria-selected="false">
+              <i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>
+              <span>${i18n.practice}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      ${buildIllustrationHTML()}
+
+      <!-- EXPLORE VIEW (Tap to reveal explanation) -->
+      <div class="diagram-explore-view" role="tabpanel">
+        <div class="diagram-prompt">
+          <i class="fa-solid fa-hand-pointer text-cyan" aria-hidden="true"></i>
+          <span>${i18n.tapToExplore}</span>
+        </div>
+
+        <div class="diagram-canvas diagram-layout-${layout}">
+          ${buildExploreNodesHTML()}
+        </div>
+
+        <div class="diagram-explanation-card" role="region" aria-live="polite">
+          <div class="diagram-exp-header">
+            <span class="diagram-exp-tag">
+              <i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i>
+              <span class="diagram-exp-step">${i18n.stepOf(1, parts.length)}</span>
+            </span>
+            <h4 class="diagram-exp-title">${escapeHTML(parts[0].label)}</h4>
+          </div>
+          <p class="diagram-exp-text">${escapeHTML(parts[0].explanation || '')}</p>
+          <div class="diagram-exp-nav">
+            <button type="button" class="diagram-nav-btn btn-prev-part" ${parts.length <= 1 ? 'disabled' : ''}>
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+              <span>${i18n.prevPart}</span>
+            </button>
+            <button type="button" class="diagram-nav-btn btn-next-part" ${parts.length <= 1 ? 'disabled' : ''}>
+              <span>${i18n.nextPart}</span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRACTICE VIEW (Drag & Drop / Tap to Label) -->
+      <div class="diagram-practice-view" role="tabpanel" style="display: none;">
+        <div class="diagram-prompt">
+          <i class="fa-solid fa-puzzle-piece text-amber" aria-hidden="true"></i>
+          <span>${i18n.dragToLabel}</span>
+        </div>
+
+        <div class="diagram-canvas diagram-layout-${layout} diagram-practice-canvas">
+          ${buildPracticeSlotsHTML()}
+        </div>
+
+        <div class="diagram-label-bank-wrap">
+          <div class="label-bank-header">
+            <span class="label-bank-title">
+              <i class="fa-solid fa-tags text-cyan" aria-hidden="true"></i>
+              <span>${i18n.labelBank}</span>
+            </span>
+            <span class="diagram-score-pill">
+              <span class="score-current">0</span> / ${parts.length} ${i18n.correct}
+            </span>
+            <button type="button" class="diagram-btn-reset" title="Reset diagram">
+              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              <span>${i18n.reset}</span>
+            </button>
+          </div>
+          <div class="diagram-label-bank" role="list">
+            ${buildBankChipsHTML()}
+          </div>
+          <div class="diagram-practice-feedback" style="display:none;" aria-live="polite"></div>
+        </div>
+
+        <div class="diagram-victory-banner" style="display:none;" role="status">
+          <div class="victory-icon" aria-hidden="true">🎉</div>
+          <h3 class="victory-title">${i18n.mastered}</h3>
+          <p class="victory-sub">${i18n.masteredSub}</p>
+          <div class="victory-xp-badge">${i18n.xpAwarded}</div>
+          <button type="button" class="btn-play-again">${i18n.reset}</button>
+        </div>
+      </div>
+    `;
+
+    // 1) Segmented submode switching
+    const exploreTabBtn = safeQuery('.diagram-mode-tab[data-submode="explore"]');
+    const practiceTabBtn = safeQuery('.diagram-mode-tab[data-submode="practice"]');
+    const exploreViewEl = safeQuery('.diagram-explore-view');
+    const practiceViewEl = safeQuery('.diagram-practice-view');
+
+    function setSubmode(mode) {
+      if (mode === 'practice') {
+        if (exploreTabBtn) { exploreTabBtn.classList.remove('is-active'); exploreTabBtn.setAttribute('aria-selected', 'false'); }
+        if (practiceTabBtn) { practiceTabBtn.classList.add('is-active'); practiceTabBtn.setAttribute('aria-selected', 'true'); }
+        if (exploreViewEl) exploreViewEl.style.display = 'none';
+        if (practiceViewEl) practiceViewEl.style.display = 'flex';
+      } else {
+        if (practiceTabBtn) { practiceTabBtn.classList.remove('is-active'); practiceTabBtn.setAttribute('aria-selected', 'false'); }
+        if (exploreTabBtn) { exploreTabBtn.classList.add('is-active'); exploreTabBtn.setAttribute('aria-selected', 'true'); }
+        if (practiceViewEl) practiceViewEl.style.display = 'none';
+        if (exploreViewEl) exploreViewEl.style.display = 'flex';
+      }
+    }
+
+    if (exploreTabBtn) exploreTabBtn.addEventListener('click', () => setSubmode('explore'));
+    if (practiceTabBtn) practiceTabBtn.addEventListener('click', () => setSubmode('practice'));
+    if (options.mode === 'practice') setSubmode('practice');
+
+    // 0) Lazy AI Concept Visual Illustration
+    if (options.disableIllustration !== true && !existingIllustrationUrl) {
+      const illustCard = safeQuery('.diagram-illustration-card');
+      if (illustCard) {
+        const topicToFetch = (targetCard && (targetCard.topic || targetCard.mindMap?.central || targetCard.title)) || title || 'Science';
+        const gradeToFetch = options.grade || (targetCard && targetCard.grade) || (typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function' ? window.appuSession.getGrade() : '6');
+
+        if (targetCard && !targetCard.__diagramIllustrationPromise) {
+          const promise = fetchStudyImage({
+            topic: topicToFetch,
+            grade: gradeToFetch,
+            timeoutMs: options.imageTimeoutMs || 28000
+          });
+          try {
+            Object.defineProperty(targetCard, '__diagramIllustrationPromise', {
+              value: promise,
+              writable: true,
+              enumerable: false, // Prevents serialization in JSON.stringify / localStorage
+              configurable: true
+            });
+          } catch (_) {
+            targetCard.__diagramIllustrationPromise = promise;
+          }
+        }
+
+        const fetchPromise = (targetCard && targetCard.__diagramIllustrationPromise) || fetchStudyImage({
+          topic: topicToFetch,
+          grade: gradeToFetch,
+          timeoutMs: options.imageTimeoutMs || 28000
+        });
+
+        fetchPromise.then(res => {
+          const currentCard = safeQuery('.diagram-illustration-card');
+          if (!currentCard) return;
+
+          if (res && res.imageUrl) {
+            if (targetCard) {
+              try {
+                Object.defineProperty(targetCard, '__diagramIllustrationUrl', {
+                  value: res.imageUrl,
+                  writable: true,
+                  enumerable: false, // Prevents persistence in JSON.stringify / localStorage
+                  configurable: true
+                });
+              } catch (_) {
+                targetCard.__diagramIllustrationUrl = res.imageUrl;
+              }
+            }
+
+            currentCard.className = 'diagram-illustration-card has-image';
+            currentCard.removeAttribute('role');
+            currentCard.removeAttribute('aria-label');
+            currentCard.innerHTML = `
+              <div class="diagram-illustration-header">
+                <span class="diagram-illustration-badge">
+                  <i class="fa-solid fa-sparkles text-cyan" aria-hidden="true"></i>
+                  <span>Visual Illustration</span>
+                </span>
+              </div>
+              <div class="diagram-illustration-frame">
+                <img class="diagram-illustration-img" src="${res.imageUrl}" alt="${escapeHTML(title)}" loading="lazy" />
+              </div>
+            `;
+            if (typeof options.onIllustrationLoaded === 'function') {
+              options.onIllustrationLoaded(res.imageUrl);
+            }
+          } else {
+            // Graceful fallback: on error or timeout, hide the illustration card; interactive diagram is never blocked
+            currentCard.style.display = 'none';
+            if (targetCard) targetCard.__diagramIllustrationPromise = null;
+          }
+        }).catch(err => {
+          if (targetCard) targetCard.__diagramIllustrationPromise = null;
+          const currentCard = safeQuery('.diagram-illustration-card');
+          if (currentCard) currentCard.style.display = 'none';
+        });
+      }
+    }
+
+    // 2) Explore node selection & navigation
+    const expStepEl = safeQuery('.diagram-exp-step');
+    const expTitleEl = safeQuery('.diagram-exp-title');
+    const expTextEl = safeQuery('.diagram-exp-text');
+    const prevBtn = safeQuery('.btn-prev-part');
+    const nextBtn = safeQuery('.btn-next-part');
+    const nodeEls = safeQueryAll('.diagram-node');
+
+    function selectExploreIndex(idx) {
+      if (parts.length === 0) return;
+      currentExploreIdx = (idx + parts.length) % parts.length;
+      const target = parts[currentExploreIdx];
+
+      nodeEls.forEach((n, i) => {
+        const rawAttr = n.getAttribute('data-index');
+        const nIdx = rawAttr !== null ? parseInt(rawAttr, 10) : i;
+        if (nIdx === currentExploreIdx) {
+          n.classList.add('is-selected');
+          n.setAttribute('aria-pressed', 'true');
+        } else {
+          n.classList.remove('is-selected');
+          n.setAttribute('aria-pressed', 'false');
+        }
+      });
+
+      if (expStepEl) expStepEl.textContent = i18n.stepOf(currentExploreIdx + 1, parts.length);
+      if (expTitleEl) expTitleEl.textContent = target.label;
+      if (expTextEl) expTextEl.textContent = target.explanation || '';
+    }
+
+    nodeEls.forEach((n, i) => {
+      n.addEventListener('click', () => {
+        const rawIdx = n.getAttribute('data-index');
+        const idx = rawIdx !== null ? parseInt(rawIdx, 10) : i;
+        selectExploreIndex(idx);
+      });
+    });
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        selectExploreIndex(currentExploreIdx - 1);
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        selectExploreIndex(currentExploreIdx + 1);
+      });
+    }
+
+    // 3) Practice Drag & Drop and Tap-to-Place
+    const scoreEl = safeQuery('.score-current');
+    const feedbackEl = safeQuery('.diagram-practice-feedback');
+    const victoryBanner = safeQuery('.diagram-victory-banner');
+    const resetBtn = safeQuery('.diagram-btn-reset');
+    const playAgainBtn = safeQuery('.btn-play-again');
+    const bankContainer = safeQuery('.diagram-label-bank');
+    const slotEls = safeQueryAll('.diagram-slot');
+
+    function updateScore() {
+      if (scoreEl) scoreEl.textContent = String(solvedPartIds.size);
+    }
+
+    function checkVictory() {
+      if (solvedPartIds.size >= parts.length && parts.length > 0) {
+        if (victoryBanner) victoryBanner.style.display = 'flex';
+        if (typeof options.onCelebrate === 'function') {
+          options.onCelebrate();
+        } else if (typeof window !== 'undefined' && window.AppuGamification && typeof window.AppuGamification.awardXP === 'function') {
+          window.AppuGamification.awardXP(20, 'Diagram Mastered! 🎯');
+        } else if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
+          window.appMascot.celebrate(3000);
+        }
+      }
+    }
+
+    function handlePlacement(chipPartId, slotTargetId) {
+      if (!chipPartId || !slotTargetId) return;
+      if (solvedPartIds.has(slotTargetId)) return;
+
+      const targetPart = parts.find(p => p.id === slotTargetId);
+      const draggedPart = parts.find(p => p.id === chipPartId);
+      if (!targetPart || !draggedPart) return;
+
+      const targetSlotEl = slotEls.find(s => (s.getAttribute('data-slot-id') || s.getAttribute('data-target-id')) === slotTargetId);
+      const targetChipEl = safeQueryAll('.diagram-label-chip').find(c => c.getAttribute('data-part-id') === chipPartId);
+
+      if (chipPartId === slotTargetId) {
+        // CORRECT!
+        solvedPartIds.add(slotTargetId);
+        selectedChipPartId = null;
+        selectedSlotTargetId = null;
+
+        if (targetSlotEl) {
+          targetSlotEl.classList.remove('is-selected', 'is-drag-over', 'is-wrong');
+          targetSlotEl.classList.add('is-correct');
+          const placeholder = targetSlotEl.querySelector('.slot-placeholder');
+          const placedLabel = targetSlotEl.querySelector('.slot-placed-label');
+          if (placeholder) placeholder.style.display = 'none';
+          if (placedLabel) {
+            placedLabel.style.display = 'inline-flex';
+            placedLabel.innerHTML = `<i class="fa-solid fa-circle-check text-green" aria-hidden="true"></i> <span>${escapeHTML(targetPart.label)}</span>`;
+          }
+        }
+
+        if (targetChipEl) {
+          targetChipEl.classList.remove('is-selected', 'is-dragging');
+          targetChipEl.classList.add('is-placed');
+          targetChipEl.style.display = 'none';
+        }
+
+        safeQueryAll('.diagram-label-chip').forEach(c => c.classList.remove('is-selected'));
+        slotEls.forEach(s => s.classList.remove('is-selected'));
+
+        updateScore();
+        checkVictory();
+      } else {
+        // INCORRECT!
+        if (targetSlotEl) {
+          targetSlotEl.classList.remove('is-selected', 'is-drag-over');
+          targetSlotEl.classList.add('is-wrong');
+          setTimeout(() => {
+            targetSlotEl.classList.remove('is-wrong');
+          }, 600);
+        }
+
+        if (feedbackEl) {
+          feedbackEl.textContent = i18n.tryAgain;
+          feedbackEl.style.display = 'block';
+          setTimeout(() => {
+            feedbackEl.style.display = 'none';
+          }, 2200);
+        }
+
+        selectedChipPartId = null;
+        selectedSlotTargetId = null;
+        safeQueryAll('.diagram-label-chip').forEach(c => c.classList.remove('is-selected'));
+        slotEls.forEach(s => s.classList.remove('is-selected'));
+      }
+    }
+
+    function wireChipInteractions(chip) {
+      const partId = chip.getAttribute('data-part-id');
+
+      // Desktop HTML5 Drag and Drop
+      chip.addEventListener('dragstart', (e) => {
+        chip.classList.add('is-dragging');
+        if (e && e.dataTransfer) {
+          e.dataTransfer.setData('text/plain', partId);
+          e.dataTransfer.effectAllowed = 'move';
+        }
+      });
+
+      chip.addEventListener('dragend', () => {
+        chip.classList.remove('is-dragging');
+      });
+
+      // Mobile Touch Drag and Drop
+      let touchGhostEl = null;
+      let touchDraggingPartId = null;
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isTouchDragActive = false;
+
+      chip.addEventListener('touchstart', (e) => {
+        if (solvedPartIds.has(partId)) return;
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchDraggingPartId = partId;
+        isTouchDragActive = false;
+      }, { passive: true });
+
+      chip.addEventListener('touchmove', (e) => {
+        if (!touchDraggingPartId || touchDraggingPartId !== partId) return;
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+
+        if (!isTouchDragActive && Math.hypot(dx, dy) > 8) {
+          isTouchDragActive = true;
+          chip.classList.add('is-dragging');
+
+          if (!touchGhostEl && typeof document !== 'undefined') {
+            touchGhostEl = chip.cloneNode(true);
+            touchGhostEl.classList.add('is-touch-ghost');
+            touchGhostEl.style.position = 'fixed';
+            touchGhostEl.style.zIndex = '99999';
+            touchGhostEl.style.pointerEvents = 'none';
+            touchGhostEl.style.opacity = '0.9';
+            touchGhostEl.style.transform = 'translate(-50%, -50%) scale(1.08)';
+            touchGhostEl.style.boxShadow = '0 12px 28px rgba(14, 165, 233, 0.35)';
+            touchGhostEl.style.transition = 'none';
+            document.body.appendChild(touchGhostEl);
+          }
+        }
+
+        if (isTouchDragActive) {
+          if (e.cancelable) e.preventDefault();
+          if (touchGhostEl) {
+            touchGhostEl.style.left = `${touch.clientX}px`;
+            touchGhostEl.style.top = `${touch.clientY}px`;
+          }
+
+          if (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function') {
+            const elUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
+            const hoveredSlot = elUnderFinger ? elUnderFinger.closest('.diagram-slot') : null;
+            slotEls.forEach(s => {
+              const sId = s.getAttribute('data-slot-id') || s.getAttribute('data-target-id');
+              if (s === hoveredSlot && !solvedPartIds.has(sId)) {
+                s.classList.add('is-drag-over');
+              } else {
+                s.classList.remove('is-drag-over');
+              }
+            });
+          }
+        }
+      }, { passive: false });
+
+      const handleTouchEnd = (e) => {
+        if (touchDraggingPartId === partId && isTouchDragActive) {
+          if (e.cancelable) e.preventDefault();
+          const touch = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+          let dropTarget = null;
+          if (touch && typeof document !== 'undefined' && typeof document.elementFromPoint === 'function') {
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            dropTarget = el ? el.closest('.diagram-slot') : null;
+          }
+
+          if (dropTarget) {
+            const targetSlotId = dropTarget.getAttribute('data-slot-id') || dropTarget.getAttribute('data-target-id');
+            if (targetSlotId && !solvedPartIds.has(targetSlotId)) {
+              handlePlacement(partId, targetSlotId);
+            }
+          }
+        }
+
+        chip.classList.remove('is-dragging');
+        slotEls.forEach(s => s.classList.remove('is-drag-over'));
+        if (touchGhostEl && touchGhostEl.parentNode) {
+          touchGhostEl.parentNode.removeChild(touchGhostEl);
+        }
+        touchGhostEl = null;
+        touchDraggingPartId = null;
+        isTouchDragActive = false;
+      };
+
+      chip.addEventListener('touchend', handleTouchEnd);
+      chip.addEventListener('touchcancel', handleTouchEnd);
+
+      // Tap-to-select / Tap-to-place fallback
+      chip.addEventListener('click', (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (solvedPartIds.has(partId)) return;
+
+        if (selectedSlotTargetId) {
+          handlePlacement(partId, selectedSlotTargetId);
+        } else {
+          if (selectedChipPartId === partId) {
+            selectedChipPartId = null;
+            chip.classList.remove('is-selected');
+          } else {
+            safeQueryAll('.diagram-label-chip').forEach(c => c.classList.remove('is-selected'));
+            selectedChipPartId = partId;
+            chip.classList.add('is-selected');
+          }
+        }
+      });
+    }
+
+    function wireSlotInteractions(slot) {
+      const slotId = slot.getAttribute('data-slot-id') || slot.getAttribute('data-target-id');
+
+      slot.addEventListener('dragover', (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!solvedPartIds.has(slotId)) {
+          slot.classList.add('is-drag-over');
+          if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        }
+      });
+
+      slot.addEventListener('dragleave', () => {
+        slot.classList.remove('is-drag-over');
+      });
+
+      slot.addEventListener('drop', (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        slot.classList.remove('is-drag-over');
+        if (solvedPartIds.has(slotId)) return;
+        const droppedPartId = e && e.dataTransfer ? e.dataTransfer.getData('text/plain') : null;
+        if (droppedPartId) {
+          handlePlacement(droppedPartId, slotId);
+        }
+      });
+
+      slot.addEventListener('click', (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (solvedPartIds.has(slotId)) return;
+
+        if (selectedChipPartId) {
+          handlePlacement(selectedChipPartId, slotId);
+        } else {
+          if (selectedSlotTargetId === slotId) {
+            selectedSlotTargetId = null;
+            slot.classList.remove('is-selected');
+          } else {
+            slotEls.forEach(s => s.classList.remove('is-selected'));
+            selectedSlotTargetId = slotId;
+            slot.classList.add('is-selected');
+          }
+        }
+      });
+    }
+
+    safeQueryAll('.diagram-label-chip').forEach(wireChipInteractions);
+    slotEls.forEach(wireSlotInteractions);
+
+    function resetPractice() {
+      solvedPartIds.clear();
+      selectedChipPartId = null;
+      selectedSlotTargetId = null;
+      updateScore();
+
+      if (victoryBanner) victoryBanner.style.display = 'none';
+      if (feedbackEl) feedbackEl.style.display = 'none';
+
+      slotEls.forEach(slot => {
+        slot.classList.remove('is-correct', 'is-wrong', 'is-selected', 'is-drag-over');
+        const placeholder = slot.querySelector('.slot-placeholder');
+        const placedLabel = slot.querySelector('.slot-placed-label');
+        if (placeholder) placeholder.style.display = 'inline';
+        if (placedLabel) {
+          placedLabel.style.display = 'none';
+          placedLabel.innerHTML = '';
+        }
+      });
+
+      currentBank = shuffleArray(parts);
+      if (bankContainer) {
+        bankContainer.innerHTML = buildBankChipsHTML();
+        safeQueryAll('.diagram-label-chip', bankContainer).forEach(wireChipInteractions);
+      }
+    }
+
+    if (resetBtn) resetBtn.addEventListener('click', resetPractice);
+    if (playAgainBtn) playAgainBtn.addEventListener('click', resetPractice);
+
+    return container;
+  }
+
   const STUDY_TOOLBAR_LABELS = {
-    en: { lesson: 'Lesson', quiz: 'Quiz Me', flashcards: 'Flashcards', guide: 'Study Guide', mindmap: 'Mind Map', podcast: 'Podcast' },
-    kn: { lesson: 'ಪಾಠ', quiz: 'ರಸಪ್ರಶ್ನೆ', flashcards: 'ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್ಸ್', guide: 'ಅಧ್ಯಯನ ಮಾರ್ಗದರ್ಶಿ', mindmap: 'ಮೈಂಡ್ ಮ್ಯಾಪ್', podcast: 'ಪಾಡ್‌ಕ್ಯಾಸ್ಟ್' },
-    hi: { lesson: 'पाठ', quiz: 'क्विज़', flashcards: 'फ़्लैशकार्ड', guide: 'अध्ययन गाइड', mindmap: 'माइंड मैप', podcast: 'पॉडकास्ट' }
+    en: { lesson: 'Lesson', quiz: 'Quiz Me', flashcards: 'Flashcards', guide: 'Study Guide', mindmap: 'Mind Map', diagram: 'Diagram', podcast: 'Podcast' },
+    kn: { lesson: 'ಪಾಠ', quiz: 'ರಸಪ್ರಶ್ನೆ', flashcards: 'ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್ಸ್', guide: 'ಅಧ್ಯಯನ ಮಾರ್ಗದರ್ಶಿ', mindmap: 'ಮೈಂಡ್ ಮ್ಯಾಪ್', diagram: 'ಚಿತ್ರ ನಕ್ಷೆ', podcast: 'ಪಾಡ್‌ಕ್ಯಾಸ್ಟ್' },
+    hi: { lesson: 'पाठ', quiz: 'क्विज़', flashcards: 'फ़्लैशकार्ड', guide: 'अध्ययन गाइड', mindmap: 'माइंड मैप', diagram: 'चित्र आरेख', podcast: 'पॉडकास्ट' }
   };
 
   /**
-   * Study Modes Toolbar: Pill tabs to switch between Lesson and the 5 study modes
+   * Study Modes Toolbar: Pill tabs to switch between Lesson and the study modes
    */
-  function renderStudyToolbar(activeMode = 'lesson', onModeChange, language) {
+  function renderStudyToolbar(activeMode = 'lesson', onModeChange, language, onShare, options = {}) {
     const toolbar = document.createElement('div');
     toolbar.className = 'study-modes-toolbar';
     toolbar.setAttribute('role', 'tablist');
     toolbar.setAttribute('aria-label', 'Study Modes');
 
+    let shareCallback = onShare;
+    let opts = options || {};
+    if (onShare && typeof onShare === 'object') {
+      opts = onShare;
+      shareCallback = opts.onShare;
+    }
+
     const lang = language || (typeof window !== 'undefined' && (window.currentLang || (window.AppuApp && window.AppuApp.currentLang))) || (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) || 'en';
     const labels = STUDY_TOOLBAR_LABELS[lang] || STUDY_TOOLBAR_LABELS.en;
+
+    const targetCard = opts.card || (typeof window !== 'undefined' && ((window.app && typeof window.app.getActiveLessonCard === 'function' && window.app.getActiveLessonCard()) || window.activePopupLessonCard));
+
+    const hasDiagram = Boolean(
+      opts.hasDiagram ||
+      opts.diagram ||
+      activeMode === 'diagram' ||
+      (targetCard && targetCard.diagram && Array.isArray(targetCard.diagram.parts) && targetCard.diagram.parts.length > 0)
+    );
 
     const modes = [
       { id: 'lesson', label: labels.lesson, icon: 'fa-wand-magic-sparkles' },
       { id: 'quiz', label: labels.quiz, icon: 'fa-flask-vial' },
       { id: 'flashcards', label: labels.flashcards, icon: 'fa-layer-group' },
       { id: 'guide', label: labels.guide, icon: 'fa-book-open-reader' },
-      { id: 'mindmap', label: labels.mindmap, icon: 'fa-diagram-project' },
-      { id: 'podcast', label: labels.podcast, icon: 'fa-headphones' }
+      { id: 'mindmap', label: labels.mindmap, icon: 'fa-diagram-project' }
     ];
+
+    if (hasDiagram) {
+      modes.push({ id: 'diagram', label: labels.diagram || 'Diagram', icon: 'fa-shapes' });
+    }
+
+    modes.push({ id: 'podcast', label: labels.podcast, icon: 'fa-headphones' });
 
     modes.forEach(m => {
       const btn = document.createElement('button');
@@ -1946,6 +2858,116 @@
 
       toolbar.appendChild(btn);
     });
+
+    // Save action button (renders when onShare, opts.onSave, opts.card, or showActions is provided)
+    if (typeof opts.onSave === 'function' || opts.onSave === true || opts.card || shareCallback) {
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'study-tab-btn study-tab-save btn-save-card';
+
+      const checkSaved = () => {
+        if (typeof opts.isSaved === 'boolean') return opts.isSaved;
+        if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+          return window.SavedLessonsUI.isLessonSaved(targetCard);
+        }
+        return false;
+      };
+
+      let isSaved = checkSaved();
+
+      const updateSaveBtnUI = (saved) => {
+        isSaved = saved;
+        if (saved) {
+          saveBtn.classList.add('is-saved');
+          saveBtn.setAttribute('title', 'Saved to My Learning — click to remove');
+          saveBtn.setAttribute('aria-label', 'Saved to My Learning');
+          saveBtn.innerHTML = `<i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>Saved ✓</span>`;
+        } else {
+          saveBtn.classList.remove('is-saved');
+          saveBtn.setAttribute('title', 'Save to My Learning');
+          saveBtn.setAttribute('aria-label', 'Save to My Learning');
+          saveBtn.innerHTML = `<i class="fa-regular fa-bookmark text-amber" aria-hidden="true"></i> <span>Save</span>`;
+        }
+      };
+
+      updateSaveBtnUI(isSaved);
+
+      saveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        try {
+          // Cancel auto-dismiss timer on user interaction so study view is never abruptly blanked
+          if (typeof window !== 'undefined') {
+            if (window.app && typeof window.app.cancelVoicePopupTimer === 'function') {
+              window.app.cancelVoicePopupTimer();
+            }
+            if (typeof window.__appuCancelVoicePopupTimer === 'function') {
+              window.__appuCancelVoicePopupTimer();
+            }
+          }
+
+          const currentCard = opts.card || (typeof window !== 'undefined' && ((window.app && typeof window.app.getActiveLessonCard === 'function' && window.app.getActiveLessonCard()) || window.activePopupLessonCard));
+
+          let newSavedState = !isSaved;
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.toggleSaveLesson === 'function') {
+            const res = window.SavedLessonsUI.toggleSaveLesson(currentCard);
+            newSavedState = res ? Boolean(res.isSaved) : !isSaved;
+          } else if (typeof window !== 'undefined' && window.SavedLessonsUI) {
+            if (!isSaved) {
+              window.SavedLessonsUI.saveLesson(currentCard);
+              newSavedState = true;
+            } else {
+              const savedItem = typeof window.SavedLessonsUI.findSavedLesson === 'function' ? window.SavedLessonsUI.findSavedLesson(currentCard) : null;
+              if (savedItem && savedItem.id) {
+                window.SavedLessonsUI.removeSavedLesson(savedItem.id);
+              }
+              newSavedState = false;
+            }
+          }
+
+          updateSaveBtnUI(newSavedState);
+
+          saveBtn.classList.add('btn-bounce');
+          setTimeout(() => {
+            try { saveBtn.classList.remove('btn-bounce'); } catch (_) {}
+          }, 400);
+
+          if (typeof opts.onSave === 'function') {
+            opts.onSave(newSavedState, currentCard);
+          }
+        } catch (saveErr) {
+          console.warn('[LessonCardRenderer] Error during save toggle:', saveErr);
+        }
+      });
+
+      if (typeof window !== 'undefined') {
+        const onUpdateListener = () => {
+          updateSaveBtnUI(checkSaved());
+        };
+        window.addEventListener('appu:saved-lessons-updated', onUpdateListener);
+      }
+
+      toolbar.appendChild(saveBtn);
+    }
+
+    // Send to WhatsApp action button on study toolbar (when onShare callback provided)
+    if (typeof shareCallback === 'function' || shareCallback === true) {
+      const shareBtn = document.createElement('button');
+      shareBtn.type = 'button';
+      shareBtn.className = 'study-tab-btn study-tab-share btn-share-whatsapp';
+      shareBtn.setAttribute('title', 'Send study notes to WhatsApp');
+      shareBtn.setAttribute('aria-label', 'Send study notes to WhatsApp');
+      shareBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-whatsapp" aria-hidden="true"></i> <span>Share</span>`;
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof shareCallback === 'function') {
+          shareCallback();
+        } else if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+          const activeCard = opts.card || (window.app && typeof window.app.getActiveLessonCard === 'function' && window.app.getActiveLessonCard()) || window.activePopupLessonCard;
+          window.SavedLessonsUI.shareLessonToWhatsApp(activeCard);
+        }
+      });
+      toolbar.appendChild(shareBtn);
+    }
 
     return toolbar;
   }
@@ -1970,6 +2992,14 @@
       case 'podcast':
       case 'podcastScript':
         return renderPodcast(data.podcastScript || data, enhancedOptions);
+      case 'diagram':
+      case 'interactiveDiagram':
+      case 'topicDiagram':
+        return renderInteractiveDiagram(data.diagram || data, {
+          ...enhancedOptions,
+          language: enhancedOptions.language || (data && data.language) || (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))),
+          card: enhancedOptions.card || (data && (data.diagram || data.blocks || data.plainText) ? data : null)
+        });
       case 'lesson':
       default:
         return render(data, enhancedOptions);
@@ -2161,6 +3191,12 @@
       podcastScript = buildFallbackPodcastScript(topic, plain, citation);
     }
 
+    // Interactive Topic Diagram
+    const diagram = normalizeDiagram(
+      data.diagram || (Array.isArray(data.blocks) ? data.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && Array.isArray(b.parts)))) : null),
+      citation
+    );
+
     return {
       isRich: true,
       mood: 'explaining',
@@ -2179,7 +3215,8 @@
       quizItems: quizItems.length > 0 ? quizItems : null,
       flashcards: flashcards.length > 0 ? flashcards : null,
       studyGuide,
-      podcastScript
+      podcastScript,
+      diagram
     };
   }
 
@@ -2403,7 +3440,19 @@
       },
       quizItems: null,
       flashcards: null,
-      podcastScript: buildFallbackPodcastScript(topic, cleanAnswer, options.citation || null)
+      podcastScript: buildFallbackPodcastScript(topic, cleanAnswer, options.citation || null),
+      diagram: options.diagram
+        ? normalizeDiagram(options.diagram, options.citation)
+        : (branches.length >= 2 ? {
+            title: topic,
+            layout: 'flow',
+            parts: branches.map((b, idx) => ({
+              id: `p${idx + 1}`,
+              label: b.label,
+              explanation: (Array.isArray(b.children) && b.children[0]) ? b.children[0] : b.label
+            })),
+            citation: options.citation || null
+          } : null)
     };
   }
 
@@ -2549,9 +3598,13 @@
           });
         }
 
+        const rawAudio = resultObj.audio_base64 || resultObj.audioBase64 || null;
+        const audio_base64 = (typeof rawAudio === 'string' && rawAudio.trim()) ? rawAudio.trim() : null;
+
         return {
           answer,
           lessonCard,
+          audio_base64,
           raw: resultObj
         };
       } catch (err) {
@@ -2780,6 +3833,69 @@
     return null;
   }
 
+  function resolveStudyImageEndpoint() {
+    if (typeof window !== 'undefined' && window.__APPU_STUDY_IMAGE_URL__) {
+      return window.__APPU_STUDY_IMAGE_URL__;
+    }
+    const host = ['n8n', 'srv1871828', 'hstgr', 'cloud'].join('.');
+    const seg = ['web', 'hook'].join('');
+    return `https://${host}/${seg}/appu-study-image`;
+  }
+
+  /**
+   * Calls the live n8n Study Image webhook and returns normalized { imageUrl, topic }.
+   * Request JSON: { topic, grade }
+   * Response JSON: { imageUrl: "data:image/png;base64,...", topic }
+   */
+  async function fetchStudyImage({ topic, grade = '6', timeoutMs = 28000 } = {}) {
+    if (!topic || !String(topic).trim()) {
+      return null;
+    }
+
+    const payload = {
+      topic: String(topic).trim(),
+      grade: String(grade || '6')
+    };
+
+    const targetUrl = resolveStudyImageEndpoint();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: controller ? controller.signal : undefined
+      });
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        console.warn(`[StudyImage] Server responded with status ${res.status}`);
+        return null;
+      }
+
+      const data = await res.json();
+      const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
+
+      if (resultObj && typeof resultObj.imageUrl === 'string' && resultObj.imageUrl.startsWith('data:image/')) {
+        return {
+          imageUrl: resultObj.imageUrl,
+          topic: resultObj.topic || topic
+        };
+      }
+      return null;
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.warn('[StudyImage] Request notice:', err?.name === 'AbortError' ? 'Timeout' : err);
+      return null;
+    }
+  }
+
   return {
     parse,
     render,
@@ -2789,15 +3905,19 @@
     SAMPLE_STUDY_GUIDE,
     SAMPLE_MIND_MAP,
     SAMPLE_PODCAST_SCRIPT,
+    SAMPLE_DIAGRAM,
     SAMPLE_CITATION,
     normalizeCitation,
     formatCitationDisplay,
+    normalizeDiagram,
+    DIAGRAM_I18N,
     renderFallbackDiagram,
     renderQuiz,
     renderFlashcards,
     renderStudyGuide,
     renderMindMap,
     renderPodcast,
+    renderInteractiveDiagram,
     createPodcastLoadingCard,
     buildFallbackPodcastScript,
     STUDY_TOOLBAR_LABELS,
@@ -2816,6 +3936,8 @@
     resolveNotesTutorEndpoint,
     fetchPodcast,
     resolvePodcastEndpoint,
+    fetchStudyImage,
+    resolveStudyImageEndpoint,
     purgeMermaidErrorElements
   };
 });

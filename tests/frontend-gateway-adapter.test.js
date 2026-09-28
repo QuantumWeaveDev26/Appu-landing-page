@@ -259,6 +259,55 @@ describe('Frontend Secure Gateway Adapter & Session Bridge', () => {
     }
   });
 
+  test('AppuBackendClient.sendAppuMessage forwards experimentalLearning flag on develop build', async () => {
+    let capturedBody = {};
+    const originalFetch = global.fetch;
+    const originalConfig = global.APPU_CONFIG;
+
+    global.fetch = async (url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            text: 'Adaptive response acknowledged',
+            audioSource: null
+          };
+        }
+      };
+    };
+
+    try {
+      // 1. Explicit experimentalLearning: true in params
+      await AppuBackendClient.sendAppuMessage({
+        message: 'Explain gravity',
+        experimentalLearning: true,
+        baseUrl: 'http://localhost:3000'
+      });
+      assert.equal(capturedBody.experimentalLearning, true);
+
+      // 2. Sourced from global APPU_CONFIG.experimentalLearning
+      global.APPU_CONFIG = { experimentalLearning: true };
+      await AppuBackendClient.sendAppuMessage({
+        message: 'Explain friction',
+        baseUrl: 'http://localhost:3000'
+      });
+      assert.equal(capturedBody.experimentalLearning, true);
+
+      // 3. Absent when disabled/falsy
+      global.APPU_CONFIG = { experimentalLearning: false };
+      await AppuBackendClient.sendAppuMessage({
+        message: 'Explain magnets',
+        baseUrl: 'http://localhost:3000'
+      });
+      assert.equal(capturedBody.experimentalLearning, undefined);
+    } finally {
+      global.fetch = originalFetch;
+      global.APPU_CONFIG = originalConfig;
+    }
+  });
+
   // ============================================================================
   // 3. AUDIO STREAM URL ORIGIN RESOLUTION & SECURITY (KANNADA V3 FIX)
   // ============================================================================

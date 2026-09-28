@@ -1,0 +1,748 @@
+/* ==============================================================================
+   SAVED LESSONS (MY LEARNING) & WHATSAPP SHARE STYLES (Appu 2.0)
+   Playful Sunshine & Sky theme styling for saved study cards, drawer & sharing
+   ============================================================================== */
+
+/* Nav Drawer Entry */
+.nav-drawer-saved-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(254, 243, 199, 0.5);
+  border: 1.5px solid rgba(245, 158, 11, 0.28);
+  border-radius: 14px;
+  color: #0f172a;
+  font-family: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 4px 0;
+}
+
+.nav-drawer-saved-link:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.nav-drawer-saved-link i {
+  font-size: 16px;
+}
+
+.nav-drawer-saved-link span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.saved-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Desktop Topbar "My Learning" Button */
+.topbar-saved-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  font-family: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.08);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.topbar-saved-btn:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.18);
+  color: #78350f;
+}
+
+.topbar-saved-btn:active {
+  transform: translateY(0);
+}
+
+.topbar-saved-btn i {
+  font-size: 13px;
+}
+
+.topbar-saved-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Hide on mobile breakpoints where nav drawer has My Learning link */
+@media (max-width: 1000px) {
+  .topbar-saved-btn {
+    display: none !important;
+  }
+}
+
+/* Scrim & Panel */
+#saved-lessons-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10004;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+#saved-lessons-scrim.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.saved-lessons-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(500px, 100vw);
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 40%, #fffbeb 100%);
+  z-index: 10005;
+  box-shadow: -10px 0 40px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+  overflow: hidden;
+}
+
+.saved-lessons-panel[aria-hidden="true"]:not(.is-open) {
+  transform: translateX(100%) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.saved-lessons-panel.is-open,
+.saved-lessons-panel[aria-hidden="false"] {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.saved-lessons-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1.5px solid rgba(14, 165, 233, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 3;
+}
+
+.saved-lessons-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.saved-lessons-title-group h2 {
+  margin: 0;
+  font-family: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.saved-lessons-title-group p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.saved-lessons-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.saved-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Scrollable List */
+.saved-lessons-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Empty State */
+.saved-lessons-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 20px;
+  margin: auto 0;
+  color: #64748b;
+}
+
+.saved-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #f59e0b;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.18);
+}
+
+.saved-lessons-empty h3 {
+  margin: 0 0 6px;
+  font-family: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.saved-lessons-empty p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.btn-saved-empty-explore {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-saved-empty-explore:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.35);
+}
+
+/* Saved Lesson Card */
+.saved-lesson-card {
+  background: #ffffff;
+  border: 1.5px solid #e0f2fe;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.saved-lesson-card:hover {
+  border-color: #7dd3fc;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.12);
+  transform: translateY(-1px);
+}
+
+.saved-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.saved-card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.saved-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 2px 8px;
+  background: #fef3c7;
+  color: #b45309;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.saved-card-title {
+  margin: 0;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.saved-card-date {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.saved-card-snippet {
+  margin: 0;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.saved-card-citation {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: 700;
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.saved-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.saved-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-saved-study {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(14, 165, 233, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-saved-study:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(14, 165, 233, 0.3);
+}
+
+.btn-saved-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  background: #25d366;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(37, 211, 102, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-saved-share:hover {
+  background: #20ba5a;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(37, 211, 102, 0.35);
+}
+
+.btn-saved-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 50%;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-saved-delete:hover {
+  color: #ef4444;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+/* Study Modes Toolbar Save & WhatsApp Action Buttons */
+.study-tab-save.btn-save-card {
+  color: #b45309 !important;
+  font-weight: 700 !important;
+  background: #fffbeb !important;
+  border: 1.5px solid #fde68a !important;
+  margin-left: auto;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.study-tab-save.btn-save-card:hover {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #92400e !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.18);
+}
+
+.study-tab-save.btn-save-card.is-saved {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.study-tab-save.btn-save-card.is-saved:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+}
+
+.study-tab-save.btn-save-card .text-amber {
+  color: #f59e0b;
+}
+
+.study-tab-save.btn-save-card.btn-bounce {
+  animation: tab-save-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes tab-save-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.study-tab-share.btn-share-whatsapp {
+  color: #15803d !important;
+  font-weight: 700 !important;
+  background: #f0fdf4 !important;
+  border: 1.5px solid #bbf7d0 !important;
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.study-tab-share.btn-share-whatsapp:hover {
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
+.study-tab-share .text-whatsapp {
+  color: #25d366;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .saved-lessons-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+  .saved-card-actions {
+    flex-wrap: wrap;
+  }
+  .btn-saved-study {
+    flex: 1 1 100%;
+  }
+  .btn-saved-share {
+    flex: 1 1 auto;
+  }
+}
+
+/* ==============================================================================
+   DARK THEME ADAPTATIONS (My Learning & Saved Lessons)
+   ============================================================================== */
+[data-theme="dark"] .nav-drawer-saved-link,
+body.theme-dark .nav-drawer-saved-link {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #f5f8ff;
+}
+[data-theme="dark"] .nav-drawer-saved-link:hover,
+body.theme-dark .nav-drawer-saved-link:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #fbbf24;
+}
+
+[data-theme="dark"] .topbar-saved-btn,
+body.theme-dark .topbar-saved-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fbbf24 !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] .topbar-saved-btn:hover,
+body.theme-dark .topbar-saved-btn:hover {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  color: #fef08a !important;
+}
+
+[data-theme="dark"] .saved-lessons-panel,
+body.theme-dark .saved-lessons-panel {
+  background: #050e1d;
+  border-left: 1px solid rgba(71, 214, 240, 0.25);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+}
+[data-theme="dark"] .saved-lessons-header,
+body.theme-dark .saved-lessons-header {
+  background: rgba(6, 16, 32, 0.92);
+  border-bottom-color: rgba(151, 184, 226, 0.18);
+}
+[data-theme="dark"] .saved-lessons-title-group h2,
+body.theme-dark .saved-lessons-title-group h2 {
+  color: #f5f8ff;
+}
+[data-theme="dark"] .saved-lessons-title-group p,
+body.theme-dark .saved-lessons-title-group p {
+  color: #a8b5ca;
+}
+[data-theme="dark"] .saved-lessons-count-badge,
+[data-theme="dark"] .saved-count-badge,
+body.theme-dark .saved-lessons-count-badge,
+body.theme-dark .saved-count-badge {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+[data-theme="dark"] .saved-lesson-card,
+[data-theme="dark"] .saved-lesson-item,
+body.theme-dark .saved-lesson-card,
+body.theme-dark .saved-lesson-item {
+  background: rgba(8, 20, 39, 0.88);
+  border-color: rgba(151, 184, 226, 0.2);
+  color: #f5f8ff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+[data-theme="dark"] .saved-lesson-card:hover,
+[data-theme="dark"] .saved-lesson-item:hover,
+body.theme-dark .saved-lesson-card:hover,
+body.theme-dark .saved-lesson-item:hover {
+  background: rgba(12, 26, 52, 0.95);
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .saved-card-title,
+[data-theme="dark"] .saved-lesson-title,
+body.theme-dark .saved-card-title,
+body.theme-dark .saved-lesson-title {
+  color: #f5f8ff;
+}
+[data-theme="dark"] .saved-card-date,
+[data-theme="dark"] .saved-lesson-meta,
+body.theme-dark .saved-card-date,
+body.theme-dark .saved-lesson-meta {
+  color: #a8b5ca;
+}
+[data-theme="dark"] .saved-card-tag,
+body.theme-dark .saved-card-tag {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fde047;
+}
+[data-theme="dark"] .saved-card-snippet,
+[data-theme="dark"] .saved-lesson-snippet,
+body.theme-dark .saved-card-snippet,
+body.theme-dark .saved-lesson-snippet {
+  color: #cbd5e1;
+}
+[data-theme="dark"] .saved-card-citation,
+body.theme-dark .saved-card-citation {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+[data-theme="dark"] .saved-mode-pill,
+body.theme-dark .saved-mode-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(151, 184, 226, 0.18);
+  color: #94a3b8;
+}
+[data-theme="dark"] .saved-card-actions,
+body.theme-dark .saved-card-actions {
+  border-top-color: rgba(151, 184, 226, 0.15);
+}
+[data-theme="dark"] .btn-saved-delete,
+body.theme-dark .btn-saved-delete {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(151, 184, 226, 0.2);
+  color: #94a3b8;
+}
+[data-theme="dark"] .btn-saved-delete:hover,
+body.theme-dark .btn-saved-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #f87171;
+  color: #fca5a5;
+}
+[data-theme="dark"] .saved-lessons-empty,
+body.theme-dark .saved-lessons-empty {
+  color: #a8b5ca;
+}
+[data-theme="dark"] .saved-empty-icon,
+body.theme-dark .saved-empty-icon {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+}
+[data-theme="dark"] .saved-lessons-empty h3,
+body.theme-dark .saved-lessons-empty h3 {
+  color: #f5f8ff;
+}
+[data-theme="dark"] .btn-saved-share,
+body.theme-dark .btn-saved-share {
+  background: rgba(37, 211, 102, 0.12);
+  border-color: rgba(37, 211, 102, 0.35);
+  color: #4ade80;
+}
+[data-theme="dark"] .btn-saved-share:hover,
+body.theme-dark .btn-saved-share:hover {
+  background: rgba(37, 211, 102, 0.22);
+  border-color: #22c55e;
+  color: #ffffff;
+}
+[data-theme="dark"] .study-tab-save,
+body.theme-dark .study-tab-save {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+[data-theme="dark"] .study-tab-save:hover,
+body.theme-dark .study-tab-save:hover {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: #fbbf24;
+  color: #ffffff;
+}
+[data-theme="dark"] .study-tab-save.is-saved,
+body.theme-dark .study-tab-save.is-saved {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+  border-color: #fbbf24;
+  color: #ffffff;
+}
+[data-theme="dark"] .study-tab-share,
+body.theme-dark .study-tab-share {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(37, 211, 102, 0.35);
+  color: #4ade80;
+}
+[data-theme="dark"] .study-tab-share:hover,
+body.theme-dark .study-tab-share:hover {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: #22c55e;
+  color: #ffffff;
+}
+

@@ -226,6 +226,14 @@
       payload.presentationMode = presentationMode;
     }
 
+    // Experimental learning mode (Phase B/C adaptive difficulty & curiosity tracking for DEV frontend)
+    const experimentalLearning = (typeof params.experimentalLearning === 'boolean')
+      ? params.experimentalLearning
+      : Boolean(typeof globalThis !== 'undefined' && globalThis.APPU_CONFIG && globalThis.APPU_CONFIG.experimentalLearning);
+    if (experimentalLearning) {
+      payload.experimentalLearning = true;
+    }
+
     if (isAuthenticated) {
       if (!childId || typeof childId !== 'string' || !childId.trim()) {
         throw new Error('Child context required: missing childId');

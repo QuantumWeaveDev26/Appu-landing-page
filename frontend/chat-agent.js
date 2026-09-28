@@ -273,6 +273,12 @@ class ChatAgent {
 
       const forceNew = !activeConvId && typeof this.getForceNewConversation === 'function' && Boolean(this.getForceNewConversation());
 
+      const isExperimentalLearning = Boolean(
+        typeof window !== 'undefined' &&
+        window.APPU_CONFIG &&
+        window.APPU_CONFIG.experimentalLearning
+      );
+
       const requestPayload = hasSecureSession
         ? {
             accessToken: window.AppuSession.accessToken,
@@ -281,12 +287,14 @@ class ChatAgent {
             ...(forceNew ? { newConversation: true } : {}),
             message: cleanInput,
             language: this.language || 'en',
-            includeAudio
+            includeAudio,
+            ...(isExperimentalLearning ? { experimentalLearning: true } : {})
           }
         : {
             message: cleanInput,
             language: this.language || 'en',
-            includeAudio
+            includeAudio,
+            ...(isExperimentalLearning ? { experimentalLearning: true } : {})
           };
 
       if (image && image.dataUrl) {

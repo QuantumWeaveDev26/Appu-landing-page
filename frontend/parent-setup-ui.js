@@ -82,10 +82,6 @@
       fontOptRounded: 'Friendly Rounded',
       fontOptFriendly: 'Friendly Standard',
       fontOptClean: 'Clean Minimal',
-      persThemeLabel: 'Theme Mode',
-      themeOptAuto: 'Auto',
-      themeOptBright: 'Bright & Energetic',
-      themeOptCalm: 'Calm & Focused',
       persSubjectsLabel: 'Favorite Subjects',
       persSubjectsPlaceholder: 'Science, Mathematics, Coding',
       persInterestsLabel: 'Favorite Interests & Hobbies (comma-separated)',
@@ -93,6 +89,9 @@
       persGoalsLabel: 'Learning Goal for Appu',
       persGoalsPlaceholder: 'Master school science and build creative curiosity',
       posChildNicknameLabel: 'Learner Nickname',
+      posChildGenderLabel: 'Gender',
+      posPersTabBasic: 'Basic Profile',
+      posPersTabAdvanced: 'Advanced Preferences',
       posChildDobLabel: 'Date of Birth',
       dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).',
       nicknameTooLongAlert: 'Learner nickname must not exceed 50 characters.',
@@ -180,10 +179,6 @@
       fontOptRounded: 'ಸ್ನೇಹಪರ ಸುತ್ತಿನ',
       fontOptFriendly: 'ಸ್ನೇಹಪರ ಪ್ರಮಾಣಿತ',
       fontOptClean: 'ಸ್ವಚ್ಛ ಮಿನಿಮಲ್',
-      persThemeLabel: 'ಥೀಮ್ ಮೋಡ್',
-      themeOptAuto: 'ಸ್ವಯಂಚಾಲಿತ',
-      themeOptBright: 'ಪ್ರಕಾಶಮಾನ ಮತ್ತು ಚೈತನ್ಯಶೀಲ',
-      themeOptCalm: 'ಶಾಂತ ಮತ್ತು ಕೇಂದ್ರೀಕೃತ',
       persSubjectsLabel: 'ಮೆಚ್ಚಿನ ವಿಷಯಗಳು',
       persSubjectsPlaceholder: 'ವಿಜ್ಞಾನ, ಗಣಿತ, ಕೋಡಿಂಗ್',
       persInterestsLabel: 'ಮೆಚ್ಚಿನ ಆಸಕ್ತಿಗಳು ಮತ್ತು ಹವ್ಯಾಸಗಳು (ಅಲ್ಪವಿರಾಮದಿಂದ ಬೇರ್ಪಡಿಸಿ)',
@@ -191,6 +186,9 @@
       persGoalsLabel: 'ಅಪ್ಪುಗಾಗಿ ಕಲಿಕಾ ಗುರಿ',
       persGoalsPlaceholder: 'ಶಾಲಾ ವಿಜ್ಞಾನವನ್ನು ಕರಗತ ಮಾಡಿಕೊಂಡು ಸೃಜನಶೀಲ ಕುತೂಹಲ ಬೆಳೆಸಿಕೊಳ್ಳಿ',
       posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
+      posChildGenderLabel: 'ಲಿಂಗ',
+      posPersTabBasic: 'ಮೂಲ ಪ್ರೊಫೈಲ್',
+      posPersTabAdvanced: 'ಸುಧಾರಿತ ಆದ್ಯತೆಗಳು',
       posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
       dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).',
       nicknameTooLongAlert: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು 50 ಅಕ್ಷರಗಳನ್ನು ಮೀರಬಾರದು.',
@@ -278,10 +276,6 @@
       fontOptRounded: 'फ्रेंडली राउंडेड',
       fontOptFriendly: 'फ्रेंडली स्टैंडर्ड',
       fontOptClean: 'क्लीन मिनिमल',
-      persThemeLabel: 'थीम मोड',
-      themeOptAuto: 'ऑटो',
-      themeOptBright: 'उज्ज्वल और ऊर्जावान',
-      themeOptCalm: 'शांत और केंद्रित',
       persSubjectsLabel: 'पसंदीदा विषय',
       persSubjectsPlaceholder: 'विज्ञान, गणित, कोडिंग',
       persInterestsLabel: 'पसंदीदा रुचियां और शौक (अल्पविराम से अलग करें)',
@@ -289,6 +283,9 @@
       persGoalsLabel: 'अप्पू के लिए सीखने का लक्ष्य',
       persGoalsPlaceholder: 'स्कूल विज्ञान में महारत हासिल करें और रचनात्मक जिज्ञासा बढ़ाएं',
       posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
+      posChildGenderLabel: 'लिंग',
+      posPersTabBasic: 'मूल प्रोफ़ाइल',
+      posPersTabAdvanced: 'उन्नत प्राथमिकताएं',
       posChildDobLabel: 'जन्म तिथि',
       dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।',
       nicknameTooLongAlert: 'शिक्षार्थी का उपनाम 50 अक्षरों से अधिक नहीं होना चाहिए।',
@@ -364,11 +361,15 @@
     const persStyle = document.getElementById('pos-pers-style');
     const persFont = document.getElementById('pos-pers-font');
     const persResponse = document.getElementById('pos-pers-response');
-    const persTheme = document.getElementById('pos-pers-theme');
     const persInterests = document.getElementById('pos-pers-interests');
     const persSubjects = document.getElementById('pos-pers-subjects');
     const persGoals = document.getElementById('pos-pers-goals');
     const posChildNickname = document.getElementById('pos-child-nickname');
+    const posChildGender = document.getElementById('pos-child-gender');
+    const posPersTabBasic = document.getElementById('pos-pers-tab-basic');
+    const posPersTabAdvanced = document.getElementById('pos-pers-tab-advanced');
+    const posPersPanelBasic = document.getElementById('pos-pers-panel-basic');
+    const posPersPanelAdvanced = document.getElementById('pos-pers-panel-advanced');
     const posChildDob = document.getElementById('pos-child-dob');
     const posParentPhone = document.getElementById('pos-parent-phone');
     const posWhatsappConsent = document.getElementById('pos-whatsapp-consent');
@@ -447,6 +448,12 @@
       if (persIntroText) persIntroText.textContent = t('persIntroText');
       const posChildNicknameLabelEl = document.getElementById('pos-child-nickname-label');
       if (posChildNicknameLabelEl) posChildNicknameLabelEl.textContent = t('posChildNicknameLabel');
+      const posChildGenderLabelEl = document.getElementById('pos-child-gender-label');
+      if (posChildGenderLabelEl) posChildGenderLabelEl.textContent = t('posChildGenderLabel');
+      const posPersTabBasicSpan = document.getElementById('pos-pers-tab-basic-text') || (typeof document.querySelector === 'function' ? document.querySelector('#pos-pers-tab-basic span') : null);
+      if (posPersTabBasicSpan) posPersTabBasicSpan.textContent = t('posPersTabBasic');
+      const posPersTabAdvancedSpan = document.getElementById('pos-pers-tab-advanced-text') || (typeof document.querySelector === 'function' ? document.querySelector('#pos-pers-tab-advanced span') : null);
+      if (posPersTabAdvancedSpan) posPersTabAdvancedSpan.textContent = t('posPersTabAdvanced');
       const posChildDobLabelEl = document.getElementById('pos-child-dob-label');
       if (posChildDobLabelEl) posChildDobLabelEl.textContent = t('posChildDobLabel');
       const persLangLabel = document.getElementById('pos-pers-lang-label');
@@ -477,14 +484,6 @@
       if (fontOptFriendly) fontOptFriendly.textContent = t('fontOptFriendly');
       const fontOptClean = document.getElementById('pos-font-opt-clean');
       if (fontOptClean) fontOptClean.textContent = t('fontOptClean');
-      const persThemeLabel = document.getElementById('pos-pers-theme-label');
-      if (persThemeLabel) persThemeLabel.textContent = t('persThemeLabel');
-      const themeOptAuto = document.getElementById('pos-theme-opt-auto');
-      if (themeOptAuto) themeOptAuto.textContent = t('themeOptAuto');
-      const themeOptBright = document.getElementById('pos-theme-opt-bright');
-      if (themeOptBright) themeOptBright.textContent = t('themeOptBright');
-      const themeOptCalm = document.getElementById('pos-theme-opt-calm');
-      if (themeOptCalm) themeOptCalm.textContent = t('themeOptCalm');
       const persSubjectsLabel = document.getElementById('pos-pers-subjects-label');
       if (persSubjectsLabel) persSubjectsLabel.textContent = t('persSubjectsLabel');
       if (persSubjects) persSubjects.placeholder = t('persSubjectsPlaceholder');
@@ -543,7 +542,12 @@
 
       if (stepPlan) stepPlan.style.display = step === 2 ? 'block' : 'none';
       if (stepChild) stepChild.style.display = step === 3 ? 'block' : 'none';
-      if (stepPers) stepPers.style.display = step === 4 ? 'block' : 'none';
+      if (stepPers) {
+        stepPers.style.display = step === 4 ? 'block' : 'none';
+        if (step === 4) {
+          switchPersTab('basic');
+        }
+      }
       if (stepSuccess) stepSuccess.style.display = step === 5 ? 'block' : 'none';
 
       // Update Step tracker dots
@@ -559,6 +563,39 @@
           }
         });
       }
+    }
+
+    function switchPersTab(tabName) {
+      if (tabName === 'advanced') {
+        if (posPersTabBasic) {
+          posPersTabBasic.classList.remove('active');
+          posPersTabBasic.setAttribute('aria-selected', 'false');
+        }
+        if (posPersTabAdvanced) {
+          posPersTabAdvanced.classList.add('active');
+          posPersTabAdvanced.setAttribute('aria-selected', 'true');
+        }
+        if (posPersPanelBasic) posPersPanelBasic.style.display = 'none';
+        if (posPersPanelAdvanced) posPersPanelAdvanced.style.display = 'block';
+      } else {
+        if (posPersTabAdvanced) {
+          posPersTabAdvanced.classList.remove('active');
+          posPersTabAdvanced.setAttribute('aria-selected', 'false');
+        }
+        if (posPersTabBasic) {
+          posPersTabBasic.classList.add('active');
+          posPersTabBasic.setAttribute('aria-selected', 'true');
+        }
+        if (posPersPanelAdvanced) posPersPanelAdvanced.style.display = 'none';
+        if (posPersPanelBasic) posPersPanelBasic.style.display = 'block';
+      }
+    }
+
+    if (posPersTabBasic) {
+      posPersTabBasic.addEventListener('click', () => switchPersTab('basic'));
+    }
+    if (posPersTabAdvanced) {
+      posPersTabAdvanced.addEventListener('click', () => switchPersTab('advanced'));
     }
 
     let lastFocusedElement = null;
@@ -1627,10 +1664,12 @@
     // -------------------------------------------------------------
     async function renderPersonalisationStep(child) {
       setStep(4);
+      switchPersTab('basic');
       const title = document.getElementById('pos-pers-child-name');
       if (title) title.textContent = child.preferredName;
 
       if (posChildNickname) posChildNickname.value = child.nickname || '';
+      if (posChildGender) posChildGender.value = child.gender || '';
       if (posChildDob) posChildDob.value = child.dob || '';
       if (posParentPhone) posParentPhone.value = '';
       if (posWhatsappConsent) posWhatsappConsent.checked = false;
@@ -1648,7 +1687,6 @@
           if (persStyle) persStyle.value = pers.learningStyle || 'interactive';
           if (persFont) persFont.value = pers.fontPreference || 'rounded';
           if (persResponse) persResponse.value = pers.responseStyle || 'playful';
-          if (persTheme) persTheme.value = pers.themePreference || 'auto';
           if (persInterests) persInterests.value = (pers.interests || []).join(', ');
           if (persSubjects) persSubjects.value = (pers.favoriteSubjects || []).join(', ');
           if (persGoals) persGoals.value = (pers.goals || []).join(', ');
@@ -1674,17 +1712,22 @@
           return;
         }
 
-        // Validate optional learner nickname & DOB
+        // Validate optional learner nickname, gender & DOB
         const rawNickname = posChildNickname?.value?.trim() || '';
+        const rawGender = posChildGender?.value || null;
         const rawDob = posChildDob?.value?.trim() || '';
 
         if (rawNickname) {
           if (rawNickname.length > 50) {
+            switchPersTab('basic');
             showAlert(t('nicknameTooLongAlert') || 'Learner nickname must not exceed 50 characters.');
+            if (posChildNickname) posChildNickname.focus();
             return;
           }
           if (/[<>`$]/.test(rawNickname)) {
+            switchPersTab('basic');
             showAlert(t('nicknameInvalidAlert') || 'Learner nickname contains forbidden characters.');
+            if (posChildNickname) posChildNickname.focus();
             return;
           }
         }
@@ -1692,7 +1735,9 @@
         if (rawDob) {
           const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
           if (!dobRegex.test(rawDob)) {
+            switchPersTab('basic');
             showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            if (posChildDob) posChildDob.focus();
             return;
           }
           const parts = rawDob.split('-').map(Number);
@@ -1705,17 +1750,23 @@
             parsed.getUTCMonth() !== month - 1 ||
             parsed.getUTCDate() !== day
           ) {
+            switchPersTab('basic');
             showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            if (posChildDob) posChildDob.focus();
             return;
           }
           const now = new Date();
           if (parsed > now) {
+            switchPersTab('basic');
             showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            if (posChildDob) posChildDob.focus();
             return;
           }
           const ageYears = (now.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
           if (ageYears < 3 || ageYears > 25) {
+            switchPersTab('basic');
             showAlert(t('dobAgeInvalidAlert') || 'Please enter a valid date of birth (learner age must be between 3 and 25 years).');
+            if (posChildDob) posChildDob.focus();
             return;
           }
         }
@@ -1725,6 +1776,7 @@
         const consentChecked = Boolean(posWhatsappConsent?.checked);
 
         if (!rawPhone) {
+          switchPersTab('basic');
           showAlert(t('phoneRequiredAlert') || 'Parent WhatsApp number is required to complete setup and enable parental controls.');
           if (posParentPhone) posParentPhone.focus();
           return;
@@ -1732,12 +1784,14 @@
 
         const normalized = normalizeClientPhone(rawPhone);
         if (normalized === false) {
+          switchPersTab('basic');
           showAlert(t('phoneInvalidAlert') || 'Please enter a valid phone number (e.g., 9876543210 or +919876543210).');
           if (posParentPhone) posParentPhone.focus();
           return;
         }
 
         if (!consentChecked) {
+          switchPersTab('basic');
           showAlert(t('whatsappConsentRequiredAlert') || 'Please check the WhatsApp consent box to receive unlock codes and study summaries.');
           if (posWhatsappConsent) posWhatsappConsent.focus();
           return;
@@ -1757,7 +1811,6 @@
           learningStyle: persStyle?.value || 'interactive',
           fontPreference: persFont?.value || 'rounded',
           responseStyle: persResponse?.value || 'playful',
-          themePreference: persTheme?.value || 'auto',
           favoriteColor: '#1f6feb',
           interests: parseList(persInterests?.value || 'science, space'),
           favoriteSubjects: parseList(persSubjects?.value || 'Science, Mathematics'),
@@ -1765,6 +1818,7 @@
           parentPhone,
           whatsappConsent,
           nickname: rawNickname || null,
+          gender: rawGender || null,
           dob: rawDob || null
         };
 
@@ -1772,6 +1826,7 @@
           await window.ParentOnboardingShell.savePersonalisation(child.id, personalisationData);
           if (child) {
             child.nickname = rawNickname || null;
+            child.gender = rawGender || null;
             child.dob = rawDob || null;
           }
           setStep(5);

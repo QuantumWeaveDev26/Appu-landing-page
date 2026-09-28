@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     en: {
       statusLabel: 'Appu is ready',
       missionEyebrow: '✦ Your learning mission starts here',
-      missionTitleHtml: 'Ready to start <span>academic excellence?</span>',
+      missionTitleHtml: 'Start your <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">academic success</span> now!',
       missionSubtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
       companionTag: 'AI learning companion',
       chipExplainTitle: 'Explain My Topic',
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
       missionEyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
-      missionTitleHtml: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ <span>ಸಿದ್ಧರಿದ್ದೀರಾ?</span>',
+      missionTitleHtml: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">ಸಿದ್ಧರಿದ್ದೀರಾ?</span>',
       missionSubtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
       companionTag: 'ಎಐ ಕಲಿಕಾ ಸಂಗಾತಿ',
       chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hi: {
       statusLabel: 'अप्पू तैयार है',
       missionEyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
-      missionTitleHtml: 'शैक्षणिक उत्कृष्टता के लिए <span>तैयार हैं?</span>',
+      missionTitleHtml: 'शैक्षणिक उत्कृष्टता के लिए <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">तैयार हैं?</span>',
       missionSubtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
       companionTag: 'एआई लर्निंग साथी',
       chipExplainTitle: 'विषय समझाओ',
@@ -734,7 +734,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (missionEyebrow) missionEyebrow.innerHTML = `<span aria-hidden="true">✦</span> ${t.missionEyebrow.replace(/^[✦\s]+/, '')}`;
 
     const missionTitle = document.getElementById('mission-title');
-    if (missionTitle) missionTitle.innerHTML = t.missionTitleHtml;
+    if (missionTitle) {
+      missionTitle.innerHTML = t.missionTitleHtml;
+      missionTitle.style.setProperty('color', '#ffffff', 'important');
+      missionTitle.style.setProperty('background', 'rgba(15, 23, 42, 0.82)', 'important');
+      missionTitle.style.setProperty('border', '1.5px solid rgba(14, 165, 233, 0.35)', 'important');
+    }
 
     const missionSubtitle = document.getElementById('mission-subtitle');
     if (missionSubtitle) missionSubtitle.textContent = t.missionSubtitle;
@@ -1098,60 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // LANGUAGE TOGGLE HANDLER (ENG / KANNADA / HINDI)
-  // ==========================================
-  const langEnBtn = document.getElementById('lang-en');
-  const langKnBtn = document.getElementById('lang-kn');
-  const langHiBtn = document.getElementById('lang-hi');
-
-  function setLanguage(lang, announce = true) {
-    if (lang !== 'en' && lang !== 'kn' && lang !== 'hi') lang = 'en';
-    currentLang = lang;
-    localStorage.setItem('appu_lang', lang);
-    voiceEngine.setLanguage(lang);
-    if (chatAgent) chatAgent.language = lang;
-
-    if (langEnBtn) {
-      langEnBtn.classList.toggle('is-active', lang === 'en');
-      langEnBtn.setAttribute('aria-checked', lang === 'en' ? 'true' : 'false');
-    }
-    if (langKnBtn) {
-      langKnBtn.classList.toggle('is-active', lang === 'kn');
-      langKnBtn.setAttribute('aria-checked', lang === 'kn' ? 'true' : 'false');
-    }
-    if (langHiBtn) {
-      langHiBtn.classList.toggle('is-active', lang === 'hi');
-      langHiBtn.setAttribute('aria-checked', lang === 'hi' ? 'true' : 'false');
-    }
-
-    applyUiTranslations(lang);
-
-    if (announce && voiceEngine) {
-      const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
-      if (!voiceEngine.isVoiceSupported) {
-        voiceEngine.streamSubtitles(t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat");
-      } else {
-        voiceEngine.streamSubtitles(t.subtitlesGreeting);
-      }
-    }
-  }
-
-  // Initialize UI language state on load
-  setLanguage(currentLang, false);
-  if (voiceEngine && !voiceEngine.isVoiceSupported) {
-    const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
-    const subtitlesText = document.getElementById('subtitles-text');
-    if (subtitlesText) {
-      subtitlesText.textContent = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
-    }
-  }
-
-  if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
-  if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
-  if (langHiBtn) langHiBtn.addEventListener('click', () => setLanguage('hi'));
-
-  // ==========================================
-  // VOICE RESPONSE POPUP (PERSISTENT HEADS-UP DISPLAY)
+  // VOICE RESPONSE POPUP (PERSISTENT HEADS-UP DISPLAY) & STUDY MODES
   // ==========================================
   let voicePopupTimer = null;
   const voiceReplyPopup = document.getElementById('voice-reply-popup');
@@ -1159,10 +1111,314 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
   let activePopupLessonCard = null;
   let activePopupMode = 'lesson';
+  let activeLangSwitchSeq = 0;
+
+  function cancelVoicePopupTimer() {
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.__appuCancelVoicePopupTimer = cancelVoicePopupTimer;
+  }
+
+  /**
+   * Seeds or accesses the non-enumerable per-language cache on lesson cards:
+   * card.__langVariants = { en: {...}, kn: {...}, hi: {...} }
+   */
+  function ensureLangVariantsCache(card, fallbackLang = 'en') {
+    if (!card || typeof card !== 'object') return null;
+    if (!card.__langVariants) {
+      const birthLang = card.language || card.lang || fallbackLang || 'en';
+      card.language = birthLang;
+      const variants = {};
+      variants[birthLang] = card;
+      Object.defineProperty(card, '__langVariants', {
+        value: variants,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+    return card.__langVariants;
+  }
+
+  /**
+   * Swaps the active card to a language variant, carrying over visual assets,
+   * non-enumerable variant caches, and preserving saved status without re-speaking.
+   */
+  function applyLanguageVariant(newCard, targetLang) {
+    if (!newCard) return;
+
+    const previousCard = activePopupLessonCard;
+
+    // 1. Maintain shared __langVariants across all variants
+    const variants = (previousCard && previousCard.__langVariants) || ensureLangVariantsCache(previousCard, targetLang);
+    if (variants) {
+      variants[targetLang] = newCard;
+      if (!newCard.__langVariants) {
+        Object.defineProperty(newCard, '__langVariants', {
+          value: variants,
+          writable: true,
+          enumerable: false,
+          configurable: true
+        });
+      }
+    }
+
+    // 2. Carry over illustration image and runtime promise (language-agnostic visuals)
+    if (previousCard) {
+      const imgUrl = previousCard.__diagramIllustrationUrl || (previousCard.diagram && previousCard.diagram.__diagramIllustrationUrl);
+      if (imgUrl) {
+        if (!newCard.__diagramIllustrationUrl) {
+          Object.defineProperty(newCard, '__diagramIllustrationUrl', {
+            value: imgUrl,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (newCard.diagram && !newCard.diagram.__diagramIllustrationUrl) {
+          Object.defineProperty(newCard.diagram, '__diagramIllustrationUrl', {
+            value: imgUrl,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+
+      const imgPromise = previousCard.__diagramIllustrationPromise || (previousCard.diagram && previousCard.diagram.__diagramIllustrationPromise);
+      if (imgPromise) {
+        if (!newCard.__diagramIllustrationPromise) {
+          Object.defineProperty(newCard, '__diagramIllustrationPromise', {
+            value: imgPromise,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (newCard.diagram && !newCard.diagram.__diagramIllustrationPromise) {
+          Object.defineProperty(newCard.diagram, '__diagramIllustrationPromise', {
+            value: imgPromise,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+
+      // Preserve stable card ID, question, grade, and citation
+      if (!newCard.id && previousCard.id) newCard.id = previousCard.id;
+      if (!newCard.question && previousCard.question) newCard.question = previousCard.question;
+      if (!newCard.grade && previousCard.grade) newCard.grade = previousCard.grade;
+      if (!newCard.citation && previousCard.citation) newCard.citation = previousCard.citation;
+    }
+    newCard.language = targetLang;
+
+    // 3. Preserve Saved State
+    const wasSaved = (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function')
+      ? (window.SavedLessonsUI.isLessonSaved(previousCard) || window.SavedLessonsUI.isLessonSaved(newCard))
+      : false;
+
+    if (wasSaved && typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.saveLesson === 'function') {
+      window.SavedLessonsUI.saveLesson(newCard, { language: targetLang });
+    }
+
+    // 4. Update active card reference
+    activePopupLessonCard = newCard;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = newCard;
+    }
+
+    // 5. Re-render the active mode tab
+    renderVoicePopupStudyContent(activePopupMode || 'lesson');
+
+    // 6. Update subtitles HUD quietly (no duplicate chat drawer bubble, no auto-TTS)
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText && newCard.plainText) {
+      subtitlesText.textContent = newCard.plainText;
+      if (typeof subtitlesText.scrollTop !== 'undefined') {
+        subtitlesText.scrollTop = 0;
+      }
+    }
+  }
+
+  /**
+   * Switches the active study card to the target language (en/kn/hi)
+   * Instant if cached; otherwise renders a shimmer and regenerates the card.
+   */
+  async function switchActiveCardLanguage(targetLang) {
+    if (!activePopupLessonCard) return;
+
+    // Guard if already in this language variant
+    if (activePopupLessonCard.language === targetLang && (!activePopupLessonCard.__langVariants || activePopupLessonCard.__langVariants[targetLang] === activePopupLessonCard)) {
+      return;
+    }
+
+    const previousCard = activePopupLessonCard;
+    const variants = ensureLangVariantsCache(previousCard, currentLang);
+
+    // CACHE HIT: Instant 0ms swap
+    if (variants && variants[targetLang]) {
+      applyLanguageVariant(variants[targetLang], targetLang);
+      return;
+    }
+
+    // Rapid-toggle sequence guard:
+    const switchSeq = ++activeLangSwitchSeq;
+
+    // CACHE MISS: Render immediate shimmer placeholder while keeping toolbar active
+    if (voicePopupContent) {
+      voicePopupContent.innerHTML = '';
+      if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.renderStudyToolbar === 'function') {
+        const toolbar = LessonCardRenderer.renderStudyToolbar(activePopupMode, (newMode) => {
+          activePopupMode = newMode;
+        }, targetLang, () => {
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+            window.SavedLessonsUI.shareLessonToWhatsApp(previousCard);
+          }
+        }, { card: previousCard });
+        voicePopupContent.appendChild(toolbar);
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'voice-popup-study-wrapper is-loading-lang';
+
+      const langNames = { en: 'English', kn: 'ಕನ್ನಡ', hi: 'हिंदी' };
+      const langLabel = langNames[targetLang] || targetLang;
+
+      const shimmerBox = document.createElement('div');
+      shimmerBox.className = 'diagram-illustration-card is-loading';
+      shimmerBox.style.cssText = 'margin: 24px auto; max-width: 440px; padding: 36px 16px; text-align: center; border-radius: 16px;';
+
+      const shimmerInner = document.createElement('div');
+      shimmerInner.className = 'diagram-illustration-shimmer';
+      shimmerInner.innerHTML = `<i class="fa-solid fa-sparkles shimmer-sparkle"></i> <span class="shimmer-text">Translating into ${langLabel}...</span>`;
+
+      shimmerBox.appendChild(shimmerInner);
+      wrapper.appendChild(shimmerBox);
+      voicePopupContent.appendChild(wrapper);
+    }
+
+    const question = previousCard.question || previousCard.mindMap?.central || previousCard.topic || previousCard.plainText || '';
+    const childGrade = (typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
+      ? window.appuSession.getGrade()
+      : (previousCard.grade || '6');
+
+    const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+    const isDocMode = Boolean(
+      (activeDoc && activeDoc.text && activeDoc.text.trim()) ||
+      (previousCard.citation?.isUpload || previousCard.citation?.source === 'upload' || previousCard.isUploadSource)
+    );
+
+    let generatedCard = null;
+
+    try {
+      if (isDocMode) {
+        const docText = activeDoc?.text || previousCard.documentText || '';
+        if (docText && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function') {
+          const notesRes = await LessonCardRenderer.fetchNotesTutor({
+            question,
+            documentText: docText,
+            grade: childGrade,
+            language: targetLang,
+            timeoutMs: 25000
+          });
+          if (notesRes && notesRes.lessonCard) {
+            generatedCard = notesRes.lessonCard;
+            if (notesRes.answer && !generatedCard.plainText) {
+              generatedCard.plainText = notesRes.answer;
+            }
+          }
+        }
+      } else {
+        // Normal Mode:
+        // 1) Regenerate answer text in targetLang via backendClient if available
+        let regeneratedAnswer = '';
+        const backendClient = (typeof window !== 'undefined') ? window.AppuBackendClient : null;
+        if (backendClient && typeof backendClient.sendAppuMessage === 'function') {
+          try {
+            const hasSecureSession = (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.isAuthenticated === 'function') && window.AppuSession.isAuthenticated();
+            const payload = hasSecureSession ? {
+              accessToken: window.AppuSession.accessToken,
+              childId: window.AppuSession.childId,
+              message: question,
+              language: targetLang,
+              includeAudio: false
+            } : {
+              message: question,
+              language: targetLang,
+              includeAudio: false
+            };
+            const backendRes = await backendClient.sendAppuMessage(payload);
+            if (backendRes && backendRes.text) {
+              regeneratedAnswer = backendRes.text.replace(/\\n/g, '\n');
+            }
+          } catch (backendErr) {
+            console.warn('[LangSwitch] Backend message regen notice:', backendErr);
+          }
+        }
+
+        // 2) Fetch study visualizer with the question & answer in targetLang
+        if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
+          const visualizerCard = await LessonCardRenderer.fetchStudyVisualizer({
+            question,
+            answer: regeneratedAnswer || previousCard.plainText || '',
+            grade: childGrade,
+            language: targetLang,
+            timeoutMs: 25000
+          });
+          if (visualizerCard) {
+            generatedCard = visualizerCard;
+          }
+        }
+
+        // 3) Fallback if visualizer timed out or was offline
+        if (!generatedCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+          generatedCard = LessonCardRenderer.buildMinimalAnswerCard(
+            question,
+            regeneratedAnswer || previousCard.plainText || '',
+            childGrade
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('[LangSwitch] Failed regenerating card for language:', targetLang, err);
+      if (!generatedCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+        generatedCard = LessonCardRenderer.buildMinimalAnswerCard(question, previousCard.plainText || '', childGrade);
+      }
+    }
+
+    if (!generatedCard) {
+      if (switchSeq === activeLangSwitchSeq) {
+        renderVoicePopupStudyContent(activePopupMode || 'lesson');
+      }
+      return;
+    }
+
+    // Cache the generated variant unconditionally
+    if (variants) {
+      variants[targetLang] = generatedCard;
+    }
+
+    // Check interaction sequence guard
+    if (switchSeq !== activeLangSwitchSeq) {
+      console.log(`[LangSwitch] Discarding stale variant for ${targetLang} (current seq: ${activeLangSwitchSeq}, req: ${switchSeq})`);
+      return;
+    }
+
+    // Apply the newly generated variant
+    applyLanguageVariant(generatedCard, targetLang);
+  }
 
   function renderVoicePopupStudyContent(mode = 'lesson') {
     if (!voicePopupContent) return;
     activePopupMode = mode;
+    if (mode !== 'lesson') {
+      cancelVoicePopupTimer();
+    }
     const missionStage = document.querySelector('.mission-stage');
     if (missionStage) {
       if (mode === 'lesson') {
@@ -1180,7 +1436,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof LessonCardRenderer.renderStudyToolbar === 'function') {
         const toolbar = LessonCardRenderer.renderStudyToolbar(mode, (newMode) => {
           renderVoicePopupStudyContent(newMode);
-        }, currentLang);
+        }, currentLang, () => {
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+            window.SavedLessonsUI.shareLessonToWhatsApp(activePopupLessonCard);
+          }
+        }, {
+          card: activePopupLessonCard
+        });
         voicePopupContent.appendChild(toolbar);
       }
 
@@ -1257,6 +1519,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const contentEl = typeof LessonCardRenderer.renderStudyMode === 'function'
         ? LessonCardRenderer.renderStudyMode(mode, activePopupLessonCard, {
+            language: currentLang,
+            card: activePopupLessonCard,
             onCelebrate: () => {
               if (window.AppuGamification && typeof window.AppuGamification.awardXP === 'function') {
                 window.AppuGamification.awardXP(20, 'Awesome work! ⭐');
@@ -1267,6 +1531,7 @@ document.addEventListener('DOMContentLoaded', () => {
           })
         : (mode === 'lesson'
             ? LessonCardRenderer.render(activePopupLessonCard, {
+                language: currentLang,
                 onCelebrate: () => {
                   if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
                     window.appMascot.celebrate(3200);
@@ -1308,8 +1573,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cardToRender && !cardToRender.question && text) {
       cardToRender.question = text;
     }
-    activePopupLessonCard = cardToRender;
     if (cardToRender) {
+      cardToRender.language = cardToRender.language || currentLang || 'en';
+      ensureLangVariantsCache(cardToRender, currentLang);
+    }
+    activePopupLessonCard = cardToRender;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = cardToRender;
+    }
+    if (cardToRender) {
+      if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+        if (window.SavedLessonsUI.isLessonSaved(cardToRender)) {
+          window.SavedLessonsUI.saveLesson(cardToRender);
+        }
+      }
       renderVoicePopupStudyContent(initialMode || 'lesson');
     } else if (voicePopupContent) {
       voicePopupContent.innerHTML = '';
@@ -1324,13 +1601,16 @@ document.addEventListener('DOMContentLoaded', () => {
       voicePopupTimer = null;
     }
 
-    const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
-    const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
-    const timeoutMs = lessonCard ? Math.max(60000, readingDurationMs) : Math.max(30000, readingDurationMs);
+    // Only set auto-hide timer for default 'lesson' mode when not in interactive study card
+    if ((initialMode || 'lesson') === 'lesson') {
+      const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+      const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
+      const timeoutMs = lessonCard ? Math.max(60000, readingDurationMs) : Math.max(30000, readingDurationMs);
 
-    voicePopupTimer = setTimeout(() => {
-      hideVoicePopup();
-    }, timeoutMs);
+      voicePopupTimer = setTimeout(() => {
+        hideVoicePopup();
+      }, timeoutMs);
+    }
   }
 
   function updateVoicePopupCard(newCard) {
@@ -1338,7 +1618,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
       LessonCardRenderer.purgeMermaidErrorElements();
     }
+    newCard.language = newCard.language || currentLang || 'en';
+    if (activePopupLessonCard && activePopupLessonCard.__langVariants) {
+      Object.defineProperty(newCard, '__langVariants', {
+        value: activePopupLessonCard.__langVariants,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+      activePopupLessonCard.__langVariants[newCard.language] = newCard;
+    } else {
+      ensureLangVariantsCache(newCard, currentLang);
+    }
+    if (activePopupLessonCard && activePopupLessonCard.__diagramIllustrationUrl && !newCard.__diagramIllustrationUrl) {
+      Object.defineProperty(newCard, '__diagramIllustrationUrl', {
+        value: activePopupLessonCard.__diagramIllustrationUrl,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
     activePopupLessonCard = newCard;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = newCard;
+    }
+    if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+      if (window.SavedLessonsUI.isLessonSaved(newCard)) {
+        window.SavedLessonsUI.saveLesson(newCard);
+      }
+    }
     if (voiceReplyPopup) {
       if (!voiceReplyPopup.classList.contains('is-visible')) {
         showVoicePopup(newCard.plainText || '', newCard);
@@ -1377,11 +1685,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ==========================================
+  // LANGUAGE TOGGLE HANDLER (ENG / KANNADA / HINDI)
+  // ==========================================
+  const langEnBtn = document.getElementById('lang-en');
+  const langKnBtn = document.getElementById('lang-kn');
+  const langHiBtn = document.getElementById('lang-hi');
+
+  function setLanguage(lang, announce = true) {
+    if (lang !== 'en' && lang !== 'kn' && lang !== 'hi') lang = 'en';
+    currentLang = lang;
+    if (typeof window !== 'undefined') {
+      window.currentLang = lang;
+      if (window.app) window.app.currentLang = lang;
+    }
+    localStorage.setItem('appu_lang', lang);
+    voiceEngine.setLanguage(lang);
+    if (chatAgent) chatAgent.language = lang;
+
+    if (langEnBtn) {
+      langEnBtn.classList.toggle('is-active', lang === 'en');
+      langEnBtn.setAttribute('aria-checked', lang === 'en' ? 'true' : 'false');
+    }
+    if (langKnBtn) {
+      langKnBtn.classList.toggle('is-active', lang === 'kn');
+      langKnBtn.setAttribute('aria-checked', lang === 'kn' ? 'true' : 'false');
+    }
+    if (langHiBtn) {
+      langHiBtn.classList.toggle('is-active', lang === 'hi');
+      langHiBtn.setAttribute('aria-checked', lang === 'hi' ? 'true' : 'false');
+    }
+
+    applyUiTranslations(lang);
+
+    if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.applyTranslations === 'function') {
+      window.ParentalControlsUI.applyTranslations(lang);
+    }
+
+    const isVoicePopupVisible = voiceReplyPopup && (voiceReplyPopup.classList.contains('is-visible') || !voiceReplyPopup.hidden);
+    if (activePopupLessonCard && isVoicePopupVisible) {
+      // Study card is open! Regenerate or swap card in target language quietly (no greeting, no TTS)
+      switchActiveCardLanguage(lang);
+    } else if (announce && voiceEngine) {
+      const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
+      if (!voiceEngine.isVoiceSupported) {
+        voiceEngine.streamSubtitles(t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat");
+      } else {
+        voiceEngine.streamSubtitles(t.subtitlesGreeting);
+      }
+    }
+  }
+
+  // Initialize UI language state on load
+  setLanguage(currentLang, false);
+  if (voiceEngine && !voiceEngine.isVoiceSupported) {
+    const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+    }
+  }
+
+  if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
+  if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
+  if (langHiBtn) langHiBtn.addEventListener('click', () => setLanguage('hi'));
+
+
   if (btnCloseVoicePopup) {
     btnCloseVoicePopup.addEventListener('click', () => {
       voiceEngine.playClick();
       hideVoicePopup();
     });
+  }
+
+  if (voiceReplyPopup) {
+    voiceReplyPopup.addEventListener('click', cancelVoicePopupTimer);
+    voiceReplyPopup.addEventListener('pointerdown', cancelVoicePopupTimer);
   }
 
   // ==========================================
@@ -1399,6 +1778,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // If parental controls 30-min hard lock is active, block chatting and trigger lock modal
       if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
         window.ParentalControlsUI.triggerLock();
+        return false;
+      }
+
+      // If session start OTP gate is currently active, block chatting until parent OTP verification succeeds
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isSessionStartGateActive) {
         return false;
       }
 
@@ -1472,6 +1856,15 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleUserInteraction(text, image = null) {
     const isDocActive = Boolean(window.activeTutorDocument && window.activeTutorDocument.text);
     if (!isDocActive && (!text || !text.trim())) return;
+
+    if (window.ParentalControlsUI && typeof window.ParentalControlsUI.enforceSessionStartGate === 'function') {
+      const allowed = await window.ParentalControlsUI.enforceSessionStartGate(() => {
+        handleUserInteraction(text, image);
+      });
+      if (!allowed) {
+        return;
+      }
+    }
 
     const interactionTurnId = ++activeInteractionSeq;
 
@@ -1547,8 +1940,11 @@ document.addEventListener('DOMContentLoaded', () => {
             chatAgent.addMessage('appu', reply, null, null, { lessonCard });
           }
 
+          const notesAudio = notesResult.audio_base64
+            ? (notesResult.audio_base64.startsWith('data:') ? notesResult.audio_base64 : `data:audio/mpeg;base64,${notesResult.audio_base64}`)
+            : null;
           voiceEngine.playMessage();
-          await voiceEngine.speak(reply);
+          await voiceEngine.speak(reply, notesAudio);
         } else {
           throw new Error('No valid response from notes tutor webhook');
         }
@@ -1769,6 +2165,127 @@ document.addEventListener('DOMContentLoaded', () => {
       voiceEngine.toggleSound();
       updateSoundUI();
     });
+  }
+
+  // ==========================================
+  // DARK / LIGHT THEME CONTROLLER
+  // ==========================================
+  const THEME_STORAGE_KEY = 'appu_theme';
+  const btnThemeToggle = document.getElementById('btn-theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  const btnDrawerThemeToggle = document.getElementById('btn-drawer-theme-toggle');
+  const drawerThemeIcon = document.getElementById('drawer-theme-icon');
+  const drawerThemeText = document.getElementById('drawer-theme-text');
+
+  function getStoredTheme() {
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'dark' || stored === 'light') return stored;
+    } catch (e) {}
+    return 'dark';
+  }
+
+  function getEffectiveTheme() {
+    return (document.documentElement && document.documentElement.getAttribute('data-theme')) || getStoredTheme();
+  }
+
+  function updateThemeUI(theme) {
+    const isDark = theme === 'dark';
+
+    // Desktop topbar toggle button
+    if (btnThemeToggle) {
+      btnThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      const span = btnThemeToggle.querySelector('span');
+      if (span) span.textContent = isDark ? 'Light theme' : 'Dark theme';
+    }
+    if (themeIcon) {
+      themeIcon.className = isDark ? 'fa-solid fa-sun text-amber' : 'fa-solid fa-moon text-cyan';
+    }
+
+    // Mobile drawer toggle button
+    if (btnDrawerThemeToggle) {
+      btnDrawerThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnDrawerThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnDrawerThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    }
+    if (drawerThemeIcon) {
+      drawerThemeIcon.className = isDark ? 'fa-solid fa-sun text-amber' : 'fa-solid fa-moon text-cyan';
+    }
+    if (drawerThemeText) {
+      drawerThemeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    }
+
+    // Dynamic meta theme-color sync
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', '#06101f');
+    }
+  }
+
+  function applyTheme(theme, animate = false) {
+    const nextTheme = theme === 'dark' ? 'dark' : 'light';
+
+    if (animate && typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.classList.add('theme-transitioning');
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      }, 320);
+    }
+
+    if (document.documentElement) {
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      document.documentElement.classList.toggle('theme-dark', nextTheme === 'dark');
+      document.documentElement.classList.toggle('theme-light', nextTheme === 'light');
+    }
+
+    if (document.body) {
+      document.body.setAttribute('data-theme', nextTheme);
+      document.body.classList.toggle('theme-dark', nextTheme === 'dark');
+      document.body.classList.toggle('theme-light', nextTheme === 'light');
+    }
+
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (e) {}
+
+    updateThemeUI(nextTheme);
+    return nextTheme;
+  }
+
+  function toggleTheme(animate = true) {
+    if (voiceEngine && typeof voiceEngine.playClick === 'function') {
+      voiceEngine.playClick();
+    }
+    const current = getEffectiveTheme();
+    const target = current === 'dark' ? 'light' : 'dark';
+    return applyTheme(target, animate);
+  }
+
+  // Initialize theme from storage
+  applyTheme(getStoredTheme(), false);
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  if (btnDrawerThemeToggle) {
+    btnDrawerThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  window.appuTheme = {
+    getTheme: getEffectiveTheme,
+    setTheme: (t) => applyTheme(t, true),
+    toggleTheme: () => toggleTheme(true),
+    applyTheme: applyTheme
+  };
+  if (typeof globalThis !== 'undefined') {
+    globalThis.appuTheme = window.appuTheme;
   }
 
   // ==========================================
@@ -3255,12 +3772,27 @@ document.addEventListener('DOMContentLoaded', () => {
         voiceEngine.speak(text);
       }
     };
+    window.app.cancelVoicePopupTimer = cancelVoicePopupTimer;
+    window.app.switchActiveCardLanguage = switchActiveCardLanguage;
+    window.app.ensureLangVariantsCache = ensureLangVariantsCache;
+    window.app.applyLanguageVariant = applyLanguageVariant;
+    window.app.setLanguage = setLanguage;
+    window.app.getLangVariants = (card) => (card || activePopupLessonCard)?.__langVariants || null;
     window.app.avatarStage = avatarStage;
     window.app.voiceEngine = voiceEngine;
     window.app.setActiveTutorDocument = setActiveTutorDocument;
+    window.app.getActiveLessonCard = () => activePopupLessonCard;
+
+    window.app.saveLesson = (card, meta) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.saveLesson === 'function' ? window.SavedLessonsUI.saveLesson(card, meta) : null);
+    window.app.getSavedLessons = () => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.getSavedLessons === 'function' ? window.SavedLessonsUI.getSavedLessons() : []);
+    window.app.isLessonSaved = (card) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function' ? window.SavedLessonsUI.isLessonSaved(card) : false);
+    window.app.toggleSaveLesson = (card, meta) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.toggleSaveLesson === 'function' ? window.SavedLessonsUI.toggleSaveLesson(card, meta) : { isSaved: false, entry: null });
     window.app.clearActiveTutorDocument = clearActiveTutorDocument;
     window.app.openNotesUploadModal = openNotesUploadModal;
     window.app.closeNotesUploadModal = closeNotesUploadModal;
+    window.app.getTheme = () => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.getTheme() : 'light');
+    window.app.setTheme = (t) => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.setTheme(t) : t);
+    window.app.toggleTheme = () => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.toggleTheme() : 'dark');
   }
 
   if (typeof window !== 'undefined' && /[?&]demo=/i.test(window.location.search)) {

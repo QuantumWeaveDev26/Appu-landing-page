@@ -826,6 +826,47 @@ describe('Task E: Notes Tutor & Document Upload Teaching', () => {
     globalThis.fetch = originalFetch;
   });
 
+  test('fetchNotesTutor extracts and returns audio_base64 when present, and null when absent', async () => {
+    const originalFetch = globalThis.fetch;
+
+    // With audio_base64
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        answer: 'Notes explanation with synthesized speech',
+        topic: 'Newton Laws',
+        audio_base64: 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA'
+      })
+    });
+
+    const resWithAudio = await LessonCardRenderer.fetchNotesTutor({
+      question: 'Explain Newton Laws',
+      documentText: 'Newton first law of motion: inertia.'
+    });
+    assert.ok(resWithAudio);
+    assert.equal(resWithAudio.audio_base64, 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA');
+
+    // Without audio_base64
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        answer: 'Notes explanation without audio',
+        topic: 'Newton Laws'
+      })
+    });
+
+    const resWithoutAudio = await LessonCardRenderer.fetchNotesTutor({
+      question: 'Explain Newton Laws',
+      documentText: 'Newton first law of motion: inertia.'
+    });
+    assert.ok(resWithoutAudio);
+    assert.equal(resWithoutAudio.audio_base64, null);
+
+    globalThis.fetch = originalFetch;
+  });
+
   test('render() and renderMindMap() apply is-upload-source class and fa-file-lines for uploaded notes', () => {
     const uploadCard = {
       isRich: true,

@@ -62,6 +62,9 @@ class VoiceEngine {
         this.isSpeaking = false;
         this.awaitingResponse = false;
         this.liveSessionActive = false;
+        this.silenceTimeoutMs = 60000;
+        this.silenceTimer = null;
+        this._isReconnecting = false;
         this.subtitleTimer = null;
         this.audioContext = null;
         this.analyserNode = null;
@@ -230,7 +233,7 @@ class VoiceEngine {
         }
 
         this.recognition = new Recognition();
-        this.recognition.continuous = false;
+        this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.lang = 'en-IN';
 
@@ -239,11 +242,27 @@ class VoiceEngine {
             this.lastErrorFatal = false;
             this._cycleStart = Date.now();
             this._cycleGotSpeech = false;
-            this.updateLiveSessionUI();
-            this.playListenStart();
-            this.streamSubtitles('Listening — tell me what you want to learn.');
-            this.onListeningStart();
+            if (!this._isReconnecting) {
+                this.updateLiveSessionUI();
+                this.playListenStart();
+                this.streamSubtitles('Listening — tell me what you want to learn.');
+                this.onListeningStart();
+            }
+            this._isReconnecting = false;
+            this.startSilenceTimer();
         };
+
+        try {
+            this.recognition.onspeechstart = () => {
+                this.resetSilenceTimer();
+            };
+        } catch (_) {}
+
+        try {
+            this.recognition.onaudiostart = () => {
+                this.resetSilenceTimer();
+            };
+        } catch (_) {}
 
         this.recognition.onresult = event => {
             let finalText = '';
@@ -253,9 +272,13 @@ class VoiceEngine {
                 if (event.results[index].isFinal) finalText += text;
                 else interimText += text;
             }
-            if (interimText || finalText) this._cycleGotSpeech = true;
+            if (interimText || finalText) {
+                this._cycleGotSpeech = true;
+                this.resetSilenceTimer();
+            }
             if (interimText) this.onInterimTranscript(interimText.trim());
             if (finalText) {
+                this.clearSilenceTimer();
                 this.awaitingResponse = true;
                 if (this.recognition) {
                     try { this.recognition.abort(); } catch {}
@@ -265,16 +288,22 @@ class VoiceEngine {
         };
 
         this.recognition.onerror = event => {
-            this.isListening = false;
-            // 'no-speech' just means the engine timed out waiting for the user to start
-            // talking (expected during natural pauses in a live session) -- not fatal.
-            // 'aborted' happens when we stop it ourselves. Anything else (permission
-            // denied, no mic, network) means retrying immediately would just loop forever.
-            this.lastErrorFatal = event.error !== 'no-speech' && event.error !== 'aborted';
-            if (this.lastErrorFatal) {
-                this.awaitingResponse = false;
+            // 'no-speech' is expected during silent pauses while listening; the 60s silence timer
+            // governs session end so we do not abruptly stop or flicker the UI.
+            if (event.error === 'no-speech') {
+                return;
             }
+            // 'aborted' happens when we deliberately stop or abort recognition (e.g. before playback or transcript)
+            if (event.error === 'aborted') {
+                return;
+            }
+
+            this.isListening = false;
+            this.clearSilenceTimer();
+            this.lastErrorFatal = true;
+            this.awaitingResponse = false;
             this.updateLiveSessionUI();
+
             if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 this.stopLiveSession();
                 const notice = this.getLocalizedVoiceNotice('permission-denied');
@@ -289,38 +318,32 @@ class VoiceEngine {
                 this.onVoiceUnavailable(notice);
                 return;
             }
-            if (this.lastErrorFatal) {
-                this.streamSubtitles('I missed that. Tap the microphone and try again.');
-            }
+            this.streamSubtitles('I missed that. Tap the microphone and try again.');
         };
 
         this.recognition.onend = () => {
-            this.isListening = false;
-            this.updateLiveSessionUI();
-            this.onListeningEnd();
-            // Some devices (seen on certain Android Chrome builds) end recognition almost
-            // instantly without capturing anything. Auto-restarting then produces a rapid
-            // on/off/on/off flicker loop. Detect these empty, sub-second cycles and, after a
-            // few in a row, stop the live session gracefully instead of looping forever.
-            // Rate-limit restarts: on some devices recognition ends almost instantly and the
-            // auto-restart produces a rapid on/off/on/off flicker loop. Count short (<900ms)
-            // cycles in a 4s window — regardless of whether brief noise triggered interim
-            // results — and if too many happen, stop gracefully instead of looping forever.
-            const now = Date.now();
-            const cycleMs = now - (this._cycleStart || 0);
-            this._restartTimes = (this._restartTimes || []).filter((t) => now - t < 4000);
-            if (cycleMs < 900) this._restartTimes.push(now);
-            if (this._restartTimes.length >= 4) {
-                this._restartTimes = [];
-                this.stopLiveSession();
-                this.streamSubtitles("Voice had trouble starting on this device. Tap the mic to try again, or use “Type instead”.");
+            // If session was ended intentionally, or awaiting response, or Appu is speaking, or fatal error:
+            if (!this.liveSessionActive || this.awaitingResponse || this.isSpeaking || this.lastErrorFatal) {
+                this.isListening = false;
+                this.clearSilenceTimer();
+                this.updateLiveSessionUI();
+                this.onListeningEnd();
                 return;
             }
-            // Browsers stop listening after every pause even in a "live session" (there is
-            // no true continuous mode cross-browser) -- restart automatically so the user
-            // doesn't have to re-tap the mic between sentences, like a live conversation.
-            if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
-                window.setTimeout(() => this.startListening(), 400);
+
+            // Browser stopped recognition unexpectedly while still listening (e.g. native stream timeout).
+            // Restart gracefully without flickering UI or chiming:
+            this._isReconnecting = true;
+            try {
+                this.recognition.start();
+            } catch (err) {
+                window.setTimeout(() => {
+                    if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
+                        try {
+                            this.recognition.start();
+                        } catch (_) {}
+                    }
+                }, 100);
             }
         };
     }
@@ -394,9 +417,37 @@ class VoiceEngine {
         this.startListening();
     }
 
+    startSilenceTimer() {
+        this.clearSilenceTimer();
+        if (!this.liveSessionActive && !this.isListening) return;
+        this.silenceTimer = window.setTimeout(() => {
+            this.handleSilenceTimeout();
+        }, this.silenceTimeoutMs || 60000);
+    }
+
+    resetSilenceTimer() {
+        this.startSilenceTimer();
+    }
+
+    clearSilenceTimer() {
+        if (this.silenceTimer) {
+            window.clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+        }
+    }
+
+    handleSilenceTimeout() {
+        this.clearSilenceTimer();
+        if (!this.liveSessionActive && !this.isListening) return;
+        this.stopLiveSession();
+        this.streamSubtitles("Listening stopped after 60s of silence. Tap the mic to speak again.");
+    }
+
     stopLiveSession() {
         this.liveSessionActive = false;
         this.awaitingResponse = false;
+        this._isReconnecting = false;
+        this.clearSilenceTimer();
         this.stopListening();
         this.stopSpeaking();
         this.updateLiveSessionUI();
@@ -412,6 +463,8 @@ class VoiceEngine {
     }
 
     stopListening() {
+        this._isReconnecting = false;
+        this.clearSilenceTimer();
         if (!this.recognition || !this.isListening) return;
         this.recognition.stop();
         this.playListenStop();

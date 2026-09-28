@@ -101,14 +101,15 @@ test.describe('Mobile UI & Sunshine & Sky Theme Polish Verification', () => {
   });
 
   test.it('enforces mobile single-column vertical stack with zero element collisions', () => {
-    // 1) Mission deck hidden on mobile hero to prevent dock clipping
-    assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.mission-deck\s*\{[\s\S]*?display:\s*none\s*!important/);
+    // 1) Mission deck on mobile hero stacks as responsive 2x2 grid when idle, hidden when lesson is active
+    assert.match(cssContent, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.mission-deck\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    assert.match(cssContent, /\.mission-stage\.has-lesson-active\s+\.mission-deck\s*\{[\s\S]*?display:\s*none\s*!important/);
 
     // 2) Hero avatar stage is noticeably larger and dominant on mobile and desktop
     assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?height:\s*clamp\(340px,\s*52vh,\s*480px\)/);
     assert.match(cssContent, /\.avatar-interactive-figure\s+\.hero-appu-photo\s*\{[\s\S]*?max-height:\s*460px/);
     assert.match(cssContent, /\.avatar-interactive-figure\s+\.avatar-model-frame\s*\{[\s\S]*?max-height:\s*460px/);
-    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?width:\s*min\(760px,\s*56vw\);\s*height:\s*92%/);
+    assert.match(cssContent, /\.avatar-stage\s*\{[\s\S]*?width:\s*min\(960px,\s*clamp\(58vw,\s*64vw,\s*75vw\)\);\s*height:\s*100%/);
 
     // 3) Mission eyebrow is hidden on mobile like production
     assert.match(cssContent, /#mission-eyebrow[\s\S]*?display:\s*none\s*!important/);
@@ -127,8 +128,12 @@ test.describe('Mobile UI & Sunshine & Sky Theme Polish Verification', () => {
   });
 
   test.it('verifies mobile topbar fits without horizontal clipping and houses gamification in nav drawer', () => {
-    // Topbar actions hides crammed gamification bar on mobile to prevent clipping
+    // Topbar actions hides crammed gamification bar and topbar saved lessons button on mobile
     assert.match(cssContent, /\.topbar-actions\s+#gamification-widget[\s\S]*?display:\s*none\s*!important/);
+    assert.match(cssContent, /\.topbar-actions\s+#btn-topbar-saved-lessons[\s\S]*?display:\s*none\s*!important/);
+
+    // Theme toggle remains reachable on mobile topbar
+    assert.match(cssContent, /\.topbar-actions\s+#btn-theme-toggle\s*\{[\s\S]*?display:\s*inline-flex\s*!important/);
 
     // Nav drawer houses learning progress widget cleanly
     assert.ok(htmlContent.includes('id="nav-drawer-gamification"'));
@@ -142,6 +147,13 @@ test.describe('Mobile UI & Sunshine & Sky Theme Polish Verification', () => {
     assert.ok(appJsContent.includes("'My Progress'"));
     assert.ok(appJsContent.includes("'ನನ್ನ ಪ್ರಗತಿ'"));
     assert.ok(appJsContent.includes("'मेरी प्रगति'"));
+  });
+
+  test.it('enforces touch drag-and-drop support on mobile interactive topic diagrams', () => {
+    assert.ok(rendererJsContent.includes('touchstart'));
+    assert.ok(rendererJsContent.includes('touchmove'));
+    assert.ok(rendererJsContent.includes('touchend'));
+    assert.ok(rendererJsContent.includes('is-touch-ghost'));
   });
 
   test.it('verifies nav drawer houses learning missions cleanly for mobile access', () => {

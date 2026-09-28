@@ -98,13 +98,20 @@ function setupDomMock() {
     'pos-pers-child-name',
     'pos-child-nickname',
     'pos-child-nickname-label',
+    'pos-child-gender',
+    'pos-child-gender-label',
     'pos-child-dob',
     'pos-child-dob-label',
+    'pos-pers-tab-basic',
+    'pos-pers-tab-advanced',
+    'pos-pers-panel-basic',
+    'pos-pers-panel-advanced',
+    'pos-pers-tab-basic-text',
+    'pos-pers-tab-advanced-text',
     'pos-pers-lang',
     'pos-pers-style',
     'pos-pers-font',
     'pos-pers-response',
-    'pos-pers-theme',
     'pos-pers-subjects',
     'pos-pers-interests',
     'pos-pers-goals',
@@ -159,9 +166,21 @@ describe('Personalisation Step 4 Nickname & DOB UI (Phase-B Task 4)', () => {
       'index.html must contain #pos-child-dob with type="date"'
     );
 
-    // Labels must exist
+    // #pos-child-gender select
+    assert.match(
+      html,
+      /<select[^>]*id=["']pos-child-gender["']/i,
+      'index.html must contain #pos-child-gender select'
+    );
+
+    // Labels & tabs must exist
     assert.ok(html.includes('id="pos-child-nickname-label"'), 'Must contain #pos-child-nickname-label');
+    assert.ok(html.includes('id="pos-child-gender-label"'), 'Must contain #pos-child-gender-label');
     assert.ok(html.includes('id="pos-child-dob-label"'), 'Must contain #pos-child-dob-label');
+    assert.ok(html.includes('id="pos-pers-tab-basic"'), 'Must contain #pos-pers-tab-basic');
+    assert.ok(html.includes('id="pos-pers-tab-advanced"'), 'Must contain #pos-pers-tab-advanced');
+    assert.ok(html.includes('id="pos-pers-panel-basic"'), 'Must contain #pos-pers-panel-basic');
+    assert.ok(html.includes('id="pos-pers-panel-advanced"'), 'Must contain #pos-pers-panel-advanced');
   });
 
   describe('Client-Side Behavior & Form Handling', () => {
@@ -198,22 +217,25 @@ describe('Personalisation Step 4 Nickname & DOB UI (Phase-B Task 4)', () => {
       ParentSetupUI.init();
     });
 
-    test('Case 2: renderPersonalisationStep prefills nickname and dob from child record', async () => {
+    test('Case 2: renderPersonalisationStep prefills nickname, gender and dob from child record', async () => {
       const childWithData = {
         id: 'child-123',
         preferredName: 'Aarav',
         nickname: 'Aavu',
+        gender: 'boy',
         dob: '2014-06-15'
       };
 
       global.window.ParentOnboardingShell.state.selectedChild = childWithData;
 
       const nicknameInput = dom.elements.get('pos-child-nickname');
+      const genderInput = dom.elements.get('pos-child-gender');
       const dobInput = dom.elements.get('pos-child-dob');
 
       ParentSetupUI.openModal(4);
 
       assert.equal(nicknameInput.value, 'Aavu');
+      assert.equal(genderInput.value, 'boy');
       assert.equal(dobInput.value, '2014-06-15');
     });
 
@@ -250,35 +272,71 @@ describe('Personalisation Step 4 Nickname & DOB UI (Phase-B Task 4)', () => {
       assert.equal(alertBox.style.display, 'block');
     });
 
-    test('Case 4: Form submission submits nickname and dob in payload and updates in-memory child', async () => {
+    test('Case 4: Form submission submits nickname, gender and dob in payload and updates in-memory child', async () => {
       const persForm = dom.elements.get('pos-pers-form');
       const nicknameInput = dom.elements.get('pos-child-nickname');
+      const genderInput = dom.elements.get('pos-child-gender');
       const dobInput = dom.elements.get('pos-child-dob');
 
       nicknameInput.value = 'Aavu';
+      genderInput.value = 'girl';
       dobInput.value = '2014-06-15';
 
       await persForm.dispatchEvent({ type: 'submit', preventDefault() {} });
 
       assert.ok(savedData, 'savePersonalisation must be called');
       assert.equal(savedData.data.nickname, 'Aavu');
+      assert.equal(savedData.data.gender, 'girl');
       assert.equal(savedData.data.dob, '2014-06-15');
 
       const selectedChild = global.window.ParentOnboardingShell.state.selectedChild;
       assert.equal(selectedChild.nickname, 'Aavu');
+      assert.equal(selectedChild.gender, 'girl');
       assert.equal(selectedChild.dob, '2014-06-15');
 
       // Now clear them
       savedData = null;
       nicknameInput.value = '';
+      genderInput.value = '';
       dobInput.value = '';
 
       await persForm.dispatchEvent({ type: 'submit', preventDefault() {} });
       assert.ok(savedData, 'savePersonalisation must be called when clearing');
       assert.equal(savedData.data.nickname, null);
+      assert.equal(savedData.data.gender, null);
       assert.equal(savedData.data.dob, null);
       assert.equal(selectedChild.nickname, null);
+      assert.equal(selectedChild.gender, null);
       assert.equal(selectedChild.dob, null);
+    });
+
+    test('Case 7: Personalization tab switching and basic panel safety on error', async () => {
+      const tabBasic = dom.elements.get('pos-pers-tab-basic');
+      const tabAdvanced = dom.elements.get('pos-pers-tab-advanced');
+      const panelBasic = dom.elements.get('pos-pers-panel-basic');
+      const panelAdvanced = dom.elements.get('pos-pers-panel-advanced');
+      const phoneInput = dom.elements.get('pos-parent-phone');
+      const persForm = dom.elements.get('pos-pers-form');
+
+      // Switch to advanced
+      await tabAdvanced.dispatchEvent({ type: 'click' });
+      assert.equal(panelBasic.style.display, 'none');
+      assert.equal(panelAdvanced.style.display, 'block');
+      assert.ok(tabAdvanced.classList.contains('active'));
+      assert.equal(tabAdvanced.getAttribute('aria-selected'), 'true');
+
+      // Switch back to basic
+      await tabBasic.dispatchEvent({ type: 'click' });
+      assert.equal(panelBasic.style.display, 'block');
+      assert.equal(panelAdvanced.style.display, 'none');
+      assert.ok(tabBasic.classList.contains('active'));
+      assert.equal(tabBasic.getAttribute('aria-selected'), 'true');
+
+      // If user is on advanced tab and submits with missing phone, automatically switches back to basic
+      await tabAdvanced.dispatchEvent({ type: 'click' });
+      phoneInput.value = '';
+      await persForm.dispatchEvent({ type: 'submit', preventDefault() {} });
+      assert.equal(panelBasic.style.display, 'block', 'Validation failure must switch back to basic tab');
     });
   });
 
