@@ -27,7 +27,7 @@ body.view-app #marketing-landing {
 }
 
 body.view-app #app-shell {
-  display: flex !important;
+  display: grid !important;
 }
 
 /* Base Marketing Landing Container */

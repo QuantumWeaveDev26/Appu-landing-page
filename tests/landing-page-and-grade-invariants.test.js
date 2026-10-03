@@ -140,6 +140,54 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(html.includes('id="btn-back-to-landing"'), '#btn-back-to-landing must be defined in topbar');
     assert.ok(html.includes('class="topbar-home-btn'), 'Must have class topbar-home-btn');
   });
+
+  test('landing-page.css restores app-shell as display: grid !important to preserve topbar and stage layout', () => {
+    assert.ok(landingCss.includes('body.view-app #app-shell'), 'Must define body.view-app #app-shell style');
+    assert.ok(landingCss.includes('display: grid !important;'), 'Must preserve CSS grid display for #app-shell, never flex');
+    assert.ok(!landingCss.includes('body.view-app #app-shell {\n  display: flex !important;'), 'Must not set display: flex on #app-shell');
+  });
+
+  test('LandingPage.showApp reveals appShell without forced flex inline style and triggers re-layout', () => {
+    const landingEl = createMockElement('div', 'marketing-landing');
+    const appShellEl = createMockElement('div', 'app-shell');
+    const elementsById = {
+      'marketing-landing': landingEl,
+      'app-shell': appShellEl
+    };
+
+    let resizeDispatched = false;
+    let avatarDOMInitCalled = false;
+    let syncResponsiveSlotsCalled = false;
+
+    global.window = {
+      dispatchEvent: (evt) => {
+        if (evt && evt.type === 'resize') resizeDispatched = true;
+      },
+      avatarStage: {
+        initTalkingAvatarDOM: () => { avatarDOMInitCalled = true; },
+        setState: () => {}
+      },
+      syncResponsiveSlots: () => { syncResponsiveSlotsCalled = true; },
+      history: { replaceState: () => {} },
+      location: { href: 'http://localhost/' }
+    };
+    global.document = {
+      createElement: (t) => createMockElement(t),
+      getElementById: (id) => elementsById[id] || null,
+      querySelectorAll: () => [],
+      body: createMockElement('body')
+    };
+
+    LandingPage.showApp();
+
+    assert.equal(appShellEl.style.display, '', 'appShell display should not be set to flex inline');
+    assert.ok(!appShellEl.classList.contains('is-hidden'), 'appShell should not have is-hidden');
+    assert.ok(global.document.body.classList.contains('view-app'), 'body should have view-app class');
+    assert.ok(!global.document.body.classList.contains('view-landing'), 'body should not have view-landing class');
+    assert.ok(resizeDispatched, 'window resize event must be dispatched to re-layout components');
+    assert.ok(avatarDOMInitCalled, 'avatarStage.initTalkingAvatarDOM must be invoked on app reveal');
+    assert.ok(syncResponsiveSlotsCalled, 'syncResponsiveSlots must be invoked on app reveal');
+  });
 });
 
 describe('PRIORITY 2: "Class 6 Everywhere" Anonymous Neutral Fallback Invariants', () => {

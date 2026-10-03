@@ -3,8 +3,15 @@
  * Handles view transitions between marketing landing and app shell,
  * language switching, speech recognition input, and anonymous question handoff.
  */
-(function(window) {
+(function(root) {
   'use strict';
+
+  function getWin() {
+    if (typeof window !== 'undefined') return window;
+    if (typeof globalThis !== 'undefined' && globalThis.window) return globalThis.window;
+    if (typeof globalThis !== 'undefined') return globalThis;
+    return root || {};
+  }
 
   const LandingPage = {
     currentLang: 'en',
@@ -16,6 +23,7 @@
       if (this.initialized) return;
       this.initialized = true;
 
+      const win = getWin();
       const btnTryFree = document.getElementById('landing-btn-try-free');
       const questionForm = document.getElementById('landing-question-form');
       const questionInput = document.getElementById('landing-question-input');
@@ -28,10 +36,10 @@
       const topbarBrand = document.querySelector('.topbar .brand');
 
       // Check URL parameters and location hash
-      const urlParams = new URLSearchParams(window.location.search);
+      const urlParams = new URLSearchParams(win.location ? win.location.search : '');
       const viewParam = urlParams.get('view');
       const appParam = urlParams.get('app');
-      const hash = window.location.hash;
+      const hash = win.location ? win.location.hash : '';
 
       if (viewParam === 'app' || appParam === '1' || hash === '#app') {
         this.showApp();
@@ -64,9 +72,10 @@
         });
       });
 
-      // "Sign in" Header CTA -> open parent setup/auth modal
+      // "Sign in" Header CTA -> reveal app shell and open parent setup/auth modal
       if (btnSignIn) {
         btnSignIn.addEventListener('click', () => {
+          this.showApp();
           if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
             window.ParentSetupUI.openModal(1);
           } else {
@@ -243,6 +252,7 @@
     },
 
     showLanding() {
+      const win = getWin();
       const landing = document.getElementById('marketing-landing');
       const appShell = document.getElementById('app-shell');
       const orbs = document.querySelectorAll('.ambient-orb');
@@ -255,22 +265,25 @@
         appShell.classList.add('is-hidden');
         appShell.style.display = 'none';
       }
-      document.body.classList.remove('view-app');
-      document.body.classList.add('view-landing');
+      if (document.body) {
+        document.body.classList.remove('view-app');
+        document.body.classList.add('view-landing');
+      }
       orbs.forEach(orb => { orb.style.display = 'none'; });
 
       try {
-        if (window.history && typeof window.history.replaceState === 'function') {
-          const url = new URL(window.location.href);
+        if (win.history && typeof win.history.replaceState === 'function' && win.location) {
+          const url = new URL(win.location.href);
           url.searchParams.delete('app');
           url.searchParams.set('view', 'landing');
           url.hash = '';
-          window.history.replaceState({}, '', url.toString());
+          win.history.replaceState({}, '', url.toString());
         }
       } catch (_) {}
     },
 
     showApp() {
+      const win = getWin();
       const landing = document.getElementById('marketing-landing');
       const appShell = document.getElementById('app-shell');
       const orbs = document.querySelectorAll('.ambient-orb');
@@ -281,31 +294,63 @@
       }
       if (appShell) {
         appShell.classList.remove('is-hidden');
-        appShell.style.display = 'flex';
+        appShell.style.display = '';
       }
-      document.body.classList.remove('view-landing');
-      document.body.classList.add('view-app');
+      if (document.body) {
+        document.body.classList.remove('view-landing');
+        document.body.classList.add('view-app');
+      }
       orbs.forEach(orb => { orb.style.display = ''; });
 
       try {
-        if (window.history && typeof window.history.replaceState === 'function') {
-          const url = new URL(window.location.href);
+        if (win.history && typeof win.history.replaceState === 'function' && win.location) {
+          const url = new URL(win.location.href);
           url.searchParams.set('app', '1');
           url.searchParams.delete('view');
-          window.history.replaceState({}, '', url.toString());
+          win.history.replaceState({}, '', url.toString());
         }
       } catch (_) {}
+
+      // Re-layout and re-initialize stage and topbar components on reveal
+      try {
+        if (typeof win.dispatchEvent === 'function') {
+          win.dispatchEvent(new Event('resize'));
+        }
+      } catch (_) {}
+
+      if (typeof win.syncResponsiveSlots === 'function') {
+        try { win.syncResponsiveSlots(); } catch (_) {}
+      }
+
+      const stage = win.avatarStage || (win.app && win.app.avatarStage);
+      if (stage) {
+        if (typeof stage.initTalkingAvatarDOM === 'function') {
+          try { stage.initTalkingAvatarDOM(); } catch (_) {}
+        }
+        if (typeof stage.setState === 'function') {
+          try { stage.setState(stage.currentState || 'idle'); } catch (_) {}
+        }
+      }
+
+      if (win.appMascot && typeof win.appMascot.setMood === 'function') {
+        try { win.appMascot.setMood('idle'); } catch (_) {}
+      }
     },
 
     enterApp(question = '') {
+      const win = getWin();
       this.showApp();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (typeof win.scrollTo === 'function') {
+        try { win.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
+      }
 
       if (question && question.trim()) {
         const queryText = question.trim();
         setTimeout(() => {
-          if (typeof window.handleUserInteraction === 'function') {
-            window.handleUserInteraction(queryText);
+          if (typeof win.handleUserInteraction === 'function') {
+            win.handleUserInteraction(queryText);
+          } else if (win.app && typeof win.app.handleUserInteraction === 'function') {
+            win.app.handleUserInteraction(queryText);
           } else {
             const chatInput = document.getElementById('chat-input');
             const chatSendBtn = document.getElementById('btn-chat-send');
@@ -319,7 +364,7 @@
     }
   };
 
-  window.LandingPage = LandingPage;
+  getWin().LandingPage = LandingPage;
 
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
@@ -328,4 +373,8 @@
       LandingPage.init();
     }
   }
-})(typeof window !== 'undefined' ? window : this);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = LandingPage;
+  }
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

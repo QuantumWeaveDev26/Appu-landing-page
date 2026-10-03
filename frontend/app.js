@@ -182,6 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ensureChatSessionReady,
     setLanguage
   };
+  window.avatarStage = avatarStage;
+  window.handleUserInteraction = handleUserInteraction;
 
   const appShell = document.getElementById('app-shell');
   let activeDialog = null;
@@ -3209,6 +3211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   syncResponsiveSlots();
   if (typeof window !== 'undefined') {
+    window.syncResponsiveSlots = syncResponsiveSlots;
     window.addEventListener('resize', syncResponsiveSlots);
   }
 
