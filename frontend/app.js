@@ -1321,9 +1321,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const question = previousCard.question || previousCard.mindMap?.central || previousCard.topic || previousCard.plainText || '';
-    const childGrade = (typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
-      ? window.appuSession.getGrade()
-      : (previousCard.grade || '6');
+    const childGrade = (typeof getActiveChildGrade === 'function')
+      ? getActiveChildGrade()
+      : ((typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
+          ? window.appuSession.getGrade()
+          : (previousCard.grade || null));
 
     const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
     const isDocMode = Boolean(
@@ -1863,7 +1865,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (parsed && (parsed.grade || parsed.gradeBand)) return String(parsed.grade || parsed.gradeBand);
       }
     } catch (_) {}
-    return '6';
+    return null;
+  }
+  if (typeof window !== 'undefined') {
+    window.getActiveChildGrade = getActiveChildGrade;
   }
 
   // ==========================================

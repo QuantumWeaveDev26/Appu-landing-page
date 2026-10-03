@@ -1664,13 +1664,23 @@
     const cat = resolveCategoryForCard(options.card || guide);
     const cit = formatCitationDisplay(guide.citation || (options && options.citation));
 
+    const childGrade = (typeof window !== 'undefined' && window.getActiveChildGrade && typeof window.getActiveChildGrade === 'function')
+      ? window.getActiveChildGrade()
+      : null;
+    const rawGuideGrade = guide.grade ? String(guide.grade) : '';
+    const isAnonymous = !childGrade;
+    const isClass6 = /^(?:class\s*)?6$/i.test(rawGuideGrade.trim());
+    const guideGradeLabel = (isAnonymous && isClass6)
+      ? 'Interactive Learning'
+      : (rawGuideGrade ? (rawGuideGrade.toLowerCase().startsWith('class') ? rawGuideGrade : `Class ${rawGuideGrade}`) : 'Interactive Learning');
+
     container.innerHTML = `
       <div class="guide-header">
         <div class="guide-badge-row">
           <div class="guide-badge">
             <i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i>
             <span>Study Guide</span>
-            <span class="guide-grade-pill">${escapeHTML(guide.grade || 'Revision Notes')}</span>
+            <span class="guide-grade-pill">${escapeHTML(guideGradeLabel)}</span>
           </div>
           ${cat ? `<span class="category-badge category-${cat.id}"><span class="cat-emoji">${cat.emoji}</span> ${escapeHTML(cat.label)}</span>` : ''}
           ${cit ? `
@@ -3292,13 +3302,24 @@
   /**
    * Helper: Transforms live n8n Study Visualizer response payload into canonical LessonCard object.
    */
-  function fromVisualizerPayload(data, answerText = '', grade = '6') {
+  function fromVisualizerPayload(data, answerText = '', grade = null) {
     if (!data || typeof data !== 'object') {
       return null;
     }
 
+    const knownGrade = grade || (typeof window !== 'undefined' && window.getActiveChildGrade && typeof window.getActiveChildGrade === 'function' ? window.getActiveChildGrade() : null);
     const topic = data.topic || 'Lesson Concept';
-    const citation = normalizeCitation(data.citation);
+    let citation = normalizeCitation(data.citation);
+    if (!knownGrade && citation && citation.label) {
+      citation = {
+        ...citation,
+        label: citation.label
+          .replace(/\bClass\s*\d+\s*Curriculum\b/i, 'Interactive Learning')
+          .replace(/\bNCERT Class \d+\s*/i, 'NCERT ')
+          .replace(/\bClass \d+\s*-\s*/i, '')
+          .trim() || 'Interactive Learning'
+      };
+    }
     const citationLabel = citation ? citation.label : '';
     const central = (data.mindMap && data.mindMap.central) || topic;
     const branches = (data.mindMap && Array.isArray(data.mindMap.branches)) ? data.mindMap.branches : [];
@@ -3311,14 +3332,21 @@
     const rawQuiz = Array.isArray(data.quiz) ? data.quiz : [];
     const quizItems = rawQuiz.map((q, idx) => {
       const qCitation = normalizeCitation(q.citation);
-      const qCitationLabel = qCitation ? qCitation.label : (citationLabel || '');
+      let qCitationLabel = qCitation ? qCitation.label : (citationLabel || '');
+      if (!knownGrade && qCitationLabel) {
+        qCitationLabel = qCitationLabel
+          .replace(/\bClass\s*\d+\s*Curriculum\b/i, 'Interactive Learning')
+          .replace(/\bNCERT Class \d+\s*/i, 'NCERT ')
+          .replace(/\bClass \d+\s*-\s*/i, '')
+          .trim() || 'Interactive Learning';
+      }
       return {
         id: `q${idx + 1}`,
         question: q.q || q.question || `Question ${idx + 1}`,
         options: Array.isArray(q.options) ? q.options : [],
         correctIndex: typeof q.answerIndex === 'number' ? q.answerIndex : (typeof q.correctIndex === 'number' ? q.correctIndex : 0),
         explanation: q.explain || q.explanation || '',
-        citation: qCitationLabel || (grade ? `Class ${grade} Curriculum` : '')
+        citation: qCitationLabel || (knownGrade ? `Class ${knownGrade} Curriculum` : 'Interactive Learning')
       };
     });
 
@@ -3335,7 +3363,7 @@
     const rawKeyPoints = Array.isArray(data.keyPoints) ? data.keyPoints : [];
     const studyGuide = {
       topic: topic,
-      grade: String(grade || '6'),
+      grade: knownGrade ? String(knownGrade) : '',
       keyPoints: rawKeyPoints,
       definitions: branches.map(b => ({
         term: b.label || '',
@@ -3598,7 +3626,7 @@
    * Helper: Builds a minimal grounded card directly from the real answer and question text.
    * Used when backend visualizer times out or fails, ensuring ZERO sample leakage.
    */
-  function buildMinimalAnswerCard(question = '', answer = '', grade = '6', options = {}) {
+  function buildMinimalAnswerCard(question = '', answer = '', grade = null, options = {}) {
     const cleanAnswer = (typeof answer === 'string' && answer.trim()) ? answer.trim() : '';
     const cleanQuestion = (typeof question === 'string' && question.trim()) ? question.trim() : 'Lesson Concept';
 
@@ -3661,7 +3689,8 @@
       }
     ];
 
-    return {
+      const knownGrade = grade || (typeof window !== 'undefined' && window.getActiveChildGrade && typeof window.getActiveChildGrade === 'function' ? window.getActiveChildGrade() : null);
+      return {
       isRich: true,
       isGroundedMinimal: true,
       mood: 'explaining',
@@ -3679,7 +3708,7 @@
       },
       studyGuide: {
         topic: topic,
-        grade: String(grade || '6'),
+        grade: knownGrade ? String(knownGrade) : '',
         keyPoints: keyPoints,
         definitions: branches.map(b => ({
           term: b.label,

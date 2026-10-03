@@ -125,7 +125,12 @@
     try {
       const list = getSavedLessons();
       const id = lessonCard.id || metadata.id || `sl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      const grade = metadata.grade || lessonCard.grade || (typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function' ? window.appuSession.getGrade() : '6');
+      const knownGrade = (typeof window !== 'undefined' && window.getActiveChildGrade && typeof window.getActiveChildGrade === 'function')
+        ? window.getActiveChildGrade()
+        : ((typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
+            ? window.appuSession.getGrade()
+            : null);
+      const grade = metadata.grade || (knownGrade ? (lessonCard.grade || knownGrade) : (lessonCard.grade && lessonCard.grade !== '6' ? lessonCard.grade : null));
       const language = metadata.language || lessonCard.language || (typeof window !== 'undefined' && window.app && window.app.currentLang) || 'en';
       const timestamp = metadata.timestamp || Date.now();
 
@@ -614,6 +619,84 @@
   /**
    * Renders the saved lesson cards into the panel list container.
    */
+  function renderSavedCard(item) {
+    if (typeof document === 'undefined') return null;
+    const cardEl = document.createElement('article');
+    cardEl.className = 'saved-lesson-card';
+    cardEl.setAttribute('data-lesson-id', item.id);
+
+    const dateStr = formatRelativeDate(item.timestamp);
+    const snippet = item.summaryPreview || '';
+    const citationStr = item.citation ? (typeof item.citation === 'string' ? item.citation : (item.citation.label || item.citation.text || '')) : '';
+
+    // Determine available modes for feature chips
+    const hasMindMap = Boolean(item.card?.mindMap);
+    const hasDiagram = Boolean(item.card?.diagram && Array.isArray(item.card.diagram.parts) && item.card.diagram.parts.length > 0);
+    const hasQuiz = Boolean(item.card?.quizItems && item.card.quizItems.length > 0);
+    const hasFlashcards = Boolean(item.card?.flashcards && item.card.flashcards.length > 0);
+    const hasGuide = Boolean(item.card?.studyGuide);
+    const hasPodcast = Boolean(item.card?.podcastScript);
+
+    let chipsHtml = '';
+    if (hasMindMap) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-diagram-project"></i> Mind Map</span>`;
+    if (hasDiagram) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-shapes"></i> Diagram</span>`;
+    if (hasQuiz) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-flask-vial"></i> Quiz</span>`;
+    if (hasFlashcards) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-layer-group"></i> Flashcards</span>`;
+    if (hasGuide) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-book-open-reader"></i> Guide</span>`;
+    if (hasPodcast) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-headphones"></i> Podcast</span>`;
+
+    const gradeLabel = item.grade ? `Class ${item.grade}` : 'Appu Lesson';
+    cardEl.innerHTML = `
+      <div class="saved-card-header">
+        <div class="saved-card-title-group">
+          <span class="saved-card-tag"><i class="fa-solid fa-graduation-cap"></i> ${escapeHTML(gradeLabel)}</span>
+          <h3 class="saved-card-title">${escapeHTML(item.topic || 'Study Lesson')}</h3>
+        </div>
+        <span class="saved-card-date">${dateStr}</span>
+      </div>
+      ${snippet ? `<p class="saved-card-snippet">${escapeHTML(snippet)}</p>` : ''}
+      ${citationStr ? `<div class="saved-card-citation"><i class="fa-solid fa-bookmark text-cyan"></i> <span>${escapeHTML(citationStr)}</span></div>` : ''}
+      ${chipsHtml ? `<div class="saved-card-chips">${chipsHtml}</div>` : ''}
+      <div class="saved-card-actions">
+        <button type="button" class="btn-saved-study" title="Open lesson on stage">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          <span>Study Lesson</span>
+        </button>
+        <button type="button" class="btn-saved-share" title="Share lesson notes via WhatsApp">
+          <i class="fa-brands fa-whatsapp text-whatsapp" aria-hidden="true"></i>
+          <span>Send to WhatsApp</span>
+        </button>
+        <button type="button" class="btn-saved-delete" aria-label="Remove saved lesson" title="Remove">
+          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+
+    // Wire button actions
+    const studyBtn = cardEl.querySelector('.btn-saved-study');
+    if (studyBtn) {
+      studyBtn.addEventListener('click', () => {
+        reopenLesson(item);
+      });
+    }
+
+    const shareBtn = cardEl.querySelector('.btn-saved-share');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => {
+        shareLessonToWhatsApp(item.card);
+      });
+    }
+
+    const deleteBtn = cardEl.querySelector('.btn-saved-delete');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        removeSavedLesson(item.id);
+      });
+    }
+
+    return cardEl;
+  }
+
   function renderSavedList() {
     if (typeof document === 'undefined') return;
     const container = document.getElementById('saved-lessons-list');
@@ -650,79 +733,8 @@
     }
 
     lessons.forEach(item => {
-      const cardEl = document.createElement('article');
-      cardEl.className = 'saved-lesson-card';
-      cardEl.setAttribute('data-lesson-id', item.id);
-
-      const dateStr = formatRelativeDate(item.timestamp);
-      const snippet = item.summaryPreview || '';
-      const citationStr = item.citation ? (typeof item.citation === 'string' ? item.citation : (item.citation.label || item.citation.text || '')) : '';
-
-      // Determine available modes for feature chips
-      const hasMindMap = Boolean(item.card?.mindMap);
-      const hasDiagram = Boolean(item.card?.diagram && Array.isArray(item.card.diagram.parts) && item.card.diagram.parts.length > 0);
-      const hasQuiz = Boolean(item.card?.quizItems && item.card.quizItems.length > 0);
-      const hasFlashcards = Boolean(item.card?.flashcards && item.card.flashcards.length > 0);
-      const hasGuide = Boolean(item.card?.studyGuide);
-      const hasPodcast = Boolean(item.card?.podcastScript);
-
-      let chipsHtml = '';
-      if (hasMindMap) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-diagram-project"></i> Mind Map</span>`;
-      if (hasDiagram) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-shapes"></i> Diagram</span>`;
-      if (hasQuiz) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-flask-vial"></i> Quiz</span>`;
-      if (hasFlashcards) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-layer-group"></i> Flashcards</span>`;
-      if (hasGuide) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-book-open-reader"></i> Guide</span>`;
-      if (hasPodcast) chipsHtml += `<span class="saved-mode-pill"><i class="fa-solid fa-headphones"></i> Podcast</span>`;
-
-      cardEl.innerHTML = `
-        <div class="saved-card-header">
-          <div class="saved-card-title-group">
-            <span class="saved-card-tag"><i class="fa-solid fa-graduation-cap"></i> Class ${item.grade || '6'}</span>
-            <h3 class="saved-card-title">${escapeHTML(item.topic || 'Study Lesson')}</h3>
-          </div>
-          <span class="saved-card-date">${dateStr}</span>
-        </div>
-        ${snippet ? `<p class="saved-card-snippet">${escapeHTML(snippet)}</p>` : ''}
-        ${citationStr ? `<div class="saved-card-citation"><i class="fa-solid fa-bookmark text-cyan"></i> <span>${escapeHTML(citationStr)}</span></div>` : ''}
-        ${chipsHtml ? `<div class="saved-card-chips">${chipsHtml}</div>` : ''}
-        <div class="saved-card-actions">
-          <button type="button" class="btn-saved-study" title="Open lesson on stage">
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-            <span>Study Lesson</span>
-          </button>
-          <button type="button" class="btn-saved-share" title="Share lesson notes via WhatsApp">
-            <i class="fa-brands fa-whatsapp text-whatsapp" aria-hidden="true"></i>
-            <span>Send to WhatsApp</span>
-          </button>
-          <button type="button" class="btn-saved-delete" aria-label="Remove saved lesson" title="Remove">
-            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-          </button>
-        </div>
-      `;
-
-      // Wire button actions
-      const studyBtn = cardEl.querySelector('.btn-saved-study');
-      if (studyBtn) {
-        studyBtn.addEventListener('click', () => {
-          reopenLesson(item);
-        });
-      }
-
-      const shareBtn = cardEl.querySelector('.btn-saved-share');
-      if (shareBtn) {
-        shareBtn.addEventListener('click', () => {
-          shareLessonToWhatsApp(item.card);
-        });
-      }
-
-      const deleteBtn = cardEl.querySelector('.btn-saved-delete');
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-          removeSavedLesson(item.id);
-        });
-      }
-
-      container.appendChild(cardEl);
+      const cardEl = renderSavedCard(item);
+      if (cardEl) container.appendChild(cardEl);
     });
   }
 
@@ -821,6 +833,7 @@
     openPanel,
     closePanel,
     renderSavedList,
+    renderSavedCard,
     updateBadgeCounters,
     init
   };
