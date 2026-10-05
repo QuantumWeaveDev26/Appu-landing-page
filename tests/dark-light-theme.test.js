@@ -274,16 +274,13 @@ test('Dark & Light Theme: comprehensive audit fixes for badges, modals, and stud
     assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.response-card:hover[\s\S]*?rgba\(255,\s*255,\s*255,\s*0\.04\)/);
   });
 
-  await t.test('Hero headline has pill background matching subtitle across light and dark themes', () => {
-    // Light mode: matching pill background, border, blur, and solid white text
-    assert.match(styleCss, /\.mission-intro h1\s*\{[\s\S]*?border-radius:\s*999px;/);
-    assert.match(styleCss, /\.mission-intro h1\s*\{[\s\S]*?backdrop-filter:\s*blur\(12px\);/);
-    assert.match(styleCss, /\.mission-intro h1\s*\{[\s\S]*?color:\s*#ffffff\s*!important/);
-    assert.match(styleCss, /\.mission-intro h1 span\s*\{[\s\S]*?color:\s*#ffffff\s*!important/);
+  await t.test('Hero headline matches lighter style without heavy pill', () => {
+    // Light mode: clean background, no heavy pill/blur, and solid white text
+    assert.match(styleCss, /\.mission-intro h1[\s\S]*?font-size:\s*clamp\(16px,\s*1\.65vw,\s*22px\);/);
+    assert.match(styleCss, /\.mission-intro h1[\s\S]*?color:\s*#ffffff\s*!important/);
 
-    // Dark mode: matching dark translucent pill background and solid white text
-    assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.mission-intro h1[\s\S]*?rgba\(6,\s*16,\s*32,\s*0\.85\)/);
-    assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.mission-intro h1 span[\s\S]*?color:\s*#ffffff/);
+    // Dark mode: clean background without heavy pill
+    assert.match(styleCss, /\[data-theme=["']dark["']\]\s+\.mission-intro h1[\s\S]*?background:\s*none\s*!important/);
   });
 
   await t.test('guarantees zero mobile light leaks on topbar, nav-drawer header/footer, and chat drawer header', () => {

@@ -258,30 +258,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   text-transform: uppercase;
 }
 .mission-intro .eyebrow span { color: #f59e0b; }
-.mission-intro h1 {
-  display: inline-block;
+.mission-intro h1,
+.mission-intro h2,
+#mission-title {
+  display: block;
   text-align: center;
-  vertical-align: middle;
   margin: 0 auto;
-  padding: 6px 20px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.82) !important;
-  border: 1.5px solid rgba(14, 165, 233, 0.35) !important;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.22), 0 2px 8px rgba(14, 165, 233, 0.12) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  font: 800 clamp(14px, 1.35vw, 19px)/1.2 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif);
+  padding: 0;
+  border-radius: 0;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font: 800 clamp(16px, 1.65vw, 22px)/1.2 var(--font-display, 'Fredoka', 'Space Grotesk', sans-serif);
   letter-spacing: -.02em;
   text-wrap: balance;
   color: #ffffff !important;
-  text-shadow: none !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
   max-width: 95%;
   box-sizing: border-box;
 }
-.mission-intro h1 span {
-  background: none !important; background-image: none !important;
-  -webkit-background-clip: initial !important; background-clip: initial !important; -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
+.mission-intro h1 span,
+.mission-intro h2 span,
+#mission-title span {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: var(--cyan-bright, #38bdf8) !important;
+  color: var(--cyan-bright, #38bdf8) !important;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
 }
 .mission-intro #mission-subtitle {
   display: inline-flex;
@@ -9386,18 +9393,27 @@ body.theme-dark .mission-intro .eyebrow {
   color: #7cecff;
 }
 [data-theme="dark"] .mission-intro h1,
-body.theme-dark .mission-intro h1 {
-  background: rgba(6, 16, 32, 0.85);
-  border-color: rgba(14, 165, 233, 0.35);
+body.theme-dark .mission-intro h1,
+[data-theme="dark"] .mission-intro h2,
+body.theme-dark .mission-intro h2,
+[data-theme="dark"] #mission-title,
+body.theme-dark #mission-title {
+  background: none !important;
+  border: none !important;
   color: #ffffff !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  text-shadow: none;
+  box-shadow: none !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 [data-theme="dark"] .mission-intro h1 span,
-body.theme-dark .mission-intro h1 span {
+body.theme-dark .mission-intro h1 span,
+[data-theme="dark"] .mission-intro h2 span,
+body.theme-dark .mission-intro h2 span,
+[data-theme="dark"] #mission-title span,
+body.theme-dark #mission-title span {
   background: none !important;
-  -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
+  -webkit-text-fill-color: var(--cyan-bright, #38bdf8) !important;
+  color: var(--cyan-bright, #38bdf8) !important;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
 }
 [data-theme="dark"] .mission-intro #mission-subtitle,
 body.theme-dark .mission-intro #mission-subtitle {
@@ -11567,11 +11583,13 @@ html[data-theme="light"] #mission-title,
 html[data-theme="dark"] #mission-title,
 body.theme-light #mission-title,
 body.theme-dark #mission-title,
-.mission-intro h1 {
-  background: rgba(15, 23, 42, 0.82) !important;
-  border: 1.5px solid rgba(14, 165, 233, 0.35) !important;
+.mission-intro h1,
+.mission-intro h2 {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #ffffff !important;
-  text-shadow: none !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 #mission-title span,
@@ -11580,14 +11598,15 @@ html[data-theme="light"] #mission-title span,
 html[data-theme="dark"] #mission-title span,
 body.theme-light #mission-title span,
 body.theme-dark #mission-title span,
-.mission-intro h1 span {
+.mission-intro h1 span,
+.mission-intro h2 span {
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: initial !important;
   background-clip: initial !important;
-  -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
-  text-shadow: none !important;
+  -webkit-text-fill-color: var(--cyan-bright, #38bdf8) !important;
+  color: var(--cyan-bright, #38bdf8) !important;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
 }
 
 /* ==========================================================================
@@ -11706,6 +11725,10 @@ body.is-authenticated #beta-banner {
   pointer-events: none;
   overflow: hidden;
   z-index: 1;
+}
+
+.mission-stage:not(.has-lesson-active) .stage-particles {
+  display: none !important;
 }
 
 .stage-particles .particle {
