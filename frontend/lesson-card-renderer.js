@@ -1270,8 +1270,10 @@
               ${heroImageHTML}
               ${photosGalleryHTML}
             </div>
-            ${watchPanelHTML}
           `;
+          // NOTE: the Lottie "Watch" explainer panel is temporarily disabled (its animation
+          // was not painting, leaving a plain amber stage). Re-enable once the Lottie mount is fixed.
+          void watchPanelHTML;
 
           // Asynchronously mount Lottie player on stage
           if (typeof window !== 'undefined' && catalog && typeof catalog.mountAnimation === 'function') {

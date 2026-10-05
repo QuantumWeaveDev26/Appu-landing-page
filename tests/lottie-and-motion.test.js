@@ -190,7 +190,7 @@ describe('PACK D: Lesson Card Renderer & Motion Integration', () => {
     assert.equal(cat.id, 'biology');
   });
 
-  test('SAMPLE_CARD hook block renders category sticker and Watch mini-panel', () => {
+  test('SAMPLE_CARD hook block renders category sticker (Watch panel disabled)', () => {
     const el = LessonCardRenderer.render(LessonCardRenderer.SAMPLE_CARD);
     // 5 canonical child blocks preserved
     assert.equal(el.children.length, 5);
@@ -198,14 +198,13 @@ describe('PACK D: Lesson Card Renderer & Motion Integration', () => {
     const hookBlock = el.children[0];
     assert.ok(hookBlock.classList.contains('lesson-block-hook'));
 
-    // Hook block HTML contains sticker with emoji 🌱 and Watch panel
+    // Hook block renders the subject sticker; the Lottie "Watch" panel is temporarily
+    // disabled (its animation was not painting, leaving a plain amber stage).
     const html = hookBlock.innerHTML;
     assert.ok(html.includes('lesson-topic-sticker'), 'Must render lesson-topic-sticker');
     assert.ok(html.includes('🌱'), 'Must render biology emoji 🌱');
     assert.ok(html.includes('Biology &amp; Life Science') || html.includes('Biology & Life Science'));
-    assert.ok(html.includes('lesson-watch-panel'), 'Must render lesson-watch-panel');
-    assert.ok(html.includes('60 FPS'), 'Must display 60 FPS badge');
-    assert.ok(html.includes('lottie-category-biology'), 'Must mount biology SVG animation');
+    assert.ok(!html.includes('lesson-watch-panel'), 'Watch panel is disabled for now');
   });
 
   test('buildConceptTreeHTML adds --node-index to branch cards for staggered entrance', () => {
@@ -254,10 +253,10 @@ describe('PACK D: DOM & CSS Motion Invariants', () => {
   });
 
   test('index.html includes lottie-catalog.js before lesson-card-renderer.js', () => {
-    const lottieIdx = html.indexOf('lottie-catalog.js?v=20261005-14');
-    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20261005-14');
-    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20261005-14');
-    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20261005-14');
+    const lottieIdx = html.indexOf('lottie-catalog.js?v=20261005-15');
+    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20261005-15');
+    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20261005-15');
+    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20261005-15');
     assert.ok(lottieIdx < rendererIdx, 'lottie-catalog.js must be loaded before lesson-card-renderer.js');
   });
 

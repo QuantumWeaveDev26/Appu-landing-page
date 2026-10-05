@@ -1886,7 +1886,7 @@
       try { if (typeof win.getActiveChildGrade === 'function') grade = win.getActiveChildGrade(); } catch (_) {}
 
       const self = this;
-      const onFinish = function (replyText, audioSource) {
+      const onFinish = function (replyText, audioSource, audioStreamUrl, accessToken) {
         try {
           const reply = (typeof replyText === 'string' && replyText.trim()) ? replyText.trim() : 'Let’s explore that together!';
           let cardEl = null;
@@ -1911,7 +1911,7 @@
           }
           try {
             const ve = win.voiceEngine || (win.app && win.app.voiceEngine);
-            if (ve && typeof ve.speak === 'function') ve.speak(reply, audioSource || null);
+            if (ve && typeof ve.speak === 'function') ve.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '');
           } catch (_) {}
           if (!authed) {
             used += 1;
