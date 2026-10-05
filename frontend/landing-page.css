@@ -72,7 +72,7 @@ body.view-app #app-shell {
 .landing-header-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0.9rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -229,14 +229,14 @@ body.view-app #app-shell {
 .landing-hero {
   max-width: 1200px;
   margin: 0 auto;
-  padding: clamp(2.5rem, 5vw, 5rem) 1.5rem clamp(2rem, 4vw, 3.5rem);
+  padding: clamp(1.5rem, 2.5vw, 2.5rem) 1.5rem clamp(1.25rem, 2vw, 2rem);
 }
 
 .landing-hero-grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   align-items: center;
-  gap: clamp(2rem, 4vw, 4rem);
+  gap: clamp(1.5rem, 3vw, 2.75rem);
 }
 
 .landing-hero-content {
@@ -259,7 +259,7 @@ body.view-app #app-shell {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #4338ca;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .landing-kicker-sparkle {
@@ -275,7 +275,7 @@ body.view-app #app-shell {
   line-height: 1.12;
   letter-spacing: -0.035em;
   color: #0f172a;
-  margin: 0 0 1.25rem 0;
+  margin: 0 0 0.85rem 0;
 }
 
 .landing-hero-highlight {
@@ -290,7 +290,7 @@ body.view-app #app-shell {
   font-size: clamp(1.05rem, 1.6vw, 1.25rem);
   line-height: 1.55;
   color: #475569;
-  margin: 0 0 1.35rem 0;
+  margin: 0 0 1rem 0;
   max-width: 540px;
 }
 
@@ -306,7 +306,7 @@ body.view-app #app-shell {
   font-size: 0.88rem;
   font-weight: 700;
   color: #15803d;
-  margin-bottom: 2rem;
+  margin-bottom: 1.35rem;
 }
 
 /* Primary CTA Group */
@@ -376,11 +376,11 @@ body.view-app #app-shell {
   max-width: 440px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1.5px solid #e2e8f0;
-  border-radius: 32px;
-  padding: 2.25rem 1.75rem 1.75rem;
+  border-radius: 28px;
+  padding: 1.5rem 1.5rem 1.25rem;
   box-shadow: 
-    0 24px 48px -12px rgba(15, 23, 42, 0.08),
-    0 8px 20px -4px rgba(15, 23, 42, 0.04);
+    0 20px 40px -12px rgba(15, 23, 42, 0.08),
+    0 6px 16px -4px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -391,8 +391,8 @@ body.view-app #app-shell {
 .landing-mentor-card:hover {
   transform: translateY(-3px);
   box-shadow: 
-    0 30px 60px -15px rgba(15, 23, 42, 0.12),
-    0 10px 24px -4px rgba(15, 23, 42, 0.06);
+    0 26px 52px -15px rgba(15, 23, 42, 0.12),
+    0 8px 20px -4px rgba(15, 23, 42, 0.06);
 }
 
 /* Speech Bubble */
@@ -401,12 +401,12 @@ body.view-app #app-shell {
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 20px;
-  padding: 0.65rem 1.35rem;
-  font-size: 0.98rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.96rem;
   font-weight: 700;
   color: #1e293b;
-  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
-  margin-bottom: 1.25rem;
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06);
+  margin-bottom: 0.85rem;
   z-index: 10;
 }
 
@@ -432,40 +432,47 @@ body.view-app #app-shell {
   border-right: 1.5px solid #cbd5e1;
 }
 
-/* Mentor Cutout Image */
+/* Mentor Portrait Image Frame */
 .landing-mentor-frame {
   position: relative;
-  width: 100%;
+  width: min(100%, 280px);
+  height: 280px;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #1e293b;
+  border: 2px solid #e2e8f0;
+  box-shadow: 
+    0 12px 28px -6px rgba(15, 23, 42, 0.14),
+    0 4px 10px -2px rgba(15, 23, 42, 0.06);
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  min-height: 290px;
+  align-items: center;
 }
 
 .landing-mentor-img {
-  width: auto;
-  max-width: 90%;
-  max-height: 340px;
-  object-fit: contain;
-  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.1));
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
   user-select: none;
   pointer-events: none;
-  transition: transform 0.4s ease;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .landing-mentor-card:hover .landing-mentor-img {
-  transform: scale(1.02);
+  transform: scale(1.04);
 }
 
 /* Nameplate */
 .landing-mentor-nameplate {
-  margin-top: 1.25rem;
+  margin-top: 0.85rem;
   width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  padding: 0.65rem 1.15rem;
+  padding: 0.55rem 1.15rem;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 9999px;
@@ -512,7 +519,7 @@ body.view-app #app-shell {
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
   border-bottom: 1px solid #e2e8f0;
-  padding: 1.25rem 1.5rem;
+  padding: 0.85rem 1.5rem;
 }
 
 .landing-value-content {
@@ -550,7 +557,7 @@ body.view-app #app-shell {
 .landing-question-section {
   max-width: 1200px;
   margin: 0 auto;
-  padding: clamp(3rem, 6vw, 5.5rem) 1.5rem;
+  padding: clamp(2rem, 3.5vw, 3rem) 1.5rem;
 }
 
 .landing-question-container {
@@ -565,13 +572,13 @@ body.view-app #app-shell {
   font-weight: 800;
   letter-spacing: -0.025em;
   color: #0f172a;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.4rem 0;
 }
 
 .landing-question-subtitle {
   font-size: 1.05rem;
   color: #64748b;
-  margin: 0 0 2rem 0;
+  margin: 0 0 1.25rem 0;
 }
 
 /* Real Interactive Question Input Box */
@@ -681,7 +688,7 @@ body.view-app #app-shell {
   font-size: 0.88rem;
   font-weight: 500;
   color: #64748b;
-  margin: 0.5rem 0 1.75rem 0;
+  margin: 0.4rem 0 1.15rem 0;
 }
 
 /* Prompt Chips */
@@ -731,13 +738,13 @@ body.view-app #app-shell {
 .landing-features-section {
   max-width: 1200px;
   margin: 0 auto;
-  padding: clamp(2.5rem, 5vw, 4.5rem) 1.5rem clamp(3rem, 6vw, 6rem);
+  padding: clamp(2rem, 3.5vw, 3rem) 1.5rem clamp(2.25rem, 4vw, 3.5rem);
 }
 
 .landing-section-header {
   text-align: center;
   max-width: 680px;
-  margin: 0 auto 3rem auto;
+  margin: 0 auto 1.85rem auto;
 }
 
 .landing-features-title {
@@ -746,21 +753,21 @@ body.view-app #app-shell {
   font-weight: 800;
   letter-spacing: -0.025em;
   color: #0f172a;
-  margin: 0.5rem 0 0 0;
+  margin: 0.4rem 0 0 0;
 }
 
 .landing-features-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.75rem;
+  gap: 1.25rem;
 }
 
 .landing-feature-card {
   background: #ffffff;
   border: 1.5px solid #e2e8f0;
-  border-radius: 24px;
-  padding: 2rem 1.75rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+  border-radius: 22px;
+  padding: 1.5rem 1.35rem;
+  box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -768,20 +775,20 @@ body.view-app #app-shell {
 }
 
 .landing-feature-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: #cbd5e1;
-  box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 30px -6px rgba(15, 23, 42, 0.08);
 }
 
 .landing-feature-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
-  margin-bottom: 1.35rem;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .icon-cyan {
@@ -821,7 +828,7 @@ body.view-app #app-shell {
 .landing-marketing-footer {
   border-top: 1px solid #e2e8f0;
   background: #ffffff;
-  padding: 2.25rem 1.5rem;
+  padding: 1.5rem 1.5rem;
   font-size: 0.88rem;
   color: #64748b;
 }
@@ -900,11 +907,11 @@ body.view-app #app-shell {
     display: none;
   }
   .landing-hero {
-    padding: 2rem 1rem 2.5rem;
+    padding: 1.25rem 1rem 1.5rem;
   }
   .landing-hero-grid {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
+    gap: 1.5rem;
     text-align: center;
   }
   .landing-hero-content {
@@ -922,17 +929,20 @@ body.view-app #app-shell {
     max-width: 320px;
   }
   .landing-mentor-card {
-    max-width: 340px;
-    padding: 1.75rem 1.25rem 1.25rem;
+    max-width: 320px;
+    padding: 1.25rem 1rem 1rem;
   }
   .landing-mentor-frame {
-    min-height: 230px;
+    min-height: auto;
+    width: min(100%, 220px);
+    height: 220px;
+    border-radius: 18px;
   }
   .landing-mentor-img {
-    max-height: 260px;
+    max-height: none;
   }
   .landing-value-band {
-    padding: 1rem 0.85rem;
+    padding: 0.75rem 0.85rem;
   }
   .landing-value-content {
     gap: 0.85rem;
@@ -942,7 +952,7 @@ body.view-app #app-shell {
     display: none;
   }
   .landing-question-section {
-    padding: 2.5rem 1rem;
+    padding: 1.75rem 1rem;
   }
   .landing-input-wrap {
     padding: 0.35rem 0.5rem 0.35rem 1rem;
@@ -957,7 +967,7 @@ body.view-app #app-shell {
     font-size: 0.95rem;
   }
   .landing-features-section {
-    padding: 2rem 1rem 3rem;
+    padding: 1.5rem 1rem 2.25rem;
   }
   .landing-features-grid {
     grid-template-columns: 1fr;

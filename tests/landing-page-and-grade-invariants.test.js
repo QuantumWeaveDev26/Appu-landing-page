@@ -102,7 +102,7 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
   });
 
   test('Hero visual contains authorized Puneeth likeness, speech bubble, and nameplate', () => {
-    assert.ok(html.includes('src="assets/appu-cutout-new.png"'), 'Must use authorized Puneeth likeness asset');
+    assert.ok(html.includes('src="assets/appu-mentor-portrait.jpg"') || html.includes('src="assets/appu-cutout-new.png"'), 'Must use authorized Puneeth likeness asset');
     assert.ok(html.includes('"Let\'s learn your way."'), 'Speech bubble must state "Let\'s learn your way."');
     assert.ok(html.includes('class="landing-speech-bubble"'), 'Speech bubble container must exist');
     assert.ok(html.includes('class="landing-mentor-nameplate"'), 'Nameplate container must exist');
