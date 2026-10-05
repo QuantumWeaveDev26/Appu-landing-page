@@ -31,9 +31,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261005-01">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261005-01">
-  <link rel="stylesheet" href="landing-page.css?v=20261005-01">
+  <link rel="stylesheet" href="style.css?v=20261005-02">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261005-02">
+  <link rel="stylesheet" href="landing-page.css?v=20261005-02">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -317,7 +317,6 @@
         <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Setup</span></button>
         <button id="btn-topbar-saved-lessons" class="parent-zone-btn topbar-saved-btn" type="button" title="My Learning — Saved Lessons" aria-label="My Learning"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i><span>My Learning</span> <span class="topbar-saved-count-pill" id="topbar-saved-count" style="display:none">0</span></button>
         <button id="btn-topbar-reports" class="parent-zone-btn topbar-reports-btn" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Report</span></button>
-        <button id="btn-quick-schedule" class="icon-btn" type="button" aria-label="Schedule support call" title="Schedule Support Call"><i class="fa-solid fa-calendar-check text-cyan" aria-hidden="true"></i><span>Schedule Support Call</span></button>
         <button id="btn-back-to-landing" class="topbar-home-btn icon-btn" type="button" aria-label="Back to Home Landing" title="Back to Home"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Home</span></button>
         <button id="btn-sound-toggle" class="icon-btn" type="button" aria-label="Toggle sound effects"><i id="sound-icon" class="fa-solid fa-volume-high text-cyan" aria-hidden="true"></i><span>Sound Effects</span></button>
         <button id="btn-theme-toggle" class="icon-btn theme-toggle-btn" type="button" aria-label="Switch to dark theme" title="Switch to dark theme" aria-pressed="true" style="display: none !important;"><i id="theme-icon" class="fa-solid fa-moon text-cyan" aria-hidden="true"></i><span>Dark theme</span></button>
@@ -508,6 +507,7 @@
       <button id="btn-drawer-parent-zone" class="nav-drawer-parent-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> <span data-i18n="drawerParentZone">Parent Zone & Controls</span></button>
       <button id="btn-drawer-saved-lessons" class="nav-drawer-saved-link" type="button"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>My Learning <small class="saved-count-pill" id="nav-drawer-saved-count" style="display:none">0</small></span></button>
       <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Child Progress Report</span></button>
+      <button id="btn-drawer-home" class="nav-drawer-home-link" type="button"><i class="fa-solid fa-house text-cyan" aria-hidden="true"></i> <span>Home (Landing Page)</span></button>
       <button id="btn-drawer-theme-toggle" class="nav-drawer-theme-link" type="button" aria-label="Switch to dark theme" title="Switch to dark theme" style="display: none !important;"><i id="drawer-theme-icon" class="fa-solid fa-moon text-cyan" aria-hidden="true"></i> <span id="drawer-theme-text">Dark Mode</span></button>
       <div class="nav-drawer-legal">
         <a href="privacy-policy.html">Privacy Policy</a>
@@ -1181,24 +1181,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261005-01"></script>
-  <script src="appu-config.js?v=20261005-01"></script>
-  <script src="appu-session.js?v=20261005-01"></script>
-  <script src="appu-backend-client.js?v=20261005-01"></script>
-  <script src="parent-onboarding-shell.js?v=20261005-01"></script>
-  <script src="parent-setup-ui.js?v=20261005-01"></script>
-  <script src="prompt-library-ui.js?v=20261005-01"></script>
-  <script src="avatar-stage.js?v=20261005-01"></script>
-  <script src="mascot-avatar.js?v=20261005-01"></script>
-  <script src="lottie-catalog.js?v=20261005-01"></script>
-  <script src="lesson-card-renderer.js?v=20261005-01"></script>
-  <script src="voice-engine.js?v=20261005-01"></script>
-  <script src="chat-history.js?v=20261005-01"></script>
-  <script src="chat-agent.js?v=20261005-01"></script>
-  <script src="parent-reports-ui.js?v=20261005-01"></script>
-  <script src="parental-controls-ui.js?v=20261005-01"></script>
-  <script src="saved-lessons-ui.js?v=20261005-01"></script>
-  <script src="app.js?v=20261005-01"></script>
-  <script src="landing-page.js?v=20261005-01"></script>
+  <script src="voice-contract.js?v=20261005-02"></script>
+  <script src="appu-config.js?v=20261005-02"></script>
+  <script src="appu-session.js?v=20261005-02"></script>
+  <script src="appu-backend-client.js?v=20261005-02"></script>
+  <script src="parent-onboarding-shell.js?v=20261005-02"></script>
+  <script src="parent-setup-ui.js?v=20261005-02"></script>
+  <script src="prompt-library-ui.js?v=20261005-02"></script>
+  <script src="avatar-stage.js?v=20261005-02"></script>
+  <script src="mascot-avatar.js?v=20261005-02"></script>
+  <script src="lottie-catalog.js?v=20261005-02"></script>
+  <script src="lesson-card-renderer.js?v=20261005-02"></script>
+  <script src="voice-engine.js?v=20261005-02"></script>
+  <script src="chat-history.js?v=20261005-02"></script>
+  <script src="chat-agent.js?v=20261005-02"></script>
+  <script src="parent-reports-ui.js?v=20261005-02"></script>
+  <script src="parental-controls-ui.js?v=20261005-02"></script>
+  <script src="saved-lessons-ui.js?v=20261005-02"></script>
+  <script src="app.js?v=20261005-02"></script>
+  <script src="landing-page.js?v=20261005-02"></script>
 </body>
 </html>

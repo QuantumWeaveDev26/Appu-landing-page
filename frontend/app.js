@@ -747,6 +747,9 @@ document.addEventListener('DOMContentLoaded', () => {
       missionTitle.style.setProperty('color', '#ffffff', 'important');
       missionTitle.style.setProperty('background', 'rgba(15, 23, 42, 0.82)', 'important');
       missionTitle.style.setProperty('border', '1.5px solid rgba(14, 165, 233, 0.35)', 'important');
+      missionTitle.style.setProperty('border-radius', '999px', 'important');
+      missionTitle.style.setProperty('padding', '6px 20px', 'important');
+      missionTitle.style.setProperty('display', 'inline-block', 'important');
     }
 
     const missionSubtitle = document.getElementById('mission-subtitle');
@@ -2500,6 +2503,15 @@ document.addEventListener('DOMContentLoaded', () => {
       closeNavDrawer();
       const xpBtn = document.getElementById('btn-xp-badge');
       if (xpBtn) xpBtn.click();
+    });
+  }
+
+  const btnDrawerHome = document.getElementById('btn-drawer-home');
+  if (btnDrawerHome) {
+    btnDrawerHome.addEventListener('click', () => {
+      closeNavDrawer();
+      const btnBackToLanding = document.getElementById('btn-back-to-landing');
+      if (btnBackToLanding) btnBackToLanding.click();
     });
   }
 
