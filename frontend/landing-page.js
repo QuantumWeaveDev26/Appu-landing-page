@@ -1922,6 +1922,13 @@
         } catch (err) { console.warn('[LandingTrial] render error', err); }
       };
 
+      // Ask the brain for Appu's real (ElevenLabs) voice so the trial speaks in-character,
+      // not the browser TTS fallback (the brain only returns audio when autoSpeak is on).
+      try {
+        const ve0 = win.voiceEngine || (win.app && win.app.voiceEngine);
+        if (ve0) ve0.autoSpeak = true;
+      } catch (_) {}
+
       try {
         agent.sendMessage(q, null, onFinish);
       } catch (err) {
