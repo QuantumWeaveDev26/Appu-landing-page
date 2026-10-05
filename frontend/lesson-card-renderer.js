@@ -349,6 +349,158 @@
     ]
   };
 
+  /**
+   * Curated Data Contract: Animated Photosynthesis Topic Diagram
+   * Used for default visual responses on photosynthesis, plant food, and botany questions.
+   */
+  const PHOTOSYNTHESIS_DIAGRAM = {
+    title: 'How Photosynthesis Works',
+    layout: 'flow',
+    citation: {
+      label: 'NCERT Class 7 Science - Nutrition in Plants',
+      class: 7,
+      subject: 'Science',
+      chapter: 'Nutrition in Plants'
+    },
+    parts: [
+      {
+        id: 'sun',
+        label: 'Sunlight Energy',
+        emoji: '☀️',
+        color: 'amber',
+        explanation: 'Green leaves trap solar rays using chlorophyll, acting like tiny solar-powered kitchens!'
+      },
+      {
+        id: 'water',
+        label: 'Water from Soil',
+        emoji: '💧',
+        color: 'sky',
+        explanation: 'Roots absorb moisture and minerals from the ground and pump them up to leaves through stem veins.'
+      },
+      {
+        id: 'co2',
+        label: 'Carbon Dioxide',
+        emoji: '💨',
+        color: 'purple',
+        explanation: 'Leaves take in CO₂ gas directly from the breeze through tiny mouth pores called stomata.'
+      },
+      {
+        id: 'glucose',
+        label: 'Glucose (Food)',
+        emoji: '🍬',
+        color: 'emerald',
+        explanation: 'Using solar energy, water and CO₂ are cooked into sweet glucose sugar that powers plant growth!'
+      },
+      {
+        id: 'oxygen',
+        label: 'Oxygen Released',
+        emoji: '🍃',
+        color: 'mint',
+        explanation: 'Plants bubble out clean, fresh oxygen (O₂) into the air as a wonderful gift for all of us to breathe!'
+      }
+    ]
+  };
+
+  const PHOTOSYNTHESIS_DIAGRAM_KN = {
+    title: 'ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಹೇಗೆ ನಡೆಯುತ್ತದೆ',
+    layout: 'flow',
+    parts: [
+      { id: 'sun', label: 'ಸೂರ್ಯನ ಬೆಳಕು', emoji: '☀️', color: 'amber', explanation: 'ಎಲೆಗಳಲ್ಲಿರುವ ಹರಿತ್ತು ಸೂರ್ಯನ ಬೆಳಕನ್ನು ಹೀರಿಕೊಂಡು ಶಕ್ತಿ ಪಡೆಯುತ್ತದೆ.' },
+      { id: 'water', label: 'ಮಣ್ಣಿನ ನೀರು', emoji: '💧', color: 'sky', explanation: 'ಬೇರುಗಳು ಮಣ್ಣಿನಿಂದ ನೀರನ್ನು ಹೀರಿಕೊಂಡು ಎಲೆಗಳಿಗೆ ಕಳುಹಿಸುತ್ತವೆ.' },
+      { id: 'co2', label: 'ಇಂಗಾಲದ ಡೈಆಕ್ಸೈಡ್', emoji: '💨', color: 'purple', explanation: 'ಎಲೆಗಳ ಸಣ್ಣ ರಂಧ್ರಗಳ ಮೂಲಕ ಗಾಳಿಯಿಂದ CO₂ ಅನಿಲವನ್ನು ತೆಗೆದುಕೊಳ್ಳುತ್ತವೆ.' },
+      { id: 'glucose', label: 'ಗ್ಲುಕೋಸ್ ಆಹಾರ', emoji: '🍬', color: 'emerald', explanation: 'ಸಸ್ಯವು ಬೆಳವಣಿಗೆಗಾಗಿ ಸಿಹಿಯಾದ ಗ್ಲುಕೋಸ್ ಸಕ್ಕರೆಯನ್ನು ತಯಾರಿಸುತ್ತದೆ.' },
+      { id: 'oxygen', label: 'ಆಮ್ಲಜನಕ ಬಿಡುಗಡೆ', emoji: '🍃', color: 'mint', explanation: 'ನಾವು ಉಸಿರಾಡಲು ಅಗತ್ಯವಾದ ಶುದ್ಧ ಆಮ್ಲಜನಕವನ್ನು ಗಾಳಿಗೆ ಬಿಡುಗಡೆ ಮಾಡುತ್ತದೆ!' }
+    ]
+  };
+
+  const PHOTOSYNTHESIS_DIAGRAM_HI = {
+    title: 'प्रकाश संश्लेषण कैसे काम करता है',
+    layout: 'flow',
+    parts: [
+      { id: 'sun', label: 'सूर्य का प्रकाश', emoji: '☀️', color: 'amber', explanation: 'पत्तियां क्लोरोफिल की मदद से धूप को सोखती हैं और सौर ऊर्जा बनाती हैं!' },
+      { id: 'water', label: 'मिट्टी से पानी', emoji: '💧', color: 'sky', explanation: 'जड़ें जमीन से पानी सोखकर तने के जरिए पत्तियों तक पहुंचाती हैं.' },
+      { id: 'co2', label: 'कार्बन डाइऑक्साइड', emoji: '💨', color: 'purple', explanation: 'पत्तियां रंध्रों (स्टोमेटा) से हवा में मौजूद CO₂ गैस अंदर लेती हैं.' },
+      { id: 'glucose', label: 'ग्लूकोज भोजन', emoji: '🍬', color: 'emerald', explanation: 'पौधा अपने विकास और ऊर्जा के लिए मीठा ग्लूकोज तैयार करता है.' },
+      { id: 'oxygen', label: 'ऑक्सीजन बाहर निकलना', emoji: '🍃', color: 'mint', explanation: 'पौधा हमारे सांस लेने के लिए ताजी ऑक्सीजन हवा में छोड़ता है!' }
+    ]
+  };
+
+  /**
+   * Returns curated cartoon explanatory illustration path for topics with bespoke vector art.
+   */
+  function getCuratedCartoonIllustration(topic) {
+    const t = String(topic || '').toLowerCase();
+    if (t.includes('photo') || t.includes('plant') || t.includes('leaf') || t.includes('chloroplast') || t.includes('sunlight') || t.includes('food')) {
+      return './photosynthesis-cartoon.svg';
+    }
+    return null;
+  }
+
+  /**
+   * Formats short friendly kid-voice answer text with playful keyword pills.
+   */
+  function formatKidVoiceHTML(text) {
+    if (!text || typeof text !== 'string') return '';
+    let safe = escapeHTML(text);
+
+    const replacements = [
+      { pattern: /\b(sunlight energy|sunlight|sun rays|solar energy)\b/gi, html: '<span class="kw-pill kw-sun">☀️ Sunlight</span>' },
+      { pattern: /\b(water from soil|water droplets|water)\b/gi, html: '<span class="kw-pill kw-water">💧 Water</span>' },
+      { pattern: /\b(carbon dioxide|co₂|co2)\b/gi, html: '<span class="kw-pill kw-co2">💨 CO₂</span>' },
+      { pattern: /\b(glucose sugar|glucose|plant food)\b/gi, html: '<span class="kw-pill kw-sugar">🍬 Glucose</span>' },
+      { pattern: /\b(oxygen gas|fresh oxygen|oxygen|o₂|o2)\b/gi, html: '<span class="kw-pill kw-oxygen">🍃 Oxygen</span>' },
+      { pattern: /\b(chloroplasts|chloroplast|chlorophyll)\b/gi, html: '<span class="kw-pill kw-plant">🌱 Chlorophyll</span>' },
+      { pattern: /ಸೂರ್ಯನ ಬೆಳಕು/g, html: '<span class="kw-pill kw-sun">☀️ ಸೂರ್ಯನ ಬೆಳಕು</span>' },
+      { pattern: /ಮಣ್ಣಿನ ನೀರು|ನೀರು/g, html: '<span class="kw-pill kw-water">💧 ನೀರು</span>' },
+      { pattern: /ಇಂಗಾಲದ ಡೈಆಕ್ಸೈಡ್/g, html: '<span class="kw-pill kw-co2">💨 ಇಂಗಾಲದ ಡೈಆಕ್ಸೈಡ್</span>' },
+      { pattern: /ಗ್ಲುಕೋಸ್ ಆಹಾರ|ಗ್ಲುಕೋಸ್/g, html: '<span class="kw-pill kw-sugar">🍬 ಗ್ಲುಕೋಸ್</span>' },
+      { pattern: /ಆಮ್ಲಜನಕ ಬಿಡುಗಡೆ|ಆಮ್ಲಜನಕ/g, html: '<span class="kw-pill kw-oxygen">🍃 ಆಮ್ಲಜನಕ</span>' },
+      { pattern: /सूर्य का प्रकाश|धूप/g, html: '<span class="kw-pill kw-sun">☀️ धूप</span>' },
+      { pattern: /मिट्टी से पानी|पानी/g, html: '<span class="kw-pill kw-water">💧 पानी</span>' },
+      { pattern: /कार्बन डाइऑक्साइड/g, html: '<span class="kw-pill kw-co2">💨 कार्बन डाइऑक्साइड</span>' },
+      { pattern: /ग्लूकोज भोजन|ग्लूकोज/g, html: '<span class="kw-pill kw-sugar">🍬 ग्लूकोज</span>' },
+      { pattern: /ताजी ऑक्सीजन|ऑक्सीजन/g, html: '<span class="kw-pill kw-oxygen">🍃 ऑक्सीजन</span>' }
+    ];
+
+    for (const { pattern, html } of replacements) {
+      let replaced = false;
+      safe = safe.replace(pattern, (match) => {
+        if (!replaced) {
+          replaced = true;
+          return html;
+        }
+        return match;
+      });
+    }
+
+    return safe;
+  }
+
+  /**
+   * Spring pop animation helper for cartoon hero image.
+   */
+  function animateCartoonPopReveal(imgEl) {
+    if (!imgEl) return;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      imgEl.style.opacity = '1';
+      imgEl.style.transform = 'none';
+      return;
+    }
+    if (typeof window !== 'undefined' && window.Motion && typeof window.Motion.animate === 'function') {
+      try {
+        window.Motion.animate(imgEl, {
+          opacity: [0, 1],
+          scale: [0.88, 1.04, 1]
+        }, {
+          duration: 0.65,
+          easing: [0.22, 1, 0.36, 1]
+        });
+        return;
+      } catch (_) {}
+    }
+    if (imgEl.classList) imgEl.classList.add('cartoon-pop-in');
+  }
+
   // Sample lesson-card for testing and scaffolding
   const SAMPLE_CARD = {
     mood: 'explaining',
@@ -497,8 +649,9 @@
         rawCitation
       );
 
-      return {
+      const out = {
         isRich: hasBlocks,
+        topic: input.topic || input.title || (rawMindMap && (rawMindMap.central || rawMindMap.topic)) || null,
         mood: typeof input.mood === 'string' ? input.mood : 'explaining',
         gradeTone: ['junior', 'middle', 'senior'].includes(input.gradeTone) ? input.gradeTone : 'junior',
         blocks: hasBlocks ? input.blocks : [],
@@ -511,6 +664,10 @@
         podcastScript: input.podcastScript || null,
         diagram: rawDiagram
       };
+      if (input.__diagramIllustrationPromise) out.__diagramIllustrationPromise = input.__diagramIllustrationPromise;
+      if (input.__diagramIllustrationUrl) out.__diagramIllustrationUrl = input.__diagramIllustrationUrl;
+      if (input.diagramIllustrationUrl) out.diagramIllustrationUrl = input.diagramIllustrationUrl;
+      return out;
     }
 
     if (typeof input !== 'string') {
@@ -811,6 +968,152 @@
   }
 
   /**
+   * Generates playful cartoon-styled HTML for sequential animated explanatory diagrams.
+   */
+  function buildCartoonExplanatoryDiagramHTML(diagram, options = {}) {
+    if (!diagram || !Array.isArray(diagram.parts) || diagram.parts.length < 2) return '';
+
+    const parts = diagram.parts;
+    const title = diagram.title || 'Interactive Topic Diagram';
+    const firstPart = parts[0] || {};
+    const colorClasses = ['amber', 'sky', 'purple', 'emerald', 'mint', 'coral'];
+
+    return `
+      <div class="cartoon-explanatory-diagram" role="region" aria-label="${escapeHTML(title)}">
+        <div class="cartoon-diagram-titlebar">
+          <div class="diagram-pill-title">
+            <span class="pill-sparkle" aria-hidden="true">✨</span>
+            <span class="pill-text">${escapeHTML(title)}</span>
+          </div>
+          <span class="cartoon-flow-hint"><i class="fa-solid fa-hand-pointer text-cyan" aria-hidden="true"></i> Tap step to explore</span>
+        </div>
+
+        <div class="cartoon-steps-strip" role="list">
+          ${parts.map((p, idx) => {
+            const color = p.color || colorClasses[idx % colorClasses.length];
+            const defaultEmoji = idx === 0 ? '☀️' : (idx === 1 ? '💧' : (idx === 2 ? '💨' : (idx === 3 ? '🍬' : '🍃')));
+            const emoji = p.emoji || defaultEmoji;
+            return `
+              <div class="cartoon-step-wrapper" role="listitem" style="--step-index: ${idx}">
+                <button type="button" class="cartoon-step-card step-color-${color} ${idx === 0 ? 'is-active' : ''}" data-part-id="${escapeHTML(p.id || `p${idx + 1}`)}" data-index="${idx}" aria-pressed="${idx === 0 ? 'true' : 'false'}" aria-label="Step ${idx + 1}: ${escapeHTML(p.label)}">
+                  <span class="step-num-pill">Step ${idx + 1}</span>
+                  <span class="step-emoji" aria-hidden="true">${emoji}</span>
+                  <span class="step-name">${escapeHTML(p.label)}</span>
+                  <span class="step-pulse-dot" aria-hidden="true"></span>
+                </button>
+                ${idx < parts.length - 1 ? `
+                  <div class="cartoon-flow-arrow" aria-hidden="true">
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="cartoon-explainer-bubble" role="status" aria-live="polite">
+          <div class="explainer-bubble-pointer" aria-hidden="true"></div>
+          <div class="explainer-avatar-side">
+            <span class="explainer-appu-emoji" aria-hidden="true">🐘</span>
+          </div>
+          <div class="explainer-content-side">
+            <div class="explainer-part-header">
+              <span class="explainer-badge-num">${firstPart.emoji || '☀️'} Step 1: ${escapeHTML(firstPart.label || '')}</span>
+            </div>
+            <p class="explainer-part-text">${escapeHTML(firstPart.explanation || firstPart.label || '')}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Wires interactive tap-to-explore on cartoon diagram step capsules and updates Appu's speech bubble.
+   */
+  function wireCartoonDiagramInteractions(container, diagram) {
+    if (!container || !diagram || !Array.isArray(diagram.parts)) return;
+
+    const stepCards = container.querySelectorAll ? container.querySelectorAll('.cartoon-step-card') : [];
+    const bubble = container.querySelector ? container.querySelector('.cartoon-explainer-bubble') : null;
+    const badgeNum = bubble && bubble.querySelector ? bubble.querySelector('.explainer-badge-num') : null;
+    const partText = bubble && bubble.querySelector ? bubble.querySelector('.explainer-part-text') : null;
+
+    stepCards.forEach((card, idx) => {
+      const part = diagram.parts[idx];
+      if (!part) return;
+
+      const activate = () => {
+        stepCards.forEach(c => {
+          if (c.classList) c.classList.remove('is-active');
+          if (typeof c.setAttribute === 'function') c.setAttribute('aria-pressed', 'false');
+        });
+        if (card.classList) card.classList.add('is-active');
+        if (typeof card.setAttribute === 'function') card.setAttribute('aria-pressed', 'true');
+
+        if (bubble) {
+          if (badgeNum) {
+            badgeNum.innerHTML = `${part.emoji || '✦'} Step ${idx + 1}: ${escapeHTML(part.label || '')}`;
+          }
+          if (partText) {
+            partText.textContent = part.explanation || part.label || '';
+          }
+
+          if (typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            if (window.Motion && typeof window.Motion.animate === 'function') {
+              try {
+                window.Motion.animate(bubble, {
+                  scale: [0.96, 1.02, 1],
+                  opacity: [0.75, 1]
+                }, {
+                  duration: 0.36,
+                  easing: [0.22, 1, 0.36, 1]
+                });
+                window.Motion.animate(card, {
+                  scale: [0.92, 1.06, 1]
+                }, {
+                  duration: 0.3,
+                  easing: [0.22, 1, 0.36, 1]
+                });
+              } catch (_) {}
+            } else if (bubble.classList) {
+              bubble.classList.remove('bubble-pop');
+              void bubble.offsetWidth;
+              bubble.classList.add('bubble-pop');
+            }
+          }
+        }
+      };
+
+      if (typeof card.addEventListener === 'function') {
+        card.addEventListener('click', activate);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            activate();
+          }
+        });
+      }
+    });
+
+    // Stagger animated reveal of cards using Motion library
+    if (typeof window !== 'undefined' && window.Motion && typeof window.Motion.animate === 'function') {
+      try {
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && stepCards.length > 0) {
+          window.Motion.animate(stepCards, {
+            opacity: [0, 1],
+            y: [14, 0],
+            scale: [0.9, 1]
+          }, {
+            delay: window.Motion.stagger(0.07, { start: 0.1 }),
+            duration: 0.5,
+            easing: [0.22, 1, 0.36, 1]
+          });
+        }
+      } catch (_) {}
+    }
+  }
+
+  /**
    * Renders a lesson card into a DOM element.
    * @param {object|string} card - Raw or parsed card object
    * @param {object} [options]
@@ -879,25 +1182,39 @@
             stickerHTML = `<span class="lesson-topic-sticker" title="${escapeHTML(cat.label)}" style="--cat-accent: ${cat.accentColor};"><span class="sticker-emoji">${cat.emoji}</span> <span class="sticker-label">${escapeHTML(cat.label)}</span></span>`;
           }
 
-          // 1. Hero AI Visual Image HTML (prominent hero)
+          // 0. Kid-Friendly Appu Speech Card (concise, kid-voice, keyword pills)
+          const kidVoiceHTML = formatKidVoiceHTML(block.text || data.plainText || '');
+          const speechCardHTML = kidVoiceHTML ? `
+            <div class="appu-kid-speech-card">
+              <div class="appu-avatar-badge">
+                <span class="appu-mini-avatar" aria-hidden="true">🐘</span>
+                <span class="appu-name-kicker">Appu's Take</span>
+              </div>
+              <div class="appu-speech-bubble">
+                <p class="appu-kid-speech-text">${kidVoiceHTML}</p>
+              </div>
+            </div>
+          ` : '';
+
+          // 1. Hero Cartoon Explanatory Image HTML (prominent hero)
           let heroImageHTML = '';
           if (existingIllustrationUrl) {
             heroImageHTML = `
-              <div class="lesson-hero-media-card has-image" data-active-source="ai">
-                <div class="hero-image-frame">
-                  <img class="hero-main-img" src="${existingIllustrationUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
+              <div class="lesson-hero-media-card has-image cartoon-hero-card" data-active-source="cartoon">
+                <div class="hero-image-frame cartoon-image-frame">
+                  <img class="hero-main-img cartoon-pop-in" src="${existingIllustrationUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
                   <div class="hero-media-badge-bar">
-                    <span class="hero-media-tag ai-tag"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i> AI Concept Visual</span>
-                    <span class="hero-media-source-pill">Grounded Topic</span>
+                    <span class="hero-media-tag ai-tag cartoon-tag"><i class="fa-solid fa-palette text-amber" aria-hidden="true"></i> Cartoon Explanation</span>
+                    <span class="hero-media-source-pill">Visual Hero</span>
                   </div>
                 </div>
               </div>
             `;
           } else {
             heroImageHTML = `
-              <div class="lesson-hero-media-card is-loading" role="status" aria-label="Painting visual illustration">
+              <div class="lesson-hero-media-card is-loading cartoon-hero-card" role="status" aria-label="Painting visual illustration">
                 <div class="hero-media-shimmer">
-                  <div class="shimmer-sparkle"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i></div>
+                  <div class="shimmer-sparkle"><i class="fa-solid fa-palette text-amber" aria-hidden="true"></i></div>
                   <span class="shimmer-text">Painting visual illustration for ${escapeHTML(topic)}...</span>
                 </div>
               </div>
@@ -943,6 +1260,7 @@
           }
 
           hookDiv.innerHTML = `
+            ${speechCardHTML}
             <div class="hook-kicker-row">
               <div class="hook-kicker"><i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i> <span>Did you know?</span></div>
               ${stickerHTML}
@@ -970,11 +1288,23 @@
             const heroCard = hookDiv.querySelector ? hookDiv.querySelector('.lesson-hero-media-card') : null;
             if (heroCard && heroCard.classList && heroCard.classList.contains('is-loading')) {
               const gradeToFetch = options.grade || (data && data.grade) || '6';
-              const imgPromise = data.__diagramIllustrationPromise || fetchStudyImage({
-                topic,
-                grade: gradeToFetch,
-                timeoutMs: options.imageTimeoutMs || 28000
-              });
+              const curatedUrl = getCuratedCartoonIllustration(topic);
+              const imgPromise = data.__diagramIllustrationPromise || (async () => {
+                try {
+                  const res = await fetchStudyImage({
+                    topic,
+                    grade: gradeToFetch,
+                    timeoutMs: options.imageTimeoutMs || 35000
+                  });
+                  if (res && res.imageUrl) return res;
+                } catch (err) {
+                  console.warn('[LessonCard] Study image fetch notice:', err);
+                }
+                if (curatedUrl) {
+                  return { imageUrl: curatedUrl, topic };
+                }
+                return null;
+              })();
 
               if (!data.__diagramIllustrationPromise) {
                 try {
@@ -987,37 +1317,83 @@
                 } catch (_) {
                   data.__diagramIllustrationPromise = imgPromise;
                 }
-              }
-
-              imgPromise.then(res => {
-                const currentHero = hookDiv.querySelector ? hookDiv.querySelector('.lesson-hero-media-card') : null;
-                if (!currentHero) return;
-                if (res && res.imageUrl) {
+                if (card && typeof card === 'object' && !card.__diagramIllustrationPromise) {
                   try {
-                    Object.defineProperty(data, '__diagramIllustrationUrl', {
-                      value: res.imageUrl,
+                    Object.defineProperty(card, '__diagramIllustrationPromise', {
+                      value: imgPromise,
                       writable: true,
                       enumerable: false,
                       configurable: true
                     });
                   } catch (_) {
-                    data.__diagramIllustrationUrl = res.imageUrl;
+                    card.__diagramIllustrationPromise = imgPromise;
+                  }
+                }
+              }
+
+              imgPromise.then(res => {
+                const currentHero = hookDiv.querySelector ? hookDiv.querySelector('.lesson-hero-media-card') : null;
+                if (!currentHero) return;
+                const finalImgUrl = (res && res.imageUrl) || curatedUrl;
+                if (finalImgUrl) {
+                  try {
+                    Object.defineProperty(data, '__diagramIllustrationUrl', {
+                      value: finalImgUrl,
+                      writable: true,
+                      enumerable: false,
+                      configurable: true
+                    });
+                  } catch (_) {
+                    data.__diagramIllustrationUrl = finalImgUrl;
+                  }
+                  if (card && typeof card === 'object') {
+                    try {
+                      Object.defineProperty(card, '__diagramIllustrationUrl', {
+                        value: finalImgUrl,
+                        writable: true,
+                        enumerable: false,
+                        configurable: true
+                      });
+                    } catch (_) {
+                      card.__diagramIllustrationUrl = finalImgUrl;
+                    }
                   }
 
-                  currentHero.className = 'lesson-hero-media-card has-image';
+                  currentHero.className = 'lesson-hero-media-card has-image cartoon-hero-card';
                   if (typeof currentHero.removeAttribute === 'function') {
                     currentHero.removeAttribute('role');
                     currentHero.removeAttribute('aria-label');
                   }
                   currentHero.innerHTML = `
-                    <div class="hero-image-frame">
-                      <img class="hero-main-img" src="${res.imageUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
+                    <div class="hero-image-frame cartoon-image-frame">
+                      <img class="hero-main-img cartoon-pop-in" src="${finalImgUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
                       <div class="hero-media-badge-bar">
-                        <span class="hero-media-tag ai-tag"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i> AI Concept Visual</span>
-                        <span class="hero-media-source-pill">Grounded Topic</span>
+                        <span class="hero-media-tag ai-tag cartoon-tag"><i class="fa-solid fa-palette text-amber" aria-hidden="true"></i> Cartoon Explanation</span>
+                        <span class="hero-media-source-pill">Visual Hero</span>
                       </div>
                     </div>
                   `;
+                  animateCartoonPopReveal(currentHero.querySelector ? currentHero.querySelector('.hero-main-img') : null);
+                } else {
+                  currentHero.style.display = 'none';
+                }
+              }).catch(() => {
+                const currentHero = hookDiv.querySelector ? hookDiv.querySelector('.lesson-hero-media-card') : null;
+                if (!currentHero) return;
+                if (curatedUrl) {
+                  currentHero.className = 'lesson-hero-media-card has-image cartoon-hero-card';
+                  currentHero.innerHTML = `
+                    <div class="hero-image-frame cartoon-image-frame">
+                      <img class="hero-main-img cartoon-pop-in" src="${curatedUrl}" alt="${escapeHTML(topic)}" loading="lazy" />
+                      <div class="hero-media-badge-bar">
+                        <span class="hero-media-tag ai-tag cartoon-tag"><i class="fa-solid fa-palette text-amber" aria-hidden="true"></i> Cartoon Explanation</span>
+                        <span class="hero-media-source-pill">Visual Hero</span>
+                      </div>
+                    </div>
+                  `;
+                  animateCartoonPopReveal(currentHero.querySelector ? currentHero.querySelector('.hero-main-img') : null);
+                } else {
+                  currentHero.style.display = 'none';
                 }
               });
             }
@@ -1157,6 +1533,23 @@
             }
           }
 
+          // Check for active cartoon animated diagram
+          let activeDiagram = null;
+          if (block.diagram && Array.isArray(block.diagram.parts) && block.diagram.parts.length >= 2) {
+            activeDiagram = normalizeDiagram(block.diagram, bCitationObj);
+          } else if (data.diagram && Array.isArray(data.diagram.parts) && data.diagram.parts.length >= 2) {
+            const diagTopic = (data.diagram.title || '').toLowerCase();
+            const curTopic = (title || central || data.plainText || '').toLowerCase();
+            if (diagTopic.includes('photo') === curTopic.includes('photo')) {
+              activeDiagram = normalizeDiagram(data.diagram, bCitationObj);
+            }
+          }
+
+          let cartoonDiagramHTML = '';
+          if (activeDiagram && Array.isArray(activeDiagram.parts) && activeDiagram.parts.length >= 2) {
+            cartoonDiagramHTML = buildCartoonExplanatoryDiagramHTML(activeDiagram, options);
+          }
+
           diagDiv.innerHTML = `
             <div class="diagram-header">
               <div class="diagram-header-left">
@@ -1171,6 +1564,7 @@
                 </div>
               ` : ''}
             </div>
+            ${cartoonDiagramHTML}
             ${title ? `<div class="diagram-meta"><h4 class="diagram-title">${escapeHTML(title)}</h4>${summary ? `<p class="diagram-summary">${escapeHTML(summary)}</p>` : ''}</div>` : (summary ? `<div class="diagram-meta"><p class="diagram-summary">${escapeHTML(summary)}</p>` : '')}
             <div class="diagram-canvas-wrap is-concept-mindmap" id="${diagId}-wrap">
               <div class="concept-tree-container">
@@ -1178,6 +1572,11 @@
               </div>
             </div>
           `;
+
+          if (activeDiagram && Array.isArray(activeDiagram.parts) && activeDiagram.parts.length >= 2) {
+            wireCartoonDiagramInteractions(diagDiv, activeDiagram);
+          }
+
           container.appendChild(diagDiv);
           purgeMermaidErrorElements();
           break;
@@ -3736,6 +4135,99 @@
   }
 
   /**
+   * Helper: Builds a delightful, visually-led response card with cartoon hero illustration,
+   * animated explanatory diagram, and punchy kid-voice summary.
+   * Powers both the Main App visual responses and the Landing Free Trial!
+   */
+  function buildVisualResponseCard(question = '', answer = '', grade = null, options = {}) {
+    const cleanAnswer = (typeof answer === 'string' && answer.trim()) ? answer.trim() : '';
+    const cleanQuestion = (typeof question === 'string' && question.trim()) ? question.trim() : 'Learning Mission';
+
+    const qLower = cleanQuestion.toLowerCase();
+    const aLower = cleanAnswer.toLowerCase();
+    const isPhotosynthesis = qLower.includes('photo') ||
+      aLower.includes('photo') ||
+      qLower.includes('plant') ||
+      qLower.includes('leaf') ||
+      qLower.includes('chloroplast') ||
+      qLower.includes('ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ') ||
+      aLower.includes('ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ') ||
+      qLower.includes('प्रकाश') ||
+      aLower.includes('प्रकाश') ||
+      Boolean(options && options.isPhotosynthesis);
+
+    const lang = options.language || (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) || 'en';
+
+    if (isPhotosynthesis) {
+      let diag = PHOTOSYNTHESIS_DIAGRAM;
+      if (lang === 'kn') diag = { ...PHOTOSYNTHESIS_DIAGRAM, ...PHOTOSYNTHESIS_DIAGRAM_KN };
+      else if (lang === 'hi') diag = { ...PHOTOSYNTHESIS_DIAGRAM, ...PHOTOSYNTHESIS_DIAGRAM_HI };
+
+      const friendlyText = lang === 'kn'
+        ? 'ಸಸ್ಯಗಳು ಸೂರ್ಯನ ಬೆಳಕು, ಮಣ್ಣಿನ ನೀರು ಮತ್ತು ಗಾಳಿಯ ಇಂಗಾಲದ ಡೈಆಕ್ಸೈಡ್ ಬಳಸಿ ಸಿಹಿಯಾದ ಗ್ಲುಕೋಸ್ ಆಹಾರ ತಯಾರಿಸುತ್ತವೆ ಮತ್ತು ನಮಗೆ ಶುದ್ಧ ಆಮ್ಲಜನಕವನ್ನು ನೀಡುತ್ತವೆ! 🍃✨'
+        : (lang === 'hi'
+            ? 'पौधे धूप, पानी और कार्बन डाइऑक्साइड से अपना मीठा ग्लूकोज भोजन बनाते हैं और हमारे लिए ताजी ऑक्सीजन छोड़ते हैं! 🍃✨'
+            : "Plants are nature's solar-powered chefs! ☀️ Using sunlight, water from soil, and carbon dioxide from the air, leaves cook sweet glucose sugar for energy and bubble out fresh oxygen for all of us to breathe! 🍃✨");
+
+      return {
+        isRich: true,
+        topic: 'Photosynthesis',
+        mood: 'explaining',
+        gradeTone: 'junior',
+        plainText: cleanAnswer || friendlyText,
+        citation: SAMPLE_CITATION,
+        blocks: [
+          {
+            type: 'hook',
+            text: friendlyText
+          },
+          {
+            type: 'diagram',
+            kind: 'mindmap',
+            title: diag.title,
+            central: 'Photosynthesis',
+            branches: SAMPLE_MIND_MAP.branches,
+            summary: 'Trace inputs, cellular reactions, and vital outputs',
+            citation: SAMPLE_CITATION,
+            diagram: diag
+          },
+          {
+            type: 'steps',
+            items: [
+              '1. Green leaves capture solar rays with chlorophyll',
+              '2. Roots absorb water and pump it to the leaves',
+              '3. Stomata breathe in carbon dioxide from the air',
+              '4. Solar kitchen cooks glucose sugar and releases fresh oxygen'
+            ]
+          },
+          {
+            type: 'check',
+            q: 'What sweet energy molecule do leaves produce to feed the plant?',
+            a: 'Glucose (Sugar)'
+          }
+        ],
+        diagram: diag,
+        mindMap: SAMPLE_MIND_MAP,
+        quizItems: SAMPLE_QUIZ_ITEMS,
+        flashcards: SAMPLE_FLASHCARDS,
+        studyGuide: SAMPLE_STUDY_GUIDE,
+        podcastScript: SAMPLE_PODCAST_SCRIPT
+      };
+    }
+
+    // For any general topic: construct grounded minimal card with hook block for cartoon hero
+    const baseCard = buildMinimalAnswerCard(cleanQuestion, cleanAnswer, grade, options);
+    const hasHook = baseCard.blocks.some(b => b.type === 'hook');
+    if (!hasHook) {
+      baseCard.blocks.unshift({
+        type: 'hook',
+        text: cleanAnswer.slice(0, 160)
+      });
+    }
+    return baseCard;
+  }
+
+  /**
    * Calls the live n8n Study Visualizer webhook and returns a parsed LessonCard.
    */
   async function fetchStudyVisualizer({ question, answer, grade = '6', language = 'en', timeoutMs = 22000, maxRetries = 1 } = {}) {
@@ -4121,18 +4613,26 @@
     return `https://${host}/${seg}/appu-study-image`;
   }
 
+  const _studyImageCache = new Map();
+
   /**
    * Calls the live n8n Study Image webhook and returns normalized { imageUrl, topic }.
    * Request JSON: { topic, grade }
    * Response JSON: { imageUrl: "data:image/png;base64,...", topic }
    */
-  async function fetchStudyImage({ topic, grade = '6', timeoutMs = 28000 } = {}) {
+  async function fetchStudyImage({ topic, grade = '6', timeoutMs = 35000 } = {}) {
     if (!topic || !String(topic).trim()) {
       return null;
     }
 
+    const cleanTopic = String(topic).trim();
+    const cacheKey = `${cleanTopic.toLowerCase()}_${grade || '6'}`;
+    if (_studyImageCache.has(cacheKey)) {
+      return _studyImageCache.get(cacheKey);
+    }
+
     const payload = {
-      topic: String(topic).trim(),
+      topic: cleanTopic,
       grade: String(grade || '6')
     };
 
@@ -4158,14 +4658,22 @@
         return null;
       }
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (_) {
+        data = null;
+      }
       const resultObj = Array.isArray(data) ? data[0] : (data?.data || data);
 
-      if (resultObj && typeof resultObj.imageUrl === 'string' && resultObj.imageUrl.startsWith('data:image/')) {
-        return {
+      if (resultObj && typeof resultObj.imageUrl === 'string' && (resultObj.imageUrl.startsWith('data:image/') || resultObj.imageUrl.startsWith('http') || resultObj.imageUrl.startsWith('./'))) {
+        const val = {
           imageUrl: resultObj.imageUrl,
           topic: resultObj.topic || topic
         };
+        _studyImageCache.set(cacheKey, val);
+        return val;
       }
       return null;
     } catch (err) {
@@ -4306,6 +4814,15 @@
     fetchOpenversePhotos,
     purgeMermaidErrorElements,
     getLottieCatalog,
-    resolveCategoryForCard
+    resolveCategoryForCard,
+    PHOTOSYNTHESIS_DIAGRAM,
+    PHOTOSYNTHESIS_DIAGRAM_KN,
+    PHOTOSYNTHESIS_DIAGRAM_HI,
+    getCuratedCartoonIllustration,
+    formatKidVoiceHTML,
+    animateCartoonPopReveal,
+    buildCartoonExplanatoryDiagramHTML,
+    wireCartoonDiagramInteractions,
+    buildVisualResponseCard
   };
 });

@@ -254,10 +254,10 @@ describe('PACK D: DOM & CSS Motion Invariants', () => {
   });
 
   test('index.html includes lottie-catalog.js before lesson-card-renderer.js', () => {
-    const lottieIdx = html.indexOf('lottie-catalog.js?v=20261005-11');
-    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20261005-11');
-    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20261005-11');
-    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20261005-11');
+    const lottieIdx = html.indexOf('lottie-catalog.js?v=20261005-12');
+    const rendererIdx = html.indexOf('lesson-card-renderer.js?v=20261005-12');
+    assert.ok(lottieIdx !== -1, 'lottie-catalog.js must be loaded with v=20261005-12');
+    assert.ok(rendererIdx !== -1, 'lesson-card-renderer.js must be loaded with v=20261005-12');
     assert.ok(lottieIdx < rendererIdx, 'lottie-catalog.js must be loaded before lesson-card-renderer.js');
   });
 

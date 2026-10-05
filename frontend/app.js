@@ -1839,6 +1839,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  window.showVoicePopup = showVoicePopup;
+  if (window.app) {
+    window.app.showVoicePopup = showVoicePopup;
+  }
+
   function updateVoicePopupCard(newCard) {
     if (!newCard) return;
     if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
@@ -1863,6 +1868,9 @@ document.addEventListener('DOMContentLoaded', () => {
         enumerable: false,
         configurable: true
       });
+    }
+    if (activePopupLessonCard && activePopupLessonCard.diagram && !newCard.diagram) {
+      newCard.diagram = activePopupLessonCard.diagram;
     }
     activePopupLessonCard = newCard;
     if (typeof window !== 'undefined') {
@@ -2226,12 +2234,15 @@ document.addEventListener('DOMContentLoaded', () => {
           (fullResult?.lessonCard?.quizItems?.length > 0 || fullResult?.lessonCard?.blocks?.some(b => b.type === 'check'))
         );
 
-        // 1) Prepare immediate loading card with plain text + shimmer Concept Map
+        // 1) Prepare visual response card: unique, fun, visual response
+        const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
         const initialCard = hasCompleteCard
           ? fullResult.lessonCard
-          : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
-              ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
-              : (fullResult ? fullResult.lessonCard : null));
+          : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildVisualResponseCard === 'function')
+              ? LessonCardRenderer.buildVisualResponseCard(text, reply, childGrade, { language: currentLangCode })
+              : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+                  ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
+                  : (fullResult ? fullResult.lessonCard : null)));
 
         // 2) Close typing drawer if open and render stage presentation for EVERY real answer
         const chatDrawer = document.getElementById('chat-drawer');
@@ -2250,7 +2261,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 4) In parallel: call Study Visualizer brain if complete card not already present
         if (!hasCompleteCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
-          const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
           LessonCardRenderer.fetchStudyVisualizer({
             question: text,
             answer: reply,
@@ -2276,6 +2286,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (finalCard) {
+              if (!finalCard.diagram && initialCard && initialCard.diagram) {
+                finalCard.diagram = initialCard.diagram;
+              }
+              if (!finalCard.__diagramIllustrationUrl && initialCard && initialCard.__diagramIllustrationUrl) {
+                finalCard.__diagramIllustrationUrl = initialCard.__diagramIllustrationUrl;
+              }
               updateVoicePopupCard(finalCard);
               if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
                 chatAgent.updateLastAppuMessageCard(finalCard);
