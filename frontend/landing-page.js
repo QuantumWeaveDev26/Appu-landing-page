@@ -27,6 +27,7 @@
       landingCtaSub: 'No sign-up needed to try',
       landingSpeechBubble: '"Let\'s learn your way."',
       landingMascotSpeech: "Hi! Let's learn 🚀",
+      landingMascotEncourage: "Ready when you are! 🚀",
       landingMentorRole: 'Your AI learning mentor',
       landingMentorAlt: 'APPU — Your AI learning mentor',
       landingValue1: 'Understand clearly',
@@ -75,6 +76,7 @@
       landingCtaSub: 'ಪ್ರಯತ್ನಿಸಲು ಸೈನ್-ಅಪ್ ಅಗತ್ಯವಿಲ್ಲ',
       landingSpeechBubble: '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."',
       landingMascotSpeech: 'ನಮಸ್ಕಾರ! ಕಲಿಯೋಣ 🚀',
+      landingMascotEncourage: 'ನೀವು ಸಿದ್ಧರಿದ್ದಾಗ ಪ್ರಾರಂಭಿಸೋಣ! 🚀',
       landingMentorRole: 'ನಿಮ್ಮ ಎಐ ಕಲಿಕಾ ಮಾರ್ಗದರ್ಶಕ',
       landingMentorAlt: 'ಅಪ್ಪು — ನಿಮ್ಮ ಎಐ ಕಲಿಕಾ ಮಾರ್ಗದರ್ಶಕ',
       landingValue1: 'ಸ್ಪಷ್ಟವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
@@ -123,6 +125,7 @@
       landingCtaSub: 'आज़माने के लिए साइन-अप की ज़रूरत नहीं',
       landingSpeechBubble: '"आइए आपके तरीके से सीखें।"',
       landingMascotSpeech: 'नमस्ते! चलिए सीखें 🚀',
+      landingMascotEncourage: 'जब आप तैयार हों, तब शुरू करें! 🚀',
       landingMentorRole: 'आपका एआई लर्निंग मेंटर',
       landingMentorAlt: 'अप्पू — आपका एआई लर्निंग मेंटर',
       landingValue1: 'स्पष्ट रूप से समझें',
@@ -292,6 +295,196 @@
             this.showLanding();
           }
         });
+      }
+
+      this.initHeroMotionCraft();
+    },
+
+    initHeroMotionCraft() {
+      const win = getWin();
+      if (typeof document === 'undefined') return;
+
+      const prefersReduced = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const revealElements = document.querySelectorAll('.landing-scroll-reveal');
+
+      // 1. Tasteful Scroll Reveal (Observer)
+      if (revealElements.length > 0) {
+        if (prefersReduced || !('IntersectionObserver' in win)) {
+          revealElements.forEach(el => el.classList.add('is-revealed'));
+        } else {
+          try {
+            const observer = new IntersectionObserver((entries, obs) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('is-revealed');
+                  obs.unobserve(entry.target);
+                }
+              });
+            }, {
+              threshold: 0.12,
+              rootMargin: '0px 0px -30px 0px'
+            });
+            revealElements.forEach(el => observer.observe(el));
+          } catch (_) {
+            revealElements.forEach(el => el.classList.add('is-revealed'));
+          }
+        }
+      }
+
+      const mascot = document.getElementById('landing-mascot-companion');
+      const mascotArm = document.getElementById('mascot-arm-right-group');
+      const mascotFace = document.getElementById('mascot-face-expr');
+      const mascotSpeech = document.getElementById('landing-mascot-speech-text');
+      const btnTryFree = document.getElementById('landing-btn-try-free');
+      const mentorCard = document.getElementById('landing-mentor-card');
+      const cardGlare = document.getElementById('landing-card-glare');
+      const hero = document.querySelector('.landing-hero');
+      const depthElements = document.querySelectorAll('#landing-depth-field [data-depth]');
+
+      // 2. Mascot Interactive CTA Hover (Hop, wave & encourage speech swap)
+      if (btnTryFree && mascot) {
+        const handleCtaEnter = () => {
+          mascot.classList.add('is-hopping');
+          if (mascotArm) mascotArm.classList.add('is-waving');
+          if (mascotSpeech) {
+            const dict = this.translations[this.currentLang] || this.translations.en;
+            if (dict && dict.landingMascotEncourage) {
+              mascotSpeech.textContent = dict.landingMascotEncourage;
+            }
+          }
+        };
+
+        const handleCtaLeave = () => {
+          mascot.classList.remove('is-hopping');
+          if (mascotArm) mascotArm.classList.remove('is-waving');
+          if (mascotSpeech) {
+            const dict = this.translations[this.currentLang] || this.translations.en;
+            if (dict && dict.landingMascotSpeech) {
+              mascotSpeech.textContent = dict.landingMascotSpeech;
+            }
+          }
+        };
+
+        btnTryFree.addEventListener('mouseenter', handleCtaEnter);
+        btnTryFree.addEventListener('mouseleave', handleCtaLeave);
+        btnTryFree.addEventListener('focus', handleCtaEnter);
+        btnTryFree.addEventListener('blur', handleCtaLeave);
+
+        // Mascot itself can also be tapped/hovered playfully
+        mascot.addEventListener('mouseenter', handleCtaEnter);
+        mascot.addEventListener('mouseleave', handleCtaLeave);
+      }
+
+      // If reduced motion is requested, stop here (no tilt or parallax listeners)
+      if (prefersReduced) return;
+
+      // 3. Mascot Natural Blink Cycle (every ~4-6 seconds)
+      const scheduleBlink = () => {
+        const delay = 4000 + Math.random() * 2000;
+        setTimeout(() => {
+          if (mascotFace && !mascotFace.classList.contains('is-blinking')) {
+            mascotFace.classList.add('is-blinking');
+            setTimeout(() => {
+              if (mascotFace) mascotFace.classList.remove('is-blinking');
+              scheduleBlink();
+            }, 180);
+          } else {
+            scheduleBlink();
+          }
+        }, delay);
+      };
+      scheduleBlink();
+
+      // 4. Cursor-Aware Depth Parallax, 3D Card Tilt, Sheen Glare & Pupil Tracking
+      if (hero) {
+        let rafId = null;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        const updateFrame = () => {
+          rafId = null;
+          if (!hero) return;
+          const rect = hero.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) return;
+
+          // Normalized coordinates (-1 to 1)
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const normX = Math.max(-1, Math.min(1, (mouseX - centerX) / (rect.width / 2)));
+          const normY = Math.max(-1, Math.min(1, (mouseY - centerY) / (rect.height / 2)));
+
+          // A) Depth Orbs & Vector Glyphs Parallax
+          if (depthElements && depthElements.length > 0) {
+            depthElements.forEach(el => {
+              const depth = parseFloat(el.getAttribute('data-depth')) || 0.05;
+              const px = normX * depth * 220;
+              const py = normY * depth * 220;
+              el.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0)`;
+            });
+          }
+
+          // B) 3D Tilt on Mentor Card (capped at ~6deg) & Glare Sheen
+          if (mentorCard && (win.innerWidth || 1024) > 768) {
+            const rotX = -normY * 6; // pointer up tilts card up
+            const rotY = normX * 6;  // pointer right tilts card right
+            mentorCard.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+            mentorCard.classList.add('is-tilted');
+
+            if (cardGlare) {
+              const cardRect = mentorCard.getBoundingClientRect();
+              if (cardRect.width > 0 && cardRect.height > 0) {
+                const glareX = Math.max(0, Math.min(100, ((mouseX - cardRect.left) / cardRect.width) * 100));
+                const glareY = Math.max(0, Math.min(100, ((mouseY - cardRect.top) / cardRect.height) * 100));
+                cardGlare.style.background = `radial-gradient(circle at ${glareX.toFixed(1)}% ${glareY.toFixed(1)}%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 65%)`;
+              }
+            }
+          }
+
+          // C) Mascot Pupil Tracking (moves slightly towards cursor)
+          if (mascot && mascotFace) {
+            const mRect = mascot.getBoundingClientRect();
+            const mCenterX = mRect.left + mRect.width / 2;
+            const mCenterY = mRect.top + mRect.height / 2;
+            const dx = mouseX - mCenterX;
+            const dy = mouseY - mCenterY;
+            const dist = Math.hypot(dx, dy) || 1;
+            const maxShift = 2.4; // px
+            const pupilX = (dx / dist) * Math.min(maxShift, Math.abs(dx) * 0.04);
+            const pupilY = (dy / dist) * Math.min(maxShift, Math.abs(dy) * 0.04);
+            mascotFace.style.transform = `translate(${pupilX.toFixed(1)}px, ${pupilY.toFixed(1)}px)`;
+          }
+        };
+
+        const onPointerMove = (e) => {
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+          if (!rafId && win.requestAnimationFrame) {
+            rafId = win.requestAnimationFrame(updateFrame);
+          }
+        };
+
+        const onPointerLeave = () => {
+          if (rafId && win.cancelAnimationFrame) {
+            win.cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+          // Smooth return to resting state
+          if (depthElements && depthElements.length > 0) {
+            depthElements.forEach(el => {
+              el.style.transform = 'translate3d(0, 0, 0)';
+            });
+          }
+          if (mentorCard) {
+            mentorCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
+            mentorCard.classList.remove('is-tilted');
+          }
+          if (mascotFace) {
+            mascotFace.style.transform = 'translate(0, 0)';
+          }
+        };
+
+        hero.addEventListener('pointermove', onPointerMove, { passive: true });
+        hero.addEventListener('pointerleave', onPointerLeave);
       }
     },
 
