@@ -315,22 +315,79 @@ body.view-app #app-shell {
 .depth-orb.orb-11 { bottom: 28%; right: 4%; width: 40px; height: 40px; background: radial-gradient(circle, rgba(52, 211, 153, 0.32) 0%, transparent 80%); filter: blur(10px); }
 .depth-orb.orb-12 { top: 42%; left: 22%; width: 24px; height: 24px; background: radial-gradient(circle, rgba(14, 165, 233, 0.35) 0%, transparent 80%); filter: blur(6px); }
 
-/* Minimalist Custom Vector Glyphs (Subtle, Tinted, Parallaxing, ZERO Emoji) */
-.landing-vector-glyph {
+/* Living Science & Geometric 3D Objects (Crisp SVG, Hairline Strokes, Translucent Fills) */
+.sci-obj {
   position: absolute;
   pointer-events: none;
   user-select: none;
+  z-index: 1;
   will-change: transform;
-  opacity: 0.72;
-  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
 
-.glyph-atom { top: 14%; left: 18%; color: #6366f1; }
-.glyph-sparkle { top: 62%; left: 28%; color: #f59e0b; }
-.glyph-compass { top: 16%; right: 22%; color: #0ea5c4; }
-.glyph-orbit { bottom: 18%; right: 26%; color: #10b981; }
+.sci-obj-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.sci-svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.04));
+}
+
+/* Placements & Spatial Depths (Balanced density, breathing room) */
+.obj-cube {
+  top: 7%;
+  left: 3.5%;
+  opacity: 0.85;
+}
+
+.obj-atom {
+  top: 13%;
+  left: 47%;
+  opacity: 0.9;
+}
+
+.obj-planet {
+  top: 7%;
+  right: 7%;
+  opacity: 0.85;
+}
+
+.obj-molecule {
+  top: 76%;
+  left: 4%;
+  opacity: 0.75;
+}
+
+.obj-polyhedron {
+  top: 82%;
+  left: 42%;
+  opacity: 0.8;
+}
+
+.obj-dna {
+  top: 73%;
+  right: 4%;
+  opacity: 0.8;
+}
+
+.obj-torus {
+  top: 42%;
+  left: 1.5%;
+  opacity: 0.7;
+}
+
+.obj-math {
+  top: 22%;
+  left: 23%;
+  opacity: 0.65;
+}
 
 /* Backward compatibility motif rules if needed */
+.landing-vector-glyph,
 .landing-floating-motif {
   position: absolute;
   pointer-events: none;
@@ -1413,6 +1470,35 @@ body.view-app #app-shell {
   .depth-orb.orb-12 {
     display: none;
   }
+  /* Mobile Science & Geometric Objects: Keep only 3 subtle, clean objects in safe corners */
+  .sci-obj.obj-cube,
+  .sci-obj.obj-molecule,
+  .sci-obj.obj-polyhedron,
+  .sci-obj.obj-torus,
+  .sci-obj.obj-math {
+    display: none !important;
+  }
+  .sci-obj.obj-atom {
+    top: 5%;
+    left: 2%;
+    opacity: 0.55;
+    transform: scale(0.65);
+    transform-origin: top left;
+  }
+  .sci-obj.obj-planet {
+    top: 5%;
+    right: 3%;
+    opacity: 0.55;
+    transform: scale(0.65);
+    transform-origin: top right;
+  }
+  .sci-obj.obj-dna {
+    top: 80%;
+    right: 2%;
+    opacity: 0.45;
+    transform: scale(0.6);
+    transform-origin: bottom right;
+  }
   .landing-mentor-card {
     transform: none !important;
   }
@@ -1461,6 +1547,11 @@ body.view-app #app-shell {
   .landing-aurora-glow,
   .depth-orb,
   .landing-vector-glyph,
+  .sci-obj,
+  .sci-obj-inner,
+  .atom-orbit-group,
+  .planet-moon-orbit,
+  .gyro-ring,
   .landing-kicker,
   .landing-hero-title,
   .landing-hero-highlight,

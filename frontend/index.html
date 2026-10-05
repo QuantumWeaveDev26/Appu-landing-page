@@ -31,9 +31,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261005-07">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261005-07">
-  <link rel="stylesheet" href="landing-page.css?v=20261005-07">
+  <link rel="stylesheet" href="style.css?v=20261005-08">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261005-08">
+  <link rel="stylesheet" href="landing-page.css?v=20261005-08">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -136,18 +136,178 @@
         <div class="depth-orb orb-11" data-depth="0.08"></div>
         <div class="depth-orb orb-12" data-depth="0.04"></div>
 
-        <!-- 4 Crisp Minimalist Vector Glyphs (Subtly tinted, parallaxing, zero emojis) -->
-        <div class="landing-vector-glyph glyph-atom" data-depth="0.05" aria-hidden="true">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(-30 12 12)"/></svg>
+        <!-- High-Craft Geometric & Science Objects (Motion.dev Physics & Parallax) -->
+        <!-- 1. Wireframe Cube (Isometric 3D) -->
+        <div class="sci-obj obj-cube" data-depth="0.06" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="50" height="50">
+              <!-- Top Face -->
+              <polygon points="32,10 52,21.5 32,33 12,21.5" fill="rgba(14, 165, 233, 0.08)" stroke="#0ea5e9" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Left Face -->
+              <polygon points="12,21.5 32,33 32,55 12,43.5" fill="rgba(99, 102, 241, 0.06)" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Right Face -->
+              <polygon points="32,33 52,21.5 52,43.5 32,55" fill="rgba(14, 165, 233, 0.04)" stroke="#0284c7" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Nodes -->
+              <circle cx="32" cy="10" r="1.5" fill="#38bdf8" />
+              <circle cx="52" cy="21.5" r="1.5" fill="#38bdf8" />
+              <circle cx="12" cy="21.5" r="1.5" fill="#38bdf8" />
+              <circle cx="32" cy="33" r="2" fill="#818cf8" />
+              <circle cx="32" cy="55" r="1.5" fill="#38bdf8" />
+              <line x1="32" y1="33" x2="32" y2="10" stroke="rgba(14, 165, 233, 0.3)" stroke-width="1" stroke-dasharray="2 2" />
+            </svg>
+          </div>
         </div>
-        <div class="landing-vector-glyph glyph-sparkle" data-depth="0.07" aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z"/></svg>
+
+        <!-- 2. Rutherford-Bohr Atom (Nucleus + 3 Rotating Electron Orbits) -->
+        <div class="sci-obj obj-atom" data-depth="0.08" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 72 72" width="58" height="58">
+              <!-- Nucleus Glow & Core -->
+              <circle cx="36" cy="36" r="6" fill="rgba(14, 165, 233, 0.22)" />
+              <circle cx="36" cy="36" r="3.5" fill="#0ea5e9" />
+              <!-- Orbit 1 (Horizontal / 0 deg) -->
+              <g class="atom-orbit-group orbit-1" transform-origin="36 36">
+                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#0ea5e9" stroke-width="1.3" opacity="0.85" />
+                <circle cx="66" cy="36" r="2.2" fill="#38bdf8" />
+              </g>
+              <!-- Orbit 2 (60 deg tilt) -->
+              <g class="atom-orbit-group orbit-2" transform-origin="36 36">
+                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#10b981" stroke-width="1.3" opacity="0.85" transform="rotate(60 36 36)" />
+                <circle cx="51" cy="62" r="2.2" fill="#34d399" />
+              </g>
+              <!-- Orbit 3 (120 deg tilt) -->
+              <g class="atom-orbit-group orbit-3" transform-origin="36 36">
+                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#a855f7" stroke-width="1.3" opacity="0.85" transform="rotate(120 36 36)" />
+                <circle cx="21" cy="62" r="2.2" fill="#c084fc" />
+              </g>
+            </svg>
+          </div>
         </div>
-        <div class="landing-vector-glyph glyph-compass" data-depth="0.04" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+
+        <!-- 3. Saturnian Planet with Ring + Orbiting Moon -->
+        <div class="sci-obj obj-planet motif-planet" data-depth="0.04" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 68 68" width="54" height="54">
+              <defs>
+                <radialGradient id="sci-planet-body" cx="40%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#fef08a" />
+                  <stop offset="60%" stop-color="#f59e0b" />
+                  <stop offset="100%" stop-color="#d97706" />
+                </radialGradient>
+              </defs>
+              <!-- Moon Orbit & Moon -->
+              <g class="planet-moon-orbit" transform-origin="34 34">
+                <ellipse cx="34" cy="34" rx="27" ry="11" fill="none" stroke="rgba(245, 158, 11, 0.28)" stroke-width="1" stroke-dasharray="2 3" transform="rotate(-20 34 34)" />
+                <circle cx="59" cy="25" r="2.2" fill="#10b981" />
+              </g>
+              <!-- Back of Planetary Ring -->
+              <path d="M12 34 A24 8 0 0 1 56 34" fill="none" stroke="#fbbf24" stroke-width="1.6" opacity="0.6" transform="rotate(-15 34 34)" />
+              <!-- Planet Body -->
+              <circle cx="34" cy="34" r="13" fill="url(#sci-planet-body)" />
+              <!-- Front of Planetary Ring -->
+              <path d="M56 34 A24 8 0 0 1 12 34" fill="none" stroke="#fbbf24" stroke-width="1.8" transform="rotate(-15 34 34)" />
+            </svg>
+          </div>
         </div>
-        <div class="landing-vector-glyph glyph-orbit motif-planet" data-depth="0.06" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4.5 16.5c3-6 12-6 15 0"/><circle cx="12" cy="7" r="3"/><circle cx="18" cy="16" r="1.5" fill="currentColor"/></svg>
+
+        <!-- 4. Benzene Molecular Lattice with Bonded Nodes -->
+        <div class="sci-obj obj-molecule" data-depth="0.04" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="48" height="48">
+              <!-- Central Hexagon -->
+              <polygon points="32,15 47,23.5 47,40.5 32,49 17,40.5 17,23.5" fill="rgba(16, 185, 129, 0.06)" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Inner Resonance Circle -->
+              <circle cx="32" cy="32" r="8" fill="none" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3 2" />
+              <!-- Outer Bonded Node Stems & Atoms -->
+              <line x1="32" y1="15" x2="32" y2="7" stroke="#10b981" stroke-width="1.4" />
+              <circle cx="32" cy="6" r="3" fill="#10b981" />
+              <line x1="47" y1="40.5" x2="55" y2="45" stroke="#0ea5e9" stroke-width="1.4" />
+              <circle cx="56" cy="45.5" r="2.5" fill="#0ea5e9" />
+              <line x1="17" y1="40.5" x2="9" y2="45" stroke="#a855f7" stroke-width="1.4" />
+              <circle cx="8" cy="45.5" r="2.5" fill="#a855f7" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 5. Faceted Polyhedron / Geodesic Tetrahedron -->
+        <div class="sci-obj obj-polyhedron" data-depth="0.06" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="50" height="50">
+              <!-- Facets -->
+              <polygon points="32,32 32,11 49,21" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 49,21 49,43" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 49,43 32,53" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 32,53 15,43" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 15,43 15,21" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 15,21 32,11" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <!-- Nodes -->
+              <circle cx="32" cy="32" r="2.5" fill="#c084fc" />
+              <circle cx="32" cy="11" r="1.5" fill="#c084fc" />
+              <circle cx="49" cy="21" r="1.5" fill="#c084fc" />
+              <circle cx="49" cy="43" r="1.5" fill="#c084fc" />
+              <circle cx="32" cy="53" r="1.5" fill="#c084fc" />
+              <circle cx="15" cy="43" r="1.5" fill="#c084fc" />
+              <circle cx="15" cy="21" r="1.5" fill="#c084fc" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 6. DNA Double-Helix Curve -->
+        <div class="sci-obj obj-dna" data-depth="0.05" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 44 76" width="36" height="62">
+              <!-- Base Pair Rungs -->
+              <line x1="14" y1="12" x2="30" y2="12" stroke="#38bdf8" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="12" r="1.4" fill="#0ea5e9" />
+              <line x1="10" y1="24" x2="34" y2="24" stroke="#fbbf24" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="24" r="1.4" fill="#f59e0b" />
+              <line x1="14" y1="36" x2="30" y2="36" stroke="#34d399" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="36" r="1.4" fill="#10b981" />
+              <line x1="10" y1="48" x2="34" y2="48" stroke="#38bdf8" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="48" r="1.4" fill="#0ea5e9" />
+              <line x1="14" y1="60" x2="30" y2="60" stroke="#fbbf24" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="60" r="1.4" fill="#f59e0b" />
+              <!-- Twin Sinusoidal Strands -->
+              <path d="M12,4 C34,16 34,20 12,32 C-10,44 -10,48 12,60 C34,72 34,76 12,88" fill="none" stroke="#0ea5e9" stroke-width="1.6" stroke-linecap="round" />
+              <path d="M32,4 C10,16 10,20 32,32 C54,44 54,48 32,60 C10,72 10,76 32,88" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 7. Torus / Nested Gyroscope Gimbal Rings -->
+        <div class="sci-obj obj-torus" data-depth="0.03" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="48" height="48">
+              <!-- Outer Ring -->
+              <circle cx="32" cy="32" r="26" fill="none" stroke="#f59e0b" stroke-width="1.4" opacity="0.8" />
+              <!-- Middle Ring -->
+              <g class="gyro-ring gyro-ring-mid" transform-origin="32 32">
+                <ellipse cx="32" cy="32" rx="25" ry="13" fill="none" stroke="#10b981" stroke-width="1.3" opacity="0.85" transform="rotate(35 32 32)" />
+              </g>
+              <!-- Inner Ring -->
+              <g class="gyro-ring gyro-ring-inner" transform-origin="32 32">
+                <ellipse cx="32" cy="32" rx="13" ry="24" fill="none" stroke="#0ea5e9" stroke-width="1.3" opacity="0.85" transform="rotate(-35 32 32)" />
+              </g>
+              <!-- Central Jewel Node -->
+              <circle cx="32" cy="32" r="2.8" fill="#fbbf24" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 8. Mathematical Precision Lemniscate & Calculus Glyph -->
+        <div class="sci-obj obj-math" data-depth="0.04" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 60 52" width="44" height="38">
+              <!-- Lemniscate (Infinity Loop) -->
+              <path d="M30,26 C22,14 10,14 10,26 C10,38 22,38 30,26 C38,14 50,14 50,26 C50,38 38,38 30,26 Z" fill="rgba(139, 92, 246, 0.07)" stroke="#8b5cf6" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Integral Symbol -->
+              <path d="M30,8 C33,8 33,14 31,21 L29,31 C27,38 27,44 30,44" fill="none" stroke="#06b6d4" stroke-width="1.4" stroke-linecap="round" />
+              <!-- Harmonic Node Points -->
+              <circle cx="10" cy="26" r="1.5" fill="#a855f7" />
+              <circle cx="50" cy="26" r="1.5" fill="#a855f7" />
+              <circle cx="30" cy="26" r="2" fill="#38bdf8" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -1277,25 +1437,25 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261005-07"></script>
-  <script src="appu-config.js?v=20261005-07"></script>
-  <script src="appu-session.js?v=20261005-07"></script>
-  <script src="appu-backend-client.js?v=20261005-07"></script>
-  <script src="parent-onboarding-shell.js?v=20261005-07"></script>
-  <script src="parent-setup-ui.js?v=20261005-07"></script>
-  <script src="prompt-library-ui.js?v=20261005-07"></script>
-  <script src="avatar-stage.js?v=20261005-07"></script>
-  <script src="mascot-avatar.js?v=20261005-07"></script>
-  <script src="lottie-catalog.js?v=20261005-07"></script>
-  <script src="lesson-card-renderer.js?v=20261005-07"></script>
-  <script src="voice-engine.js?v=20261005-07"></script>
-  <script src="chat-history.js?v=20261005-07"></script>
-  <script src="chat-agent.js?v=20261005-07"></script>
-  <script src="parent-reports-ui.js?v=20261005-07"></script>
-  <script src="parental-controls-ui.js?v=20261005-07"></script>
-  <script src="saved-lessons-ui.js?v=20261005-07"></script>
-  <script src="app.js?v=20261005-07"></script>
-  <script src="landing-page.js?v=20261005-07"></script>
+  <script src="voice-contract.js?v=20261005-08"></script>
+  <script src="appu-config.js?v=20261005-08"></script>
+  <script src="appu-session.js?v=20261005-08"></script>
+  <script src="appu-backend-client.js?v=20261005-08"></script>
+  <script src="parent-onboarding-shell.js?v=20261005-08"></script>
+  <script src="parent-setup-ui.js?v=20261005-08"></script>
+  <script src="prompt-library-ui.js?v=20261005-08"></script>
+  <script src="avatar-stage.js?v=20261005-08"></script>
+  <script src="mascot-avatar.js?v=20261005-08"></script>
+  <script src="lottie-catalog.js?v=20261005-08"></script>
+  <script src="lesson-card-renderer.js?v=20261005-08"></script>
+  <script src="voice-engine.js?v=20261005-08"></script>
+  <script src="chat-history.js?v=20261005-08"></script>
+  <script src="chat-agent.js?v=20261005-08"></script>
+  <script src="parent-reports-ui.js?v=20261005-08"></script>
+  <script src="parental-controls-ui.js?v=20261005-08"></script>
+  <script src="saved-lessons-ui.js?v=20261005-08"></script>
+  <script src="app.js?v=20261005-08"></script>
+  <script src="landing-page.js?v=20261005-08"></script>
 
   <!-- Motion (motion.dev) Pro-Grade Physics Engine for Marketing Landing (ESM, Lazy, Fail-Safe) -->
   <script type="module">

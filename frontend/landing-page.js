@@ -577,7 +577,136 @@
         hero.addEventListener('pointerleave', onPointerLeave);
       }
 
-      // 3. GESTURES: hover() and press()
+      // 3. LIVING GEOMETRIC & SCIENCE OBJECTS (Continuous float, drift, rotation, and sub-orbits)
+      const sciObjects = document.querySelectorAll('.sci-obj');
+      const activeLoops = [];
+
+      if (sciObjects.length > 0 && typeof animate === 'function') {
+        sciObjects.forEach((obj, idx) => {
+          const inner = obj.querySelector('.sci-obj-inner') || obj;
+
+          // Varied periods (14s to 28s) and directional offsets for organic, unsynchronized float
+          const durations = [18, 22, 16, 26, 20, 24, 25, 19];
+          const dur = durations[idx % durations.length];
+
+          const yDeltas = [-14, -18, -12, -15, -13, -16, -11, -12];
+          const xDeltas = [8, -10, 6, -7, 9, -8, 6, -6];
+          const yOff = yDeltas[idx % yDeltas.length];
+          const xOff = xDeltas[idx % xDeltas.length];
+
+          const rotDeltas = [
+            [-8, 12, -4, -8],
+            [-6, 8, -6],
+            [-10, 10, -10],
+            [0, 180, 360],
+            [-6, 12, -6],
+            [-8, 8, -8],
+            [-5, 8, -5],
+            [-8, 6, -8]
+          ];
+          const rotAnim = rotDeltas[idx % rotDeltas.length];
+
+          try {
+            const floatLoop = animate(inner, {
+              y: [0, yOff, -yOff * 0.6, 0],
+              x: [0, xOff, -xOff * 0.5, 0],
+              rotate: rotAnim
+            }, {
+              duration: dur,
+              repeat: Infinity,
+              ease: "easeInOut"
+            });
+            activeLoops.push(floatLoop);
+          } catch (_) {}
+        });
+
+        // Sub-motion: Electron orbits in Rutherford atom
+        const atomOrbits = [
+          { sel: '.obj-atom .orbit-1', dur: 12, dir: [0, 360] },
+          { sel: '.obj-atom .orbit-2', dur: 16, dir: [60, 420] },
+          { sel: '.obj-atom .orbit-3', dur: 14, dir: [120, -240] }
+        ];
+        atomOrbits.forEach(cfg => {
+          const el = document.querySelector(cfg.sel);
+          if (el) {
+            try {
+              const loop = animate(el, {
+                rotate: cfg.dir
+              }, {
+                duration: cfg.dur,
+                repeat: Infinity,
+                ease: "linear"
+              });
+              activeLoops.push(loop);
+            } catch (_) {}
+          }
+        });
+
+        // Sub-motion: Moon orbit around Saturnian planet
+        const moonOrbit = document.querySelector('.obj-planet .planet-moon-orbit');
+        if (moonOrbit) {
+          try {
+            const loop = animate(moonOrbit, {
+              rotate: [0, 360]
+            }, {
+              duration: 15,
+              repeat: Infinity,
+              ease: "linear"
+            });
+            activeLoops.push(loop);
+          } catch (_) {}
+        }
+
+        // Sub-motion: Concentric Gyroscope Rings
+        const gyroMid = document.querySelector('.obj-torus .gyro-ring-mid');
+        if (gyroMid) {
+          try {
+            const loop = animate(gyroMid, {
+              rotate: [0, 360]
+            }, {
+              duration: 18,
+              repeat: Infinity,
+              ease: "linear"
+            });
+            activeLoops.push(loop);
+          } catch (_) {}
+        }
+        const gyroInner = document.querySelector('.obj-torus .gyro-ring-inner');
+        if (gyroInner) {
+          try {
+            const loop = animate(gyroInner, {
+              rotate: [360, 0]
+            }, {
+              duration: 14,
+              repeat: Infinity,
+              ease: "linear"
+            });
+            activeLoops.push(loop);
+          } catch (_) {}
+        }
+
+        // Pause all animation loops when hero section is offscreen
+        if ('IntersectionObserver' in win && hero) {
+          try {
+            const heroObserver = new win.IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  activeLoops.forEach(l => {
+                    try { if (l && typeof l.play === 'function') l.play(); } catch (_) {}
+                  });
+                } else {
+                  activeLoops.forEach(l => {
+                    try { if (l && typeof l.pause === 'function') l.pause(); } catch (_) {}
+                  });
+                }
+              });
+            }, { threshold: 0.05 });
+            heroObserver.observe(hero);
+          } catch (_) {}
+        }
+      }
+
+      // 4. GESTURES: hover() and press()
       const btnTryFree = document.getElementById('landing-btn-try-free');
       const arrowIcon = btnTryFree ? btnTryFree.querySelector('i') : null;
 
