@@ -300,7 +300,482 @@
       this.initHeroMotionCraft();
     },
 
+    /**
+     * Pro-Grade Physics Animation Engine driven by Motion (motion.dev)
+     * Loaded via ESM on marketing landing only, with fail-safe no-FOUC architecture.
+     */
+    initMotionDev(Motion) {
+      if (!Motion || this.motionDevActive) return;
+      const win = getWin();
+      if (typeof win.document === 'undefined') return;
+
+      const prefersReduced = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) return;
+
+      const hero = document.querySelector('.landing-hero');
+      if (!hero) return;
+
+      this.motionDevActive = true;
+      const { animate, hover, press, inView, scroll, stagger, transform } = Motion;
+
+      const safeMap = (val, inRange, outRange) => {
+        if (typeof transform === 'function') {
+          try {
+            const res = transform(val, inRange, outRange);
+            if (typeof res === 'number') return res;
+            if (typeof res === 'function') return res(val);
+          } catch (_) {}
+        }
+        const [inMin, inMax] = inRange;
+        const [outMin, outMax] = outRange;
+        const progress = (val - inMin) / (inMax - inMin);
+        return outMin + progress * (outMax - outMin);
+      };
+
+      // 1. ENTRANCE CHOREOGRAPHY (Once on load with confident spring)
+      // Sequence: kicker -> headline -> subtext -> badge -> CTA
+      const copyElements = [
+        document.querySelector('.landing-kicker'),
+        document.querySelector('.landing-hero-title'),
+        document.querySelector('.landing-hero-subtext'),
+        document.querySelector('.landing-grade-badge'),
+        document.querySelector('.landing-cta-group')
+      ].filter(Boolean);
+
+      if (copyElements.length > 0 && typeof animate === 'function') {
+        const staggerFn = typeof stagger === 'function' ? stagger(0.07, { start: 0.04 }) : 0.08;
+        animate(copyElements, {
+          opacity: [0, 1],
+          y: [18, 0]
+        }, {
+          delay: staggerFn,
+          type: "spring",
+          stiffness: 120,
+          damping: 18
+        });
+      }
+
+      // Headline clip-mask wipe upward
+      const headline = document.querySelector('.landing-hero-title');
+      if (headline && typeof animate === 'function') {
+        animate(headline, {
+          clipPath: ['inset(100% 0 0 0)', 'inset(0% 0 0 0)']
+        }, {
+          delay: 0.11,
+          duration: 0.85,
+          ease: [0.16, 1, 0.3, 1]
+        });
+      }
+
+      // Highlight line gradient sweep
+      const highlight = document.querySelector('.landing-hero-highlight');
+      if (highlight && typeof animate === 'function') {
+        animate(highlight, {
+          backgroundPosition: ['100% 50%', '0% 50%']
+        }, {
+          delay: 0.25,
+          duration: 1.8,
+          ease: [0.16, 1, 0.3, 1]
+        });
+      }
+
+      // Mentor Card scale/rise from .96 / translateY(16)
+      const mentorCard = document.getElementById('landing-mentor-card');
+      if (mentorCard && typeof animate === 'function') {
+        animate(mentorCard, {
+          opacity: [0, 1],
+          scale: [0.96, 1],
+          y: [16, 0]
+        }, {
+          delay: 0.16,
+          type: "spring",
+          stiffness: 115,
+          damping: 18
+        });
+      }
+
+      // Speech bubble pops in after
+      const speechBubble = document.querySelector('.landing-speech-bubble');
+      if (speechBubble && typeof animate === 'function') {
+        animate(speechBubble, {
+          opacity: [0, 1],
+          scale: [0.9, 1],
+          y: [10, 0]
+        }, {
+          delay: 0.42,
+          type: "spring",
+          stiffness: 140,
+          damping: 16
+        });
+      }
+
+      // Mascot powers on (antenna flare + eyes awake) and waves ONCE
+      const antenna = document.getElementById('mascot-antenna-bulb');
+      const mascotFace = document.getElementById('mascot-face-expr');
+      const mascotArm = document.getElementById('mascot-arm-right-group');
+      const mascot = document.getElementById('landing-mascot-companion');
+      const mascotSpeech = document.getElementById('landing-mascot-speech-text');
+
+      if (antenna && typeof animate === 'function') {
+        animate(antenna, {
+          opacity: [0.2, 1],
+          scale: [0.8, 1.25, 1]
+        }, {
+          delay: 0.45,
+          duration: 0.8
+        });
+      }
+
+      if (mascotFace && typeof animate === 'function') {
+        animate(mascotFace, {
+          scaleY: [0.1, 1, 0.1, 1]
+        }, {
+          delay: 0.48,
+          duration: 0.75,
+          times: [0, 0.35, 0.55, 1]
+        });
+      }
+
+      if (mascotArm && typeof animate === 'function') {
+        animate(mascotArm, {
+          rotate: [0, -32, 12, -24, 6, 0]
+        }, {
+          delay: 0.85,
+          duration: 1.1,
+          ease: [0.16, 1, 0.3, 1]
+        });
+      }
+
+      // 2. CURSOR-AWARE HERO (rAF-throttled transform mapping & spring physics)
+      const cardGlare = document.getElementById('landing-card-glare');
+      const depthElements = document.querySelectorAll('#landing-depth-field [data-depth]');
+
+      if (hero && typeof animate === 'function') {
+        let rafId = null;
+        let pointerX = 0;
+        let pointerY = 0;
+
+        const onPointerMove = (e) => {
+          pointerX = e.clientX;
+          pointerY = e.clientY;
+
+          if (!rafId && win.requestAnimationFrame) {
+            rafId = win.requestAnimationFrame(() => {
+              rafId = null;
+              const rect = hero.getBoundingClientRect();
+              if (rect.width <= 0 || rect.height <= 0) return;
+
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              const normX = Math.max(-1, Math.min(1, (pointerX - centerX) / (rect.width / 2)));
+              const normY = Math.max(-1, Math.min(1, (pointerY - centerY) / (rect.height / 2)));
+
+              // A) 3D Card Tilt (desktop only > 768px, cap 6deg) + glare sheen
+              if (mentorCard && (win.innerWidth || 1024) > 768) {
+                const rotX = safeMap(normY, [-1, 1], [6, -6]);
+                const rotY = safeMap(normX, [-1, 1], [-6, 6]);
+
+                animate(mentorCard, {
+                  rotateX: rotX,
+                  rotateY: rotY
+                }, {
+                  type: "spring",
+                  stiffness: 150,
+                  damping: 22
+                });
+                mentorCard.classList.add('is-tilted');
+
+                if (cardGlare) {
+                  const cardRect = mentorCard.getBoundingClientRect();
+                  if (cardRect.width > 0 && cardRect.height > 0) {
+                    const glareX = Math.max(0, Math.min(100, ((pointerX - cardRect.left) / cardRect.width) * 100));
+                    const glareY = Math.max(0, Math.min(100, ((pointerY - cardRect.top) / cardRect.height) * 100));
+                    cardGlare.style.background = `radial-gradient(circle at ${glareX.toFixed(1)}% ${glareY.toFixed(1)}%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 65%)`;
+                    cardGlare.style.opacity = '1';
+                  }
+                }
+              }
+
+              // B) Orbs & Glyphs Parallax Offsets with Motion springs
+              if (depthElements && depthElements.length > 0) {
+                depthElements.forEach(el => {
+                  const depth = parseFloat(el.getAttribute('data-depth')) || 0.05;
+                  const maxOffset = depth * 220;
+                  const targetX = safeMap(normX, [-1, 1], [-maxOffset, maxOffset]);
+                  const targetY = safeMap(normY, [-1, 1], [-maxOffset, maxOffset]);
+
+                  animate(el, {
+                    x: targetX,
+                    y: targetY
+                  }, {
+                    type: "spring",
+                    stiffness: 130,
+                    damping: 20
+                  });
+                });
+              }
+
+              // C) Mascot Pupil Tracking via transform mapping and spring
+              if (mascotFace) {
+                const pupilX = safeMap(normX, [-1, 1], [-2.4, 2.4]);
+                const pupilY = safeMap(normY, [-1, 1], [-2.4, 2.4]);
+                animate(mascotFace, {
+                  x: pupilX,
+                  y: pupilY
+                }, {
+                  type: "spring",
+                  stiffness: 180,
+                  damping: 22
+                });
+              }
+            });
+          }
+        };
+
+        const onPointerLeave = () => {
+          if (rafId && win.cancelAnimationFrame) {
+            win.cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+          if (mentorCard) {
+            animate(mentorCard, {
+              rotateX: 0,
+              rotateY: 0
+            }, {
+              type: "spring",
+              stiffness: 140,
+              damping: 20
+            });
+            mentorCard.classList.remove('is-tilted');
+            if (cardGlare) cardGlare.style.opacity = '0';
+          }
+          if (mascotFace) {
+            animate(mascotFace, {
+              x: 0,
+              y: 0
+            }, {
+              type: "spring",
+              stiffness: 140,
+              damping: 20
+            });
+          }
+          if (depthElements && depthElements.length > 0) {
+            depthElements.forEach(el => {
+              animate(el, {
+                x: 0,
+                y: 0
+              }, {
+                type: "spring",
+                stiffness: 120,
+                damping: 20
+              });
+            });
+          }
+        };
+
+        hero.addEventListener('pointermove', onPointerMove, { passive: true });
+        hero.addEventListener('pointerleave', onPointerLeave);
+      }
+
+      // 3. GESTURES: hover() and press()
+      const btnTryFree = document.getElementById('landing-btn-try-free');
+      const arrowIcon = btnTryFree ? btnTryFree.querySelector('i') : null;
+
+      if (btnTryFree && typeof hover === 'function') {
+        hover(btnTryFree, () => {
+          animate(btnTryFree, {
+            y: -2.5,
+            boxShadow: "0 16px 32px -4px rgba(79, 70, 229, 0.48), 0 6px 16px -2px rgba(6, 182, 212, 0.32)"
+          }, {
+            type: "spring",
+            stiffness: 300,
+            damping: 20
+          });
+          if (arrowIcon) {
+            animate(arrowIcon, { x: 3 }, { type: "spring", stiffness: 320, damping: 20 });
+          }
+
+          if (mascot) {
+            animate(mascot, { y: -8, scale: 1.06 }, { type: "spring", stiffness: 260, damping: 18 });
+            mascot.classList.add('is-hopping');
+          }
+          if (mascotArm) {
+            mascotArm.classList.add('is-waving');
+          }
+          if (mascotSpeech) {
+            const dict = this.translations[this.currentLang] || this.translations.en;
+            if (dict && dict.landingMascotEncourage) {
+              mascotSpeech.textContent = dict.landingMascotEncourage;
+            }
+          }
+
+          return () => {
+            animate(btnTryFree, {
+              y: 0,
+              boxShadow: "0 10px 24px -4px rgba(79, 70, 229, 0.36), 0 4px 10px -2px rgba(6, 182, 212, 0.24)"
+            }, {
+              type: "spring",
+              stiffness: 380,
+              damping: 26
+            });
+            if (arrowIcon) {
+              animate(arrowIcon, { x: 0 }, { type: "spring", stiffness: 380, damping: 26 });
+            }
+
+            if (mascot) {
+              animate(mascot, { y: 0, scale: 1 }, { type: "spring", stiffness: 320, damping: 22 });
+              mascot.classList.remove('is-hopping');
+            }
+            if (mascotArm) {
+              mascotArm.classList.remove('is-waving');
+            }
+            if (mascotSpeech) {
+              const dict = this.translations[this.currentLang] || this.translations.en;
+              if (dict && dict.landingMascotSpeech) {
+                mascotSpeech.textContent = dict.landingMascotSpeech;
+              }
+            }
+          };
+        });
+
+        if (typeof press === 'function') {
+          press(btnTryFree, () => {
+            animate(btnTryFree, { scale: 0.98 }, { type: "spring", stiffness: 500, damping: 25 });
+            return () => {
+              animate(btnTryFree, { scale: 1 }, { type: "spring", stiffness: 400, damping: 25 });
+            };
+          });
+        }
+      }
+
+      // Prompt chips hover & press
+      const promptChips = document.querySelectorAll('.landing-prompt-chip');
+      if (promptChips.length > 0 && typeof hover === 'function') {
+        promptChips.forEach(chip => {
+          hover(chip, () => {
+            animate(chip, {
+              y: -2,
+              boxShadow: "0 6px 16px rgba(14, 165, 233, 0.18)"
+            }, {
+              type: "spring",
+              stiffness: 320,
+              damping: 22
+            });
+            return () => {
+              animate(chip, {
+                y: 0,
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)"
+              }, {
+                type: "spring",
+                stiffness: 400,
+                damping: 26
+              });
+            };
+          });
+
+          if (typeof press === 'function') {
+            press(chip, () => {
+              animate(chip, { scale: 0.98 }, { type: "spring", stiffness: 500, damping: 25 });
+              return () => {
+                animate(chip, { scale: 1 }, { type: "spring", stiffness: 420, damping: 25 });
+              };
+            });
+          }
+        });
+      }
+
+      // Feature cards hover
+      const featureCards = document.querySelectorAll('.landing-feature-card');
+      if (featureCards.length > 0 && typeof hover === 'function') {
+        featureCards.forEach(card => {
+          hover(card, () => {
+            animate(card, {
+              y: -3,
+              boxShadow: "0 16px 32px -6px rgba(15, 23, 42, 0.1)"
+            }, {
+              type: "spring",
+              stiffness: 280,
+              damping: 22
+            });
+            return () => {
+              animate(card, {
+                y: 0,
+                boxShadow: "0 8px 24px -5px rgba(15, 23, 42, 0.05)"
+              }, {
+                type: "spring",
+                stiffness: 360,
+                damping: 26
+              });
+            };
+          });
+        });
+      }
+
+      // 4. SCROLL REVEALS with inView()
+      const valueBand = document.querySelector('.landing-value-band');
+      if (valueBand && typeof inView === 'function') {
+        inView(valueBand, () => {
+          animate(valueBand, {
+            opacity: [0, 1],
+            y: [20, 0]
+          }, {
+            duration: 0.65,
+            ease: [0.16, 1, 0.3, 1]
+          });
+        }, { amount: 0.15 });
+      }
+
+      const featuresGrid = document.querySelector('.landing-features-grid');
+      if (featuresGrid && typeof inView === 'function') {
+        const cards = featuresGrid.querySelectorAll('.landing-feature-card');
+        if (cards.length > 0) {
+          inView(featuresGrid, () => {
+            const staggerCards = typeof stagger === 'function' ? stagger(0.1, { start: 0.05 }) : 0.1;
+            animate(cards, {
+              opacity: [0, 1],
+              y: [22, 0]
+            }, {
+              delay: staggerCards,
+              duration: 0.7,
+              ease: [0.16, 1, 0.3, 1]
+            });
+          }, { amount: 0.15 });
+        }
+      }
+
+      // 5. BLINK LOOP (paused when mascot is offscreen)
+      if (mascot && mascotFace && typeof animate === 'function') {
+        let mascotVisible = true;
+        if ('IntersectionObserver' in win) {
+          const heroObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              mascotVisible = entry.isIntersecting;
+            });
+          }, { threshold: 0.1 });
+          heroObserver.observe(mascot);
+        }
+
+        const runBlink = () => {
+          const delay = 4000 + Math.random() * 2000;
+          setTimeout(() => {
+            if (mascotVisible && mascotFace && !mascotFace.classList.contains('is-blinking')) {
+              animate(mascotFace, {
+                scaleY: [1, 0.1, 1]
+              }, {
+                duration: 0.22,
+                times: [0, 0.5, 1],
+                ease: "easeInOut"
+              });
+            }
+            runBlink();
+          }, delay);
+        };
+        runBlink();
+      }
+    },
+
     initHeroMotionCraft() {
+      if (this.motionDevActive) return;
       const win = getWin();
       if (typeof document === 'undefined') return;
 
