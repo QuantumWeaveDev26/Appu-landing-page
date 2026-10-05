@@ -1592,7 +1592,7 @@
       const midY = startY + deltaY * 0.42 - arcLift;
       const midX = startX + deltaX * 0.52 + (Math.abs(deltaX) > 40 ? 0 : 16);
 
-      // Trail particles helper (dropping 3 subtle glowing stardust markers along path)
+      // Trail particles helper (dropping 6 subtle glowing stardust markers along flight arc)
       const trailTimeouts = [];
       const spawnTrailDot = (currX, currY) => {
         try {
@@ -1602,17 +1602,21 @@
           document.body.appendChild(dot);
           if (typeof dot.animate === 'function') {
             dot.animate([
-              { opacity: 0.85, transform: `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2}px, 0) scale(1)` },
-              { opacity: 0, transform: `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2 + 10}px, 0) scale(0.2)` }
-            ], { duration: 320, fill: 'forwards' });
+              { opacity: 0.95, transform: `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2}px, 0) scale(1.15)` },
+              { opacity: 0, transform: `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2 + 14}px, 0) scale(0.2)` }
+            ], { duration: 420, fill: 'forwards' });
           }
-          setTimeout(() => { if (dot.parentNode) dot.remove(); }, 350);
+          setTimeout(() => { if (dot.parentNode) dot.remove(); }, 460);
         } catch (_) {}
       };
 
-      trailTimeouts.push(setTimeout(() => spawnTrailDot(startX + (midX - startX) * 0.3, startY + (midY - startY) * 0.3), 110));
-      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX, midY), 260));
-      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX + (targetX - midX) * 0.5, midY + (targetY - midY) * 0.5), 410));
+      // Trail timing during flight phase (340ms to 1100ms)
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(startX, startY - 14), 320));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(startX + (midX - startX) * 0.3, startY + (midY - startY) * 0.3), 480));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX, midY), 640));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX + (targetX - midX) * 0.4, midY + (targetY - midY) * 0.4), 800));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX + (targetX - midX) * 0.75, midY + (targetY - midY) * 0.75), 960));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(targetX, targetY), 1120));
 
       let completed = false;
       const finalize = () => {
@@ -1649,7 +1653,7 @@
         this.dispatchUserInteraction(queryText);
       };
 
-      // Near arrival (~520ms): prime the subtitles and Appu's mood for seamless zero-pop handoff
+      // Near arrival (~1250ms): prime the subtitles and Appu's mood for seamless zero-pop handoff
       setTimeout(() => {
         if (completed) return;
         const subtitles = document.getElementById('subtitles-text');
@@ -1662,47 +1666,53 @@
         if (stage && typeof stage.setState === 'function') {
           try { stage.setState('thinking'); } catch (_) {}
         }
-      }, 520);
+      }, 1250);
 
       const motionDev = this.motionDev || win.__MotionDev;
-      const durationMs = 680;
+      const totalDurationSec = 1.45;
+      const totalDurationMs = 1450;
+      const fluidEase = [0.22, 1, 0.36, 1];
 
       if (motionDev && typeof motionDev.animate === 'function') {
-        // Landing exit: holds presence briefly as clone lifts, then fades smoothly
+        // 1. Landing exit: holds presence during lift-out beat, then gracefully fades away
         motionDev.animate(landing, {
-          opacity: [1, 0.9, 0],
+          opacity: [1.0, 1.0, 0.45, 0.0],
           transform: [
             'translate3d(0, 0, 0) scale(1)',
-            'translate3d(0, -6px, 0) scale(0.99)',
-            'translate3d(0, -20px, 0) scale(0.96)'
+            'translate3d(0, -3px, 0) scale(0.996)',
+            'translate3d(0, -14px, 0) scale(0.975)',
+            'translate3d(0, -24px, 0) scale(0.95)'
           ]
         }, {
-          duration: 0.52,
-          ease: [0.16, 1, 0.3, 1],
-          times: [0, 0.3, 1]
+          duration: 1.20,
+          ease: fluidEase,
+          times: [0, 0.26, 0.68, 1.0]
         });
 
-        // App shell entrance: settles in from behind underneath landing
+        // 2. App shell entrance: fades/scales in gradually so the bubble is the hero
         motionDev.animate(appShell, {
-          opacity: [0, 0.5, 1],
-          transform: ['scale(0.975)', 'scale(0.99)', 'scale(1)']
+          opacity: [0.0, 0.12, 0.72, 1.0],
+          transform: ['scale(0.965)', 'scale(0.975)', 'scale(0.99)', 'scale(1.0)']
         }, {
-          duration: 0.62,
-          ease: [0.16, 1, 0.3, 1],
-          times: [0, 0.35, 1]
+          duration: 1.38,
+          ease: fluidEase,
+          times: [0, 0.25, 0.68, 1.0]
         });
 
-        // Floating message bubble flight along eased arc
+        // 3. Floating message bubble: Lift-Out beat (0-320ms), graceful flight arc (320-1300ms), and dissolve (1300-1450ms)
         const flightAnim = motionDev.animate(clone, {
-          x: [startX, midX, targetX, targetX],
-          y: [startY, midY, targetY, targetY],
-          scale: [1, 1.05, 0.92, 0.90],
-          rotate: [0, -2.5, 1, 0],
-          opacity: [1, 1, 1, 0]
+          transform: [
+            `translate3d(${startX}px, ${startY}px, 0) scale(0.98) rotate(0deg)`,
+            `translate3d(${startX}px, ${startY - 22}px, 0) scale(1.08) rotate(-0.5deg)`,
+            `translate3d(${midX}px, ${midY}px, 0) scale(1.04) rotate(-3.0deg)`,
+            `translate3d(${targetX}px, ${targetY}px, 0) scale(0.93) rotate(0.5deg)`,
+            `translate3d(${targetX}px, ${targetY}px, 0) scale(0.90) rotate(0deg)`
+          ],
+          opacity: [0.9, 1.0, 1.0, 1.0, 0.0]
         }, {
-          duration: 0.68,
-          ease: [0.16, 1, 0.3, 1],
-          times: [0, 0.40, 0.85, 1]
+          duration: totalDurationSec,
+          ease: fluidEase,
+          times: [0, 0.22, 0.60, 0.90, 1.0]
         });
 
         if (flightAnim && flightAnim.finished && typeof flightAnim.finished.then === 'function') {
@@ -1710,31 +1720,34 @@
         } else if (flightAnim && typeof flightAnim.then === 'function') {
           flightAnim.then(finalize);
         } else {
-          setTimeout(finalize, durationMs);
+          setTimeout(finalize, totalDurationMs);
         }
       } else if (typeof clone.animate === 'function') {
         if (typeof landing.animate === 'function') {
           landing.animate([
-            { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)', offset: 0 },
-            { opacity: 0.9, transform: 'translate3d(0, -6px, 0) scale(0.99)', offset: 0.3 },
-            { opacity: 0, transform: 'translate3d(0, -20px, 0) scale(0.96)', offset: 1.0 }
-          ], { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+            { opacity: 1.0, transform: 'translate3d(0, 0, 0) scale(1)', offset: 0 },
+            { opacity: 1.0, transform: 'translate3d(0, -3px, 0) scale(0.996)', offset: 0.26 },
+            { opacity: 0.45, transform: 'translate3d(0, -14px, 0) scale(0.975)', offset: 0.68 },
+            { opacity: 0.0, transform: 'translate3d(0, -24px, 0) scale(0.95)', offset: 1.0 }
+          ], { duration: 1200, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' });
         }
         if (typeof appShell.animate === 'function') {
           appShell.animate([
-            { opacity: 0, transform: 'scale(0.975)', offset: 0 },
-            { opacity: 0.5, transform: 'scale(0.99)', offset: 0.35 },
-            { opacity: 1, transform: 'scale(1)', offset: 1.0 }
-          ], { duration: 620, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+            { opacity: 0.0, transform: 'scale(0.965)', offset: 0 },
+            { opacity: 0.12, transform: 'scale(0.975)', offset: 0.25 },
+            { opacity: 0.72, transform: 'scale(0.99)', offset: 0.68 },
+            { opacity: 1.0, transform: 'scale(1.0)', offset: 1.0 }
+          ], { duration: 1380, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' });
         }
         const anim = clone.animate([
-          { transform: `translate3d(${startX}px, ${startY}px, 0) scale(1) rotate(0deg)`, opacity: 1, offset: 0 },
-          { transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.05) rotate(-2.5deg)`, opacity: 1, offset: 0.40 },
-          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.92) rotate(1deg)`, opacity: 1, offset: 0.85 },
-          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.90) rotate(0deg)`, opacity: 0, offset: 1.0 }
+          { transform: `translate3d(${startX}px, ${startY}px, 0) scale(0.98) rotate(0deg)`, opacity: 0.9, offset: 0 },
+          { transform: `translate3d(${startX}px, ${startY - 22}px, 0) scale(1.08) rotate(-0.5deg)`, opacity: 1.0, offset: 0.22 },
+          { transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.04) rotate(-3.0deg)`, opacity: 1.0, offset: 0.60 },
+          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.93) rotate(0.5deg)`, opacity: 1.0, offset: 0.90 },
+          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.90) rotate(0deg)`, opacity: 0.0, offset: 1.0 }
         ], {
-          duration: durationMs,
-          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          duration: totalDurationMs,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
           fill: 'forwards'
         });
         anim.onfinish = finalize;
@@ -1742,8 +1755,8 @@
         finalize();
       }
 
-      // Hard safety timer
-      setTimeout(() => { if (!completed) finalize(); }, 1200);
+      // Hard safety timer (expanded to 2400ms to comfortably accommodate slower animation)
+      setTimeout(() => { if (!completed) finalize(); }, 2400);
     },
 
     enterApp(question = '', originEl = null) {

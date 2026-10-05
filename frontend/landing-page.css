@@ -1566,23 +1566,23 @@ body.is-transitioning-to-app #marketing-landing {
   z-index: 100000;
   display: inline-flex;
   align-items: center;
-  gap: 11px;
-  max-width: min(540px, 86vw);
-  padding: 13px 22px;
-  border-radius: 20px 20px 6px 20px;
+  gap: 12px;
+  max-width: min(560px, 88vw);
+  padding: 14px 24px;
+  border-radius: 22px 22px 6px 22px;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   background-image: linear-gradient(135deg, #38bdf8 0%, #0284c7 50%, #0369a1 100%);
   color: #ffffff;
   font-family: inherit;
-  font-size: clamp(14px, 1.25vw, 16px);
+  font-size: clamp(15px, 1.35vw, 17px);
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: -0.01em;
   box-shadow: 
-    0 16px 42px rgba(2, 132, 199, 0.55),
-    0 0 28px rgba(56, 189, 248, 0.65),
-    0 0 0 1.5px rgba(255, 255, 255, 0.45),
-    inset 0 1px 2px rgba(255, 255, 255, 0.55);
+    0 20px 52px rgba(2, 132, 199, 0.65),
+    0 0 36px rgba(56, 189, 248, 0.75),
+    0 0 0 2px rgba(255, 255, 255, 0.55),
+    inset 0 1px 2px rgba(255, 255, 255, 0.75);
   pointer-events: none;
   user-select: none;
   will-change: transform, opacity;
@@ -1594,18 +1594,18 @@ body.is-transitioning-to-app #marketing-landing {
 .flight-chat-bubble::after {
   content: '';
   position: absolute;
-  inset: -8px;
-  border-radius: 26px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.65) 0%, rgba(2, 132, 199, 0) 72%);
+  inset: -12px;
+  border-radius: 30px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.75) 0%, rgba(14, 165, 233, 0.4) 45%, rgba(2, 132, 199, 0) 75%);
   z-index: -1;
-  filter: blur(10px);
+  filter: blur(12px);
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.95;
   animation: flight-bubble-glow-pulse 1s ease-in-out infinite alternate;
 }
 
 @keyframes flight-bubble-glow-pulse {
-  0% { opacity: 0.7; transform: scale(0.96); }
+  0% { opacity: 0.75; transform: scale(0.96); }
   100% { opacity: 1; transform: scale(1.08); }
 }
 
@@ -1613,9 +1613,9 @@ body.is-transitioning-to-app #marketing-landing {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 16px;
   color: #f0f9ff;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
   flex-shrink: 0;
 }
 
@@ -1624,21 +1624,21 @@ body.is-transitioning-to-app #marketing-landing {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .flight-trail-particle {
   position: fixed;
   top: 0;
   left: 0;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 14px #38bdf8, 0 0 24px #0284c7, 0 0 6px #ffffff;
+  background: #67e8f9;
+  box-shadow: 0 0 16px #38bdf8, 0 0 28px #0284c7, 0 0 8px #ffffff;
   pointer-events: none;
   z-index: 99999;
-  opacity: 0.9;
+  opacity: 0.95;
   will-change: transform, opacity;
 }
 
