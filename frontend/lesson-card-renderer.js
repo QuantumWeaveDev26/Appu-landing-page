@@ -1417,7 +1417,7 @@
                 track.innerHTML = result.photos.map(p => `
                   <div class="photo-card" data-photo-url="${escapeHTML(p.url)}" data-photo-title="${escapeHTML(p.title)}" data-creator="${escapeHTML(p.creator)}" data-license="${escapeHTML(p.license)}" data-landing="${escapeHTML(p.foreignLandingUrl)}">
                     <div class="photo-thumb-wrap">
-                      <img src="${escapeHTML(p.thumbnail)}" alt="${escapeHTML(p.title)}" loading="lazy" class="photo-thumb" />
+                      <img src="${escapeHTML(p.thumbnail)}" data-full="${escapeHTML(p.url)}" alt="${escapeHTML(p.title)}" loading="lazy" class="photo-thumb" onerror="if(this.dataset.fb){var w=this.closest('.photo-thumb-wrap');if(w)w.style.display='none';}else{this.dataset.fb='1';this.src=this.dataset.full;}" />
                       <span class="photo-license-pill">${escapeHTML(p.license)}</span>
                     </div>
                     <div class="photo-card-info">
