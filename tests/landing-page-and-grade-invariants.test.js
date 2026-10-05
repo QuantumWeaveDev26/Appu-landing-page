@@ -108,6 +108,9 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(html.includes('class="landing-mentor-nameplate"'), 'Nameplate container must exist');
     assert.ok(html.includes('APPU</strong>'), 'Nameplate must show APPU');
     assert.ok(html.includes('Your AI learning mentor</span>'), 'Nameplate must show Your AI learning mentor');
+    assert.ok(html.includes('class="landing-mascot-companion"'), 'Mascot companion container must exist');
+    assert.ok(html.includes('class="landing-playful-backdrop"'), 'Playful kid-friendly backdrop must exist');
+    assert.ok(html.includes('motif-planet'), 'Floating motifs must include planet');
   });
 
   test('Value proposition band renders the three pillars with clean separators', () => {
@@ -200,6 +203,7 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(html.includes('data-i18n="landingBtnTryFree"'), 'landingBtnTryFree data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingCtaSub"'), 'landingCtaSub data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingSpeechBubble"'), 'landingSpeechBubble data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingMascotSpeech"'), 'landingMascotSpeech data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingMentorRole"'), 'landingMentorRole data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingValue1"'), 'landingValue1 data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingValue2"'), 'landingValue2 data-i18n attribute must exist');
@@ -228,6 +232,7 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
       assert.ok(t.landingBtnTryFree && t.landingBtnTryFree.length > 0);
       assert.ok(t.landingCtaSub && t.landingCtaSub.length > 0);
       assert.ok(t.landingSpeechBubble && t.landingSpeechBubble.length > 0);
+      assert.ok(t.landingMascotSpeech && t.landingMascotSpeech.length > 0);
       assert.ok(t.landingMentorRole && t.landingMentorRole.length > 0);
       assert.ok(t.landingValue1 && t.landingValue2 && t.landingValue3);
       assert.ok(t.landingQuestionPlaceholder && t.landingQuestionPlaceholder.length > 0);
