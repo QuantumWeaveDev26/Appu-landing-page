@@ -212,7 +212,7 @@
       // "Try APPU free" CTA
       if (btnTryFree) {
         btnTryFree.addEventListener('click', () => {
-          this.enterApp('');
+          this.enterApp('', btnTryFree);
         });
       }
 
@@ -221,7 +221,7 @@
         questionForm.addEventListener('submit', (e) => {
           e.preventDefault();
           const query = questionInput ? questionInput.value.trim() : '';
-          this.enterApp(query);
+          this.enterApp(query, questionForm);
         });
       }
 
@@ -230,7 +230,7 @@
         chip.addEventListener('click', () => {
           const q = chip.getAttribute('data-question') || chip.textContent.trim();
           if (questionInput) questionInput.value = q;
-          this.enterApp(q);
+          this.enterApp(q, chip);
         });
       });
 
@@ -305,8 +305,11 @@
      * Loaded via ESM on marketing landing only, with fail-safe no-FOUC architecture.
      */
     initMotionDev(Motion) {
-      if (!Motion || this.motionDevActive) return;
+      if (!Motion) return;
+      this.motionDev = Motion;
       const win = getWin();
+      if (typeof win !== 'undefined') win.__MotionDev = Motion;
+      if (this.motionDevActive) return;
       if (typeof win.document === 'undefined') return;
 
       const prefersReduced = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1278,7 +1281,7 @@
           if (micBtn) micBtn.classList.remove('is-listening');
           const finalQuery = input ? input.value.trim() : '';
           if (finalQuery) {
-            this.enterApp(finalQuery);
+            this.enterApp(finalQuery, micBtn);
           } else {
             const win = getWin();
             const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
@@ -1380,29 +1383,419 @@
       }
     },
 
-    enterApp(question = '') {
+    dispatchUserInteraction(queryText) {
       const win = getWin();
-      this.showApp();
-      if (typeof win.scrollTo === 'function') {
-        try { win.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
+      if (!queryText) return;
+      if (typeof win.handleUserInteraction === 'function') {
+        win.handleUserInteraction(queryText);
+      } else if (win.app && typeof win.app.handleUserInteraction === 'function') {
+        win.app.handleUserInteraction(queryText);
+      } else if (typeof document !== 'undefined') {
+        const chatInput = document.getElementById('chat-input');
+        const chatSendBtn = document.getElementById('btn-chat-send');
+        if (chatInput && chatSendBtn) {
+          chatInput.value = queryText;
+          chatSendBtn.click();
+        }
+      }
+    },
+
+    animateZoomCrossfade() {
+      const win = getWin();
+      const landing = document.getElementById('marketing-landing');
+      const appShell = document.getElementById('app-shell');
+      const orbs = document.querySelectorAll('.ambient-orb');
+
+      if (!landing || !appShell) {
+        this.showApp();
+        if (typeof win.scrollTo === 'function') win.scrollTo({ top: 0, behavior: 'instant' });
+        this.isTransitioning = false;
+        return;
       }
 
-      if (question && question.trim()) {
-        const queryText = question.trim();
-        setTimeout(() => {
-          if (typeof win.handleUserInteraction === 'function') {
-            win.handleUserInteraction(queryText);
-          } else if (win.app && typeof win.app.handleUserInteraction === 'function') {
-            win.app.handleUserInteraction(queryText);
-          } else {
-            const chatInput = document.getElementById('chat-input');
-            const chatSendBtn = document.getElementById('btn-chat-send');
-            if (chatInput && chatSendBtn) {
-              chatInput.value = queryText;
-              chatSendBtn.click();
-            }
+      const scrollY = win.scrollY || win.pageYOffset || 0;
+      document.body.classList.add('is-transitioning-to-app');
+
+      landing.style.position = 'fixed';
+      landing.style.top = `-${scrollY}px`;
+      landing.style.left = '0';
+      landing.style.width = '100%';
+      landing.style.zIndex = '20';
+      landing.style.pointerEvents = 'none';
+
+      appShell.style.display = 'grid';
+      appShell.style.position = 'fixed';
+      appShell.style.inset = '0';
+      appShell.style.width = '100vw';
+      appShell.style.height = '100vh';
+      appShell.style.zIndex = '10';
+      appShell.style.opacity = '0';
+      appShell.style.transform = 'scale(0.98)';
+      appShell.style.pointerEvents = 'none';
+      orbs.forEach(orb => { orb.style.display = ''; });
+
+      let completed = false;
+      const finish = () => {
+        if (completed) return;
+        completed = true;
+
+        landing.style.position = '';
+        landing.style.top = '';
+        landing.style.left = '';
+        landing.style.width = '';
+        landing.style.zIndex = '';
+        landing.style.pointerEvents = '';
+        landing.style.opacity = '';
+        landing.style.transform = '';
+
+        appShell.style.position = '';
+        appShell.style.inset = '';
+        appShell.style.width = '';
+        appShell.style.height = '';
+        appShell.style.zIndex = '';
+        appShell.style.pointerEvents = '';
+        appShell.style.opacity = '';
+        appShell.style.transform = '';
+
+        document.body.classList.remove('is-transitioning-to-app');
+
+        this.showApp();
+        if (typeof win.scrollTo === 'function') win.scrollTo({ top: 0, behavior: 'instant' });
+        this.isTransitioning = false;
+      };
+
+      const motionDev = this.motionDev || win.__MotionDev;
+      if (motionDev && typeof motionDev.animate === 'function') {
+        motionDev.animate(landing, {
+          opacity: [1, 0],
+          transform: ['scale(1) translateY(0px)', 'scale(0.96) translateY(-14px)']
+        }, { duration: 0.38, ease: [0.16, 1, 0.3, 1] });
+
+        motionDev.animate(appShell, {
+          opacity: [0, 1],
+          transform: ['scale(0.98)', 'scale(1)']
+        }, { duration: 0.46, ease: [0.16, 1, 0.3, 1] }).then(finish);
+      } else if (typeof landing.animate === 'function') {
+        landing.animate([
+          { opacity: 1, transform: 'scale(1) translateY(0px)' },
+          { opacity: 0, transform: 'scale(0.96) translateY(-14px)' }
+        ], { duration: 380, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+
+        const anim = appShell.animate([
+          { opacity: 0, transform: 'scale(0.98)' },
+          { opacity: 1, transform: 'scale(1)' }
+        ], { duration: 460, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+        anim.onfinish = finish;
+      } else {
+        finish();
+      }
+
+      setTimeout(() => { if (!completed) finish(); }, 900);
+    },
+
+    animateFlightTransition(queryText, originEl = null) {
+      const win = getWin();
+      const landing = document.getElementById('marketing-landing');
+      const appShell = document.getElementById('app-shell');
+      const orbs = document.querySelectorAll('.ambient-orb');
+
+      if (!landing || !appShell) {
+        this.showApp();
+        if (typeof win.scrollTo === 'function') win.scrollTo({ top: 0, behavior: 'instant' });
+        this.dispatchUserInteraction(queryText);
+        this.isTransitioning = false;
+        return;
+      }
+
+      // 1. Identify source element for FLIP coordinates
+      const sourceEl = originEl || 
+        document.querySelector('.landing-input-wrap') || 
+        document.getElementById('landing-question-input') || 
+        document.getElementById('landing-question-form');
+      
+      const rawSourceRect = sourceEl ? sourceEl.getBoundingClientRect() : null;
+      const sourceRect = (rawSourceRect && rawSourceRect.width > 0)
+        ? rawSourceRect
+        : { left: Math.max(16, (win.innerWidth - 360) / 2), top: win.innerHeight * 0.45, width: 360, height: 48 };
+
+      const scrollY = win.scrollY || win.pageYOffset || (document.documentElement && document.documentElement.scrollTop) || 0;
+
+      // 2. Layering swap setup: dark app shell fades/scales underneath landing
+      document.body.classList.add('is-transitioning-to-app');
+
+      landing.style.position = 'fixed';
+      landing.style.top = `-${scrollY}px`;
+      landing.style.left = '0';
+      landing.style.width = '100%';
+      landing.style.zIndex = '20';
+      landing.style.pointerEvents = 'none';
+
+      appShell.style.display = 'grid';
+      appShell.style.position = 'fixed';
+      appShell.style.inset = '0';
+      appShell.style.width = '100vw';
+      appShell.style.height = '100vh';
+      appShell.style.zIndex = '10';
+      appShell.style.opacity = '0';
+      appShell.style.transform = 'scale(0.98)';
+      appShell.style.pointerEvents = 'none';
+      orbs.forEach(orb => { orb.style.display = ''; });
+
+      // 3. Determine destination coordinates inside app shell
+      const destEl = document.getElementById('subtitles-text') || 
+                     document.getElementById('response-card') || 
+                     document.querySelector('.response-card');
+      const rawDestRect = destEl ? destEl.getBoundingClientRect() : null;
+
+      // 4. Create floating clone styled like the app's user chat bubble
+      const clone = document.createElement('div');
+      clone.className = 'flight-chat-bubble';
+      clone.setAttribute('aria-hidden', 'true');
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'flight-bubble-icon';
+      iconSpan.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'flight-bubble-text';
+      textSpan.textContent = queryText;
+
+      clone.appendChild(iconSpan);
+      clone.appendChild(textSpan);
+      document.body.appendChild(clone);
+
+      const cloneWidth = clone.offsetWidth || Math.min(sourceRect.width * 0.75, 380);
+      const cloneHeight = clone.offsetHeight || 44;
+
+      const startX = sourceRect.left + (sourceRect.width - cloneWidth) / 2;
+      const startY = sourceRect.top + (sourceRect.height - cloneHeight) / 2;
+
+      // Seed starting hardware transform immediately
+      clone.style.transform = `translate3d(${startX}px, ${startY}px, 0) scale(1)`;
+      clone.style.zIndex = '999999';
+
+      let targetX = (rawDestRect && rawDestRect.width > 0)
+        ? rawDestRect.left + Math.max(16, (rawDestRect.width - cloneWidth) / 2)
+        : (win.innerWidth - cloneWidth) / 2;
+      let targetY = (rawDestRect && rawDestRect.height > 0)
+        ? rawDestRect.top + (rawDestRect.height - cloneHeight) / 2
+        : win.innerHeight - 110;
+
+      // Ensure target coordinates are well within viewport
+      targetX = Math.max(16, Math.min(targetX, win.innerWidth - cloneWidth - 16));
+      targetY = Math.max(60, Math.min(targetY, win.innerHeight - cloneHeight - 16));
+
+      // Calculate gentle physical arc (lifting upward midflight, then sweeping down into response area)
+      const deltaX = targetX - startX;
+      const deltaY = targetY - startY;
+      const arcLift = Math.max(26, Math.min(Math.abs(deltaY) * 0.16, 68));
+      const midY = startY + deltaY * 0.42 - arcLift;
+      const midX = startX + deltaX * 0.52 + (Math.abs(deltaX) > 40 ? 0 : 16);
+
+      // Trail particles helper (dropping 3 subtle glowing stardust markers along path)
+      const trailTimeouts = [];
+      const spawnTrailDot = (currX, currY) => {
+        try {
+          const dot = document.createElement('div');
+          dot.className = 'flight-trail-particle';
+          dot.style.transform = `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2}px, 0)`;
+          document.body.appendChild(dot);
+          if (typeof dot.animate === 'function') {
+            dot.animate([
+              { opacity: 0.85, transform: `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2}px, 0) scale(1)` },
+              { opacity: 0, transform: `translate3d(${currX + cloneWidth / 2}px, ${currY + cloneHeight / 2 + 10}px, 0) scale(0.2)` }
+            ], { duration: 320, fill: 'forwards' });
           }
-        }, 200);
+          setTimeout(() => { if (dot.parentNode) dot.remove(); }, 350);
+        } catch (_) {}
+      };
+
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(startX + (midX - startX) * 0.3, startY + (midY - startY) * 0.3), 110));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX, midY), 260));
+      trailTimeouts.push(setTimeout(() => spawnTrailDot(midX + (targetX - midX) * 0.5, midY + (targetY - midY) * 0.5), 410));
+
+      let completed = false;
+      const finalize = () => {
+        if (completed) return;
+        completed = true;
+        trailTimeouts.forEach(t => clearTimeout(t));
+
+        if (clone && clone.parentNode) clone.remove();
+
+        landing.style.position = '';
+        landing.style.top = '';
+        landing.style.left = '';
+        landing.style.width = '';
+        landing.style.zIndex = '';
+        landing.style.pointerEvents = '';
+        landing.style.opacity = '';
+        landing.style.transform = '';
+
+        appShell.style.position = '';
+        appShell.style.inset = '';
+        appShell.style.width = '';
+        appShell.style.height = '';
+        appShell.style.zIndex = '';
+        appShell.style.pointerEvents = '';
+        appShell.style.opacity = '';
+        appShell.style.transform = '';
+
+        document.body.classList.remove('is-transitioning-to-app');
+
+        this.showApp();
+        if (typeof win.scrollTo === 'function') win.scrollTo({ top: 0, behavior: 'instant' });
+
+        this.isTransitioning = false;
+        this.dispatchUserInteraction(queryText);
+      };
+
+      // Near arrival (~520ms): prime the subtitles and Appu's mood for seamless zero-pop handoff
+      setTimeout(() => {
+        if (completed) return;
+        const subtitles = document.getElementById('subtitles-text');
+        if (subtitles) subtitles.textContent = `"${queryText}"`;
+
+        if (win.appMascot && typeof win.appMascot.setMood === 'function') {
+          try { win.appMascot.setMood('thinking'); } catch (_) {}
+        }
+        const stage = win.avatarStage || (win.app && win.app.avatarStage);
+        if (stage && typeof stage.setState === 'function') {
+          try { stage.setState('thinking'); } catch (_) {}
+        }
+      }, 520);
+
+      const motionDev = this.motionDev || win.__MotionDev;
+      const durationMs = 680;
+
+      if (motionDev && typeof motionDev.animate === 'function') {
+        // Landing exit: holds presence briefly as clone lifts, then fades smoothly
+        motionDev.animate(landing, {
+          opacity: [1, 0.9, 0],
+          transform: [
+            'translate3d(0, 0, 0) scale(1)',
+            'translate3d(0, -6px, 0) scale(0.99)',
+            'translate3d(0, -20px, 0) scale(0.96)'
+          ]
+        }, {
+          duration: 0.52,
+          ease: [0.16, 1, 0.3, 1],
+          times: [0, 0.3, 1]
+        });
+
+        // App shell entrance: settles in from behind underneath landing
+        motionDev.animate(appShell, {
+          opacity: [0, 0.5, 1],
+          transform: ['scale(0.975)', 'scale(0.99)', 'scale(1)']
+        }, {
+          duration: 0.62,
+          ease: [0.16, 1, 0.3, 1],
+          times: [0, 0.35, 1]
+        });
+
+        // Floating message bubble flight along eased arc
+        const flightAnim = motionDev.animate(clone, {
+          x: [startX, midX, targetX, targetX],
+          y: [startY, midY, targetY, targetY],
+          scale: [1, 1.05, 0.92, 0.90],
+          rotate: [0, -2.5, 1, 0],
+          opacity: [1, 1, 1, 0]
+        }, {
+          duration: 0.68,
+          ease: [0.16, 1, 0.3, 1],
+          times: [0, 0.40, 0.85, 1]
+        });
+
+        if (flightAnim && flightAnim.finished && typeof flightAnim.finished.then === 'function') {
+          flightAnim.finished.then(finalize);
+        } else if (flightAnim && typeof flightAnim.then === 'function') {
+          flightAnim.then(finalize);
+        } else {
+          setTimeout(finalize, durationMs);
+        }
+      } else if (typeof clone.animate === 'function') {
+        if (typeof landing.animate === 'function') {
+          landing.animate([
+            { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)', offset: 0 },
+            { opacity: 0.9, transform: 'translate3d(0, -6px, 0) scale(0.99)', offset: 0.3 },
+            { opacity: 0, transform: 'translate3d(0, -20px, 0) scale(0.96)', offset: 1.0 }
+          ], { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+        }
+        if (typeof appShell.animate === 'function') {
+          appShell.animate([
+            { opacity: 0, transform: 'scale(0.975)', offset: 0 },
+            { opacity: 0.5, transform: 'scale(0.99)', offset: 0.35 },
+            { opacity: 1, transform: 'scale(1)', offset: 1.0 }
+          ], { duration: 620, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+        }
+        const anim = clone.animate([
+          { transform: `translate3d(${startX}px, ${startY}px, 0) scale(1) rotate(0deg)`, opacity: 1, offset: 0 },
+          { transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.05) rotate(-2.5deg)`, opacity: 1, offset: 0.40 },
+          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.92) rotate(1deg)`, opacity: 1, offset: 0.85 },
+          { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(0.90) rotate(0deg)`, opacity: 0, offset: 1.0 }
+        ], {
+          duration: durationMs,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          fill: 'forwards'
+        });
+        anim.onfinish = finalize;
+      } else {
+        finalize();
+      }
+
+      // Hard safety timer
+      setTimeout(() => { if (!completed) finalize(); }, 1200);
+    },
+
+    enterApp(question = '', originEl = null) {
+      const win = getWin();
+      const queryText = (typeof question === 'string') ? question.trim() : '';
+
+      if (this.isTransitioning) return;
+
+      const prefersReduced = Boolean(win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      const isBrowserDOM = typeof document !== 'undefined' && 
+                           typeof document.getElementById === 'function' && 
+                           document.getElementById('marketing-landing') && 
+                           document.getElementById('app-shell');
+
+      // If in mock/node test environment or reduced-motion requested, skip animation
+      if (!isBrowserDOM || prefersReduced) {
+        this.showApp();
+        if (typeof win.scrollTo === 'function') {
+          try { win.scrollTo({ top: 0, behavior: 'instant' }); } catch (_) {}
+        }
+        if (queryText) {
+          setTimeout(() => {
+            this.dispatchUserInteraction(queryText);
+          }, 150);
+        }
+        return;
+      }
+
+      this.isTransitioning = true;
+
+      // Play soft tactile click if available
+      try {
+        const ve = win.voiceEngine || (win.app && win.app.voiceEngine);
+        if (ve && typeof ve.playClick === 'function') ve.playClick();
+      } catch (_) {}
+
+      try {
+        if (queryText) {
+          this.animateFlightTransition(queryText, originEl);
+        } else {
+          this.animateZoomCrossfade();
+        }
+      } catch (err) {
+        console.warn('[LandingPage] Transition error, activating fail-safe:', err);
+        this.isTransitioning = false;
+        this.showApp();
+        if (typeof win.scrollTo === 'function') {
+          try { win.scrollTo({ top: 0, behavior: 'instant' }); } catch (_) {}
+        }
+        if (queryText) {
+          this.dispatchUserInteraction(queryText);
+        }
       }
     }
   };
