@@ -188,6 +188,129 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(avatarDOMInitCalled, 'avatarStage.initTalkingAvatarDOM must be invoked on app reveal');
     assert.ok(syncResponsiveSlotsCalled, 'syncResponsiveSlots must be invoked on app reveal');
   });
+
+  test('index.html wires every marketing landing element with data-i18n attributes', () => {
+    assert.ok(html.includes('data-i18n="landingBrandBy"'), 'landingBrandBy data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingLangCurrent"'), 'landingLangCurrent data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingBtnSignin"'), 'landingBtnSignin data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingKicker"'), 'landingKicker data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n-html="landingHeroTitleHtml"'), 'landingHeroTitleHtml data-i18n-html attribute must exist');
+    assert.ok(html.includes('data-i18n="landingHeroSubtext"'), 'landingHeroSubtext data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingGradeBadge"'), 'landingGradeBadge data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingBtnTryFree"'), 'landingBtnTryFree data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingCtaSub"'), 'landingCtaSub data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingSpeechBubble"'), 'landingSpeechBubble data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingMentorRole"'), 'landingMentorRole data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingValue1"'), 'landingValue1 data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingValue2"'), 'landingValue2 data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingValue3"'), 'landingValue3 data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingQuestionTitle"'), 'landingQuestionTitle data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n-placeholder="landingQuestionPlaceholder"'), 'landingQuestionPlaceholder attribute must exist');
+    assert.ok(html.includes('data-i18n="landingQuestionHelper"'), 'landingQuestionHelper data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingPromptLabel"'), 'landingPromptLabel data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingChip1Text"'), 'landingChip1Text data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingAdvantageKicker"'), 'landingAdvantageKicker data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingAdvantageTitle"'), 'landingAdvantageTitle data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingFeature1Title"'), 'landingFeature1Title data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingFooterCopy"'), 'landingFooterCopy data-i18n attribute must exist');
+    assert.ok(html.includes('data-i18n="landingFooterPrivacy"'), 'landingFooterPrivacy data-i18n attribute must exist');
+  });
+
+  test('LandingPage.translations defines comprehensive dictionaries for en, kn, and hi', () => {
+    assert.ok(LandingPage.translations, 'LandingPage.translations must exist');
+    ['en', 'kn', 'hi'].forEach(lang => {
+      assert.ok(LandingPage.translations[lang], `Must have translations for ${lang}`);
+      const t = LandingPage.translations[lang];
+      assert.ok(t.landingKicker && t.landingKicker.length > 0);
+      assert.ok(t.landingHeroTitleHtml && t.landingHeroTitleHtml.includes('landing-hero-highlight'));
+      assert.ok(t.landingHeroSubtext && t.landingHeroSubtext.length > 0);
+      assert.ok(t.landingGradeBadge && t.landingGradeBadge.length > 0);
+      assert.ok(t.landingBtnTryFree && t.landingBtnTryFree.length > 0);
+      assert.ok(t.landingCtaSub && t.landingCtaSub.length > 0);
+      assert.ok(t.landingSpeechBubble && t.landingSpeechBubble.length > 0);
+      assert.ok(t.landingMentorRole && t.landingMentorRole.length > 0);
+      assert.ok(t.landingValue1 && t.landingValue2 && t.landingValue3);
+      assert.ok(t.landingQuestionPlaceholder && t.landingQuestionPlaceholder.length > 0);
+      assert.ok(t.landingQuestionHelper && t.landingQuestionHelper.length > 0);
+      assert.ok(t.landingBtnSignin && t.landingBtnSignin.length > 0);
+      assert.ok(t.landingFeature1Title && t.landingFeature1Desc);
+    });
+
+    // Check specific Kannada translations
+    assert.equal(LandingPage.translations.kn.landingKicker, 'ಅತ್ಯಂತ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ಕಲಿಕೆ');
+    assert.equal(LandingPage.translations.kn.landingGradeBadge, '5ನೇ ತರಗತಿಯಿಂದ ಮುಂದಕ್ಕೆ');
+    assert.equal(LandingPage.translations.kn.landingBtnTryFree, 'ಅಪ್ಪುವನ್ನು ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ');
+    assert.equal(LandingPage.translations.kn.landingSpeechBubble, '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."');
+    assert.equal(LandingPage.translations.kn.landingBtnSignin, 'ಸೈನ್ ಇನ್');
+
+    // Check specific Hindi translations
+    assert.equal(LandingPage.translations.hi.landingKicker, 'अति-व्यक्तिगत शिक्षण');
+    assert.equal(LandingPage.translations.hi.landingGradeBadge, 'कक्षा 5 से आगे');
+    assert.equal(LandingPage.translations.hi.landingBtnTryFree, 'अप्पू को मुफ़्त आज़माएं');
+    assert.equal(LandingPage.translations.hi.landingSpeechBubble, '"आइए आपके तरीके से सीखें।"');
+    assert.equal(LandingPage.translations.hi.landingBtnSignin, 'साइन इन');
+  });
+
+  test('LandingPage.setLanguage switches language state, label, and applies localized copy', () => {
+    const currentLabelEl = createMockElement('span', 'landing-lang-current');
+    const helperEl = createMockElement('span');
+    const helperP = createMockElement('p', '', 'landing-question-helper');
+    helperP.appendChild(helperEl);
+
+    const speechSpan = createMockElement('span');
+    const speechDiv = createMockElement('div', '', 'landing-speech-bubble');
+    speechDiv.appendChild(speechSpan);
+
+    const questionInput = createMockElement('input', 'landing-question-input');
+
+    const elementsById = {
+      'landing-lang-current': currentLabelEl,
+      'landing-question-input': questionInput
+    };
+
+    const origDoc = global.document;
+    global.document = {
+      createElement: (t) => createMockElement(t),
+      body: createMockElement('body'),
+      getElementById: (id) => elementsById[id] || null,
+      querySelector: (sel) => {
+        if (sel === '.landing-question-helper span') return helperEl;
+        if (sel === '.landing-speech-bubble span') return speechSpan;
+        if (sel === '#landing-question-input') return questionInput;
+        return null;
+      },
+      querySelectorAll: () => []
+    };
+
+    try {
+
+    // Switch to Kannada
+    LandingPage.setLanguage('kn', false);
+    assert.equal(LandingPage.currentLang, 'kn');
+    assert.equal(currentLabelEl.textContent, 'ಕನ್ನಡ');
+    assert.equal(helperEl.textContent, 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ');
+    assert.equal(speechSpan.textContent, '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."');
+    assert.equal(questionInput.placeholder, 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?');
+
+    // Switch to Hindi
+    LandingPage.setLanguage('hi', false);
+    assert.equal(LandingPage.currentLang, 'hi');
+    assert.equal(currentLabelEl.textContent, 'हिंदी');
+    assert.equal(helperEl.textContent, 'अंग्रेज़ी, कन्नड़ या हिंदी में टाइप करें या बोलें');
+    assert.equal(speechSpan.textContent, '"आइए आपके तरीके से सीखें।"');
+    assert.equal(questionInput.placeholder, 'आप क्या समझना चाहते हैं?');
+
+    // Switch back to English
+    LandingPage.setLanguage('en', false);
+    assert.equal(LandingPage.currentLang, 'en');
+    assert.equal(currentLabelEl.textContent, 'English');
+    assert.equal(helperEl.textContent, 'Type or speak in English, Kannada or Hindi');
+    assert.equal(speechSpan.textContent, '"Let\'s learn your way."');
+    assert.equal(questionInput.placeholder, 'What would you like to understand?');
+    } finally {
+      global.document = origDoc;
+    }
+  });
 });
 
 describe('PRIORITY 2: "Class 6 Everywhere" Anonymous Neutral Fallback Invariants', () => {

@@ -499,7 +499,52 @@ document.addEventListener('DOMContentLoaded', () => {
       notesBtnCancel: 'Cancel',
       childProgressReport: 'Child Progress Report',
       drawerMissionsTitle: 'Learning Missions',
-      drawerProgressTitle: 'My Progress'
+      drawerProgressTitle: 'My Progress',
+      landingBrandBy: '— by IGr Academy',
+      landingLangAria: 'Choose language',
+      landingLangCurrent: 'English',
+      landingBtnSignin: 'Sign in',
+      landingKicker: 'HYPER-PERSONALISED LEARNING',
+      landingHeroTitleHtml: 'Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>',
+      landingHeroSubtext: 'Meet APPU, your AI mentor for academic excellence.',
+      landingGradeBadge: 'Class 5 onwards',
+      landingBtnTryFree: 'Try APPU free',
+      landingCtaSub: 'No sign-up needed to try',
+      landingSpeechBubble: '"Let\'s learn your way."',
+      landingMentorRole: 'Your AI learning mentor',
+      landingMentorAlt: 'APPU — Your AI learning mentor',
+      landingValue1: 'Understand clearly',
+      landingValue2: 'Practise confidently',
+      landingValue3: 'Learn at your pace',
+      landingQuestionTitle: 'Start with one question.',
+      landingQuestionSubtitle: 'Ask anything from your school textbook or curiosity.',
+      landingQuestionPlaceholder: 'What would you like to understand?',
+      landingQuestionHelper: 'Type or speak in English, Kannada or Hindi',
+      landingPromptLabel: 'Try asking:',
+      landingChip1Text: 'Why is the sky blue?',
+      landingChip1Prompt: 'Why is the sky blue?',
+      landingChip2Text: 'How does photosynthesis work?',
+      landingChip2Prompt: 'How does photosynthesis work?',
+      landingChip3Text: 'Explain Pythagoras theorem',
+      landingChip3Prompt: 'Explain Pythagoras theorem with an example',
+      landingChip4Text: 'What causes seasons?',
+      landingChip4Prompt: 'What causes seasons on Earth?',
+      landingMicAria: 'Speak your question',
+      landingSendAria: 'Ask Appu',
+      landingAdvantageKicker: 'THE APPU ADVANTAGE',
+      landingAdvantageTitle: 'How Appu transforms your study hours',
+      landingFeature1Title: 'Visual Concept Trees & Mind Maps',
+      landingFeature1Desc: 'Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.',
+      landingFeature2Title: 'Multilingual AI Voice Companion',
+      landingFeature2Desc: 'Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.',
+      landingFeature3Title: 'Curriculum-Safe & Parent Verified',
+      landingFeature3Desc: '100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.',
+      landingFooterCopy: '© 2026 IGR Academy • All rights reserved',
+      landingFooterPrivacy: 'Privacy Policy',
+      landingFooterTerms: 'Terms & Conditions',
+      landingFooterPricing: 'Pricing',
+      landingFooterContact: 'Contact Us',
+      voiceListeningPlaceholder: 'Listening... Speak now'
     },
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
@@ -613,7 +658,52 @@ document.addEventListener('DOMContentLoaded', () => {
       notesBtnCancel: 'ರದ್ದುಮಾಡಿ',
       childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
       drawerMissionsTitle: 'ಕಲಿಕಾ ಕಾರ್ಯಗಳು',
-      drawerProgressTitle: 'ನನ್ನ ಪ್ರಗತಿ'
+      drawerProgressTitle: 'ನನ್ನ ಪ್ರಗತಿ',
+      landingBrandBy: '— IGr ಅಕಾಡೆಮಿಯಿಂದ',
+      landingLangAria: 'ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+      landingLangCurrent: 'ಕನ್ನಡ',
+      landingBtnSignin: 'ಸೈನ್ ಇನ್',
+      landingKicker: 'ಅತ್ಯಂತ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ಕಲಿಕೆ',
+      landingHeroTitleHtml: 'ಪ್ರತಿಯೊಬ್ಬ ವಿದ್ಯಾರ್ಥಿಯೂ ವಿಭಿನ್ನ. <br><span class="landing-hero-highlight">ಕಲಿಕೆಯೂ ವಿಭಿನ್ನವಾಗಿರಬೇಕು.</span>',
+      landingHeroSubtext: 'ಶೈಕ್ಷಣಿಕ ಶ್ರೇಷ್ಠತೆಗಾಗಿ ನಿಮ್ಮ ಎಐ ಮಾರ್ಗದರ್ಶಕ ಅಪ್ಪುವನ್ನು ಭೇಟಿ ಮಾಡಿ.',
+      landingGradeBadge: '5ನೇ ತರಗತಿಯಿಂದ ಮುಂದಕ್ಕೆ',
+      landingBtnTryFree: 'ಅಪ್ಪುವನ್ನು ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ',
+      landingCtaSub: 'ಪ್ರಯತ್ನಿಸಲು ಸೈನ್-ಅಪ್ ಅಗತ್ಯವಿಲ್ಲ',
+      landingSpeechBubble: '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."',
+      landingMentorRole: 'ನಿಮ್ಮ ಎಐ ಕಲಿಕಾ ಮಾರ್ಗದರ್ಶಕ',
+      landingMentorAlt: 'ಅಪ್ಪು — ನಿಮ್ಮ ಎಐ ಕಲಿಕಾ ಮಾರ್ಗದರ್ಶಕ',
+      landingValue1: 'ಸ್ಪಷ್ಟವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
+      landingValue2: 'ಆತ್ಮವಿಶ್ವಾಸದಿಂದ ಅಭ್ಯಾಸ ಮಾಡಿ',
+      landingValue3: 'ನಿಮ್ಮ ವೇಗದಲ್ಲಿ ಕಲಿಯಿರಿ',
+      landingQuestionTitle: 'ಒಂದು ಪ್ರಶ್ನೆಯೊಂದಿಗೆ ಪ್ರಾರಂಭಿಸಿ.',
+      landingQuestionSubtitle: 'ನಿಮ್ಮ ಶಾಲಾ ಪಠ್ಯಪುಸ್ತಕದಿಂದ ಅಥವಾ ನಿಮ್ಮ ಕುತೂಹಲದಿಂದ ಏನನ್ನಾದರೂ ಕೇಳಿ.',
+      landingQuestionPlaceholder: 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?',
+      landingQuestionHelper: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ',
+      landingPromptLabel: 'ಹೀಗೆ ಕೇಳಿ ನೋಡಿ:',
+      landingChip1Text: 'ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿದೆ?',
+      landingChip1Prompt: 'ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿದೆ?',
+      landingChip2Text: 'ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?',
+      landingChip2Prompt: 'ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?',
+      landingChip3Text: 'ಪೈಥಾಗೊರಸ್ ಪ್ರಮೇಯವನ್ನು ವಿವರಿಸಿ',
+      landingChip3Prompt: 'ಉದಾಹರಣೆಯೊಂದಿಗೆ ಪೈಥಾಗೊರಸ್ ಪ್ರಮೇಯವನ್ನು ವಿವರಿಸಿ',
+      landingChip4Text: 'ಋತುಗಳು ಹೇಗೆ ಬದಲಾಗುತ್ತವೆ?',
+      landingChip4Prompt: 'ಭೂಮಿಯ ಮೇಲೆ ಋತುಗಳು ಹೇಗೆ ಬದಲಾಗುತ್ತವೆ?',
+      landingMicAria: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ',
+      landingSendAria: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      landingAdvantageKicker: 'ಅಪ್ಪು ವಿಶೇಷತೆ',
+      landingAdvantageTitle: 'ಅಪ್ಪು ನಿಮ್ಮ ಅಧ್ಯಯನದ ಸಮಯವನ್ನು ಹೇಗೆ ಪರಿವರ್ತಿಸುತ್ತದೆ',
+      landingFeature1Title: 'ದೃಶ್ಯ ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು & ಮೈಂಡ್ ಮ್ಯಾಪ್‌ಗಳು',
+      landingFeature1Desc: 'ಪ್ರತಿಯೊಂದು ಉತ್ತರವೂ ರಚನಾತ್ಮಕ ರೇಖಾಚಿತ್ರಗಳು ಮತ್ತು ಪರಿಕಲ್ಪನೆಗಳ ಕವಲುಗಳನ್ನು ನೀಡುತ್ತದೆ, ಇದರಿಂದ ನೀವು ಕಂಠಪಾಠ ಮಾಡುವ ಬದಲು ಮೂಲ ಪರಿಕಲ್ಪನೆಯನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತೀರಿ.',
+      landingFeature2Title: 'ಬಹುಭಾಷಾ ಎಐ ಧ್ವನಿ ಸಂಗಾತಿ',
+      landingFeature2Desc: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಸಹಜವಾಗಿ ಮಾತನಾಡಿ. ಅಪ್ಪು ಸ್ಪಷ್ಟ ಆಡಿಯೋ ವಿವರಣೆಗಳು ಮತ್ತು ನೇರ ಉಪಶೀರ್ಷಿಕೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸುತ್ತಾನೆ.',
+      landingFeature3Title: 'ಪಠ್ಯಕ್ರಮಕ್ಕೆ ಸುರಕ್ಷಿತ & ಪೋಷಕರಿಂದ ಪರಿಶೀಲಿಸಲ್ಪಟ್ಟಿದೆ',
+      landingFeature3Desc: 'NCERT/CBSE ಮಾನದಂಡಗಳಿಗೆ ಅನುಗುಣವಾಗಿ 100% ಮಕ್ಕಳಿಗೆ ಸುರಕ್ಷಿತ. ಪೋಷಕರು ನೈಜ-ಸಮಯದ ಕಲಿಕಾ ಒಳನೋಟಗಳು ಮತ್ತು WhatsApp ಪ್ರಗತಿ ವರದಿಗಳನ್ನು ಪಡೆಯುತ್ತಾರೆ.',
+      landingFooterCopy: '© 2026 IGR Academy • ಎಲ್ಲ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ',
+      landingFooterPrivacy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
+      landingFooterTerms: 'ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು',
+      landingFooterPricing: 'ದರ ವಿವರ',
+      landingFooterContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
+      voiceListeningPlaceholder: 'ಆಲಿಸಲಾಗುತ್ತಿದೆ... ಈಗ ಮಾತನಾಡಿ'
     },
     hi: {
       statusLabel: 'अप्पू तैयार है',
@@ -727,9 +817,57 @@ document.addEventListener('DOMContentLoaded', () => {
       notesBtnCancel: 'रद्द करें',
       childProgressReport: 'बच्चे की प्रगति रिपोर्ट',
       drawerMissionsTitle: 'सीखने के मिशन',
-      drawerProgressTitle: 'मेरी प्रगति'
+      drawerProgressTitle: 'मेरी प्रगति',
+      landingBrandBy: '— IGr अकादमी द्वारा',
+      landingLangAria: 'भाषा चुनें',
+      landingLangCurrent: 'हिंदी',
+      landingBtnSignin: 'साइन इन',
+      landingKicker: 'अति-व्यक्तिगत शिक्षण',
+      landingHeroTitleHtml: 'हर छात्र अलग होता है। <br><span class="landing-hero-highlight">सीखने का तरीका भी अलग होना चाहिए।</span>',
+      landingHeroSubtext: 'शैक्षणिक उत्कृष्टता के लिए अपने एआई मेंटर अप्पू से मिलें।',
+      landingGradeBadge: 'कक्षा 5 से आगे',
+      landingBtnTryFree: 'अप्पू को मुफ़्त आज़माएं',
+      landingCtaSub: 'आज़माने के लिए साइन-अप की ज़रूरत नहीं',
+      landingSpeechBubble: '"आइए आपके तरीके से सीखें।"',
+      landingMentorRole: 'आपका एआई लर्निंग मेंटर',
+      landingMentorAlt: 'अप्पू — आपका एआई लर्निंग मेंटर',
+      landingValue1: 'स्पष्ट रूप से समझें',
+      landingValue2: 'आत्मविश्वास से अभ्यास करें',
+      landingValue3: 'अपनी गति से सीखें',
+      landingQuestionTitle: 'एक प्रश्न से शुरुआत करें।',
+      landingQuestionSubtitle: 'अपनी स्कूल की पाठ्यपुस्तक से या अपनी जिज्ञासा से कुछ भी पूछें।',
+      landingQuestionPlaceholder: 'आप क्या समझना चाहते हैं?',
+      landingQuestionHelper: 'अंग्रेज़ी, कन्नड़ या हिंदी में टाइप करें या बोलें',
+      landingPromptLabel: 'यह पूछकर देखें:',
+      landingChip1Text: 'आसमान नीला क्यों है?',
+      landingChip1Prompt: 'आसमान नीला क्यों होता है?',
+      landingChip2Text: 'प्रकाश संश्लेषण कैसे काम करता है?',
+      landingChip2Prompt: 'प्रकाश संश्लेषण कैसे काम करता है?',
+      landingChip3Text: 'पाइथागोरस प्रमेय समझाएं',
+      landingChip3Prompt: 'उदाहरण के साथ पाइथागोरस प्रमेय समझाएं',
+      landingChip4Text: 'ऋतुएं कैसे बदलती हैं?',
+      landingChip4Prompt: 'पृथ्वी पर मौसम या ऋतुएं कैसे बदलती हैं?',
+      landingMicAria: 'अपना प्रश्न बोलें',
+      landingSendAria: 'अप्पू से पूछें',
+      landingAdvantageKicker: 'अप्पू की विशेषताएं',
+      landingAdvantageTitle: 'अप्पू आपकी पढ़ाई के समय को कैसे बेहतर बनाता है',
+      landingFeature1Title: 'दृश्य कॉन्सेप्ट ट्री और माइंड मैप',
+      landingFeature1Desc: 'प्रत्येक उत्तर संरचित रेखाचित्र और अवधारणा शाखाएं उत्पन्न करता है ताकि आप रटने के बजाय बुनियादी समझ विकसित कर सकें।',
+      landingFeature2Title: 'बहुभाषी एआई वॉइस साथी',
+      landingFeature2Desc: 'अंग्रेज़ी, ಕನ್ನಡ या हिंदी में स्वाभाविक रूप से बोलें। अप्पू स्पष्ट ऑडियो विवरण और लाइव सबटाइटल के साथ उत्तर देता है।',
+      landingFeature3Title: 'पाठ्यक्रम-सुरक्षित और अभिभावक-सत्यापित',
+      landingFeature3Desc: 'NCERT/CBSE मानकों के अनुरूप 100% बच्चों के लिए सुरक्षित। अभिभावकों को वास्तविक समय में सीखने की प्रगति और WhatsApp अपडेट मिलते हैं।',
+      landingFooterCopy: '© 2026 IGR Academy • सर्वाधिकार सुरक्षित',
+      landingFooterPrivacy: 'गोपनीयता नीति',
+      landingFooterTerms: 'नियम और शर्तें',
+      landingFooterPricing: 'मूल्य निर्धारण',
+      landingFooterContact: 'संपर्क करें',
+      voiceListeningPlaceholder: 'सुन रहे हैं... अब बोलें'
     }
   };
+  if (typeof window !== 'undefined') {
+    window.UI_TRANSLATIONS = UI_TRANSLATIONS;
+  }
 
   function applyUiTranslations(lang) {
     const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
@@ -1122,6 +1260,63 @@ document.addEventListener('DOMContentLoaded', () => {
     // Parental Controls modal (delegated to its own module with its own translation dictionary)
     if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.applyTranslations === 'function') {
       window.ParentalControlsUI.applyTranslations(lang);
+    }
+
+    // Automatic attribute-based landing page & generic UI bindings
+    if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t[key] !== undefined) {
+          el.textContent = t[key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-html');
+        if (key && t[key] !== undefined) {
+          el.innerHTML = t[key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && t[key] !== undefined) {
+          el.placeholder = t[key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-aria-label');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('aria-label', t[key]);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-title');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('title', t[key]);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-alt]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-alt');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('alt', t[key]);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-question]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-question');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('data-question', t[key]);
+        }
+      });
+    }
+
+    // Landing Page Controller sync
+    if (typeof window !== 'undefined' && window.LandingPage && typeof window.LandingPage.applyTranslations === 'function') {
+      window.LandingPage.applyTranslations(lang);
     }
   }
 
@@ -1745,6 +1940,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.applyTranslations === 'function') {
       window.ParentalControlsUI.applyTranslations(lang);
+    }
+
+    if (typeof window !== 'undefined' && window.LandingPage && typeof window.LandingPage.setLanguage === 'function') {
+      if (window.LandingPage.currentLang !== lang) {
+        window.LandingPage.setLanguage(lang, false);
+      }
     }
 
     const isVoicePopupVisible = voiceReplyPopup && (voiceReplyPopup.classList.contains('is-visible') || !voiceReplyPopup.hidden);

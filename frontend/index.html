@@ -31,9 +31,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261005-03">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261005-03">
-  <link rel="stylesheet" href="landing-page.css?v=20261005-03">
+  <link rel="stylesheet" href="style.css?v=20261005-04">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261005-04">
+  <link rel="stylesheet" href="landing-page.css?v=20261005-04">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -86,15 +86,15 @@
           <img src="assets/igr-logo.png" alt="IGr Academy" class="landing-brand-logo" width="40" height="40">
           <div class="landing-brand-text">
             <span class="landing-brand-title">APPU AI</span>
-            <span class="landing-brand-by">— by IGr Academy</span>
+            <span class="landing-brand-by" data-i18n="landingBrandBy">— by IGr Academy</span>
           </div>
         </a>
         <div class="landing-header-actions">
           <!-- Language Dropdown -->
           <div class="landing-lang-dropdown">
-            <button id="landing-lang-btn" class="landing-lang-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose language">
+            <button id="landing-lang-btn" class="landing-lang-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose language" data-i18n-aria-label="landingLangAria">
               <i class="fa-solid fa-globe" aria-hidden="true"></i>
-              <span id="landing-lang-current">English</span>
+              <span id="landing-lang-current" data-i18n="landingLangCurrent">English</span>
               <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>
             <ul id="landing-lang-menu" class="landing-lang-menu" role="listbox" hidden>
@@ -106,7 +106,7 @@
           <!-- Sign in CTA -->
           <button id="landing-btn-signin" class="landing-btn-signin" type="button">
             <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
-            <span>Sign in</span>
+            <span data-i18n="landingBtnSignin">Sign in</span>
           </button>
         </div>
       </div>
@@ -119,24 +119,24 @@
         <div class="landing-hero-content">
           <div class="landing-kicker">
             <span class="landing-kicker-sparkle" aria-hidden="true">✦</span>
-            <span>HYPER-PERSONALISED LEARNING</span>
+            <span data-i18n="landingKicker">HYPER-PERSONALISED LEARNING</span>
           </div>
-          <h1 class="landing-hero-title">
+          <h1 class="landing-hero-title" data-i18n-html="landingHeroTitleHtml">
             Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>
           </h1>
-          <p class="landing-hero-subtext">
+          <p class="landing-hero-subtext" data-i18n="landingHeroSubtext">
             Meet APPU, your AI mentor for academic excellence.
           </p>
           <div class="landing-grade-badge">
             <span aria-hidden="true">🎓</span>
-            <span>Class 5 onwards</span>
+            <span data-i18n="landingGradeBadge">Class 5 onwards</span>
           </div>
           <div class="landing-cta-group">
             <button id="landing-btn-try-free" class="landing-btn-primary" type="button">
-              <span>Try APPU free</span>
+              <span data-i18n="landingBtnTryFree">Try APPU free</span>
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </button>
-            <span class="landing-cta-sub">No sign-up needed to try</span>
+            <span class="landing-cta-sub" data-i18n="landingCtaSub">No sign-up needed to try</span>
           </div>
         </div>
 
@@ -144,18 +144,18 @@
         <div class="landing-hero-visual">
           <div class="landing-mentor-card">
             <div class="landing-speech-bubble" role="status">
-              <span>"Let's learn your way."</span>
+              <span data-i18n="landingSpeechBubble">"Let's learn your way."</span>
               <div class="landing-bubble-tail" aria-hidden="true"></div>
             </div>
             <div class="landing-mentor-frame">
-              <img src="assets/appu-mentor-portrait.jpg" alt="APPU — Your AI learning mentor" class="landing-mentor-img" width="460" height="460">
+              <img src="assets/appu-mentor-portrait.jpg" alt="APPU — Your AI learning mentor" class="landing-mentor-img" width="460" height="460" data-i18n-alt="landingMentorAlt">
             </div>
             <div class="landing-mentor-nameplate">
               <span class="landing-status-dot" aria-hidden="true"></span>
               <div class="landing-nameplate-text">
                 <strong>APPU</strong>
                 <span class="landing-nameplate-dot">•</span>
-                <span>Your AI learning mentor</span>
+                <span data-i18n="landingMentorRole">Your AI learning mentor</span>
               </div>
             </div>
           </div>
@@ -166,19 +166,19 @@
     <!-- Value Proposition Band -->
     <section class="landing-value-band" aria-label="Core learning principles">
       <div class="landing-value-content">
-        <span class="landing-value-item"><i class="fa-regular fa-circle-check text-cyan" aria-hidden="true"></i> Understand clearly</span>
+        <span class="landing-value-item"><i class="fa-regular fa-circle-check text-cyan" aria-hidden="true"></i> <span data-i18n="landingValue1">Understand clearly</span></span>
         <span class="landing-value-sep" aria-hidden="true">•</span>
-        <span class="landing-value-item"><i class="fa-solid fa-bolt text-amber" aria-hidden="true"></i> Practise confidently</span>
+        <span class="landing-value-item"><i class="fa-solid fa-bolt text-amber" aria-hidden="true"></i> <span data-i18n="landingValue2">Practise confidently</span></span>
         <span class="landing-value-sep" aria-hidden="true">•</span>
-        <span class="landing-value-item"><i class="fa-solid fa-person-running text-green" aria-hidden="true"></i> Learn at your pace</span>
+        <span class="landing-value-item"><i class="fa-solid fa-person-running text-green" aria-hidden="true"></i> <span data-i18n="landingValue3">Learn at your pace</span></span>
       </div>
     </section>
 
     <!-- "Start with one question." Section -->
     <section class="landing-question-section" aria-labelledby="landing-question-title">
       <div class="landing-question-container">
-        <h2 id="landing-question-title" class="landing-question-title">Start with one question.</h2>
-        <p class="landing-question-subtitle">Ask anything from your school textbook or curiosity.</p>
+        <h2 id="landing-question-title" class="landing-question-title" data-i18n="landingQuestionTitle">Start with one question.</h2>
+        <p class="landing-question-subtitle" data-i18n="landingQuestionSubtitle">Ask anything from your school textbook or curiosity.</p>
         
         <form id="landing-question-form" class="landing-question-box" role="search">
           <div class="landing-input-wrap">
@@ -190,38 +190,40 @@
               placeholder="What would you like to understand?"
               autocomplete="off"
               aria-label="What would you like to understand?"
+              data-i18n-placeholder="landingQuestionPlaceholder"
+              data-i18n-aria-label="landingQuestionPlaceholder"
             />
-            <button id="landing-btn-mic" class="landing-input-btn landing-mic-btn" type="button" aria-label="Speak your question" title="Speak your question">
+            <button id="landing-btn-mic" class="landing-input-btn landing-mic-btn" type="button" aria-label="Speak your question" title="Speak your question" data-i18n-aria-label="landingMicAria" data-i18n-title="landingMicAria">
               <i class="fa-solid fa-microphone" aria-hidden="true"></i>
             </button>
-            <button id="landing-btn-send" class="landing-input-btn landing-send-btn" type="submit" aria-label="Ask Appu" title="Ask Appu">
+            <button id="landing-btn-send" class="landing-input-btn landing-send-btn" type="submit" aria-label="Ask Appu" title="Ask Appu" data-i18n-aria-label="landingSendAria" data-i18n-title="landingSendAria">
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </button>
           </div>
           <p class="landing-question-helper">
             <i class="fa-solid fa-keyboard" aria-hidden="true"></i>
-            <span>Type or speak in English, Kannada or Hindi</span>
+            <span data-i18n="landingQuestionHelper">Type or speak in English, Kannada or Hindi</span>
           </p>
         </form>
 
         <!-- Quick prompt starter chips -->
         <div class="landing-prompt-chips" aria-label="Starter questions">
-          <span class="landing-prompt-label">Try asking:</span>
-          <button type="button" class="landing-prompt-chip" data-question="Why is the sky blue?">
+          <span class="landing-prompt-label" data-i18n="landingPromptLabel">Try asking:</span>
+          <button type="button" class="landing-prompt-chip" data-question="Why is the sky blue?" data-i18n-question="landingChip1Prompt">
             <i class="fa-solid fa-cloud-sun text-cyan" aria-hidden="true"></i>
-            <span>Why is the sky blue?</span>
+            <span data-i18n="landingChip1Text">Why is the sky blue?</span>
           </button>
-          <button type="button" class="landing-prompt-chip" data-question="How does photosynthesis work?">
+          <button type="button" class="landing-prompt-chip" data-question="How does photosynthesis work?" data-i18n-question="landingChip2Prompt">
             <i class="fa-solid fa-leaf text-green" aria-hidden="true"></i>
-            <span>How does photosynthesis work?</span>
+            <span data-i18n="landingChip2Text">How does photosynthesis work?</span>
           </button>
-          <button type="button" class="landing-prompt-chip" data-question="Explain Pythagoras theorem with an example">
+          <button type="button" class="landing-prompt-chip" data-question="Explain Pythagoras theorem with an example" data-i18n-question="landingChip3Prompt">
             <i class="fa-solid fa-shapes text-amber" aria-hidden="true"></i>
-            <span>Explain Pythagoras theorem</span>
+            <span data-i18n="landingChip3Text">Explain Pythagoras theorem</span>
           </button>
-          <button type="button" class="landing-prompt-chip" data-question="What causes seasons on Earth?">
+          <button type="button" class="landing-prompt-chip" data-question="What causes seasons on Earth?" data-i18n-question="landingChip4Prompt">
             <i class="fa-solid fa-earth-americas text-indigo" aria-hidden="true"></i>
-            <span>What causes seasons?</span>
+            <span data-i18n="landingChip4Text">What causes seasons?</span>
           </button>
         </div>
       </div>
@@ -233,31 +235,31 @@
         <div class="landing-section-header">
           <div class="landing-kicker">
             <span class="landing-kicker-sparkle" aria-hidden="true">✦</span>
-            <span>THE APPU ADVANTAGE</span>
+            <span data-i18n="landingAdvantageKicker">THE APPU ADVANTAGE</span>
           </div>
-          <h2 id="landing-features-title" class="landing-features-title">How Appu transforms your study hours</h2>
+          <h2 id="landing-features-title" class="landing-features-title" data-i18n="landingAdvantageTitle">How Appu transforms your study hours</h2>
         </div>
         <div class="landing-features-grid">
           <div class="landing-feature-card">
             <div class="landing-feature-icon-wrap icon-cyan">
               <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
             </div>
-            <h3>Visual Concept Trees &amp; Mind Maps</h3>
-            <p>Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.</p>
+            <h3 data-i18n="landingFeature1Title">Visual Concept Trees &amp; Mind Maps</h3>
+            <p data-i18n="landingFeature1Desc">Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.</p>
           </div>
           <div class="landing-feature-card">
             <div class="landing-feature-icon-wrap icon-indigo">
               <i class="fa-solid fa-microphone-lines" aria-hidden="true"></i>
             </div>
-            <h3>Multilingual AI Voice Companion</h3>
-            <p>Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.</p>
+            <h3 data-i18n="landingFeature2Title">Multilingual AI Voice Companion</h3>
+            <p data-i18n="landingFeature2Desc">Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.</p>
           </div>
           <div class="landing-feature-card">
             <div class="landing-feature-icon-wrap icon-emerald">
               <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
             </div>
-            <h3>Curriculum-Safe &amp; Parent Verified</h3>
-            <p>100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.</p>
+            <h3 data-i18n="landingFeature3Title">Curriculum-Safe &amp; Parent Verified</h3>
+            <p data-i18n="landingFeature3Desc">100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.</p>
           </div>
         </div>
       </div>
@@ -266,12 +268,12 @@
     <!-- Marketing Footer -->
     <footer class="landing-marketing-footer" role="contentinfo">
       <div class="landing-marketing-footer-inner">
-        <span>&copy; 2026 IGR Academy • All rights reserved</span>
+        <span data-i18n="landingFooterCopy">&copy; 2026 IGR Academy • All rights reserved</span>
         <div class="landing-marketing-links">
-          <a href="privacy-policy.html">Privacy Policy</a>
-          <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
-          <a href="pricing.html">Pricing</a>
-          <a href="contact-us.html">Contact Us</a>
+          <a href="privacy-policy.html" data-i18n="landingFooterPrivacy">Privacy Policy</a>
+          <a href="terms-and-conditions.html" data-i18n="landingFooterTerms">Terms &amp; Conditions</a>
+          <a href="pricing.html" data-i18n="landingFooterPricing">Pricing</a>
+          <a href="contact-us.html" data-i18n="landingFooterContact">Contact Us</a>
         </div>
       </div>
     </footer>
@@ -1181,24 +1183,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261005-03"></script>
-  <script src="appu-config.js?v=20261005-03"></script>
-  <script src="appu-session.js?v=20261005-03"></script>
-  <script src="appu-backend-client.js?v=20261005-03"></script>
-  <script src="parent-onboarding-shell.js?v=20261005-03"></script>
-  <script src="parent-setup-ui.js?v=20261005-03"></script>
-  <script src="prompt-library-ui.js?v=20261005-03"></script>
-  <script src="avatar-stage.js?v=20261005-03"></script>
-  <script src="mascot-avatar.js?v=20261005-03"></script>
-  <script src="lottie-catalog.js?v=20261005-03"></script>
-  <script src="lesson-card-renderer.js?v=20261005-03"></script>
-  <script src="voice-engine.js?v=20261005-03"></script>
-  <script src="chat-history.js?v=20261005-03"></script>
-  <script src="chat-agent.js?v=20261005-03"></script>
-  <script src="parent-reports-ui.js?v=20261005-03"></script>
-  <script src="parental-controls-ui.js?v=20261005-03"></script>
-  <script src="saved-lessons-ui.js?v=20261005-03"></script>
-  <script src="app.js?v=20261005-03"></script>
-  <script src="landing-page.js?v=20261005-03"></script>
+  <script src="voice-contract.js?v=20261005-04"></script>
+  <script src="appu-config.js?v=20261005-04"></script>
+  <script src="appu-session.js?v=20261005-04"></script>
+  <script src="appu-backend-client.js?v=20261005-04"></script>
+  <script src="parent-onboarding-shell.js?v=20261005-04"></script>
+  <script src="parent-setup-ui.js?v=20261005-04"></script>
+  <script src="prompt-library-ui.js?v=20261005-04"></script>
+  <script src="avatar-stage.js?v=20261005-04"></script>
+  <script src="mascot-avatar.js?v=20261005-04"></script>
+  <script src="lottie-catalog.js?v=20261005-04"></script>
+  <script src="lesson-card-renderer.js?v=20261005-04"></script>
+  <script src="voice-engine.js?v=20261005-04"></script>
+  <script src="chat-history.js?v=20261005-04"></script>
+  <script src="chat-agent.js?v=20261005-04"></script>
+  <script src="parent-reports-ui.js?v=20261005-04"></script>
+  <script src="parental-controls-ui.js?v=20261005-04"></script>
+  <script src="saved-lessons-ui.js?v=20261005-04"></script>
+  <script src="app.js?v=20261005-04"></script>
+  <script src="landing-page.js?v=20261005-04"></script>
 </body>
 </html>
