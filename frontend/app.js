@@ -184,6 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   window.avatarStage = avatarStage;
   window.handleUserInteraction = handleUserInteraction;
+  // Expose the chat sender + grade helper so the self-contained landing trial can
+  // answer inline (without navigating into the main app shell).
+  window.chatAgent = chatAgent;
+  window.getActiveChildGrade = (typeof getActiveChildGrade === 'function') ? getActiveChildGrade : null;
 
   const appShell = document.getElementById('app-shell');
   let activeDialog = null;

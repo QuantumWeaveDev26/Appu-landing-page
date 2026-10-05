@@ -192,9 +192,14 @@
       const appParam = urlParams.get('app');
       const hash = win.location ? win.location.hash : '';
 
-      if (viewParam === 'app' || appParam === '1' || hash === '#app') {
+      const bypassRequestsApp = (viewParam === 'app' || appParam === '1' || hash === '#app');
+      const sessionReady = Boolean(win.appuSession && typeof win.appuSession.isAuthenticated === 'function');
+      if (bypassRequestsApp && (!sessionReady || this.isAuthed())) {
+        // Returning signed-in users go straight to the app.
         this.showApp();
       } else {
+        // Anonymous users stay on the self-contained landing trial. The main app is
+        // locked behind sign-in: no ?app=1 / ?view=app / #app bypass when not signed in.
         this.showLanding();
       }
 
@@ -209,28 +214,31 @@
         this.setLanguage(savedLang, false);
       }
 
-      // "Try APPU free" CTA
+      // "Try APPU free" CTA -> focus the question input (the trial stays on the landing)
       if (btnTryFree) {
         btnTryFree.addEventListener('click', () => {
-          this.enterApp('', btnTryFree);
+          if (questionInput) {
+            try { questionInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+            try { questionInput.focus(); } catch (_) {}
+          }
         });
       }
 
-      // "Start with one question" form submit
+      // "Start with one question" form submit -> answer INLINE on the landing
       if (questionForm) {
         questionForm.addEventListener('submit', (e) => {
           e.preventDefault();
           const query = questionInput ? questionInput.value.trim() : '';
-          this.enterApp(query, questionForm);
+          this.answerInline(query);
         });
       }
 
-      // Starter prompt chips
+      // Starter prompt chips -> answer INLINE on the landing
       promptChips.forEach(chip => {
         chip.addEventListener('click', () => {
           const q = chip.getAttribute('data-question') || chip.textContent.trim();
           if (questionInput) questionInput.value = q;
-          this.enterApp(q, chip);
+          this.answerInline(q);
         });
       });
 
@@ -1281,7 +1289,7 @@
           if (micBtn) micBtn.classList.remove('is-listening');
           const finalQuery = input ? input.value.trim() : '';
           if (finalQuery) {
-            this.enterApp(finalQuery, micBtn);
+            this.answerInline(finalQuery);
           } else {
             const win = getWin();
             const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
@@ -1757,6 +1765,169 @@
 
       // Hard safety timer (expanded to 2400ms to comfortably accommodate slower animation)
       setTimeout(() => { if (!completed) finalize(); }, 2400);
+    },
+
+    escTrial(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+      });
+    },
+
+    isAuthed() {
+      const win = getWin();
+      try {
+        return Boolean(win.appuSession && typeof win.appuSession.isAuthenticated === 'function' && win.appuSession.isAuthenticated());
+      } catch (_) { return false; }
+    },
+
+    trialLimit() {
+      const win = getWin();
+      const n = (win.APPU_CONFIG && win.APPU_CONFIG.betaChatLimit) || 5;
+      return (typeof n === 'number' && n > 0) ? n : 5;
+    },
+
+    trialUsed() {
+      const win = getWin();
+      try { return parseInt(win.localStorage.getItem('appu_trial_used') || '0', 10) || 0; } catch (_) { return 0; }
+    },
+
+    ensureTrialConvo() {
+      let convo = document.getElementById('landing-trial-convo');
+      if (convo) return convo;
+      const section = document.querySelector('.landing-question-section') ||
+        document.querySelector('.landing-hero') || document.body;
+      convo = document.createElement('div');
+      convo.id = 'landing-trial-convo';
+      convo.className = 'landing-trial-convo';
+      convo.setAttribute('aria-live', 'polite');
+      if (section && section.parentNode) {
+        section.parentNode.insertBefore(convo, section.nextSibling);
+      } else {
+        document.body.appendChild(convo);
+      }
+      return convo;
+    },
+
+    openSignIn() {
+      const win = getWin();
+      this.showApp();
+      if (win.ParentSetupUI && typeof win.ParentSetupUI.openModal === 'function') {
+        win.ParentSetupUI.openModal(1);
+      } else {
+        const mainAuthBtn = document.getElementById('btn-main-auth');
+        if (mainAuthBtn) mainAuthBtn.click();
+      }
+    },
+
+    showTrialGate() {
+      const convo = this.ensureTrialConvo();
+      if (document.getElementById('landing-trial-gate')) return;
+      const gate = document.createElement('div');
+      gate.id = 'landing-trial-gate';
+      gate.className = 'landing-trial-gate';
+      gate.innerHTML = '<div class="landing-trial-gate-inner">' +
+        '<div class="landing-trial-gate-icon" aria-hidden="true">🎓</div>' +
+        '<h3>You’ve used your free questions!</h3>' +
+        '<p>Sign in (free, no card) to keep learning with Appu and unlock the full experience.</p>' +
+        '<button type="button" id="landing-trial-gate-signin" class="landing-btn-primary"><span>Sign in to continue</span> <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>' +
+        '</div>';
+      convo.appendChild(gate);
+      try { gate.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+      const btn = document.getElementById('landing-trial-gate-signin');
+      if (btn) btn.addEventListener('click', () => this.openSignIn());
+      const form = document.getElementById('landing-question-form');
+      const input = document.getElementById('landing-question-input');
+      if (input) { input.disabled = true; input.setAttribute('placeholder', 'Sign in to keep asking…'); }
+      if (form) form.classList.add('is-locked');
+    },
+
+    updateTrialCounter(remaining) {
+      const sub = document.querySelector('.landing-cta-sub');
+      if (sub && typeof remaining === 'number') {
+        sub.textContent = remaining > 0
+          ? (remaining + ' free question' + (remaining === 1 ? '' : 's') + ' left')
+          : 'Free questions used — sign in to continue';
+      }
+    },
+
+    // Self-contained landing trial: answer the question INLINE on the landing page
+    // (never navigates to the main app). The main app is reached only after sign-in.
+    answerInline(query) {
+      const win = getWin();
+      const q = (typeof query === 'string') ? query.trim() : '';
+      const input = document.getElementById('landing-question-input');
+      if (!q) { if (input) input.focus(); return; }
+
+      const agent = win.chatAgent;
+      const Renderer = win.LessonCardRenderer;
+      // Safety net: if the chat pipeline or renderer isn't ready, degrade to the app flow.
+      if (!agent || typeof agent.sendMessage !== 'function' || !Renderer || typeof Renderer.render !== 'function') {
+        this.enterApp(q, null);
+        return;
+      }
+
+      const authed = this.isAuthed();
+      const limit = this.trialLimit();
+      let used = this.trialUsed();
+      if (!authed && used >= limit) { this.showTrialGate(); return; }
+
+      const convo = this.ensureTrialConvo();
+      const turn = document.createElement('div');
+      turn.className = 'landing-trial-turn';
+      turn.innerHTML = '<div class="landing-trial-q"><span>' + this.escTrial(q) + '</span></div>' +
+        '<div class="landing-trial-a is-thinking"><span class="landing-trial-spinner" aria-hidden="true"></span> Appu is thinking…</div>';
+      convo.appendChild(turn);
+      const answerSlot = turn.querySelector('.landing-trial-a');
+      try { turn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+      if (input) input.value = '';
+
+      const lang = (win.app && win.app.currentLang) || win.currentLang || 'en';
+      let grade = null;
+      try { if (typeof win.getActiveChildGrade === 'function') grade = win.getActiveChildGrade(); } catch (_) {}
+
+      const self = this;
+      const onFinish = function (replyText, audioSource) {
+        try {
+          const reply = (typeof replyText === 'string' && replyText.trim()) ? replyText.trim() : 'Let’s explore that together!';
+          let cardEl = null;
+          try {
+            const card = (typeof Renderer.buildVisualResponseCard === 'function')
+              ? Renderer.buildVisualResponseCard(q, reply, grade, { language: lang })
+              : null;
+            cardEl = card ? Renderer.render(card, { language: lang }) : null;
+          } catch (e) { cardEl = null; }
+          answerSlot.classList.remove('is-thinking');
+          answerSlot.innerHTML = '';
+          const who = document.createElement('div');
+          who.className = 'landing-trial-who';
+          who.innerHTML = '<span class="landing-trial-dot" aria-hidden="true"></span> APPU';
+          answerSlot.appendChild(who);
+          if (cardEl) { answerSlot.appendChild(cardEl); }
+          else {
+            const p = document.createElement('p');
+            p.className = 'landing-trial-text';
+            p.textContent = reply;
+            answerSlot.appendChild(p);
+          }
+          try {
+            const ve = win.voiceEngine || (win.app && win.app.voiceEngine);
+            if (ve && typeof ve.speak === 'function') ve.speak(reply, audioSource || null);
+          } catch (_) {}
+          if (!authed) {
+            used += 1;
+            try { win.localStorage.setItem('appu_trial_used', String(used)); } catch (_) {}
+            self.updateTrialCounter(Math.max(0, limit - used));
+            if (used >= limit) self.showTrialGate();
+          }
+        } catch (err) { console.warn('[LandingTrial] render error', err); }
+      };
+
+      try {
+        agent.sendMessage(q, null, onFinish);
+      } catch (err) {
+        answerSlot.classList.remove('is-thinking');
+        answerSlot.innerHTML = '<p class="landing-trial-text">Oops — I had trouble with that one. Please try again!</p>';
+      }
     },
 
     enterApp(question = '', originEl = null) {

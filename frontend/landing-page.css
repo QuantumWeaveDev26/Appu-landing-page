@@ -1686,3 +1686,82 @@ body.is-transitioning-to-app #marketing-landing {
     clip-path: none !important;
   }
 }
+
+/* ============================================================
+   Self-contained landing trial — inline answers + sign-in gate
+   ============================================================ */
+.landing-trial-convo {
+  max-width: 860px;
+  margin: 4px auto 54px;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.landing-trial-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: landingTrialIn .45s cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes landingTrialIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.landing-trial-q {
+  align-self: flex-end;
+  max-width: 85%;
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 20px 20px 6px 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, .22);
+}
+.landing-trial-a {
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  background: #0b1526;
+  border: 1.5px solid rgba(82, 224, 255, .18);
+  color: #e6eefc;
+  border-radius: 6px 22px 22px 22px;
+  padding: 16px 18px;
+  box-shadow: 0 14px 44px rgba(8, 20, 40, .22);
+}
+.landing-trial-a.is-thinking {
+  display: flex; align-items: center; gap: 10px;
+  color: #9fb3cf; font-weight: 600;
+}
+.landing-trial-spinner {
+  width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
+  border: 2.5px solid rgba(255, 255, 255, .14); border-top-color: #38bdf8;
+  animation: landingTrialSpin .8s linear infinite; display: inline-block;
+}
+@keyframes landingTrialSpin { to { transform: rotate(360deg); } }
+.landing-trial-who {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 800; font-size: 12px; letter-spacing: .08em;
+  color: #52e0ff; text-transform: uppercase; margin-bottom: 12px;
+}
+.landing-trial-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, .18); }
+.landing-trial-text { color: #e6eefc; line-height: 1.6; margin: 0; }
+.landing-trial-a .appu-lesson-card { max-width: 100%; margin: 0; }
+
+.landing-trial-gate { margin: 4px auto 0; width: 100%; animation: landingTrialIn .5s cubic-bezier(.16, 1, .3, 1) both; }
+.landing-trial-gate-inner {
+  text-align: center;
+  background: linear-gradient(160deg, #eef2ff, #f0f9ff);
+  border: 1.5px solid #c7d7f5;
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, .08);
+}
+.landing-trial-gate-icon { font-size: 40px; margin-bottom: 10px; }
+.landing-trial-gate-inner h3 { margin: 0 0 8px; font-size: 22px; color: #0f172a; }
+.landing-trial-gate-inner p { margin: 0 0 20px; color: #475569; }
+.landing-trial-gate-inner .landing-btn-primary { margin: 0 auto; }
+.landing-question-form.is-locked { opacity: .6; }
+
+@media (max-width: 640px) {
+  .landing-trial-convo { padding: 0 14px; margin-bottom: 36px; }
+  .landing-trial-q { max-width: 92%; }
+}
