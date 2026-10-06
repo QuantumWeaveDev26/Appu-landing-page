@@ -242,16 +242,11 @@
         });
       });
 
-      // "Sign in" Header CTA -> reveal app shell and open parent setup/auth modal
+      // "Sign in" Header CTA -> open the sign-in modal OVER the landing. The app stays
+      // locked/hidden until authentication actually succeeds (cancel => stay on landing).
       if (btnSignIn) {
         btnSignIn.addEventListener('click', () => {
-          this.showApp();
-          if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-            window.ParentSetupUI.openModal(1);
-          } else {
-            const mainAuthBtn = document.getElementById('btn-main-auth');
-            if (mainAuthBtn) mainAuthBtn.click();
-          }
+          this.openSignIn();
         });
       }
 
@@ -1810,13 +1805,37 @@
 
     openSignIn() {
       const win = getWin();
-      this.showApp();
+      const self = this;
+
+      // Open the sign-in modal OVER the landing. The main app stays hidden until the
+      // user is actually authenticated -- cancelling the modal must leave them here,
+      // never drop them into the locked app.
       if (win.ParentSetupUI && typeof win.ParentSetupUI.openModal === 'function') {
         win.ParentSetupUI.openModal(1);
       } else {
+        // Fallback only (no modal controller): reveal the app and use its auth button.
+        this.showApp();
         const mainAuthBtn = document.getElementById('btn-main-auth');
         if (mainAuthBtn) mainAuthBtn.click();
+        return;
       }
+
+      // Reveal the app only once sign-in succeeds; if the modal is closed while still
+      // signed out, stop and stay on the landing page.
+      if (this._authGateWatcher) { win.clearInterval(this._authGateWatcher); this._authGateWatcher = null; }
+      const modal = document.getElementById('parent-setup-modal');
+      const startedAt = Date.now();
+      this._authGateWatcher = win.setInterval(function () {
+        if (self.isAuthed()) {
+          win.clearInterval(self._authGateWatcher); self._authGateWatcher = null;
+          if (!document.body || !document.body.classList.contains('view-app')) self.showApp();
+          return;
+        }
+        const modalOpen = modal && modal.classList.contains('is-visible');
+        if (!modalOpen || Date.now() - startedAt > 120000) {
+          win.clearInterval(self._authGateWatcher); self._authGateWatcher = null;
+        }
+      }, 400);
     },
 
     showTrialGate() {
