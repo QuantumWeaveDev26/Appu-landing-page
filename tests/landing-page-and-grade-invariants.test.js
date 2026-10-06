@@ -130,9 +130,9 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(html.includes('How does photosynthesis work?'), 'Must have starter prompt chip for photosynthesis');
   });
 
-  test('landing-page.css defines crisp light theme, fluid typography, and multi-screen responsiveness', () => {
+  test('landing-page.css defines obsidian dark theme matching main app, fluid typography, and multi-screen responsiveness', () => {
     assert.ok(landingCss.includes('body.view-landing'), 'Must define body.view-landing style');
-    assert.ok(landingCss.includes('background: #ffffff !important;'), 'Must enforce light white background for landing view');
+    assert.ok(landingCss.includes('background: #030a16 !important;'), 'Must enforce obsidian dark background for landing view');
     assert.ok(landingCss.includes('@media (max-width: 1024px)'), 'Must include tablet breakpoint');
     assert.ok(landingCss.includes('@media (max-width: 768px)'), 'Must include mobile breakpoint');
     assert.ok(landingCss.includes('@media (max-width: 420px)'), 'Must include small phones breakpoint');
