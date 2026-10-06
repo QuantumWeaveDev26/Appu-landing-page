@@ -1886,9 +1886,31 @@
       try { if (typeof win.getActiveChildGrade === 'function') grade = win.getActiveChildGrade(); } catch (_) {}
 
       const self = this;
-      const onFinish = function (replyText, audioSource, audioStreamUrl, accessToken) {
+      const onFinish = function (replyText, audioSource, audioStreamUrl, accessToken, result) {
         try {
           const reply = (typeof replyText === 'string' && replyText.trim()) ? replyText.trim() : 'Let’s explore that together!';
+          const hadError = Boolean(result && (result.error || result.isSystem || result.code));
+
+          // Brain/backend error: show a clean retry message (not the rich card), and do
+          // NOT count it against the free-chat quota.
+          if (hadError) {
+            answerSlot.classList.remove('is-thinking');
+            answerSlot.innerHTML = '';
+            const whoE = document.createElement('div');
+            whoE.className = 'landing-trial-who';
+            whoE.innerHTML = '<span class="landing-trial-dot" aria-hidden="true"></span> APPU';
+            answerSlot.appendChild(whoE);
+            const pE = document.createElement('p');
+            pE.className = 'landing-trial-text';
+            pE.textContent = reply;
+            answerSlot.appendChild(pE);
+            try {
+              const veE = win.voiceEngine || (win.app && win.app.voiceEngine);
+              if (veE && typeof veE.speak === 'function') veE.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '');
+            } catch (_) {}
+            return;
+          }
+
           let cardEl = null;
           try {
             const card = (typeof Renderer.buildVisualResponseCard === 'function')
