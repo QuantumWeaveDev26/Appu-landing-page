@@ -135,7 +135,12 @@ export const envSchema = z
       .default('https://n8n.srv1871828.hstgr.cloud/webhook/appu-whatsapp-template'),
     APPU_UNLIMITED_EMAILS: z
       .string()
-      .default('ceo@brandmintai.io,vishak.b7@gmail.com,naveenreddy95190@gmail.com,kaaranji@brandmintai.io')
+      .default('ceo@brandmintai.io,vishak.b7@gmail.com,naveenreddy95190@gmail.com,kaaranji@brandmintai.io'),
+    // Allowlist for the admin dashboard (/api/admin/*). Higher privilege than
+    // unlimited chat (can read every account's data), so kept as its own list.
+    APPU_ADMIN_EMAILS: z
+      .string()
+      .default('team.brandmint@gmail.com,naveenreddy95190@gmail.com,ceo@brandmintai.io')
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {

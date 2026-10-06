@@ -17,4 +17,5 @@ export * from './prompts.js';
 export * from './study-schedules.js';
 export * from './whatsapp-reports.js';
 export * from './parental-controls.js';
+export * from './admin.js';
 

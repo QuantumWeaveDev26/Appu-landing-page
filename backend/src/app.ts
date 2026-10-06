@@ -28,7 +28,8 @@ import {
   promptsRoutes,
   studySchedulesRoutes,
   whatsappReportsRoutes,
-  parentalControlsRoutes
+  parentalControlsRoutes,
+  adminRoutes
 } from './routes/index.js';
 
 export interface ClosableDatabase extends TransactionalQueryable {
@@ -324,6 +325,13 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     app.register(promptsRoutes, {
       db: options.database,
       authVerifier
+    });
+
+    // Admin dashboard (read-only). Guarded server-side by the APPU_ADMIN_EMAILS allowlist.
+    app.register(adminRoutes, {
+      db: options.database,
+      authVerifier,
+      adminEmails: config.APPU_ADMIN_EMAILS
     });
 
     app.register(conversationRoutes, {
