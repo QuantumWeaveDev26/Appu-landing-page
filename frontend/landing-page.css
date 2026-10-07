@@ -51,13 +51,21 @@ body.is-transitioning-to-app #marketing-landing {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background-color: #030a16;
-  background-image: 
+  background-color: #040b18;
+  /* Chalkboard / graph-paper surface: edge vignette, ambient subject-glows, and a
+     real two-axis ruled grid (major 140px + fine 28px) -- the schoolbook canvas the
+     chalk marks and science objects are drawn on. */
+  background-image:
+    radial-gradient(ellipse 130% 100% at 50% 38%, transparent 52%, rgba(1, 5, 12, 0.62) 100%),
     radial-gradient(ellipse at 88% 8%, rgba(251, 191, 36, 0.12) 0%, transparent 45%),
     radial-gradient(ellipse at 10% 18%, rgba(14, 165, 233, 0.16) 0%, transparent 45%),
     radial-gradient(circle at 50% 6%, rgba(99, 102, 241, 0.14) 0%, transparent 52%),
     radial-gradient(ellipse at 50% 90%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 92% 72%, rgba(52, 211, 153, 0.1) 0%, transparent 42%);
+    radial-gradient(ellipse at 92% 72%, rgba(52, 211, 153, 0.1) 0%, transparent 42%),
+    repeating-linear-gradient(to right,  rgba(125, 211, 252, 0.05) 0 1px, transparent 1px 140px),
+    repeating-linear-gradient(to bottom, rgba(125, 211, 252, 0.05) 0 1px, transparent 1px 140px),
+    repeating-linear-gradient(to right,  rgba(148, 180, 220, 0.03) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(to bottom, rgba(148, 180, 220, 0.03) 0 1px, transparent 1px 28px);
   color: #f5f8ff;
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -1768,4 +1776,59 @@ body.is-transitioning-to-app #marketing-landing {
 @media (max-width: 640px) {
   .landing-trial-convo { padding: 0 14px; margin-bottom: 36px; }
   .landing-trial-q { max-width: 92%; }
+}
+
+/* --------------------------------------------------------------------------
+   SCHOOL CHALKBOARD — authentic chalk working in the hero margins
+   Real formulas + labelled diagrams in a chalk hand, drawn on the graph-paper
+   surface. Sits behind hero content (z-index 1 < grid's 5), decorative only.
+   -------------------------------------------------------------------------- */
+.landing-chalk {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.landing-chalk .chalk-mark {
+  position: absolute;
+  color: rgba(228, 240, 255, 0.17);
+  opacity: 0;
+  animation: chalk-fade-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.landing-chalk .chalk-mark svg { display: block; overflow: visible; }
+.landing-chalk .chalk-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.landing-chalk .chalk-stroke.thin { stroke-width: 1.1; }
+.landing-chalk .chalk-text {
+  font-family: 'Caveat', 'Segoe Print', cursive;
+  font-weight: 700;
+  fill: currentColor;
+}
+.landing-chalk .chalk-dim { color: rgba(125, 211, 252, 0.16); }
+
+.chalk-a { top: 15%;    left: 2.2%;  transform: rotate(-7deg); animation-delay: 0.35s; }
+.chalk-b { bottom: 9%;  left: 2.6%;  transform: rotate(-3deg); animation-delay: 0.55s; }
+.chalk-c { bottom: 15%; right: 2.4%; transform: rotate(4deg);  animation-delay: 0.75s; }
+.chalk-d { top: 21%;    right: 3.2%; transform: rotate(-5deg); animation-delay: 0.65s; }
+
+@keyframes chalk-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Keep the schoolbook margins uncluttered on narrow screens */
+@media (max-width: 960px) {
+  .chalk-c, .chalk-d { display: none; }
+}
+@media (max-width: 680px) {
+  .landing-chalk { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-chalk .chalk-mark { animation: none; opacity: 1; }
 }

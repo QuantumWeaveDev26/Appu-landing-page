@@ -29,11 +29,11 @@
   <title>Appu — Your AI Learning Companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261006-03">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261006-03">
-  <link rel="stylesheet" href="landing-page.css?v=20261006-03">
+  <link rel="stylesheet" href="style.css?v=20261006-04">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261006-04">
+  <link rel="stylesheet" href="landing-page.css?v=20261006-04">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -114,6 +114,42 @@
 
     <!-- Hero Section -->
     <section class="landing-hero" aria-label="Hyper-personalised learning with Appu">
+      <!-- School chalkboard working: authentic chalk formulas & labelled diagrams in the margins -->
+      <div class="landing-chalk" aria-hidden="true">
+        <div class="chalk-mark chalk-a">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <path class="chalk-stroke" d="M16 86 L118 86 L16 18 Z"/>
+            <path class="chalk-stroke thin" d="M16 74 L28 74 L28 86"/>
+            <text class="chalk-text" x="2" y="56" font-size="19">a</text>
+            <text class="chalk-text" x="60" y="106" font-size="19">b</text>
+            <text class="chalk-text" x="74" y="46" font-size="19">c</text>
+            <text class="chalk-text" x="8" y="138" font-size="24">a<tspan dy="-7" font-size="15">2</tspan><tspan dy="7"> + b</tspan><tspan dy="-7" font-size="15">2</tspan><tspan dy="7"> = c</tspan><tspan dy="-7" font-size="15">2</tspan></text>
+          </svg>
+        </div>
+        <div class="chalk-mark chalk-b">
+          <svg width="332" height="48" viewBox="0 0 332 48">
+            <text class="chalk-text" x="0" y="31" font-size="22">6CO<tspan dy="6" font-size="14">2</tspan><tspan dy="-6"> + 6H</tspan><tspan dy="6" font-size="14">2</tspan><tspan dy="-6">O &#8594; C</tspan><tspan dy="6" font-size="14">6</tspan><tspan dy="-6">H</tspan><tspan dy="6" font-size="14">12</tspan><tspan dy="-6">O</tspan><tspan dy="6" font-size="14">6</tspan><tspan dy="-6"> + 6O</tspan><tspan dy="6" font-size="14">2</tspan></text>
+          </svg>
+        </div>
+        <div class="chalk-mark chalk-c chalk-dim">
+          <svg width="112" height="122" viewBox="0 0 112 122">
+            <path class="chalk-stroke thin" d="M10 78 L10 8"/>
+            <path class="chalk-stroke thin" d="M10 78 L96 78"/>
+            <path class="chalk-stroke" d="M14 72 L92 16"/>
+            <text class="chalk-text" x="16" y="108" font-size="22">y = mx + c</text>
+          </svg>
+        </div>
+        <div class="chalk-mark chalk-d chalk-dim">
+          <svg width="96" height="100" viewBox="0 0 96 100">
+            <circle class="chalk-stroke" cx="48" cy="32" r="14"/>
+            <circle class="chalk-stroke thin" cx="20" cy="52" r="9"/>
+            <circle class="chalk-stroke thin" cx="76" cy="52" r="9"/>
+            <path class="chalk-stroke thin" d="M36 40 L28 46"/>
+            <path class="chalk-stroke thin" d="M60 40 L68 46"/>
+            <text class="chalk-text" x="34" y="92" font-size="22">H<tspan dy="5" font-size="14">2</tspan><tspan dy="-5">O</tspan></text>
+          </svg>
+        </div>
+      </div>
       <!-- High-Craft Ambient Aurora & Parallax Depth Field (No Emojis) -->
       <div id="landing-depth-field" class="landing-playful-backdrop" aria-hidden="true">
         <!-- Soft Ambient Color Glow Aurora Blooms -->
@@ -1437,25 +1473,25 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261006-03"></script>
-  <script src="appu-config.js?v=20261006-03"></script>
-  <script src="appu-session.js?v=20261006-03"></script>
-  <script src="appu-backend-client.js?v=20261006-03"></script>
-  <script src="parent-onboarding-shell.js?v=20261006-03"></script>
-  <script src="parent-setup-ui.js?v=20261006-03"></script>
-  <script src="prompt-library-ui.js?v=20261006-03"></script>
-  <script src="avatar-stage.js?v=20261006-03"></script>
-  <script src="mascot-avatar.js?v=20261006-03"></script>
-  <script src="lottie-catalog.js?v=20261006-03"></script>
-  <script src="lesson-card-renderer.js?v=20261006-03"></script>
-  <script src="voice-engine.js?v=20261006-03"></script>
-  <script src="chat-history.js?v=20261006-03"></script>
-  <script src="chat-agent.js?v=20261006-03"></script>
-  <script src="parent-reports-ui.js?v=20261006-03"></script>
-  <script src="parental-controls-ui.js?v=20261006-03"></script>
-  <script src="saved-lessons-ui.js?v=20261006-03"></script>
-  <script src="app.js?v=20261006-03"></script>
-  <script src="landing-page.js?v=20261006-03"></script>
+  <script src="voice-contract.js?v=20261006-04"></script>
+  <script src="appu-config.js?v=20261006-04"></script>
+  <script src="appu-session.js?v=20261006-04"></script>
+  <script src="appu-backend-client.js?v=20261006-04"></script>
+  <script src="parent-onboarding-shell.js?v=20261006-04"></script>
+  <script src="parent-setup-ui.js?v=20261006-04"></script>
+  <script src="prompt-library-ui.js?v=20261006-04"></script>
+  <script src="avatar-stage.js?v=20261006-04"></script>
+  <script src="mascot-avatar.js?v=20261006-04"></script>
+  <script src="lottie-catalog.js?v=20261006-04"></script>
+  <script src="lesson-card-renderer.js?v=20261006-04"></script>
+  <script src="voice-engine.js?v=20261006-04"></script>
+  <script src="chat-history.js?v=20261006-04"></script>
+  <script src="chat-agent.js?v=20261006-04"></script>
+  <script src="parent-reports-ui.js?v=20261006-04"></script>
+  <script src="parental-controls-ui.js?v=20261006-04"></script>
+  <script src="saved-lessons-ui.js?v=20261006-04"></script>
+  <script src="app.js?v=20261006-04"></script>
+  <script src="landing-page.js?v=20261006-04"></script>
 
   <!-- Motion (motion.dev) Pro-Grade Physics Engine for Marketing Landing (ESM, Lazy, Fail-Safe) -->
   <script type="module">
