@@ -1756,7 +1756,17 @@ body.is-transitioning-to-app #marketing-landing {
 }
 .landing-trial-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, .18); }
 .landing-trial-text { color: #e6eefc; line-height: 1.6; margin: 0; }
-.landing-trial-a .appu-lesson-card { max-width: 100%; margin: 0; }
+.landing-trial-a .appu-lesson-card {
+  max-width: 100%;
+  margin: 0;
+  /* The trial is a narrow reading column: always stack blocks vertically so
+     responses adapt to any length and stay inside the section. Overrides the
+     >=769px 2-col grid (diagram | steps), which blows out here. */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  pointer-events: auto;
+}
 
 .landing-trial-gate { margin: 4px auto 0; width: 100%; animation: landingTrialIn .5s cubic-bezier(.16, 1, .3, 1) both; }
 .landing-trial-gate-inner {
