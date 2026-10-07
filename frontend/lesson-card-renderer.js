@@ -1421,10 +1421,7 @@
                       <span class="photo-license-pill">${escapeHTML(p.license)}</span>
                     </div>
                     <div class="photo-card-info">
-                      <a href="${escapeHTML(p.foreignLandingUrl)}" target="_blank" rel="noopener noreferrer" class="photo-attribution-link" title="Open CC source: ${escapeHTML(p.title)}">
-                        <span class="photo-creator-name">${escapeHTML(p.creator)}</span>
-                        <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                      </a>
+                      <span class="photo-creator-name">${escapeHTML(p.creator)}</span>
                     </div>
                   </div>
                 `).join('');
@@ -1435,8 +1432,7 @@
                 if (typeof track.querySelectorAll === 'function') {
                   const cards = track.querySelectorAll('.photo-card');
                   cards.forEach(card => {
-                    card.addEventListener('click', (e) => {
-                      if (e.target && e.target.closest && e.target.closest('.photo-attribution-link')) return;
+                    card.addEventListener('click', () => {
                       const heroFrame = hookDiv.querySelector ? hookDiv.querySelector('.hero-image-frame') : null;
                       if (!heroFrame) return;
 
@@ -1444,7 +1440,6 @@
                       const photoTitle = card.getAttribute('data-photo-title');
                       const creator = card.getAttribute('data-creator');
                       const license = card.getAttribute('data-license');
-                      const landing = card.getAttribute('data-landing');
 
                       cards.forEach(c => c.classList && c.classList.remove('is-active'));
                       if (card.classList) card.classList.add('is-active');
@@ -1453,9 +1448,7 @@
                         <img class="hero-main-img" src="${photoUrl}" alt="${photoTitle}" />
                         <div class="hero-media-badge-bar">
                           <span class="hero-media-tag real-tag"><i class="fa-solid fa-camera-retro text-amber" aria-hidden="true"></i> Real Field Photo</span>
-                          <a href="${landing}" target="_blank" rel="noopener noreferrer" class="hero-media-source-pill cc-pill" title="View Source on Flickr/Wikimedia">
-                            ${license} • ${creator} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                          </a>
+                          <span class="hero-media-source-pill cc-pill">${license} • ${creator}</span>
                         </div>
                       `;
                     });

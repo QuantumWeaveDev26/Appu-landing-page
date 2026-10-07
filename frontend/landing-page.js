@@ -1891,6 +1891,9 @@
       if (!authed && used >= limit) { this.showTrialGate(); return; }
 
       const convo = this.ensureTrialConvo();
+      // Landing trial shows ONE response at a time: clear the previous turn(s)
+      // before rendering the new one, instead of stacking them up.
+      convo.querySelectorAll('.landing-trial-turn').forEach(function (t) { t.remove(); });
       const turn = document.createElement('div');
       turn.className = 'landing-trial-turn';
       turn.innerHTML = '<div class="landing-trial-q"><span>' + this.escTrial(q) + '</span></div>' +
