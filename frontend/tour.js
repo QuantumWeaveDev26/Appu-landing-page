@@ -102,16 +102,6 @@
       r.top < (window.innerHeight || 0) && r.left < (window.innerWidth || 0);
   }
 
-  function speak(text) {
-    try {
-      var ve = window.voiceEngine || (window.app && window.app.voiceEngine);
-      if (ve && typeof ve.speakSynthesis === 'function') ve.speakSynthesis(text, lang());
-    } catch (e) {}
-  }
-  function stopSpeaking() {
-    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
-  }
-
   function build() {
     if (state.root) return;
     var root = document.createElement('div');
@@ -216,8 +206,6 @@
     layout(step);
     // Re-layout once more after paint (bubble height is known now).
     window.requestAnimationFrame(function () { layout(step); });
-    stopSpeaking();
-    speak(txt);
   }
 
   function start() {
@@ -236,7 +224,6 @@
 
   function finish() {
     state.active = false;
-    stopSpeaking();
     markDone();
     if (state.root) state.root.classList.remove('is-open');
     document.body.classList.remove('appu-tour-open');
