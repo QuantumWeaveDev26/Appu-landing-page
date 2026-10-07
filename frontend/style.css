@@ -3303,7 +3303,9 @@ body.policy-page {
    unaffected by anything below.
    ========================================================== */
 .topbar-hamburger {
-  display: none;
+  /* The menu is the single home for Parent Setup / My Learning / Report at every
+     width, so the hamburger is always visible (not just on narrow screens). */
+  display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
@@ -3315,6 +3317,13 @@ body.policy-page {
   color: #0284c7;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+/* These actions moved into the hamburger menu to keep the top bar uncluttered. */
+.topbar-actions #btn-parent-setup,
+.topbar-actions #btn-topbar-reports,
+.topbar-actions #btn-topbar-saved-lessons,
+.topbar-actions .topbar-saved-btn {
+  display: none !important;
 }
 .topbar-hamburger:hover {
   background: #f0f9ff;
