@@ -632,7 +632,14 @@
         renderChildStep();
       } else if (preferredStep === 4) {
         if (shell && shell.state.selectedChild) {
-          renderPersonalisationStep(shell.state.selectedChild);
+          // If this learner's preferences were already saved, don't re-ask the
+          // questionnaire -- jump straight to the final Launch step so the parent
+          // simply resumes instead of re-filling what they already submitted.
+          if (shell.state.personalisation) {
+            setStep(5);
+          } else {
+            renderPersonalisationStep(shell.state.selectedChild);
+          }
         } else {
           setStep(4);
         }
