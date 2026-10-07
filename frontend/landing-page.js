@@ -1913,6 +1913,29 @@
           const reply = (typeof replyText === 'string' && replyText.trim()) ? replyText.trim() : 'Let’s explore that together!';
           const hadError = Boolean(result && (result.error || result.isSystem || result.code));
 
+          // Free chats exhausted (server-side guest limit): show the sign-in gate
+          // instead of a generic retry bubble, so the child isn't stuck re-asking with
+          // no way forward. Sync the local counter so the gate persists on refresh.
+          const limitReached = Boolean(result && (result.code === 'GUEST_LIMIT_REACHED' || result.error === 'guest_limit_reached'));
+          if (limitReached) {
+            answerSlot.classList.remove('is-thinking');
+            answerSlot.innerHTML = '';
+            const whoL = document.createElement('div');
+            whoL.className = 'landing-trial-who';
+            whoL.innerHTML = '<span class="landing-trial-dot" aria-hidden="true"></span> APPU';
+            answerSlot.appendChild(whoL);
+            const pL = document.createElement('p');
+            pL.className = 'landing-trial-text';
+            pL.textContent = reply;
+            answerSlot.appendChild(pL);
+            if (!authed) {
+              try { win.localStorage.setItem('appu_trial_used', String(self.trialLimit())); } catch (_) {}
+              self.updateTrialCounter(0);
+            }
+            self.showTrialGate();
+            return;
+          }
+
           // Brain/backend error: show a clean retry message (not the rich card), and do
           // NOT count it against the free-chat quota.
           if (hadError) {
