@@ -4066,6 +4066,16 @@
       else gradeTone = 'junior';
     }
 
+    // Localise the card scaffolding labels so a Kannada/Hindi answer isn't framed
+    // by English headings. (The branches/steps themselves come from the answer text.)
+    const cardLang = (options && options.language) || 'en';
+    const SCAFFOLD = {
+      en: { overview: 'Grounded visual overview for ' + topic, core: 'Core Theme: ' + topic },
+      kn: { overview: topic + ' ಕುರಿತು ದೃಶ್ಯ ಅವಲೋಕನ', core: 'ಮುಖ್ಯ ವಿಷಯ: ' + topic },
+      hi: { overview: topic + ' का दृश्य अवलोकन', core: 'मुख्य विषय: ' + topic }
+    };
+    const scaffold = SCAFFOLD[cardLang] || SCAFFOLD.en;
+
     const blocks = [
       {
         type: 'diagram',
@@ -4073,7 +4083,7 @@
         title: topic,
         central: topic,
         branches: branches,
-        summary: `Grounded visual overview for ${topic}`,
+        summary: scaffold.overview,
         citation: options.citation || null,
         isFallback: true
       },
@@ -4096,7 +4106,7 @@
         title: topic,
         central: topic,
         branches: branches,
-        summary: `Core Theme: ${topic}`,
+        summary: scaffold.core,
         citation: options.citation || null,
         isFallback: true
       },
