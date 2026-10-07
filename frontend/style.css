@@ -127,6 +127,7 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
+  overflow-wrap: break-word;
   display: flex;
   flex-direction: column;
   color: var(--ink);
@@ -134,6 +135,9 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
+/* Media never exceeds its container — prevents horizontal overflow site-wide.
+   (height left to each component so explicitly-sized media keeps its ratio.) */
+img, svg, video, canvas, iframe { max-width: 100%; }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
@@ -5151,7 +5155,10 @@ body.policy-page {
 @media (min-width: 769px) {
   .appu-lesson-card {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0,...) lets columns shrink below their content's intrinsic width
+       so wide diagrams wrap/scroll inside their track instead of blowing the
+       grid past its container. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "hook hook"
       "diagram steps"
@@ -5164,6 +5171,9 @@ body.policy-page {
     box-sizing: border-box;
     pointer-events: none;
   }
+  /* Grid items must be allowed to shrink (default min-width:auto blocks it). */
+  .appu-lesson-card > .lesson-block,
+  .appu-lesson-card > div { min-width: 0; }
   .lesson-block-hook {
     grid-area: hook;
     justify-self: center;
