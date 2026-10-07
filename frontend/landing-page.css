@@ -1397,6 +1397,14 @@ body.is-transitioning-to-app #marketing-landing {
   .landing-header-inner {
     padding: 0.75rem 1rem;
   }
+  .landing-header-actions {
+    gap: 0.5rem;
+  }
+  .landing-theme-toggle {
+    width: 36px;
+    height: 36px;
+    font-size: 0.85rem;
+  }
   .landing-brand-by {
     display: none;
   }
