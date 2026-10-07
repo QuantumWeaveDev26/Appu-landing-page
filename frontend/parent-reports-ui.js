@@ -37,7 +37,7 @@
   let statusChecked = false;
   let forcedMode = false;
   const CHAT_COUNT_KEY = 'appu_authed_chats';
-  const SNOOZE_CHATS = 8; // after "Maybe later", re-ask this many chats later
+  const SNOOZE_CHATS = 16; // after "Maybe later", re-ask this many chats later
 
   // Scope the chat counter to the signed-in parent so a fresh account starts at 0
   // (localStorage is per-browser, so a global key would leak an old count into new accounts).
@@ -324,6 +324,12 @@
       // Dismissed the gate without feedback → snooze so it re-asks later, don't trap them.
       forcedMode = false;
       snoozeGate();
+      // Return the parent to their composer with whatever they typed still intact,
+      // so dismissing the prompt never feels like it ate their message.
+      try {
+        const ci = document.getElementById('chat-input');
+        if (ci) { ci.focus(); }
+      } catch (e) {}
     }
   }
 

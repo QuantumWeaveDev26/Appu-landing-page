@@ -72,8 +72,8 @@
     // restore normal paid-plan display once the beta period ends.
     betaMode: true,
     betaChatLimit: 5,
-    // After this many chats, a signed-in parent must submit feedback before continuing.
-    feedbackChatThreshold: 12,
+    // After this many chats, a signed-in parent is asked for feedback (dismissible).
+    feedbackChatThreshold: 20,
     // Presentation Mode: 'rich' enables next-level visual lesson-cards and mascot reactions (develop/staging)
     presentationMode: 'rich',
 
