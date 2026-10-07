@@ -1384,6 +1384,13 @@
       if (win.appMascot && typeof win.appMascot.setMood === 'function') {
         try { win.appMascot.setMood('idle'); } catch (_) {}
       }
+
+      // First-visit kid onboarding tour (no-op if already seen / not in app view).
+      try {
+        if (win.AppuTour && typeof win.AppuTour.maybeAutoStart === 'function') {
+          win.AppuTour.maybeAutoStart();
+        }
+      } catch (_) {}
     },
 
     dispatchUserInteraction(queryText) {
