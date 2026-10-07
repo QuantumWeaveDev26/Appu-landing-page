@@ -865,6 +865,17 @@
       });
     }
 
+    // Apply the learner's chosen language so Appu actually teaches in it (e.g. Kannada),
+    // instead of staying on the UI toggle's language. Without this a child whose
+    // preferred language is Kannada would still get English lessons.
+    try {
+      const prefLang = state.personalisation && state.personalisation.preferredLanguage;
+      if ((prefLang === 'kn' || prefLang === 'hi' || prefLang === 'en') &&
+          typeof window !== 'undefined' && window.app && typeof window.app.setLanguage === 'function') {
+        window.app.setLanguage(prefLang, false);
+      }
+    } catch (e) {}
+
     notifyAuthStateChanged();
   }
 
