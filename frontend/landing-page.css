@@ -251,6 +251,27 @@ body.is-transitioning-to-app #marketing-landing {
   box-shadow: 0 6px 18px rgba(56, 189, 248, 0.25);
 }
 
+/* Theme toggle (dark / light) in the landing header */
+.landing-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: rgba(8, 20, 39, 0.8);
+  border: 1px solid rgba(151, 184, 226, 0.2);
+  color: #fcd34d;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+.landing-theme-toggle:hover {
+  background: rgba(15, 28, 52, 0.95);
+  border-color: rgba(56, 189, 248, 0.45);
+  transform: translateY(-1px);
+}
+
 /* --------------------------------------------------------------------------
    HERO SECTION (2-Column Desktop, Stacked Mobile) - Kid-Friendly Playful Premium
    -------------------------------------------------------------------------- */
@@ -1841,4 +1862,140 @@ body.is-transitioning-to-app #marketing-landing {
 }
 @media (prefers-reduced-motion: reduce) {
   .landing-chalk .chalk-mark { animation: none; opacity: 1; }
+}
+
+/* ==========================================================================
+   LIGHT THEME — additive overrides for the landing page.
+   Applied ONLY when the theme toggle sets data-theme="light"; the default dark
+   design above is left completely untouched. Accent hues (cyan/blue/indigo)
+   are kept, surfaces flip to light, ink flips to dark navy.
+   ========================================================================== */
+body.view-landing[data-theme="light"] {
+  background: #eef3fb !important;
+  color: #0f1b2e !important;
+}
+
+[data-theme="light"] .marketing-landing {
+  background-color: #eef3fb;
+  background-image:
+    radial-gradient(ellipse 130% 100% at 50% 38%, transparent 62%, rgba(148, 170, 200, 0.16) 100%),
+    radial-gradient(ellipse at 88% 8%, rgba(251, 191, 36, 0.10) 0%, transparent 45%),
+    radial-gradient(ellipse at 10% 18%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 6%, rgba(99, 102, 241, 0.08) 0%, transparent 52%),
+    repeating-linear-gradient(to right,  rgba(37, 99, 160, 0.055) 0 1px, transparent 1px 140px),
+    repeating-linear-gradient(to bottom, rgba(37, 99, 160, 0.055) 0 1px, transparent 1px 140px),
+    repeating-linear-gradient(to right,  rgba(37, 99, 160, 0.028) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(to bottom, rgba(37, 99, 160, 0.028) 0 1px, transparent 1px 28px);
+  color: #0f1b2e;
+}
+
+/* Chalk marks are drawn for a dark board; hide in light mode. */
+[data-theme="light"] .landing-chalk { display: none !important; }
+
+/* Header controls */
+[data-theme="light"] .landing-lang-trigger,
+[data-theme="light"] .landing-btn-signin,
+[data-theme="light"] .landing-theme-toggle {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+}
+[data-theme="light"] .landing-theme-toggle { color: #0ea5e9; }
+[data-theme="light"] .landing-lang-trigger:hover,
+[data-theme="light"] .landing-btn-signin:hover,
+[data-theme="light"] .landing-theme-toggle:hover {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+  color: #0284c7;
+}
+[data-theme="light"] .landing-lang-trigger .fa-chevron-down { color: #64748b; }
+[data-theme="light"] .landing-lang-menu {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+/* Hero */
+[data-theme="light"] .landing-kicker {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(16, 185, 129, 0.10) 100%);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #4f46e5;
+}
+[data-theme="light"] .landing-hero-title,
+[data-theme="light"] .landing-features-title,
+[data-theme="light"] .landing-question-title { color: #0f1b2e; }
+[data-theme="light"] .landing-hero-subtext,
+[data-theme="light"] .landing-cta-sub,
+[data-theme="light"] .landing-question-subtitle,
+[data-theme="light"] .landing-feature-card p,
+[data-theme="light"] .landing-prompt-label { color: #475569; }
+
+/* Mentor card + speech bubble + nameplate */
+[data-theme="light"] .landing-mentor-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 24px 56px -16px rgba(15, 42, 80, 0.2), 0 6px 20px -8px rgba(15, 42, 80, 0.12);
+}
+[data-theme="light"] .landing-speech-bubble {
+  background: #ffffff;
+  color: #0f1b2e;
+  box-shadow: 0 8px 24px -8px rgba(15, 42, 80, 0.2), 0 0 16px rgba(56, 189, 248, 0.1);
+}
+[data-theme="light"] .landing-bubble-tail { background: #ffffff; }
+[data-theme="light"] .landing-mentor-nameplate {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 4px 16px -6px rgba(15, 42, 80, 0.16);
+}
+[data-theme="light"] .landing-nameplate-text { color: #475569; }
+[data-theme="light"] .landing-nameplate-text strong { color: #0f1b2e; }
+
+/* Value band */
+[data-theme="light"] .landing-value-band {
+  background: rgba(255, 255, 255, 0.7);
+  border-top-color: rgba(15, 23, 42, 0.08);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+[data-theme="light"] .landing-value-content { color: #334155; }
+[data-theme="light"] .landing-value-sep { color: rgba(15, 23, 42, 0.2); }
+
+/* Interactive question section */
+[data-theme="light"] .landing-input-wrap {
+  background: #ffffff;
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 16px 40px -12px rgba(15, 42, 80, 0.18), 0 0 20px -6px rgba(14, 165, 233, 0.08);
+}
+[data-theme="light"] .landing-question-input { color: #0f1b2e; }
+[data-theme="light"] .landing-prompt-chip {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+  box-shadow: 0 4px 12px rgba(15, 42, 80, 0.08);
+}
+[data-theme="light"] .landing-prompt-chip:hover {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+  color: #0284c7;
+}
+
+/* Inline trial answer (rich lesson card wrapper) */
+[data-theme="light"] .landing-trial-a {
+  background: #ffffff;
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #0f1b2e;
+  box-shadow: 0 14px 44px rgba(15, 42, 80, 0.12);
+}
+[data-theme="light"] .landing-trial-text { color: #0f1b2e; }
+
+/* Feature cards */
+[data-theme="light"] .landing-feature-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 32px -12px rgba(15, 42, 80, 0.15);
+}
+[data-theme="light"] .landing-feature-card h3 { color: #0f1b2e; }
+
+/* Marketing footer */
+[data-theme="light"] .landing-marketing-footer {
+  background: #e6edf8;
+  border-top-color: rgba(15, 23, 42, 0.1);
 }

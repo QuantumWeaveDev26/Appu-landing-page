@@ -2431,6 +2431,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDrawerThemeToggle = document.getElementById('btn-drawer-theme-toggle');
   const drawerThemeIcon = document.getElementById('drawer-theme-icon');
   const drawerThemeText = document.getElementById('drawer-theme-text');
+  const landingThemeToggle = document.getElementById('landing-theme-toggle');
+  const landingThemeIcon = document.getElementById('landing-theme-icon');
 
   function getStoredTheme() {
     try {
@@ -2470,6 +2472,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (drawerThemeText) {
       drawerThemeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    }
+
+    // Landing header toggle
+    if (landingThemeToggle) {
+      landingThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      landingThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+    if (landingThemeIcon) {
+      landingThemeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     }
 
     // Dynamic meta theme-color sync
@@ -2529,6 +2540,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnDrawerThemeToggle) {
     btnDrawerThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  if (landingThemeToggle) {
+    landingThemeToggle.addEventListener('click', () => {
       toggleTheme(true);
     });
   }

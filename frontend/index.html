@@ -31,9 +31,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261006-09">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261006-09">
-  <link rel="stylesheet" href="landing-page.css?v=20261006-09">
+  <link rel="stylesheet" href="style.css?v=20261006-10">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261006-10">
+  <link rel="stylesheet" href="landing-page.css?v=20261006-10">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -103,6 +103,8 @@
               <li role="option" data-lang="hi" aria-selected="false">हिंदी (Hindi)</li>
             </ul>
           </div>
+          <!-- Theme toggle (dark / light) -->
+          <button id="landing-theme-toggle" class="landing-theme-toggle" type="button" aria-label="Switch to light theme" title="Switch to light theme"><i id="landing-theme-icon" class="fa-solid fa-sun" aria-hidden="true"></i></button>
           <!-- Sign in CTA -->
           <button id="landing-btn-signin" class="landing-btn-signin" type="button">
             <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
@@ -800,7 +802,7 @@
       <button id="btn-drawer-saved-lessons" class="nav-drawer-saved-link" type="button"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>My Learning <small class="saved-count-pill" id="nav-drawer-saved-count" style="display:none">0</small></span></button>
       <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Child Progress Report</span></button>
       <button id="btn-drawer-home" class="nav-drawer-home-link" type="button"><i class="fa-solid fa-house text-cyan" aria-hidden="true"></i> <span>Home (Landing Page)</span></button>
-      <button id="btn-drawer-theme-toggle" class="nav-drawer-theme-link" type="button" aria-label="Switch to dark theme" title="Switch to dark theme" style="display: none !important;"><i id="drawer-theme-icon" class="fa-solid fa-moon text-cyan" aria-hidden="true"></i> <span id="drawer-theme-text">Dark Mode</span></button>
+      <button id="btn-drawer-theme-toggle" class="nav-drawer-theme-link" type="button" aria-label="Switch to light theme" title="Switch to light theme"><i id="drawer-theme-icon" class="fa-solid fa-sun text-amber" aria-hidden="true"></i> <span id="drawer-theme-text">Light Mode</span></button>
       <div class="nav-drawer-legal">
         <a href="privacy-policy.html">Privacy Policy</a>
         <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
@@ -1473,25 +1475,25 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261006-09"></script>
-  <script src="appu-config.js?v=20261006-09"></script>
-  <script src="appu-session.js?v=20261006-09"></script>
-  <script src="appu-backend-client.js?v=20261006-09"></script>
-  <script src="parent-onboarding-shell.js?v=20261006-09"></script>
-  <script src="parent-setup-ui.js?v=20261006-09"></script>
-  <script src="prompt-library-ui.js?v=20261006-09"></script>
-  <script src="avatar-stage.js?v=20261006-09"></script>
-  <script src="mascot-avatar.js?v=20261006-09"></script>
-  <script src="lottie-catalog.js?v=20261006-09"></script>
-  <script src="lesson-card-renderer.js?v=20261006-09"></script>
-  <script src="voice-engine.js?v=20261006-09"></script>
-  <script src="chat-history.js?v=20261006-09"></script>
-  <script src="chat-agent.js?v=20261006-09"></script>
-  <script src="parent-reports-ui.js?v=20261006-09"></script>
-  <script src="parental-controls-ui.js?v=20261006-09"></script>
-  <script src="saved-lessons-ui.js?v=20261006-09"></script>
-  <script src="app.js?v=20261006-09"></script>
-  <script src="landing-page.js?v=20261006-09"></script>
+  <script src="voice-contract.js?v=20261006-10"></script>
+  <script src="appu-config.js?v=20261006-10"></script>
+  <script src="appu-session.js?v=20261006-10"></script>
+  <script src="appu-backend-client.js?v=20261006-10"></script>
+  <script src="parent-onboarding-shell.js?v=20261006-10"></script>
+  <script src="parent-setup-ui.js?v=20261006-10"></script>
+  <script src="prompt-library-ui.js?v=20261006-10"></script>
+  <script src="avatar-stage.js?v=20261006-10"></script>
+  <script src="mascot-avatar.js?v=20261006-10"></script>
+  <script src="lottie-catalog.js?v=20261006-10"></script>
+  <script src="lesson-card-renderer.js?v=20261006-10"></script>
+  <script src="voice-engine.js?v=20261006-10"></script>
+  <script src="chat-history.js?v=20261006-10"></script>
+  <script src="chat-agent.js?v=20261006-10"></script>
+  <script src="parent-reports-ui.js?v=20261006-10"></script>
+  <script src="parental-controls-ui.js?v=20261006-10"></script>
+  <script src="saved-lessons-ui.js?v=20261006-10"></script>
+  <script src="app.js?v=20261006-10"></script>
+  <script src="landing-page.js?v=20261006-10"></script>
 
   <!-- Motion (motion.dev) Pro-Grade Physics Engine for Marketing Landing (ESM, Lazy, Fail-Safe) -->
   <script type="module">
