@@ -3333,6 +3333,9 @@ body.policy-page {
 .is-native .topbar { grid-template-columns: auto 1fr auto; }
 .is-native #beta-banner { display: none; }
 .is-native .landing-footer-strip { display: none; }
+/* Main app: no footer strip -- the same policy links live in the ☰ menu (.nav-drawer-legal).
+   The landing page keeps it (it supplies Refunds/Shipping links there). */
+body.view-app .landing-footer-strip { display: none; }
 
 .nav-drawer {
   position: fixed;
