@@ -153,6 +153,15 @@
 
       if (this.elements.btnOpen) this.elements.btnOpen.hidden = false;
       await this.refresh();
+
+      // Bring the learner back to where they left off. With no conversationId the backend
+      // already resumes the most recent conversation, so show its messages as well instead
+      // of an empty chat after every reload. Skip when a conversation is already open or
+      // the learner explicitly started a new chat.
+      if (!this.activeConversationId && !this.forceNewConversation &&
+          Array.isArray(this.conversations) && this.conversations.length > 0) {
+        await this.openConversation(this.conversations[0].id);
+      }
     }
 
     async refresh() {

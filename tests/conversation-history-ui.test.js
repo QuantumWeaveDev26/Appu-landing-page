@@ -148,8 +148,66 @@ describe('ChatHistoryController Unit & Integration Tests', () => {
     controller.activeConversationId = 'conversation-a';
 
     await controller.syncSession({ accessToken: 'token', childId: 'child-b' });
-    assert.equal(controller.activeConversationId, null);
+    // Child A's conversation must never carry over to child B; child B's own latest
+    // conversation (c1 from the mock) is restored instead.
+    assert.notEqual(controller.activeConversationId, 'conversation-a');
+    assert.equal(controller.activeConversationId, 'c1');
     assert.equal(controller.activeChildId, 'child-b');
+  });
+
+  test('syncSession restores the most recent conversation into the chat after a reload', async () => {
+    const { controller, chatAgent } = makeController({
+      conversations: [
+        { id: 'c2', title: 'Photosynthesis', updatedAt: '2026-10-07T09:00:00.000Z' },
+        { id: 'c1', title: 'Fractions', updatedAt: '2026-10-06T09:00:00.000Z' }
+      ],
+      messages: [
+        { id: 'm1', role: 'user', text: 'What is photosynthesis?', createdAt: '2026-10-07T09:00:00.000Z' },
+        { id: 'm2', role: 'assistant', text: 'Plants make food from sunlight!', createdAt: '2026-10-07T09:00:05.000Z' }
+      ]
+    });
+
+    await controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+    assert.equal(controller.activeConversationId, 'c2');
+    assert.equal(chatAgent.messages.length, 2);
+    assert.equal(chatAgent.messages[0].text, 'What is photosynthesis?');
+    assert.equal(controller.getForceNewConversation(), false);
+  });
+
+  test('syncSession does not override a conversation that is already active', async () => {
+    const { controller, chatAgent } = makeController({
+      conversations: [{ id: 'c2', title: 'Latest', updatedAt: '2026-10-07T09:00:00.000Z' }],
+      messages: [{ id: 'm1', role: 'user', text: 'old', createdAt: '2026-10-07T09:00:00.000Z' }]
+    });
+    controller.activeChildId = 'child-1';
+    controller.activeConversationId = 'c-current';
+    chatAgent.messages = [{ id: 'x', sender: 'user', text: 'in progress' }];
+
+    await controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+    assert.equal(controller.activeConversationId, 'c-current');
+    assert.equal(chatAgent.messages[0].text, 'in progress');
+  });
+
+  test('syncSession does not restore when the learner chose "New chat"', async () => {
+    const { controller, chatAgent } = makeController({
+      conversations: [{ id: 'c2', title: 'Latest', updatedAt: '2026-10-07T09:00:00.000Z' }],
+      messages: [{ id: 'm1', role: 'user', text: 'old', createdAt: '2026-10-07T09:00:00.000Z' }]
+    });
+    controller.activeChildId = 'child-1';
+    controller.startNewConversation();
+
+    await controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+    assert.equal(controller.activeConversationId, null);
+    assert.equal(controller.getForceNewConversation(), true);
+    assert.equal(chatAgent.messages.length, 0);
+  });
+
+  test('syncSession with no saved history leaves the chat empty without errors', async () => {
+    const { controller, chatAgent, elements } = makeController({ conversations: [], messages: [] });
+    await controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+    assert.equal(controller.activeConversationId, null);
+    assert.equal(chatAgent.messages.length, 0);
+    assert.equal(elements.error.hidden, true);
   });
 
   test('restored image message renders attachment marker without retained image bytes', async () => {

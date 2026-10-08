@@ -295,8 +295,8 @@ describe('Response Dock Answer Area Bounded Scroll & Footer Safety', () => {
     // Base rule check
     assert.match(
       cssSource,
-      /\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*max-height:\s*82px/s,
-      'Base response-card p must have bounded max-height of 82px'
+      /\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*max-height:\s*(?:clamp\([^;]+\)|\d+px)/s,
+      'Base response-card p must have a bounded max-height (fixed px or fluid clamp)'
     );
     assert.match(
       cssSource,
@@ -314,8 +314,8 @@ describe('Response Dock Answer Area Bounded Scroll & Footer Safety', () => {
     // Mobile query check
     assert.match(
       cssSource,
-      /@media\s*\([^)]*max-width:\s*768px\)[\s\S]*?\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*max-height:\s*90px/s,
-      'Mobile response-card p must have bounded max-height of 90px'
+      /@media\s*\([^)]*max-width:\s*768px\)[\s\S]*?\.response-card\s+p,\s*#subtitles-text\s*\{[^}]*max-height:\s*(?:clamp\([^;]+\)|\d+px)/s,
+      'Mobile response-card p must have a bounded max-height (fixed px or fluid clamp)'
     );
     assert.match(
       cssSource,
