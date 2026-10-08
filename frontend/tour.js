@@ -146,6 +146,15 @@
     var vh = window.innerHeight || document.documentElement.clientHeight;
     var target = step.target ? document.querySelector(step.target) : null;
 
+    // On small screens the target (e.g. the mic in the bottom dock) can be rendered but
+    // scrolled out of view: bring it into view first so it gets the spotlight.
+    if (target && !visible(target)) {
+      var tr = target.getBoundingClientRect();
+      if (tr.width > 0 && tr.height > 0 && typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ block: 'center', inline: 'nearest' });
+      }
+    }
+
     if (!target || !visible(target)) {
       // Centered step (welcome / finish, or a target that isn't on screen).
       state.root.classList.add('is-centered');
