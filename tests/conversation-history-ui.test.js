@@ -210,6 +210,65 @@ describe('ChatHistoryController Unit & Integration Tests', () => {
     assert.equal(elements.error.hidden, true);
   });
 
+  function deferred() {
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    return { promise, resolve };
+  }
+  const restoreFixture = {
+    conversations: [{ id: 'c2', title: 'Latest', updatedAt: '2026-10-07T09:00:00.000Z' }],
+    messages: [{ id: 'm1', role: 'user', text: 'old', createdAt: '2026-10-07T09:00:00.000Z' }]
+  };
+
+  test('a message sent while the restore is loading is kept and the restore is skipped', async () => {
+    const { controller, chatAgent, backendClient } = makeController(restoreFixture);
+    const pending = deferred();
+    backendClient.getConversationMessages = () => pending.promise;
+
+    const sync = controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+    await new Promise((r) => setImmediate(r)); // restore is now waiting on the server
+    chatAgent.messages.push({ id: 'u1', sender: 'user', text: 'my new question' });
+    pending.resolve({ messages: restoreFixture.messages });
+    await sync;
+
+    assert.equal(chatAgent.messages.length, 1);
+    assert.equal(chatAgent.messages[0].text, 'my new question');
+    assert.equal(controller.activeConversationId, null);
+  });
+
+  test('a message sent while the conversation list is loading skips the restore', async () => {
+    const { controller, chatAgent, backendClient } = makeController(restoreFixture);
+    const pending = deferred();
+    backendClient.listConversations = () => pending.promise;
+
+    const sync = controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+    chatAgent.messages.push({ id: 'u1', sender: 'user', text: 'my new question' });
+    pending.resolve({ conversations: restoreFixture.conversations });
+    await sync;
+
+    assert.equal(chatAgent.messages[0].text, 'my new question');
+    assert.equal(controller.activeConversationId, null);
+  });
+
+  test('"New chat" or the reply adopting a conversation during a pending restore wins', async () => {
+    for (const act of ['new', 'adopt']) {
+      const { controller, chatAgent, backendClient } = makeController(restoreFixture);
+      const pending = deferred();
+      backendClient.getConversationMessages = () => pending.promise;
+
+      const sync = controller.syncSession({ accessToken: 'test-token', childId: 'child-1' });
+      await new Promise((r) => setImmediate(r));
+      if (act === 'new') controller.startNewConversation();
+      else controller.adoptConversationId('c-fresh');
+      pending.resolve({ messages: restoreFixture.messages });
+      await sync;
+
+      assert.equal(chatAgent.messages.length, 0, act);
+      assert.equal(controller.activeConversationId, act === 'new' ? null : 'c-fresh', act);
+      assert.equal(controller.getForceNewConversation(), act === 'new', act);
+    }
+  });
+
   test('restored image message renders attachment marker without retained image bytes', async () => {
     const { controller, chatAgent } = makeController({
       conversations: [{ id: 'c1', title: 'Homework check', updatedAt: '2026-09-04T07:00:00.000Z' }],

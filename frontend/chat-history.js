@@ -63,6 +63,9 @@
       this.accessToken = null;
       this.conversations = [];
       this.forceNewConversation = false;
+      // Bumped whenever the open conversation changes, so an in-flight restore can tell
+      // it has been overtaken and must not overwrite what the learner is doing.
+      this.navSeq = 0;
 
       const initialSession = this.getSession();
       if (initialSession && initialSession.accessToken && initialSession.childId) {
@@ -123,6 +126,7 @@
 
     adoptConversationId(conversationId) {
       if (!conversationId) return;
+      this.navSeq++;
       this.activeConversationId = conversationId;
       this.forceNewConversation = false;
       this.refresh().catch(() => {});
@@ -133,6 +137,7 @@
       const nextChildId = session?.childId || null;
 
       if (nextChildId !== this.activeChildId) {
+        this.navSeq++;
         this.activeConversationId = null;
         this.conversations = [];
         this.forceNewConversation = false;
@@ -152,16 +157,24 @@
       }
 
       if (this.elements.btnOpen) this.elements.btnOpen.hidden = false;
+      const navSeq = this.navSeq;
+      const messageCount = this.countAgentMessages();
       await this.refresh();
 
       // Bring the learner back to where they left off. With no conversationId the backend
       // already resumes the most recent conversation, so show its messages as well instead
-      // of an empty chat after every reload. Skip when a conversation is already open or
-      // the learner explicitly started a new chat.
-      if (!this.activeConversationId && !this.forceNewConversation &&
-          Array.isArray(this.conversations) && this.conversations.length > 0) {
-        await this.openConversation(this.conversations[0].id);
+      // of an empty chat after every reload. Skip when a conversation is already open, the
+      // learner started a new chat, or they sent a message while the requests were in
+      // flight (re-checked after each await so the restore never wipes their message).
+      const untouched = () => this.navSeq === navSeq && this.countAgentMessages() === messageCount &&
+        !this.activeConversationId && !this.forceNewConversation;
+      if (untouched() && Array.isArray(this.conversations) && this.conversations.length > 0) {
+        await this.openConversation(this.conversations[0].id, { onlyIf: untouched });
       }
+    }
+
+    countAgentMessages() {
+      return this.chatAgent && Array.isArray(this.chatAgent.messages) ? this.chatAgent.messages.length : 0;
     }
 
     async refresh() {
@@ -196,6 +209,7 @@
     }
 
     startNewConversation() {
+      this.navSeq++;
       this.activeConversationId = null;
       this.forceNewConversation = true;
       if (this.chatAgent) {
@@ -211,7 +225,7 @@
       }
     }
 
-    async openConversation(conversationId) {
+    async openConversation(conversationId, options = {}) {
       const session = this.getSession();
       const accessToken = session?.accessToken || this.accessToken;
       const childId = session?.childId || this.activeChildId;
@@ -227,6 +241,10 @@
             if (this.elements.error) this.elements.error.hidden = false;
             return res;
           }
+          if (typeof options.onlyIf === 'function' && !options.onlyIf()) {
+            return { skipped: true };
+          }
+          this.navSeq++;
           this.activeConversationId = conversationId;
           this.forceNewConversation = false;
           if (this.chatAgent && typeof this.chatAgent.replaceMessages === 'function') {
