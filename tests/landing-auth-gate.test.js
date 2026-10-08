@@ -26,3 +26,15 @@ describe('Landing -> app sign-in gate', () => {
     assert.match(landing, /this\.showLanding\(\);\s*\n\s*this\.watchForAuth\(\d+\)/);
   });
 });
+
+describe('Landing header CTA for a signed-in user', () => {
+  test('returning to the landing via Home shows "Open app" instead of "Sign in"', () => {
+    assert.match(landing, /orbs\.forEach\(orb => \{ orb\.style\.display = 'none'; \}\);\s*\n\s*this\.updateHeaderCta\(\);/,
+      'showLanding must refresh the header button for the current auth state');
+    assert.match(landing, /authed \? 'landingBtnOpenApp' : 'landingBtnSignin'/);
+    assert.match(landing, /if \(this\.isAuthed\(\)\) \{\s*\n\s*this\.showApp\(\);/, 'signed-in click goes straight to the app');
+    for (const lang of ["'Open app'", "'ಆಪ್ ತೆರೆಯಿರಿ'", "'ऐप खोलें'"]) {
+      assert.ok(landing.includes(`landingBtnOpenApp: ${lang}`), lang);
+    }
+  });
+});

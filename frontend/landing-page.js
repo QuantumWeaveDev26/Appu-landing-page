@@ -19,6 +19,7 @@
       landingLangAria: 'Choose language',
       landingLangCurrent: 'English',
       landingBtnSignin: 'Sign in',
+      landingBtnOpenApp: 'Open app',
       landingKicker: 'HYPER-PERSONALISED LEARNING',
       landingHeroTitleHtml: 'Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>',
       landingHeroSubtext: 'Meet APPU, your AI mentor for academic excellence.',
@@ -68,6 +69,7 @@
       landingLangAria: 'ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
       landingLangCurrent: 'ಕನ್ನಡ',
       landingBtnSignin: 'ಸೈನ್ ಇನ್',
+      landingBtnOpenApp: 'ಆಪ್ ತೆರೆಯಿರಿ',
       landingKicker: 'ಅತ್ಯಂತ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ಕಲಿಕೆ',
       landingHeroTitleHtml: 'ಪ್ರತಿಯೊಬ್ಬ ವಿದ್ಯಾರ್ಥಿಯೂ ವಿಭಿನ್ನ. <br><span class="landing-hero-highlight">ಕಲಿಕೆಯೂ ವಿಭಿನ್ನವಾಗಿರಬೇಕು.</span>',
       landingHeroSubtext: 'ಶೈಕ್ಷಣಿಕ ಶ್ರೇಷ್ಠತೆಗಾಗಿ ನಿಮ್ಮ ಎಐ ಮಾರ್ಗದರ್ಶಕ ಅಪ್ಪುವನ್ನು ಭೇಟಿ ಮಾಡಿ.',
@@ -117,6 +119,7 @@
       landingLangAria: 'भाषा चुनें',
       landingLangCurrent: 'हिंदी',
       landingBtnSignin: 'साइन इन',
+      landingBtnOpenApp: 'ऐप खोलें',
       landingKicker: 'अति-व्यक्तिगत शिक्षण',
       landingHeroTitleHtml: 'हर छात्र अलग होता है। <br><span class="landing-hero-highlight">सीखने का तरीका भी अलग होना चाहिए।</span>',
       landingHeroSubtext: 'शैक्षणिक उत्कृष्टता के लिए अपने एआई मेंटर अप्पू से मिलें।',
@@ -241,8 +244,13 @@
 
       // "Sign in" Header CTA -> open the sign-in modal OVER the landing. The app stays
       // locked/hidden until authentication actually succeeds (cancel => stay on landing).
+      // Already signed in (e.g. came back via Home) -> the same button reads "Open app".
       if (btnSignIn) {
         btnSignIn.addEventListener('click', () => {
+          if (this.isAuthed()) {
+            this.showApp();
+            return;
+          }
           this.openSignIn();
         });
       }
@@ -1318,6 +1326,7 @@
         document.body.classList.add('view-landing');
       }
       orbs.forEach(orb => { orb.style.display = 'none'; });
+      this.updateHeaderCta();
 
       try {
         if (win.history && typeof win.history.replaceState === 'function' && win.location) {
@@ -1328,6 +1337,23 @@
           win.history.replaceState({}, '', url.toString());
         }
       } catch (_) {}
+    },
+
+    // Header CTA: "Sign in" for visitors, "Open app" for a signed-in user on the landing.
+    updateHeaderCta() {
+      const btn = document.getElementById('landing-btn-signin');
+      if (!btn) return;
+      const label = btn.querySelector('span');
+      const icon = btn.querySelector('i');
+      const authed = this.isAuthed();
+      const key = authed ? 'landingBtnOpenApp' : 'landingBtnSignin';
+      const win = getWin();
+      const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
+      if (label) {
+        label.setAttribute('data-i18n', key);
+        label.textContent = (t && t[key]) || (authed ? 'Open app' : 'Sign in');
+      }
+      if (icon) icon.className = authed ? 'fa-solid fa-arrow-right' : 'fa-solid fa-arrow-right-to-bracket';
     },
 
     showApp() {
