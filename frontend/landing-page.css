@@ -286,7 +286,10 @@ body.is-transitioning-to-app #marketing-landing {
 /* High-Craft Ambient Aurora & Parallax Depth Field */
 .landing-playful-backdrop {
   position: absolute;
-  inset: -12% -6%;
+  /* Vertical bleed only: a horizontal -6% bleed pushed the page 6% wider than the
+     viewport at tablet widths (e.g. +49px at 820px). The layer is transparent and
+     clips its own children, so dropping the side bleed is visually identical. */
+  inset: -12% 0;
   pointer-events: none;
   overflow: hidden;
   z-index: 0;
