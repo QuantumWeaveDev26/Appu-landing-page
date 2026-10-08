@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="en" data-theme="dark" class="theme-dark">
+<head>
+  <script>
+    // Capture the email-verification redirect signal before the Supabase SDK loads and
+    // consumes/strips the URL hash (it strips it as part of establishing the session), so
+    // later code can still tell this page load came from an auth redirect.
+    window.__APPU_AUTH_REDIRECT__ = /access_token|type=signup|type=email_verification/.test(window.location.hash)
+      || /code=/.test(window.location.search);
+  </script>
+  <script>
+    // Theme initializer: lock to dark theme matching production
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem('appu_theme');
+        var theme = 'dark';
+        localStorage.setItem('appu_theme', 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          document.documentElement.classList.add('theme-dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06101f">
+  <meta name="description" content="Meet Appu, IGR Academy's friendly AI learning companion for students in classes 5 to 12.">
+  <title>Appu — Your AI Learning Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=20261006-29">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261006-29">
+  <link rel="stylesheet" href="landing-page.css?v=20261006-29">
+  <link rel="stylesheet" href="tour.css?v=20261006-29">
+</head>
+<body>
+  <div id="beta-banner" class="beta-banner" role="banner">
+    <div class="beta-banner-track">
+      <span class="beta-banner-item">🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required</span>
+      <span class="beta-banner-item">🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required</span>
+    </div>
+    <button id="beta-banner-cta" type="button" class="beta-banner-cta">Try Beta — Sign Up Free</button>
+  </div>
+
+  <!-- NATIVE APP WELCOME GATE: shown once per cold start, only when
+       no session exists yet. Log in/sign up reuses the existing parent-setup-modal. -->
+  <div id="welcome-gate" class="welcome-gate" role="dialog" aria-modal="true" aria-labelledby="welcome-gate-title" aria-hidden="true">
+    <div class="welcome-gate-inner">
+      <img class="welcome-gate-logo" src="assets/igr-logo.png" alt="" width="88" height="88">
+      <h2 id="welcome-gate-title">Welcome to <span>APPU</span></h2>
+      <p class="welcome-gate-subtitle">Your AI learning companion for class 5 to 12. Sign in to save progress and personalize Appu for your child.</p>
+      <button id="btn-welcome-google" class="welcome-gate-btn welcome-gate-btn-google" type="button">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.4 0-13.8 4.2-17 10.4z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-2.1 14.1-5.6l-6.5-5.5C29.6 35.6 26.9 36.5 24 36.5c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.2 40.7 16 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.6l6.5 5.5C41.4 36 44 30.5 44 24c0-1.4-.1-2.4-.4-3.5z"/></svg>
+        <span>Continue with Google</span>
+      </button>
+      <button id="btn-welcome-login" class="welcome-gate-btn welcome-gate-btn-outline" type="button">Log in or sign up</button>
+      <p class="welcome-gate-fineprint">By continuing, you agree to our <a href="terms-and-conditions.html">Terms</a> and have read our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+      <button id="btn-welcome-skip" class="welcome-gate-btn welcome-gate-btn-text" type="button">Skip</button>
+    </div>
+  </div>
+
+  <!-- NATIVE APP LEGAL PAGE VIEWER: renders Privacy Policy/Terms/etc. inside the app
+       (an iframe over the local bundled page) instead of navigating away or leaving
+       the app for an external browser. -->
+  <div id="legal-viewer" class="legal-viewer" role="dialog" aria-modal="true" aria-labelledby="legal-viewer-title" aria-hidden="true">
+    <header class="legal-viewer-header">
+      <span id="legal-viewer-title">Legal</span>
+      <button id="btn-close-legal-viewer" class="icon-btn close-btn" type="button" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </header>
+    <iframe id="legal-viewer-frame" class="legal-viewer-frame" title="Legal page"></iframe>
+  </div>
+
+  <div class="ambient-orb orb-one" aria-hidden="true"></div>
+  <div class="ambient-orb orb-two" aria-hidden="true"></div>
+
+  <!-- ====================================================================
+       MARKETING FRONT-DOOR LANDING PAGE (Light/White Theme)
+       ==================================================================== -->
+  <div id="marketing-landing" class="marketing-landing">
+    <!-- Header -->
+    <header class="landing-header">
+      <div class="landing-header-inner">
+        <a class="landing-brand" href="#marketing-landing" aria-label="APPU AI home">
+          <img src="assets/igr-logo.png" alt="IGr Academy" class="landing-brand-logo" width="40" height="40">
+          <div class="landing-brand-text">
+            <span class="landing-brand-title">APPU AI</span>
+            <span class="landing-brand-by" data-i18n="landingBrandBy">— by IGr Academy</span>
+          </div>
+        </a>
+        <div class="landing-header-actions">
+          <!-- Language Dropdown -->
+          <div class="landing-lang-dropdown">
+            <button id="landing-lang-btn" class="landing-lang-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose language" data-i18n-aria-label="landingLangAria">
+              <i class="fa-solid fa-globe" aria-hidden="true"></i>
+              <span id="landing-lang-current" data-i18n="landingLangCurrent">English</span>
+              <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <ul id="landing-lang-menu" class="landing-lang-menu" role="listbox" hidden>
+              <li role="option" data-lang="en" aria-selected="true" class="is-selected">English</li>
+              <li role="option" data-lang="kn" aria-selected="false">ಕನ್ನಡ (Kannada)</li>
+              <li role="option" data-lang="hi" aria-selected="false">हिंदी (Hindi)</li>
+            </ul>
+          </div>
+          <!-- Theme toggle (dark / light) -->
+          <button id="landing-theme-toggle" class="landing-theme-toggle" type="button" aria-label="Switch to light theme" title="Switch to light theme"><i id="landing-theme-icon" class="fa-solid fa-sun" aria-hidden="true"></i></button>
+          <!-- Sign in CTA -->
+          <button id="landing-btn-signin" class="landing-btn-signin" type="button">
+            <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+            <span data-i18n="landingBtnSignin">Sign in</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="landing-hero" aria-label="Hyper-personalised learning with Appu">
+      <!-- School chalkboard working: authentic chalk formulas & labelled diagrams in the margins -->
+      <div class="landing-chalk" aria-hidden="true">
+        <div class="chalk-mark chalk-a">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <path class="chalk-stroke" d="M16 86 L118 86 L16 18 Z"/>
+            <path class="chalk-stroke thin" d="M16 74 L28 74 L28 86"/>
+            <text class="chalk-text" x="2" y="56" font-size="19">a</text>
+            <text class="chalk-text" x="60" y="106" font-size="19">b</text>
+            <text class="chalk-text" x="74" y="46" font-size="19">c</text>
+            <text class="chalk-text" x="8" y="138" font-size="24">a<tspan dy="-7" font-size="15">2</tspan><tspan dy="7"> + b</tspan><tspan dy="-7" font-size="15">2</tspan><tspan dy="7"> = c</tspan><tspan dy="-7" font-size="15">2</tspan></text>
+          </svg>
+        </div>
+        <div class="chalk-mark chalk-b">
+          <svg width="332" height="48" viewBox="0 0 332 48">
+            <text class="chalk-text" x="0" y="31" font-size="22">6CO<tspan dy="6" font-size="14">2</tspan><tspan dy="-6"> + 6H</tspan><tspan dy="6" font-size="14">2</tspan><tspan dy="-6">O &#8594; C</tspan><tspan dy="6" font-size="14">6</tspan><tspan dy="-6">H</tspan><tspan dy="6" font-size="14">12</tspan><tspan dy="-6">O</tspan><tspan dy="6" font-size="14">6</tspan><tspan dy="-6"> + 6O</tspan><tspan dy="6" font-size="14">2</tspan></text>
+          </svg>
+        </div>
+        <div class="chalk-mark chalk-c chalk-dim">
+          <svg width="112" height="122" viewBox="0 0 112 122">
+            <path class="chalk-stroke thin" d="M10 78 L10 8"/>
+            <path class="chalk-stroke thin" d="M10 78 L96 78"/>
+            <path class="chalk-stroke" d="M14 72 L92 16"/>
+            <text class="chalk-text" x="16" y="108" font-size="22">y = mx + c</text>
+          </svg>
+        </div>
+        <div class="chalk-mark chalk-d chalk-dim">
+          <svg width="96" height="100" viewBox="0 0 96 100">
+            <circle class="chalk-stroke" cx="48" cy="32" r="14"/>
+            <circle class="chalk-stroke thin" cx="20" cy="52" r="9"/>
+            <circle class="chalk-stroke thin" cx="76" cy="52" r="9"/>
+            <path class="chalk-stroke thin" d="M36 40 L28 46"/>
+            <path class="chalk-stroke thin" d="M60 40 L68 46"/>
+            <text class="chalk-text" x="34" y="92" font-size="22">H<tspan dy="5" font-size="14">2</tspan><tspan dy="-5">O</tspan></text>
+          </svg>
+        </div>
+      </div>
+      <!-- High-Craft Ambient Aurora & Parallax Depth Field (No Emojis) -->
+      <div id="landing-depth-field" class="landing-playful-backdrop" aria-hidden="true">
+        <!-- Soft Ambient Color Glow Aurora Blooms -->
+        <div class="landing-aurora-glow aurora-amber"></div>
+        <div class="landing-aurora-glow aurora-cyan"></div>
+        <div class="landing-aurora-glow aurora-purple"></div>
+        <div class="landing-aurora-glow aurora-mint"></div>
+
+        <!-- 12 Soft Blurred Depth-Orbs (Cursor Parallax) -->
+        <div class="depth-orb orb-1" data-depth="0.03"></div>
+        <div class="depth-orb orb-2" data-depth="0.06"></div>
+        <div class="depth-orb orb-3" data-depth="0.04"></div>
+        <div class="depth-orb orb-4" data-depth="0.08"></div>
+        <div class="depth-orb orb-5" data-depth="0.05"></div>
+        <div class="depth-orb orb-6" data-depth="0.07"></div>
+        <div class="depth-orb orb-7" data-depth="0.03"></div>
+        <div class="depth-orb orb-8" data-depth="0.06"></div>
+        <div class="depth-orb orb-9" data-depth="0.04"></div>
+        <div class="depth-orb orb-10" data-depth="0.05"></div>
+        <div class="depth-orb orb-11" data-depth="0.08"></div>
+        <div class="depth-orb orb-12" data-depth="0.04"></div>
+
+        <!-- High-Craft Geometric & Science Objects (Motion.dev Physics & Parallax) -->
+        <!-- 1. Wireframe Cube (Isometric 3D) -->
+        <div class="sci-obj obj-cube" data-depth="0.06" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="50" height="50">
+              <!-- Top Face -->
+              <polygon points="32,10 52,21.5 32,33 12,21.5" fill="rgba(14, 165, 233, 0.08)" stroke="#0ea5e9" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Left Face -->
+              <polygon points="12,21.5 32,33 32,55 12,43.5" fill="rgba(99, 102, 241, 0.06)" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Right Face -->
+              <polygon points="32,33 52,21.5 52,43.5 32,55" fill="rgba(14, 165, 233, 0.04)" stroke="#0284c7" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Nodes -->
+              <circle cx="32" cy="10" r="1.5" fill="#38bdf8" />
+              <circle cx="52" cy="21.5" r="1.5" fill="#38bdf8" />
+              <circle cx="12" cy="21.5" r="1.5" fill="#38bdf8" />
+              <circle cx="32" cy="33" r="2" fill="#818cf8" />
+              <circle cx="32" cy="55" r="1.5" fill="#38bdf8" />
+              <line x1="32" y1="33" x2="32" y2="10" stroke="rgba(14, 165, 233, 0.3)" stroke-width="1" stroke-dasharray="2 2" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 2. Rutherford-Bohr Atom (Nucleus + 3 Rotating Electron Orbits) -->
+        <div class="sci-obj obj-atom" data-depth="0.08" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 72 72" width="58" height="58">
+              <!-- Nucleus Glow & Core -->
+              <circle cx="36" cy="36" r="6" fill="rgba(14, 165, 233, 0.22)" />
+              <circle cx="36" cy="36" r="3.5" fill="#0ea5e9" />
+              <!-- Orbit 1 (Horizontal / 0 deg) -->
+              <g class="atom-orbit-group orbit-1" transform-origin="36 36">
+                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#0ea5e9" stroke-width="1.3" opacity="0.85" />
+                <circle cx="66" cy="36" r="2.2" fill="#38bdf8" />
+              </g>
+              <!-- Orbit 2 (60 deg tilt) -->
+              <g class="atom-orbit-group orbit-2" transform-origin="36 36">
+                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#10b981" stroke-width="1.3" opacity="0.85" transform="rotate(60 36 36)" />
+                <circle cx="51" cy="62" r="2.2" fill="#34d399" />
+              </g>
+              <!-- Orbit 3 (120 deg tilt) -->
+              <g class="atom-orbit-group orbit-3" transform-origin="36 36">
+                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#a855f7" stroke-width="1.3" opacity="0.85" transform="rotate(120 36 36)" />
+                <circle cx="21" cy="62" r="2.2" fill="#c084fc" />
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 3. Saturnian Planet with Ring + Orbiting Moon -->
+        <div class="sci-obj obj-planet motif-planet" data-depth="0.04" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 68 68" width="54" height="54">
+              <defs>
+                <radialGradient id="sci-planet-body" cx="40%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#fef08a" />
+                  <stop offset="60%" stop-color="#f59e0b" />
+                  <stop offset="100%" stop-color="#d97706" />
+                </radialGradient>
+              </defs>
+              <!-- Moon Orbit & Moon -->
+              <g class="planet-moon-orbit" transform-origin="34 34">
+                <ellipse cx="34" cy="34" rx="27" ry="11" fill="none" stroke="rgba(245, 158, 11, 0.28)" stroke-width="1" stroke-dasharray="2 3" transform="rotate(-20 34 34)" />
+                <circle cx="59" cy="25" r="2.2" fill="#10b981" />
+              </g>
+              <!-- Back of Planetary Ring -->
+              <path d="M12 34 A24 8 0 0 1 56 34" fill="none" stroke="#fbbf24" stroke-width="1.6" opacity="0.6" transform="rotate(-15 34 34)" />
+              <!-- Planet Body -->
+              <circle cx="34" cy="34" r="13" fill="url(#sci-planet-body)" />
+              <!-- Front of Planetary Ring -->
+              <path d="M56 34 A24 8 0 0 1 12 34" fill="none" stroke="#fbbf24" stroke-width="1.8" transform="rotate(-15 34 34)" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 4. Benzene Molecular Lattice with Bonded Nodes -->
+        <div class="sci-obj obj-molecule" data-depth="0.04" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="48" height="48">
+              <!-- Central Hexagon -->
+              <polygon points="32,15 47,23.5 47,40.5 32,49 17,40.5 17,23.5" fill="rgba(16, 185, 129, 0.06)" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Inner Resonance Circle -->
+              <circle cx="32" cy="32" r="8" fill="none" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3 2" />
+              <!-- Outer Bonded Node Stems & Atoms -->
+              <line x1="32" y1="15" x2="32" y2="7" stroke="#10b981" stroke-width="1.4" />
+              <circle cx="32" cy="6" r="3" fill="#10b981" />
+              <line x1="47" y1="40.5" x2="55" y2="45" stroke="#0ea5e9" stroke-width="1.4" />
+              <circle cx="56" cy="45.5" r="2.5" fill="#0ea5e9" />
+              <line x1="17" y1="40.5" x2="9" y2="45" stroke="#a855f7" stroke-width="1.4" />
+              <circle cx="8" cy="45.5" r="2.5" fill="#a855f7" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 5. Faceted Polyhedron / Geodesic Tetrahedron -->
+        <div class="sci-obj obj-polyhedron" data-depth="0.06" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="50" height="50">
+              <!-- Facets -->
+              <polygon points="32,32 32,11 49,21" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 49,21 49,43" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 49,43 32,53" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 32,53 15,43" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 15,43 15,21" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <polygon points="32,32 15,21 32,11" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
+              <!-- Nodes -->
+              <circle cx="32" cy="32" r="2.5" fill="#c084fc" />
+              <circle cx="32" cy="11" r="1.5" fill="#c084fc" />
+              <circle cx="49" cy="21" r="1.5" fill="#c084fc" />
+              <circle cx="49" cy="43" r="1.5" fill="#c084fc" />
+              <circle cx="32" cy="53" r="1.5" fill="#c084fc" />
+              <circle cx="15" cy="43" r="1.5" fill="#c084fc" />
+              <circle cx="15" cy="21" r="1.5" fill="#c084fc" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 6. DNA Double-Helix Curve -->
+        <div class="sci-obj obj-dna" data-depth="0.05" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 44 76" width="36" height="62">
+              <!-- Base Pair Rungs -->
+              <line x1="14" y1="12" x2="30" y2="12" stroke="#38bdf8" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="12" r="1.4" fill="#0ea5e9" />
+              <line x1="10" y1="24" x2="34" y2="24" stroke="#fbbf24" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="24" r="1.4" fill="#f59e0b" />
+              <line x1="14" y1="36" x2="30" y2="36" stroke="#34d399" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="36" r="1.4" fill="#10b981" />
+              <line x1="10" y1="48" x2="34" y2="48" stroke="#38bdf8" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="48" r="1.4" fill="#0ea5e9" />
+              <line x1="14" y1="60" x2="30" y2="60" stroke="#fbbf24" stroke-width="1.3" opacity="0.75" />
+              <circle cx="22" cy="60" r="1.4" fill="#f59e0b" />
+              <!-- Twin Sinusoidal Strands -->
+              <path d="M12,4 C34,16 34,20 12,32 C-10,44 -10,48 12,60 C34,72 34,76 12,88" fill="none" stroke="#0ea5e9" stroke-width="1.6" stroke-linecap="round" />
+              <path d="M32,4 C10,16 10,20 32,32 C54,44 54,48 32,60 C10,72 10,76 32,88" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 7. Torus / Nested Gyroscope Gimbal Rings -->
+        <div class="sci-obj obj-torus" data-depth="0.03" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 64 64" width="48" height="48">
+              <!-- Outer Ring -->
+              <circle cx="32" cy="32" r="26" fill="none" stroke="#f59e0b" stroke-width="1.4" opacity="0.8" />
+              <!-- Middle Ring -->
+              <g class="gyro-ring gyro-ring-mid" transform-origin="32 32">
+                <ellipse cx="32" cy="32" rx="25" ry="13" fill="none" stroke="#10b981" stroke-width="1.3" opacity="0.85" transform="rotate(35 32 32)" />
+              </g>
+              <!-- Inner Ring -->
+              <g class="gyro-ring gyro-ring-inner" transform-origin="32 32">
+                <ellipse cx="32" cy="32" rx="13" ry="24" fill="none" stroke="#0ea5e9" stroke-width="1.3" opacity="0.85" transform="rotate(-35 32 32)" />
+              </g>
+              <!-- Central Jewel Node -->
+              <circle cx="32" cy="32" r="2.8" fill="#fbbf24" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 8. Mathematical Precision Lemniscate & Calculus Glyph -->
+        <div class="sci-obj obj-math" data-depth="0.04" aria-hidden="true">
+          <div class="sci-obj-inner">
+            <svg class="sci-svg" viewBox="0 0 60 52" width="44" height="38">
+              <!-- Lemniscate (Infinity Loop) -->
+              <path d="M30,26 C22,14 10,14 10,26 C10,38 22,38 30,26 C38,14 50,14 50,26 C50,38 38,38 30,26 Z" fill="rgba(139, 92, 246, 0.07)" stroke="#8b5cf6" stroke-width="1.5" stroke-linejoin="round" />
+              <!-- Integral Symbol -->
+              <path d="M30,8 C33,8 33,14 31,21 L29,31 C27,38 27,44 30,44" fill="none" stroke="#06b6d4" stroke-width="1.4" stroke-linecap="round" />
+              <!-- Harmonic Node Points -->
+              <circle cx="10" cy="26" r="1.5" fill="#a855f7" />
+              <circle cx="50" cy="26" r="1.5" fill="#a855f7" />
+              <circle cx="30" cy="26" r="2" fill="#38bdf8" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="landing-hero-grid">
+        <!-- Left Column: Copy & Actions -->
+        <div class="landing-hero-content">
+          <div class="landing-kicker">
+            <span class="landing-kicker-sparkle" aria-hidden="true">✦</span>
+            <span data-i18n="landingKicker">HYPER-PERSONALISED LEARNING</span>
+          </div>
+          <h1 class="landing-hero-title" data-i18n-html="landingHeroTitleHtml">
+            Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>
+          </h1>
+          <p class="landing-hero-subtext" data-i18n="landingHeroSubtext">
+            Meet APPU, your AI mentor for academic excellence.
+          </p>
+          <div class="landing-grade-badge">
+            <span aria-hidden="true">🎓</span>
+            <span data-i18n="landingGradeBadge">Class 5 onwards</span>
+          </div>
+          <div class="landing-cta-group">
+            <button id="landing-btn-try-free" class="landing-btn-primary" type="button">
+              <span data-i18n="landingBtnTryFree">Try APPU free</span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <span class="landing-cta-sub" data-i18n="landingCtaSub">No sign-up needed to try</span>
+          </div>
+        </div>
+
+        <!-- Right Column: APPU Mentor Card with Robot Companion -->
+        <div class="landing-hero-visual">
+          <!-- Playful Robot Mascot Companion (Cursor-aware & Responsive) -->
+          <div id="landing-mascot-companion" class="landing-mascot-companion" aria-label="Appu Mascot Companion">
+            <div id="landing-mascot-speech-bubble" class="landing-mascot-companion-speech" role="status">
+              <span id="landing-mascot-speech-text" data-i18n="landingMascotSpeech">Hi! Let's learn 🚀</span>
+            </div>
+            <div class="landing-mascot-companion-avatar" role="img" aria-label="Friendly Robot Appu">
+              <svg class="landing-mascot-svg" viewBox="0 0 120 120" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="landing-appu-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#38bdf8" />
+                    <stop offset="50%" stop-color="#0ea5c4" />
+                    <stop offset="100%" stop-color="#0284c7" />
+                  </linearGradient>
+                  <linearGradient id="landing-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#05162a" />
+                    <stop offset="100%" stop-color="#020a14" />
+                  </linearGradient>
+                  <linearGradient id="landing-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#fde047" />
+                    <stop offset="100%" stop-color="#f59e0b" />
+                  </linearGradient>
+                  <filter id="landing-mascot-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+                <ellipse class="mascot-ground-shadow" cx="60" cy="112" rx="24" ry="4" fill="rgba(15, 23, 42, 0.12)" />
+                <g class="mascot-body-group">
+                  <!-- Antenna (Powers on during entrance) -->
+                  <line x1="60" y1="30" x2="60" y2="15" stroke="#0ea5c4" stroke-width="3.5" stroke-linecap="round" />
+                  <circle id="mascot-antenna-bulb" class="mascot-antenna-tip" cx="60" cy="14" r="5" fill="url(#landing-gold-grad)" filter="url(#landing-mascot-glow)" />
+                  <!-- Robot Head/Body -->
+                  <rect x="24" y="28" width="72" height="66" rx="28" fill="url(#landing-appu-grad)" stroke="rgba(255, 255, 255, 0.35)" stroke-width="1.5" />
+                  <!-- Ear Nubs -->
+                  <rect x="18" y="50" width="7" height="16" rx="3.5" fill="#0284c7" />
+                  <rect x="95" y="50" width="7" height="16" rx="3.5" fill="#0284c7" />
+                  <!-- Face Screen -->
+                  <rect class="mascot-face-screen" x="32" y="38" width="56" height="42" rx="14" fill="url(#landing-screen-grad)" stroke="rgba(34, 211, 238, 0.55)" stroke-width="1.5" />
+                  <rect class="mascot-screen-sheen" x="35" y="40" width="50" height="14" rx="7" fill="rgba(255, 255, 255, 0.08)" />
+                  <!-- Face Eyes (Pupils track cursor, blinks naturally) -->
+                  <g id="mascot-face-expr" class="mascot-face-expr" filter="url(#landing-mascot-glow)">
+                    <text id="mascot-eye-left" class="mascot-eye-l" x="44" y="66" fill="#22d3ee" font-family="'Space Grotesk', sans-serif" font-size="20" font-weight="900" text-anchor="middle">^</text>
+                    <text id="mascot-eye-right" class="mascot-eye-r" x="64" y="66" fill="#22d3ee" font-family="'Space Grotesk', sans-serif" font-size="20" font-weight="900" text-anchor="middle">^</text>
+                    <text id="mascot-eye-star" class="mascot-eye-star" x="77" y="64" fill="#ffd65c" font-family="'Space Grotesk', sans-serif" font-size="13" font-weight="900" text-anchor="middle">★</text>
+                  </g>
+                  <!-- Arms (Waves once on entrance or on CTA hover) -->
+                  <ellipse class="mascot-arm arm-left" cx="20" cy="74" rx="5" ry="9" fill="#0284c7" transform="rotate(-15 20 74)" />
+                  <g id="mascot-arm-right-group" class="mascot-arm-right-group">
+                    <ellipse class="mascot-arm arm-right-waving" cx="100" cy="74" rx="5" ry="9" fill="#0284c7" />
+                  </g>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Mentor Card with 3D Tilt & Moving Glare Sheen -->
+          <div id="landing-mentor-card" class="landing-mentor-card">
+            <div id="landing-card-glare" class="landing-card-glare" aria-hidden="true"></div>
+            <div class="landing-speech-bubble" role="status">
+              <span data-i18n="landingSpeechBubble">"Let's learn your way."</span>
+              <div class="landing-bubble-tail" aria-hidden="true"></div>
+            </div>
+            <div class="landing-mentor-frame">
+              <img src="assets/appu-mentor-portrait.webp" alt="APPU — Your AI learning mentor" class="landing-mentor-img" width="460" height="460" data-i18n-alt="landingMentorAlt">
+            </div>
+            <div class="landing-mentor-nameplate">
+              <span class="landing-status-dot" aria-hidden="true"></span>
+              <div class="landing-nameplate-text">
+                <strong>APPU</strong>
+                <span class="landing-nameplate-dot">•</span>
+                <span data-i18n="landingMentorRole">Your AI learning mentor</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Value Proposition Band -->
+    <section class="landing-value-band landing-scroll-reveal" aria-label="Core learning principles">
+      <div class="landing-value-content">
+        <span class="landing-value-item"><i class="fa-regular fa-circle-check text-cyan" aria-hidden="true"></i> <span data-i18n="landingValue1">Understand clearly</span></span>
+        <span class="landing-value-sep" aria-hidden="true">•</span>
+        <span class="landing-value-item"><i class="fa-solid fa-bolt text-amber" aria-hidden="true"></i> <span data-i18n="landingValue2">Practise confidently</span></span>
+        <span class="landing-value-sep" aria-hidden="true">•</span>
+        <span class="landing-value-item"><i class="fa-solid fa-person-running text-green" aria-hidden="true"></i> <span data-i18n="landingValue3">Learn at your pace</span></span>
+      </div>
+    </section>
+
+    <!-- "Start with one question." Section -->
+    <section class="landing-question-section" aria-labelledby="landing-question-title">
+      <div class="landing-question-container">
+        <h2 id="landing-question-title" class="landing-question-title" data-i18n="landingQuestionTitle">Start with one question.</h2>
+        <p class="landing-question-subtitle" data-i18n="landingQuestionSubtitle">Ask anything from your school textbook or curiosity.</p>
+
+        <!-- Quick prompt starter chips -->
+        <div class="landing-prompt-chips" aria-label="Starter questions">
+          <span class="landing-prompt-label" data-i18n="landingPromptLabel">Try asking:</span>
+          <button type="button" class="landing-prompt-chip" data-question="Why is the sky blue?" data-i18n-question="landingChip1Prompt">
+            <i class="fa-solid fa-cloud-sun text-cyan" aria-hidden="true"></i>
+            <span data-i18n="landingChip1Text">Why is the sky blue?</span>
+          </button>
+          <button type="button" class="landing-prompt-chip" data-question="How does photosynthesis work?" data-i18n-question="landingChip2Prompt">
+            <i class="fa-solid fa-leaf text-green" aria-hidden="true"></i>
+            <span data-i18n="landingChip2Text">How does photosynthesis work?</span>
+          </button>
+          <button type="button" class="landing-prompt-chip" data-question="Explain Pythagoras theorem with an example" data-i18n-question="landingChip3Prompt">
+            <i class="fa-solid fa-shapes text-amber" aria-hidden="true"></i>
+            <span data-i18n="landingChip3Text">Explain Pythagoras theorem</span>
+          </button>
+          <button type="button" class="landing-prompt-chip" data-question="What causes seasons on Earth?" data-i18n-question="landingChip4Prompt">
+            <i class="fa-solid fa-earth-americas text-indigo" aria-hidden="true"></i>
+            <span data-i18n="landingChip4Text">What causes seasons?</span>
+          </button>
+        </div>
+        
+        <form id="landing-question-form" class="landing-question-box" role="search">
+          <div class="landing-input-wrap">
+            <i class="fa-solid fa-wand-magic-sparkles landing-input-icon" aria-hidden="true"></i>
+            <input
+              id="landing-question-input"
+              type="text"
+              class="landing-question-input"
+              placeholder="What would you like to understand?"
+              autocomplete="off"
+              aria-label="What would you like to understand?"
+              data-i18n-placeholder="landingQuestionPlaceholder"
+              data-i18n-aria-label="landingQuestionPlaceholder"
+            />
+            <button id="landing-btn-mic" class="landing-input-btn landing-mic-btn" type="button" aria-label="Speak your question" title="Speak your question" data-i18n-aria-label="landingMicAria" data-i18n-title="landingMicAria">
+              <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+            </button>
+            <button id="landing-btn-send" class="landing-input-btn landing-send-btn" type="submit" aria-label="Ask Appu" title="Ask Appu" data-i18n-aria-label="landingSendAria" data-i18n-title="landingSendAria">
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p class="landing-question-helper">
+            <i class="fa-solid fa-keyboard" aria-hidden="true"></i>
+            <span data-i18n="landingQuestionHelper">Type or speak in English, Kannada or Hindi</span>
+          </p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Pre-login Trust & Feature Clarity Section -->
+    <section class="landing-features-section" aria-labelledby="landing-features-title">
+      <div class="landing-features-container">
+        <div class="landing-section-header">
+          <div class="landing-kicker">
+            <span class="landing-kicker-sparkle" aria-hidden="true">✦</span>
+            <span data-i18n="landingAdvantageKicker">THE APPU ADVANTAGE</span>
+          </div>
+          <h2 id="landing-features-title" class="landing-features-title" data-i18n="landingAdvantageTitle">How Appu transforms your study hours</h2>
+        </div>
+        <div class="landing-features-grid">
+          <div class="landing-feature-card landing-scroll-reveal">
+            <div class="landing-feature-icon-wrap icon-cyan">
+              <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+            </div>
+            <h3 data-i18n="landingFeature1Title">Visual Concept Trees &amp; Mind Maps</h3>
+            <p data-i18n="landingFeature1Desc">Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.</p>
+          </div>
+          <div class="landing-feature-card landing-scroll-reveal">
+            <div class="landing-feature-icon-wrap icon-indigo">
+              <i class="fa-solid fa-microphone-lines" aria-hidden="true"></i>
+            </div>
+            <h3 data-i18n="landingFeature2Title">Multilingual AI Voice Companion</h3>
+            <p data-i18n="landingFeature2Desc">Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.</p>
+          </div>
+          <div class="landing-feature-card landing-scroll-reveal">
+            <div class="landing-feature-icon-wrap icon-emerald">
+              <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+            </div>
+            <h3 data-i18n="landingFeature3Title">Curriculum-Safe &amp; Parent Verified</h3>
+            <p data-i18n="landingFeature3Desc">100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Marketing Footer -->
+    <footer class="landing-marketing-footer" role="contentinfo">
+      <div class="landing-marketing-footer-inner">
+        <span data-i18n="landingFooterCopy">&copy; 2026 IGR Academy • All rights reserved</span>
+        <div class="landing-marketing-links">
+          <a href="privacy-policy.html" data-i18n="landingFooterPrivacy">Privacy Policy</a>
+          <a href="terms-and-conditions.html" data-i18n="landingFooterTerms">Terms &amp; Conditions</a>
+          <a href="pricing.html" data-i18n="landingFooterPricing">Pricing</a>
+          <a href="contact-us.html" data-i18n="landingFooterContact">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="app-shell" class="app-shell">
+    <header class="topbar" aria-label="Main navigation">
+      <button id="btn-nav-menu" class="topbar-hamburger icon-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav-drawer"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+      <a class="brand" href="#mission-title" aria-label="IGR Academy home">
+        <span class="brand-mark"><img class="brand-logo-img" src="assets/igr-logo.png" alt="IGr Academy" width="44" height="44"></span>
+        <span class="brand-copy"><strong>IGR <em>Academy</em></strong><small>Learn with Appu</small></span>
+      </a>
+      <div id="avatar-status-pill" class="status-pill idle" role="status">
+        <span class="status-dot" aria-hidden="true"></span><span id="status-label">Appu is ready</span>
+      </div>
+      <div class="topbar-actions">
+        <div id="gamification-widget" class="gamification-bar" role="region" aria-label="Learning Progress">
+          <button id="btn-streak-badge" class="game-pill game-streak" type="button" title="3-day learning streak!" aria-label="Learning Streak: 3 days">
+            <span class="game-icon" aria-hidden="true">🔥</span>
+            <strong id="game-streak-count">3</strong>
+            <span class="game-label">Streak</span>
+          </button>
+          <button id="btn-xp-badge" class="game-pill game-xp" type="button" title="120 Learning Stars! Click to view achievements" aria-label="XP Stars: 120">
+            <span class="game-icon" aria-hidden="true">⭐</span>
+            <strong id="game-xp-count">120</strong>
+            <span class="game-label">XP</span>
+          </button>
+          <div class="game-level-pill" title="Level 2: Curious Explorer">
+            <span id="game-level-tag" class="level-tag">Lvl 2</span>
+            <div class="level-progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100">
+              <div id="game-xp-fill" class="level-progress-fill" style="width: 70%;"></div>
+            </div>
+          </div>
+        </div>
+        <div id="parent-session-badge" class="parent-session-badge" role="status"></div>
+        <div id="parental-timer-badge" class="parental-timer-pill" role="status" title="Parental study timer" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span id="parental-timer-text">30m</span></div>
+        <button id="btn-main-auth" class="auth-pill-btn" type="button"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i><span>Sign in / Sign up</span></button>
+        <div class="language-switch" aria-label="Choose language" role="radiogroup">
+          <button id="lang-en" class="lang-btn is-active" type="button" role="radio" aria-checked="true">ENG</button>
+          <button id="lang-kn" class="lang-btn" type="button" lang="kn" role="radio" aria-checked="false">ಕನ್ನಡ</button>
+          <button id="lang-hi" class="lang-btn" type="button" lang="hi" role="radio" aria-checked="false">हिंदी</button>
+        </div>
+        <button id="btn-parent-setup" class="parent-zone-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Setup</span></button>
+        <button id="btn-topbar-saved-lessons" class="parent-zone-btn topbar-saved-btn" type="button" title="My Learning — Saved Lessons" aria-label="My Learning"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i><span>My Learning</span> <span class="topbar-saved-count-pill" id="topbar-saved-count" style="display:none">0</span></button>
+        <button id="btn-topbar-reports" class="parent-zone-btn topbar-reports-btn" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Report</span></button>
+        <button id="btn-back-to-landing" class="topbar-home-btn icon-btn" type="button" aria-label="Back to Home Landing" title="Back to Home"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Home</span></button>
+        <button id="btn-sound-toggle" class="icon-btn" type="button" aria-label="Toggle sound effects"><i id="sound-icon" class="fa-solid fa-volume-high text-cyan" aria-hidden="true"></i><span>Sound Effects</span></button>
+        <button id="btn-theme-toggle" class="icon-btn theme-toggle-btn" type="button" aria-label="Switch to dark theme" title="Switch to dark theme" aria-pressed="true" style="display: none !important;"><i id="theme-icon" class="fa-solid fa-moon text-cyan" aria-hidden="true"></i><span>Dark theme</span></button>
+        <button id="btn-settings" class="icon-btn" type="button" aria-label="Open voice settings"><i class="fa-solid fa-sliders" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="mission-stage" aria-labelledby="mission-title">
+      <div class="stage-backdrop" aria-hidden="true"></div><div class="stage-grid" aria-hidden="true"></div>
+      <div class="stage-particles" aria-hidden="true">
+        <span class="particle p-1"></span>
+        <span class="particle p-2"></span>
+        <span class="particle p-3"></span>
+        <span class="particle p-4"></span>
+        <span class="particle p-5"></span>
+        <span class="particle p-6"></span>
+      </div>
+      <section class="mission-intro">
+        <p id="mission-eyebrow" class="eyebrow"><span aria-hidden="true">✦</span> Your learning mission starts here</p>
+        <h2 id="mission-title" data-i18n-html="missionTitleHtml">Start your <span>academic success</span> now!</h2>
+        <p id="mission-subtitle">Choose a mission or ask Appu anything from class 5 to 12.</p>
+      </section>
+
+      <div id="avatar-3d-wrapper" class="avatar-stage state-idle mood-idle">
+        <div id="stage-halo" class="stage-halo state-idle" aria-hidden="true"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span></div>
+        <button id="avatar-figure-container" class="avatar-interactive-figure" type="button" aria-label="Ask Appu to introduce himself">
+          <span class="avatar-glow" aria-hidden="true"></span>
+          <div id="avatar-model-frame" class="avatar-model-frame">
+            <img id="hero-appu-img" class="hero-appu-photo" src="assets/appu-cutout-new.png" alt="Appu, your AI learning companion" width="560" height="700">
+            <div id="avatar-face-mesh" class="avatar-face-mesh" aria-hidden="true">
+              <div id="avatar-eye-left" class="avatar-eye-blink eye-left"></div>
+              <div id="avatar-eye-right" class="avatar-eye-blink eye-right"></div>
+              <div id="avatar-mouth-wrap" class="avatar-mouth-wrap">
+                <div id="avatar-mouth" class="avatar-mouth"></div>
+              </div>
+            </div>
+          </div>
+          <div class="photo-sparkles" aria-hidden="true">
+            <span class="psp psp-1">✦</span>
+            <span class="psp psp-2">✦</span>
+            <span class="psp psp-3">✦</span>
+            <span class="psp psp-4">✦</span>
+          </div>
+        </button>
+        <div class="appu-nameplate"><span class="online-dot" aria-hidden="true"></span><strong>APPU</strong><small id="appu-companion-tag">AI learning companion</small></div>
+      </div>
+
+      <div id="mobile-status-slot" class="mobile-status-slot"></div>
+      <script>
+        if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+          var p = document.getElementById('avatar-status-pill');
+          var s = document.getElementById('mobile-status-slot');
+          if (p && s && !s.contains(p)) s.appendChild(p);
+        }
+      </script>
+
+      <div class="mission-deck" aria-label="Choose a learning mission">
+        <button id="chip-explain" class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+        <button id="chip-quiz" class="mission-card chip-action-btn mission-violet" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+        <button id="chip-homework" class="mission-card chip-action-btn mission-green" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+        <button id="chip-exam" class="mission-card chip-action-btn mission-amber" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <!-- VOICE RESPONSE POPUP: persistent assistant reply view during hands-free voice sessions -->
+      <div id="voice-reply-popup" class="voice-reply-popup" role="region" aria-live="polite" aria-label="Appu's response" hidden>
+        <div class="voice-popup-header">
+          <div class="voice-popup-title">
+            <span class="online-dot" aria-hidden="true"></span>
+            <strong id="voice-popup-title-text">Appu says</strong>
+          </div>
+          <button id="btn-close-voice-popup" class="icon-btn voice-popup-close" type="button" aria-label="Dismiss response">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="voice-popup-content" class="voice-popup-body"></div>
+      </div>
+    </main>
+
+    <!-- Active Document Banner (Dock Mode) -->
+    <div id="active-doc-banner-dock" class="active-doc-banner" hidden>
+      <div class="active-doc-pill">
+        <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+        <span class="active-doc-name" id="active-doc-name-dock">Notes</span>
+        <span class="active-doc-badge">Teaching from this</span>
+        <button id="btn-clear-doc-dock" class="active-doc-clear-btn" type="button" aria-label="Clear active document and return to standard mode" title="Clear document">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <section class="response-dock" aria-label="Talk to Appu">
+      <div class="response-card" id="response-card" role="button" tabindex="0" aria-label="Tap to type a message to Appu">
+        <div id="appu-mascot-container" class="appu-mascot-container" aria-hidden="true"></div>
+        <div class="response-card-main">
+          <div class="response-card-head"><span class="online-dot" aria-hidden="true"></span><strong id="appu-says-label">Appu says</strong><button id="btn-dock-expand" class="dock-expand-hint" type="button" aria-label="Expand in chat drawer" title="Expand in chat drawer"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i><span>Expand</span></button><div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div>
+          <p id="subtitles-text">Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.</p>
+        </div>
+      </div>
+      <div class="control-dock">
+        <div class="dock-btn-group">
+          <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span>Type instead</span></button>
+          <button id="btn-upload-notes" class="dock-btn notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i><span>Upload notes</span></button>
+        </div>
+        <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Tap to speak to Appu"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
+        <span class="mic-label">Tap to speak</span>
+      </div>
+    </section>
+  </div>
+
+  <footer class="landing-footer-strip" role="contentinfo">
+    <span>&copy; 2026 IGR Academy</span>
+    <span class="sep" aria-hidden="true">•</span>
+    <a href="privacy-policy.html">Privacy Policy</a>
+    <span class="sep" aria-hidden="true">•</span>
+    <a href="terms-and-conditions.html">Terms & Conditions</a>
+    <span class="sep" aria-hidden="true">•</span>
+    <a href="cancellation-refund-policy.html">Cancellation & Refunds</a>
+    <span class="sep" aria-hidden="true">•</span>
+    <a href="shipping-delivery-policy.html">Shipping & Delivery</a>
+    <span class="sep" aria-hidden="true">•</span>
+    <a href="pricing.html">Pricing</a>
+    <span class="sep" aria-hidden="true">•</span>
+    <a href="contact-us.html">Contact Us</a>
+  </footer>
+
+  <!-- LEFT NAV DRAWER (native app only: account/settings/nav, relocated from the topbar) -->
+  <div id="nav-drawer-scrim" class="drawer-scrim" aria-hidden="true"></div>
+  <aside id="nav-drawer" class="nav-drawer" role="dialog" aria-modal="true" aria-labelledby="nav-drawer-title" aria-hidden="true">
+    <header class="nav-drawer-header">
+      <span class="brand-mark"><img class="brand-logo-img" src="assets/igr-logo.png" alt="" width="36" height="36"></span>
+      <span id="nav-drawer-title" class="nav-drawer-brand-copy"><strong>IGR <em>Academy</em></strong><small>Learn with Appu</small></span>
+      <button id="btn-close-nav-drawer" class="icon-btn close-btn" type="button" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </header>
+    <nav class="nav-drawer-body">
+      <div id="nav-drawer-lang-slot" class="nav-drawer-slot"></div>
+      <div id="nav-drawer-gamification" class="nav-drawer-gamification" role="region" aria-label="Learning Progress">
+        <span class="nav-drawer-section-title" id="drawer-progress-title">My Progress</span>
+        <div class="nav-drawer-gamification-pills">
+          <div class="nav-game-pill game-streak" title="Learning Streak">
+            <span class="game-icon" aria-hidden="true">🔥</span>
+            <strong id="drawer-streak-count">3</strong>
+            <span class="game-label">Streak</span>
+          </div>
+          <div class="nav-game-pill game-xp" title="Learning Stars">
+            <span class="game-icon" aria-hidden="true">⭐</span>
+            <strong id="drawer-xp-count">120</strong>
+            <span class="game-label">Stars</span>
+          </div>
+          <div class="nav-game-pill game-level" title="Learner Level">
+            <span class="game-icon" aria-hidden="true">🏆</span>
+            <strong id="drawer-level-tag">Lvl 2</strong>
+            <span class="game-label">Explorer</span>
+          </div>
+        </div>
+      </div>
+      <div class="nav-drawer-missions">
+        <span class="nav-drawer-section-title" id="drawer-missions-title">Learning Missions</span>
+        <button id="drawer-chip-explain" class="nav-drawer-mission-btn drawer-chip-explain chip-action-btn" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
+          <i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i>
+          <div><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></div>
+        </button>
+        <button id="drawer-chip-quiz" class="nav-drawer-mission-btn drawer-chip-quiz chip-action-btn" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
+          <i class="fa-solid fa-bolt text-cyan" aria-hidden="true"></i>
+          <div><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></div>
+        </button>
+        <button id="drawer-chip-homework" class="nav-drawer-mission-btn drawer-chip-homework chip-action-btn" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
+          <i class="fa-solid fa-book-open-reader text-green" aria-hidden="true"></i>
+          <div><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></div>
+        </button>
+        <button id="drawer-chip-exam" class="nav-drawer-mission-btn drawer-chip-exam chip-action-btn" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
+          <i class="fa-solid fa-medal text-violet" aria-hidden="true"></i>
+          <div><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></div>
+        </button>
+        <button id="btn-explore-prompts" class="nav-drawer-mission-btn explore-prompts-drawer-btn" type="button">
+          <i class="fa-solid fa-compass text-cyan" aria-hidden="true"></i>
+          <div><strong id="btn-explore-prompts-text" class="chip-title">Explore Prompts</strong><small class="chip-desc">Curated study questions &amp; prompts</small></div>
+        </button>
+      </div>
+      <div id="nav-drawer-actions-slot" class="nav-drawer-slot"></div>
+      <button id="btn-drawer-parent-zone" class="nav-drawer-parent-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> <span data-i18n="drawerParentZone">Parent Zone & Controls</span></button>
+      <button id="btn-drawer-saved-lessons" class="nav-drawer-saved-link" type="button"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>My Learning <small class="saved-count-pill" id="nav-drawer-saved-count" style="display:none">0</small></span></button>
+      <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Child Progress Report</span></button>
+      <button id="btn-drawer-home" class="nav-drawer-home-link" type="button"><i class="fa-solid fa-house text-cyan" aria-hidden="true"></i> <span>Home (Landing Page)</span></button>
+      <button id="btn-drawer-tour" class="nav-drawer-tour-link" type="button"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i> <span>Take the tour 🎈</span></button>
+      <button id="btn-drawer-theme-toggle" class="nav-drawer-theme-link" type="button" aria-label="Switch to light theme" title="Switch to light theme"><i id="drawer-theme-icon" class="fa-solid fa-sun text-amber" aria-hidden="true"></i> <span id="drawer-theme-text">Light Mode</span></button>
+      <div class="nav-drawer-legal">
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
+        <a href="cancellation-refund-policy.html">Cancellation &amp; Refunds</a>
+        <a href="shipping-delivery-policy.html">Shipping &amp; Delivery</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="contact-us.html">Contact Us</a>
+      </div>
+    </nav>
+    <footer id="nav-drawer-footer" class="nav-drawer-footer">
+      <div id="nav-drawer-badge-slot" class="nav-drawer-slot"></div>
+      <div id="nav-drawer-account-slot" class="nav-drawer-slot"></div>
+    </footer>
+  </aside>
+
+  <div id="chat-scrim" class="drawer-scrim" aria-hidden="true"></div>
+  <aside id="chat-drawer" class="chat-drawer" role="dialog" aria-modal="true" aria-labelledby="chat-title" aria-hidden="true">
+    <header class="drawer-header">
+      <div><span class="online-dot" aria-hidden="true"></span><div><h2 id="chat-title">Chat with Appu</h2><p id="chat-subtitle">Ask, explore, understand</p></div></div>
+      <div class="drawer-actions">
+        <button id="btn-chat-history" class="icon-btn drawer-btn" type="button" aria-label="Recent chats" title="Recent chats"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></button>
+        <button id="btn-clear-chat" class="icon-btn" type="button" aria-label="Clear chat"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
+        <button id="btn-close-chat" class="icon-btn close-btn" type="button" aria-label="Close chat"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+    </header>
+    <section id="chat-history-panel" class="chat-history-panel" aria-labelledby="chat-history-title" hidden>
+      <header class="chat-history-header">
+        <h3 id="chat-history-title">Recent chats</h3>
+        <button id="btn-close-chat-history" type="button" aria-label="Close recent chats"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </header>
+      <button id="btn-new-chat" class="history-new-chat" type="button"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>New chat</span></button>
+      <p id="chat-history-empty" hidden>No saved conversations yet.</p>
+      <p id="chat-history-error" role="alert" hidden>Could not load recent chats. Try again.</p>
+      <div id="chat-history-list" class="chat-history-list"></div>
+      <button id="btn-clear-all-history" class="history-clear-all" type="button">Clear all history</button>
+    </section>
+    <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+    <div id="chat-typing" class="chat-typing" aria-label="Appu is thinking"><span></span><span></span><span></span></div>
+    <div id="guest-access-badge" class="guest-access-badge" aria-live="polite">
+      <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
+      <span id="guest-access-text">3 complimentary chats available</span>
+    </div>
+    <div id="chat-image-preview" class="chat-image-preview" hidden>
+      <img id="chat-image-preview-thumb" alt="Attached photo preview">
+      <button id="btn-remove-chat-image" class="chat-image-remove" type="button" aria-label="Remove attached photo"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <!-- Active Document Banner (Drawer Mode) -->
+    <div id="active-doc-banner-drawer" class="active-doc-banner in-drawer" hidden>
+      <div class="active-doc-pill">
+        <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+        <span class="active-doc-name" id="active-doc-name-drawer">Notes</span>
+        <span class="active-doc-badge">Teaching from this</span>
+        <button id="btn-clear-doc-drawer" class="active-doc-clear-btn" type="button" aria-label="Clear active document and return to standard mode" title="Clear document">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+    <form id="chat-form" class="chat-composer">
+      <label class="sr-only" for="chat-input">Your question for Appu</label>
+      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask about science, maths, homework…">
+      <input id="chat-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden aria-hidden="true">
+      <button id="btn-chat-attach" class="composer-attach" type="button" aria-label="Attach a photo of your homework"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></button>
+      <button id="btn-chat-upload-notes" class="composer-notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></button>
+      <button id="btn-chat-mic" class="composer-mic" type="button" aria-label="Ask using your voice"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
+      <button class="composer-send" type="submit" aria-label="Send question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+    </form>
+  </aside>
+
+  <div id="prompt-library-scrim" class="drawer-scrim" aria-hidden="true"></div>
+  <aside id="prompt-library-panel" class="prompt-library-panel" role="dialog" aria-modal="true" aria-labelledby="prompt-library-title" aria-hidden="true">
+    <header class="prompt-library-header">
+      <div class="prompt-library-title-group">
+        <span class="online-dot" aria-hidden="true"></span>
+        <div>
+          <h2 id="prompt-library-title">Prompt Library</h2>
+          <p id="prompt-library-subtitle">Personalized sparks for your learning journey</p>
+        </div>
+      </div>
+      <div class="prompt-library-actions">
+        <button id="btn-refresh-prompts" class="icon-btn prompt-refresh-btn" type="button" aria-label="Refresh prompts" title="Refresh prompts">
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+          <span class="sr-only">Refresh prompts</span>
+        </button>
+        <button id="btn-close-prompt-library" class="icon-btn close-btn" type="button" aria-label="Close prompt library">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+    <nav class="prompt-category-tabs" aria-label="Prompt categories" role="tablist">
+      <button class="prompt-cat-tab is-active" type="button" role="tab" aria-selected="true" data-category="all">
+        <span id="tab-cat-all">All</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="quick_concepts">
+        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+        <span id="tab-cat-quick-concepts">Quick Concepts</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="homework_hints">
+        <i class="fa-solid fa-book-open-reader" aria-hidden="true"></i>
+        <span id="tab-cat-homework-hints">Homework Hints</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="curious_mind">
+        <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+        <span id="tab-cat-curious-mind">Curious Mind</span>
+      </button>
+      <button class="prompt-cat-tab" type="button" role="tab" aria-selected="false" data-category="exam_drills">
+        <i class="fa-solid fa-medal" aria-hidden="true"></i>
+        <span id="tab-cat-exam-drills">Exam Drills</span>
+      </button>
+    </nav>
+    <div id="prompt-cards-container" class="prompt-cards-container" role="region" aria-live="polite">
+      <!-- Dynamically populated by prompt-library-ui.js -->
+    </div>
+  </aside>
+
+  <!-- SAVED LESSONS PANEL (My Learning: persistent revisit & WhatsApp sharing) -->
+  <div id="saved-lessons-scrim" class="drawer-scrim" aria-hidden="true" style="display:none;"></div>
+  <aside id="saved-lessons-panel" class="saved-lessons-panel" role="dialog" aria-modal="true" aria-labelledby="saved-lessons-title" aria-hidden="true" style="display:none;">
+    <header class="saved-lessons-header">
+      <div class="saved-lessons-title-group">
+        <span class="online-dot" aria-hidden="true"></span>
+        <div>
+          <h2 id="saved-lessons-title">My Learning</h2>
+          <p id="saved-lessons-subtitle">Your saved study cards, mind maps &amp; revision notes</p>
+        </div>
+      </div>
+      <div class="saved-lessons-header-actions">
+        <span class="saved-count-badge" id="saved-lessons-count-badge">0 saved</span>
+        <button id="btn-close-saved-lessons" class="icon-btn close-btn" type="button" aria-label="Close saved lessons">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+    <div id="saved-lessons-list" class="saved-lessons-list" role="region" aria-live="polite">
+      <!-- Dynamically populated by saved-lessons-ui.js -->
+    </div>
+  </aside>
+
+  <!-- GUEST LIMIT REACHED GATE MODAL -->
+  <section id="guest-limit-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="guest-limit-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet guest-limit-sheet">
+      <button id="btn-close-guest-limit" class="icon-btn modal-close close-btn" type="button" aria-label="Close dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> APPU AI Companion</div>
+      <h2 id="guest-limit-title">Your complimentary APPU chats are complete</h2>
+      <p class="modal-lead">Sign in to continue learning, save your progress, and unlock tailored study plans.</p>
+
+      <div class="guest-gate-features">
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Personalized explanations for your syllabus</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Save chat history across all your devices</span></div>
+        <div class="guest-gate-feature"><i class="fa-solid fa-circle-check text-cyan" aria-hidden="true"></i><span>Voice practice in English and Kannada</span></div>
+      </div>
+
+      <div class="guest-gate-actions">
+        <button id="btn-guest-signin" class="primary-modal-btn" type="button"><span>Sign in</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+        <button id="btn-guest-register" class="secondary-modal-btn" type="button"><span>Create free account</span></button>
+        <button id="btn-guest-plans" class="tertiary-modal-btn" type="button"><span>View learning plans</span><i class="fa-solid fa-tags" aria-hidden="true"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="discovery-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="parent-dialog-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet">
+      <button id="btn-close-discovery-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close Parent Zone"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> <span id="discovery-kicker-text">Parent Zone</span></div>
+      <h2 id="parent-dialog-title">Plan a learning support call</h2>
+      <p id="discovery-lead" class="modal-lead">For a parent/guardian: choose a convenient time to speak with an IGR Academy mentor about your learner.</p>
+      <form id="discovery-form" class="discovery-form">
+        <div class="field-grid">
+          <label><span id="lead-name-label">Parent/Guardian name</span><input id="lead-name" type="text" autocomplete="name" required placeholder="Your full name"></label>
+          <label><span id="lead-phone-label">WhatsApp number</span><input id="lead-phone" type="tel" autocomplete="tel" required placeholder="+91 98765 43210"></label>
+          <label><span id="lead-email-label">Email for the meeting</span><input id="lead-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
+          <label><span id="lead-date-label">Preferred date and time</span><input id="lead-date" type="datetime-local" required></label>
+        </div>
+        <label><span id="lead-interest-label">What support would help most?</span><select id="lead-interest" required><option id="opt-interest-roadmap" value="Learning roadmap">A personal learning roadmap</option><option id="opt-interest-homework" value="Homework support">Homework and concept support</option><option id="opt-interest-exam" value="Exam preparation">Exam preparation</option><option id="opt-interest-ai" value="AI and coding">AI and coding skills</option></select></label>
+        <p class="privacy-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> <span id="discovery-privacy-note-text">Your details are used only to arrange this support call.</span></p>
+        <button id="btn-submit-discovery" class="primary-modal-btn" type="submit"><span id="btn-submit-discovery-text">Book parent call</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+      </form>
+      <div id="discovery-success-view" class="success-view">
+        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span><h3 id="discovery-success-title">You're all set!</h3><p id="success-summary">Your learning support call has been scheduled.</p>
+        <div class="success-links"><a id="success-meet-link" href="#">Open meeting link</a><a id="success-wa-link" href="#">Open WhatsApp</a></div>
+        <button id="btn-done-discovery" class="primary-modal-btn" type="button">Return to Appu</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet settings-sheet">
+      <button id="btn-close-settings-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close voice settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-sliders" aria-hidden="true"></i> <span id="settings-kicker-text">Preferences</span></div>
+      <h2 id="settings-title">Make Appu comfortable for you</h2><p id="settings-lead" class="modal-lead">Adjust how answers sound and how the page responds.</p>
+      <div class="setting-row setting-range"><label for="setting-voice-rate"><strong id="setting-rate-title">Speaking speed</strong><small id="setting-rate-desc">Slower can make explanations easier to follow.</small></label><output id="rate-val">0.88</output><input id="setting-voice-rate" type="range" min="0.75" max="1.35" value="0.88" step="0.01"></div>
+      <label class="setting-row switch-row"><span><strong id="setting-autospeak-title">Play answers aloud</strong><small id="setting-autospeak-desc">Appu speaks when audio is available.</small></span><input id="setting-auto-speak" type="checkbox" checked></label>
+      <label class="setting-row switch-row"><span><strong id="setting-uisound-title">Sound effects</strong><small id="setting-uisound-desc">Gentle feedback for taps and actions.</small></span><input id="setting-ui-sound" type="checkbox" checked></label>
+      <button id="btn-save-settings" class="primary-modal-btn" type="button">Save preferences</button>
+    </div>
+  </section>
+
+  <!-- PHASE 2 PARENT SETUP & ONBOARDING MODAL -->
+  <section id="parent-setup-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pos-modal-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet pos-sheet">
+      <button id="btn-close-parent-setup" class="icon-btn modal-close close-btn" type="button" aria-label="Close parent setup"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div id="pos-modal-kicker" class="modal-kicker"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Parent Zone • Setup</div>
+      <h2 id="pos-modal-title">Personalized Appu Setup</h2>
+      <p id="pos-modal-lead" class="modal-lead">Configure your learner's companion, active learning plan, and personalized preferences.</p>
+
+      <div id="pos-step-tracker" class="pos-tracker" aria-label="Setup progress">
+        <span class="pos-step-dot active" title="Account"></span>
+        <span class="pos-step-dot" title="Plan"></span>
+        <span class="pos-step-dot" title="Learner"></span>
+        <span class="pos-step-dot" title="Personalize"></span>
+        <span class="pos-step-dot" title="Ready"></span>
+      </div>
+
+      <div id="pos-alert" class="pos-alert" role="alert"></div>
+
+      <!-- STEP 1: AUTHENTICATION -->
+      <div id="pos-step-auth" class="pos-step-auth-content">
+        <div class="pos-tabs">
+          <button id="pos-tab-login" class="pos-tab active" type="button">Sign In</button>
+          <button id="pos-tab-signup" class="pos-tab" type="button">Create Account</button>
+        </div>
+        <button id="pos-btn-google" class="welcome-gate-btn welcome-gate-btn-google pos-google-btn" type="button">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.4 0-13.8 4.2-17 10.4z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-2.1 14.1-5.6l-6.5-5.5C29.6 35.6 26.9 36.5 24 36.5c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.2 40.7 16 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.6l6.5 5.5C41.4 36 44 30.5 44 24c0-1.4-.1-2.4-.4-3.5z"/></svg>
+          <span>Continue with Google</span>
+        </button>
+        <div class="pos-auth-divider"><span>or</span></div>
+        <form id="pos-auth-form" class="discovery-form">
+          <label><span id="pos-auth-email-label">Parent / Guardian Email</span><input id="pos-auth-email" type="email" autocomplete="email" required placeholder="parent@example.com"></label>
+          <label><span id="pos-auth-password-label">Password</span><input id="pos-auth-password" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
+          <div id="pos-household-wrap" style="display:none;">
+            <label><span id="pos-auth-household-label">Household / Family Name</span><input id="pos-auth-household" type="text" autocomplete="family-name" placeholder="e.g. Verma Family"></label>
+            <label><span id="pos-auth-dob-label">Your date of birth (parent / guardian)</span><input id="pos-auth-dob" type="date" autocomplete="bday"></label>
+            <label class="pos-attest-label"><input id="pos-auth-attest" type="checkbox"><span id="pos-auth-attest-text">I confirm I am the parent or guardian and 18 years or older, creating this account for my child.</span></label>
+          </div>
+          <button id="pos-btn-auth-submit" class="primary-modal-btn" type="submit">Sign In to Parent Zone</button>
+        </form>
+        <button id="pos-btn-skip" class="pos-skip-btn" type="button">Skip for now</button>
+      </div>
+
+      <!-- STEP 2: PLAN SELECTION & SUBSCRIPTION -->
+      <div id="pos-step-plan" class="pos-step-plan-content" style="display:none;">
+        <div id="pos-plans-container" class="pos-plans-container"></div>
+        <div id="pos-plan-status" class="pos-plan-status" aria-live="polite"></div>
+      </div>
+
+      <!-- STEP 3: CHILD SETUP -->
+      <div id="pos-step-child" class="pos-step-child-content" style="display:none;">
+        <div id="pos-child-list" class="pos-child-list"></div>
+        <div id="pos-child-form-wrap" class="setting-row" style="margin-top: 15px;">
+          <h4 id="pos-child-form-title" class="pos-subtitle" style="margin-bottom: 8px;">Add New Learner Profile:</h4>
+          <form id="pos-child-form" class="discovery-form">
+            <div class="field-grid">
+              <label><span id="pos-child-name-label">Learner Preferred Name</span><input id="pos-child-name" type="text" required placeholder="e.g. Aarav"></label>
+              <label><span id="pos-child-grade-label">Class / Grade Band</span>
+                <select id="pos-child-grade" required>
+                  <option id="pos-grade-opt-5" value="Grade 5">Grade 5</option>
+                  <option id="pos-grade-opt-6" value="Grade 6" selected>Grade 6</option>
+                  <option id="pos-grade-opt-7" value="Grade 7">Grade 7</option>
+                  <option id="pos-grade-opt-8" value="Grade 8">Grade 8</option>
+                  <option id="pos-grade-opt-9" value="Grade 9">Grade 9</option>
+                  <option id="pos-grade-opt-10" value="Grade 10">Grade 10</option>
+                  <option id="pos-grade-opt-11" value="Grade 11">Grade 11</option>
+                  <option id="pos-grade-opt-12" value="Grade 12">Grade 12</option>
+                </select>
+              </label>
+            </div>
+            <button id="pos-btn-child-submit" class="primary-modal-btn" type="submit">Save Learner & Continue</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- STEP 4: PERSONALISATION QUESTIONNAIRE -->
+      <div id="pos-step-pers" class="pos-step-pers-content" style="display:none;">
+        <p class="pos-subtitle"><span id="pos-pers-intro-text">Personalize Appu for</span> <strong id="pos-pers-child-name" class="text-cyan">Learner</strong>:</p>
+
+        <div class="pos-tabs" role="tablist" aria-label="Personalization Sections">
+          <button id="pos-pers-tab-basic" class="pos-tab active" type="button" role="tab" aria-selected="true" aria-controls="pos-pers-panel-basic">
+            <i class="fa-solid fa-user-graduate" aria-hidden="true" style="margin-right: 6px;"></i><span id="pos-pers-tab-basic-text">Basic Profile</span>
+          </button>
+          <button id="pos-pers-tab-advanced" class="pos-tab" type="button" role="tab" aria-selected="false" aria-controls="pos-pers-panel-advanced">
+            <i class="fa-solid fa-sliders" aria-hidden="true" style="margin-right: 6px;"></i><span id="pos-pers-tab-advanced-text">Advanced Preferences</span>
+          </button>
+        </div>
+
+        <form id="pos-pers-form" class="discovery-form">
+          <!-- BASIC PROFILE PANEL -->
+          <div id="pos-pers-panel-basic" class="pos-pers-tab-panel" role="tabpanel">
+            <div class="field-grid">
+              <label><span id="pos-child-nickname-label">Learner Nickname</span>
+                <input id="pos-child-nickname" type="text" maxlength="50" placeholder="e.g. Shree or Alex">
+              </label>
+              <label><span id="pos-child-gender-label">Gender</span>
+                <select id="pos-child-gender">
+                  <option value="">Select Gender (Optional)</option>
+                  <option value="boy">Boy</option>
+                  <option value="girl">Girl</option>
+                  <option value="other">Prefer not to say</option>
+                </select>
+              </label>
+            </div>
+            <div class="field-grid">
+              <label><span id="pos-child-dob-label">Date of Birth</span>
+                <input id="pos-child-dob" type="date">
+              </label>
+              <label><span id="pos-pers-lang-label">Primary Language</span>
+                <select id="pos-pers-lang">
+                  <option value="en" selected>English</option>
+                  <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                  <option value="hi">Hindi (हिंदी)</option>
+                  <option value="te">Telugu (తెలుగు)</option>
+                  <option value="ta">Tamil (தமிழ்)</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="pos-whatsapp-section">
+              <div class="pos-whatsapp-header">
+                <span class="pos-whatsapp-icon" aria-hidden="true"><i class="fa-brands fa-whatsapp"></i></span>
+                <div class="pos-whatsapp-header-text">
+                  <strong id="pos-whatsapp-title">Parent WhatsApp Learning Updates</strong>
+                  <span id="pos-whatsapp-badge" class="pos-optional-badge required">Required</span>
+                </div>
+              </div>
+              <label><span id="pos-parent-phone-label">Parent WhatsApp Number</span>
+                <input id="pos-parent-phone" type="tel" autocomplete="tel" placeholder="+91 98765 43210">
+              </label>
+              <label class="pos-whatsapp-consent-row">
+                <input id="pos-whatsapp-consent" type="checkbox">
+                <span id="pos-whatsapp-consent-label">Send me occasional learning milestones, daily study summaries, and study notes for my child on WhatsApp.</span>
+              </label>
+              <p class="pos-whatsapp-rationale">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                <span id="pos-whatsapp-rationale-text">Why we ask: We use your number exclusively to share study summaries and learning milestones. We never share phone numbers with third parties or send promotional spam. You can opt out anytime.</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- ADVANCED PREFERENCES PANEL -->
+          <div id="pos-pers-panel-advanced" class="pos-pers-tab-panel" role="tabpanel" style="display: none;">
+            <div class="field-grid">
+              <label><span id="pos-pers-style-label">Learning Style</span>
+                <select id="pos-pers-style">
+                  <option id="pos-style-opt-interactive" value="interactive" selected>Interactive (conversations & questions)</option>
+                  <option id="pos-style-opt-visual" value="visual">Visual (examples & diagrams)</option>
+                  <option id="pos-style-opt-auditory" value="auditory">Auditory (spoken explanations)</option>
+                  <option id="pos-style-opt-reading" value="reading_writing">Reading & Writing (structured notes)</option>
+                </select>
+              </label>
+              <label><span id="pos-pers-response-label">Response Style</span>
+                <select id="pos-pers-response">
+                  <option id="pos-response-opt-playful" value="playful" selected>Playful & Encouraging</option>
+                  <option id="pos-response-opt-balanced" value="balanced">Balanced & Clear</option>
+                  <option id="pos-response-opt-focused" value="focused">Focused & Direct</option>
+                </select>
+              </label>
+            </div>
+            <label><span id="pos-pers-font-label">Reading Font Style</span>
+              <select id="pos-pers-font">
+                <option id="pos-font-opt-rounded" value="rounded" selected>Friendly Rounded</option>
+                <option id="pos-font-opt-friendly" value="friendly">Friendly Standard</option>
+                <option id="pos-font-opt-clean" value="clean">Clean Minimal</option>
+              </select>
+            </label>
+            <label><span id="pos-pers-subjects-label">Favorite Subjects</span>
+              <input id="pos-pers-subjects" type="text" placeholder="Science, Mathematics, Coding">
+            </label>
+            <label><span id="pos-pers-interests-label">Favorite Interests & Hobbies (comma-separated)</span>
+              <input id="pos-pers-interests" type="text" placeholder="Space, Robotics, Astronomy, Dinosaurs">
+            </label>
+            <label><span id="pos-pers-goals-label">Learning Goal for Appu</span>
+              <input id="pos-pers-goals" type="text" placeholder="Master school science and build creative curiosity">
+            </label>
+          </div>
+
+          <button id="pos-btn-pers-submit" class="primary-modal-btn" type="submit">Save Preferences & Launch</button>
+        </form>
+      </div>
+
+      <!-- STEP 5: SUCCESS & LAUNCH -->
+      <div id="pos-step-success" class="pos-step-ready-content success-view">
+        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        <h3 id="pos-success-title">Personalized Appu is Ready!</h3>
+        <p id="pos-success-desc">Your learner profile and active subscription are set up. Appu will now tailor responses and voice explanations specifically for your child.</p>
+        <button id="pos-btn-launch" class="primary-modal-btn" type="button" style="margin-top: 15px;"><span id="pos-btn-launch-text">Launch Appu Now</span><i class="fa-solid fa-sparkles"></i></button>
+        <button id="btn-open-reports" class="secondary-modal-btn" type="button" style="margin-top: 10px;"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>View Progress Report</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHILD PERFORMANCE REPORTS + PARENT FEEDBACK GATE -->
+  <section id="reports-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reports-modal-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet reports-sheet">
+      <button class="icon-btn modal-close close-btn" type="button" aria-label="Close reports" data-close-reports><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Parent Zone • Progress</div>
+      <h2 id="reports-modal-title">Child Performance Report</h2>
+
+      <div id="report-view-loading" class="report-view" hidden>
+        <p class="modal-lead">Checking your reports…</p>
+      </div>
+
+      <div id="report-view-locked" class="report-view" hidden>
+        <p class="modal-lead">Appu can generate a detailed performance report for your child — with a score, strengths, and what to improve. To unlock it, please share quick feedback first. Once you do, your child's report is generated on demand and appears here, in the app, and on WhatsApp.</p>
+        <div class="report-fb-block">
+          <span class="report-fb-label">How is Appu working for your family?</span>
+          <div id="report-rating" class="report-rating" role="radiogroup" aria-label="Overall rating">
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="1 star"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="2 stars"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="3 stars"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="4 stars"><i class="fa-solid fa-star"></i></button>
+            <button class="report-star" type="button" role="radio" aria-checked="false" aria-label="5 stars"><i class="fa-solid fa-star"></i></button>
+          </div>
+        </div>
+        <label class="report-fb-field"><span>What's working well?</span>
+          <select id="report-fb-working" class="report-fb-select">
+            <option value="" disabled selected>Choose what you like most…</option>
+            <option>Explanations are clear and easy to understand</option>
+            <option>My child enjoys learning with Appu</option>
+            <option>The personalised, by-name approach really helps</option>
+            <option>It keeps my child engaged and curious</option>
+            <option>The voice and interactive features are great</option>
+            <option>Homework and exam help are genuinely useful</option>
+            <option value="__other__">Other — tell us in your words</option>
+          </select>
+          <input type="text" id="report-fb-working-other" class="report-fb-other" maxlength="200" placeholder="Tell us what you like most about Appu…" hidden />
+        </label>
+        <label class="report-fb-field"><span>What would make it even better?</span>
+          <select id="report-fb-improve" class="report-fb-select">
+            <option value="" disabled selected>Choose one…</option>
+            <option>More practice quizzes and questions</option>
+            <option>More subjects and chapters</option>
+            <option>More real-world examples and stories</option>
+            <option>More activities in my preferred language</option>
+            <option>Honestly, it's great as it is!</option>
+            <option value="__other__">Other — tell us in your words</option>
+          </select>
+          <input type="text" id="report-fb-improve-other" class="report-fb-other" maxlength="200" placeholder="Tell us what would make Appu even better…" hidden />
+        </label>
+        <p id="report-feedback-note" class="report-note" role="alert"></p>
+        <button id="report-fb-submit" class="primary-modal-btn" type="button">Submit feedback & unlock report</button>
+        <button id="report-fb-later" class="report-later-btn" type="button" data-close-reports>Maybe later</button>
+      </div>
+
+      <div id="report-view-unlocked" class="report-view" hidden>
+        <p class="modal-lead">Your child's report is ready to generate. It analyzes their conversations with Appu across the app, website, and WhatsApp, and produces a designed PDF with an overall score, subject breakdown, strengths, and recommendations.</p>
+
+        <!-- Phase C: Curiosity Beyond Syllabus -->
+        <div id="report-curiosity-section" class="report-curiosity-section" hidden>
+          <div class="report-curiosity-header">
+            <span class="report-curiosity-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span>
+            <div class="report-curiosity-text">
+              <h3 class="report-curiosity-title">Curiosity Beyond Syllabus 🌟</h3>
+              <p class="report-curiosity-desc">Your child explored these advanced topics with great curiosity. We celebrate their enthusiasm for learning beyond grade-level expectations!</p>
+            </div>
+          </div>
+          <div id="report-curiosity-list" class="report-curiosity-list"></div>
+        </div>
+
+        <button id="report-download-btn" class="primary-modal-btn" type="button"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> <span>Download performance report (PDF)</span></button>
+        <p id="report-download-status" class="report-note" role="status"></p>
+      </div>
+
+      <div id="report-view-error" class="report-view" hidden>
+        <p class="modal-lead">We couldn't load your reports right now.</p>
+        <button id="report-retry-btn" class="secondary-modal-btn" type="button">Try again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARENTAL CONTROLS 30-MINUTE HARD LOCK & OTP UNLOCK MODAL -->
+  <section id="parental-lock-modal" class="modal-overlay parental-lock-overlay" role="dialog" aria-modal="true" aria-labelledby="parental-lock-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet parental-lock-sheet">
+      <div class="modal-kicker"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Parent Zone • Study Time Limit</div>
+      <h2 id="parental-lock-title">Study Time Complete! 🌟</h2>
+      <p class="modal-lead">You've completed 30 minutes of focused learning with Appu! It's a great time to stretch, hydrate, or take a quick break. To continue learning, ask your parent to unlock this session with a WhatsApp verification code.</p>
+
+      <div class="parental-lock-stats">
+        <div class="lock-stat-card">
+          <span class="lock-stat-icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
+          <div class="lock-stat-info">
+            <span class="lock-stat-label">Active Learning</span>
+            <strong id="lock-stat-active">30 mins</strong>
+          </div>
+        </div>
+        <div class="lock-stat-card">
+          <span class="lock-stat-icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
+          <div class="lock-stat-info">
+            <span class="lock-stat-label">Break / Away</span>
+            <strong id="lock-stat-away">0 mins</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 1: REQUEST OTP -->
+      <div id="lock-view-request" class="lock-view">
+        <p class="lock-instruction">Click below to send a 6-digit unlock code and learning summary to your parent's registered WhatsApp.</p>
+        <button id="lock-btn-request-otp" class="primary-modal-btn" type="button">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          <span>Send Unlock Code to Parent WhatsApp</span>
+        </button>
+        <button id="lock-btn-add-phone" class="secondary-modal-btn" type="button" style="display: none;">
+          <i class="fa-solid fa-phone" aria-hidden="true"></i>
+          <span>Add Parent WhatsApp Number</span>
+        </button>
+        <p id="lock-request-status" class="lock-note" role="alert"></p>
+      </div>
+
+      <!-- VIEW 2: VERIFY OTP -->
+      <div id="lock-view-verify" class="lock-view" hidden>
+        <div class="otp-sent-banner">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          <span>A 6-digit code has been sent to your parent's WhatsApp!</span>
+        </div>
+        <label class="lock-field">
+          <span>Enter 6-Digit Parent Code</span>
+          <input id="lock-otp-input" class="lock-otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="• • • • • •" autocomplete="one-time-code" />
+        </label>
+        <div class="lock-actions">
+          <button id="lock-btn-verify-otp" class="primary-modal-btn" type="button">
+            <i class="fa-solid fa-lock-open" aria-hidden="true"></i>
+            <span>Verify & Continue Learning</span>
+          </button>
+          <button id="lock-btn-resend-otp" class="secondary-modal-btn" type="button">
+            <i class="fa-solid fa-arrow-rotate-right" aria-hidden="true"></i>
+            <span>Resend Code</span>
+          </button>
+        </div>
+        <p id="lock-verify-status" class="lock-note" role="alert"></p>
+      </div>
+
+      <!-- VIEW 3: UNLOCKED SUCCESS -->
+      <div id="lock-view-success" class="lock-view success-view" hidden>
+        <span class="success-icon" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        <h3>Session Unlocked!</h3>
+        <p>30 minutes of study time has been added. Resuming your lesson now...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMIFICATION QUEST & ACHIEVEMENTS MODAL -->
+  <div id="gamification-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="game-modal-title" hidden>
+    <div class="game-modal-overlay" id="gamification-modal-overlay"></div>
+    <div class="game-modal-card">
+      <header class="game-modal-header">
+        <div class="game-modal-title-wrap">
+          <span class="game-modal-trophy">🏆</span>
+          <div>
+            <h3 id="game-modal-title">Learning Quest</h3>
+            <p id="game-level-subtitle">Level 2: Curious Explorer 🚀</p>
+          </div>
+        </div>
+        <button id="btn-close-gamification" class="icon-btn close-btn" type="button" aria-label="Close Quest Modal"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </header>
+      <div class="game-modal-body">
+        <div class="game-stats-grid">
+          <div class="stat-card">
+            <span class="stat-emoji">🔥</span>
+            <strong id="stat-streak-val">3 Days</strong>
+            <small>Daily Streak</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-emoji">⭐</span>
+            <strong id="stat-xp-val">120 XP</strong>
+            <small>Total Stars</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-emoji">🎯</span>
+            <strong id="stat-badges-val">3 Badges</strong>
+            <small>Unlocked</small>
+          </div>
+        </div>
+        <div class="game-progress-section">
+          <div class="progress-labels">
+            <span>Next: Level 3</span>
+            <strong id="game-progress-text">70 / 100 XP</strong>
+          </div>
+          <div class="modal-progress-bar">
+            <div id="modal-xp-fill" class="modal-progress-fill" style="width: 70%;"></div>
+          </div>
+        </div>
+        <div class="game-badges-section">
+          <h4>Badges Earned</h4>
+          <div class="badges-grid">
+            <div class="badge-item is-unlocked" title="Unlocked: Solved a Science Lesson!">
+              <span class="badge-icon">🌿</span>
+              <span class="badge-name">Plant Detective</span>
+            </div>
+            <div class="badge-item is-unlocked" title="Unlocked: Quick on the Quiz!">
+              <span class="badge-icon">⚡</span>
+              <span class="badge-name">Quick Thinker</span>
+            </div>
+            <div class="badge-item is-unlocked" title="Unlocked: Asked your first question!">
+              <span class="badge-icon">🚀</span>
+              <span class="badge-name">Curious Mind</span>
+            </div>
+            <div class="badge-item is-locked" title="Ask 5 questions to unlock!">
+              <span class="badge-icon">🪐</span>
+              <span class="badge-name">Space Cadet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES & TEXTBOOK UPLOAD MODAL -->
+  <section id="notes-upload-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-upload-title" aria-hidden="true" tabindex="-1">
+    <div class="modal-sheet notes-upload-sheet">
+      <button id="btn-close-notes-modal" class="icon-btn modal-close close-btn" type="button" aria-label="Close upload dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="modal-kicker"><i class="fa-solid fa-book-open-reader text-cyan" aria-hidden="true"></i> <span>Grounded Chapter Tutor</span></div>
+      <h2 id="notes-upload-title">Learn from Your Notes or Textbook</h2>
+      <p class="modal-lead">Upload your class notes, textbook PDF, or paste text. Appu will create a mind map, step-by-step lesson, and quiz directly from your material!</p>
+
+      <div class="notes-tabs" role="tablist" aria-label="Upload method">
+        <button id="tab-notes-file" class="notes-tab is-active" type="button" role="tab" aria-selected="true"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>Upload PDF / File</span></button>
+        <button id="tab-notes-paste" class="notes-tab" type="button" role="tab" aria-selected="false"><i class="fa-solid fa-paste" aria-hidden="true"></i><span>Paste Text</span></button>
+      </div>
+
+      <!-- Tab 1: File Dropzone -->
+      <div id="notes-tabpanel-file" class="notes-tabpanel" role="tabpanel" aria-labelledby="tab-notes-file">
+        <div id="notes-dropzone" class="notes-dropzone" tabindex="0" role="button" aria-label="Drag and drop PDF or text file here, or browse">
+          <input id="notes-file-input" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" hidden>
+          <div class="notes-dropzone-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></div>
+          <p class="notes-dropzone-title">Drop your PDF or textbook chapter here</p>
+          <p class="notes-dropzone-subtitle">Supports PDF, TXT or Markdown files (up to 10MB)</p>
+          <button id="btn-browse-notes-file" class="secondary-modal-btn notes-browse-btn" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>Browse File</span></button>
+        </div>
+        <div id="notes-file-status" class="notes-status-card" hidden>
+          <div class="notes-file-meta">
+            <i class="fa-solid fa-file-lines text-amber" aria-hidden="true"></i>
+            <div class="notes-file-info">
+              <strong id="notes-filename">chapter-notes.pdf</strong>
+              <small id="notes-file-stats">Extracting text...</small>
+            </div>
+          </div>
+          <button id="btn-remove-notes-file" class="icon-btn notes-remove-btn" type="button" aria-label="Remove selected file"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Paste Text -->
+      <div id="notes-tabpanel-paste" class="notes-tabpanel" role="tabpanel" aria-labelledby="tab-notes-paste" hidden>
+        <label for="notes-paste-input" class="sr-only">Paste textbook or notes content</label>
+        <textarea id="notes-paste-input" class="notes-paste-textarea" rows="8" placeholder="Paste text from your digital notes, PDF, or study guide here..."></textarea>
+        <div class="notes-paste-counter">
+          <span id="notes-char-count">0 / 16,000 characters</span>
+        </div>
+      </div>
+
+      <div class="notes-guidance-pill">
+        <i class="fa-solid fa-sparkles text-amber" aria-hidden="true"></i>
+        <span>Answers, concept maps, and quizzes will be strictly grounded in this material.</span>
+      </div>
+
+      <div class="notes-modal-actions">
+        <button id="btn-submit-notes" class="primary-modal-btn notes-submit-btn" type="button" disabled>
+          <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+          <span>Teach Me From This</span>
+        </button>
+        <button id="btn-cancel-notes" class="secondary-modal-btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Confetti Canvas & XP Toast Container -->
+  <canvas id="game-confetti-canvas" class="game-confetti-canvas" aria-hidden="true"></canvas>
+  <div id="game-toast-container" class="game-toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- External SDKs for Phase 2 Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- Appu Frontend Modules -->
+  <script src="voice-contract.js?v=20261006-29"></script>
+  <script src="appu-config.js?v=20261006-29"></script>
+  <script src="appu-session.js?v=20261006-29"></script>
+  <script src="appu-backend-client.js?v=20261006-29"></script>
+  <script src="parent-onboarding-shell.js?v=20261006-29"></script>
+  <script src="parent-setup-ui.js?v=20261006-29"></script>
+  <script src="prompt-library-ui.js?v=20261006-29"></script>
+  <script src="avatar-stage.js?v=20261006-29"></script>
+  <script src="mascot-avatar.js?v=20261006-29"></script>
+  <script src="lottie-catalog.js?v=20261006-29"></script>
+  <script src="lesson-card-renderer.js?v=20261006-29"></script>
+  <script src="voice-engine.js?v=20261006-29"></script>
+  <script src="chat-history.js?v=20261006-29"></script>
+  <script src="chat-agent.js?v=20261006-29"></script>
+  <script src="parent-reports-ui.js?v=20261006-29"></script>
+  <script src="parental-controls-ui.js?v=20261006-29"></script>
+  <script src="saved-lessons-ui.js?v=20261006-29"></script>
+  <script src="app.js?v=20261006-29"></script>
+  <script src="landing-page.js?v=20261006-29"></script>
+  <script src="tour.js?v=20261006-29"></script>
+
+  <!-- Motion (motion.dev) Pro-Grade Physics Engine for Marketing Landing (ESM, Lazy, Fail-Safe) -->
+  <script type="module">
+    try {
+      const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReduced && typeof window !== 'undefined' && document.getElementById('marketing-landing')) {
+        const { animate, hover, press, inView, scroll, stagger, transform } = await import("https://cdn.jsdelivr.net/npm/motion@12/+esm");
+        if (window.LandingPage && typeof window.LandingPage.initMotionDev === 'function') {
+          window.LandingPage.initMotionDev({ animate, hover, press, inView, scroll, stagger, transform });
+        }
+      }
+    } catch (err) {
+      console.warn('[LandingPage] Motion.dev load skipped or fallback active:', err);
+    }
+  </script>
+</body>
+</html>

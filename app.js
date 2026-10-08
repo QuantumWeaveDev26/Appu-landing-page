@@ -1,0 +1,4181 @@
+/**
+ * Main Application Orchestrator v4.0 for Appu AI Digital Mentor
+ * Connects AvatarStage, VoiceEngine, ChatAgent, Modals, Audio SFX, Guest Access Control, and Secure Backend Gateway.
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Native app only: once we know whether a session already exists, show the
+  // sign-in/sign-up gate for guests instead of leaving auth tucked inside the topbar/drawer.
+  let sessionCheckDone = false;
+  let sessionIsAuthenticated = false;
+
+  function maybeShowNativeWelcomeGate() {
+    if (!sessionCheckDone) return;
+    if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) return;
+    if (sessionIsAuthenticated || window.__APPU_AUTH_REDIRECT__) return;
+    openWelcomeGate();
+  }
+
+  function dismissLoader() {}
+
+  // ==========================================
+  // CONFIGURATION & PERSISTED PREFERENCES
+  // ==========================================
+  localStorage.removeItem('appu_mock_mode');
+  const savedRate = parseFloat(localStorage.getItem('appu_voice_rate') || '0.88');
+  const savedAutoSpeak = localStorage.getItem('appu_auto_speak') !== 'false';
+  const savedSound = localStorage.getItem('appu_sound_sfx') !== 'false';
+  let currentLang = localStorage.getItem('appu_lang') || 'en';
+
+  // Initialize Core Subsystems
+  const avatarStage = new AvatarStage();
+
+  // Initialize Mascot Avatar (Hero Stage Presenter + Response Dock)
+  let appMascot = null;
+  if (typeof MascotAvatar !== 'undefined') {
+    const heroEl = document.getElementById('hero-mascot-container');
+    const dockEl = document.getElementById('appu-mascot-container');
+    const heroMascot = heroEl ? new MascotAvatar(heroEl, { initialMood: 'idle' }) : null;
+    const dockMascot = dockEl ? new MascotAvatar(dockEl, { initialMood: 'idle' }) : null;
+
+    appMascot = {
+      get mood() {
+        return (heroMascot || dockMascot)?.mood || window.__heroMood || 'idle';
+      },
+      setMood(mood, durationMs) {
+        window.__heroMood = mood;
+        if (heroMascot) heroMascot.setMood(mood, durationMs);
+        if (dockMascot) dockMascot.setMood(mood, durationMs);
+        const heroWrapper = document.getElementById('avatar-3d-wrapper');
+        if (heroWrapper) {
+          heroWrapper.classList.remove('mood-idle', 'mood-listening', 'mood-thinking', 'mood-explaining', 'mood-celebrating');
+          heroWrapper.classList.add(`mood-${mood}`);
+        }
+        if (durationMs && durationMs > 0 && mood !== 'idle') {
+          setTimeout(() => {
+            if (window.__heroMood === mood) {
+              this.setMood('idle');
+            }
+          }, durationMs);
+        }
+        return this;
+      },
+      idle() { return this.setMood('idle'); },
+      listen() { return this.setMood('listening'); },
+      think() { return this.setMood('thinking'); },
+      explain() { return this.setMood('explaining'); },
+      celebrate(durationMs = 3200) { return this.setMood('celebrating', durationMs); },
+      getMood() { return this.mood; },
+      hero: heroMascot,
+      dock: dockMascot
+    };
+    window.appMascot = appMascot;
+  }
+
+  const voiceEngine = new VoiceEngine({
+    onSpeechStart: () => {
+      avatarStage.setState('speaking');
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('explaining');
+      }
+    },
+    onSpeechEnd: () => {
+      avatarStage.setState('idle');
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('idle');
+      }
+    },
+    onListeningStart: () => {
+      if (window.appMascot && window.appMascot.mood !== 'celebrating') {
+        window.appMascot.setMood('listening');
+      }
+    },
+    onListeningEnd: () => {
+      if (window.appMascot && window.appMascot.mood === 'listening') {
+        window.appMascot.setMood('idle');
+      }
+    },
+    onTranscript: (transcript) => handleUserInteraction(transcript),
+    onInterimTranscript: (transcript) => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = `"${transcript}"`;
+      }
+    },
+    onVoiceUnavailable: (notice) => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      const drawer = document.getElementById('chat-drawer');
+      if (subtitlesText && (!drawer || !drawer.classList.contains('is-open'))) {
+        subtitlesText.textContent = notice;
+      }
+      const typeBtn = document.getElementById('btn-toggle-chat');
+      if (typeBtn) typeBtn.classList.add('pulse-highlight');
+    },
+    onPermissionDenied: (notice) => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) subtitlesText.textContent = notice;
+      const typeBtn = document.getElementById('btn-toggle-chat');
+      if (typeBtn) typeBtn.classList.add('pulse-highlight');
+    }
+  });
+  avatarStage.setVoiceEngine(voiceEngine);
+
+  voiceEngine.setPlaybackRate(savedRate);
+  voiceEngine.autoSpeak = savedAutoSpeak;
+  voiceEngine.soundEnabled = savedSound;
+
+  let chatHistoryController = null;
+
+  const chatAgent = new ChatAgent({
+    mockMode: false,
+    voiceEngine,
+    getConversationId: () => chatHistoryController ? chatHistoryController.getActiveConversationId() : null,
+    getForceNewConversation: () => chatHistoryController ? chatHistoryController.getForceNewConversation() : false,
+    onConversationAssigned: (id) => {
+      if (chatHistoryController) chatHistoryController.adoptConversationId(id);
+    }
+  });
+  chatAgent.mockMode = false;
+
+  const chatHistoryPanel = document.getElementById('chat-history-panel');
+  const btnChatHistory = document.getElementById('btn-chat-history');
+
+  if (typeof ChatHistoryController !== 'undefined') {
+    chatHistoryController = new ChatHistoryController({
+      backendClient: window.AppuBackendClient,
+      chatAgent,
+      getSession: () => ({
+        accessToken: (typeof window.AppuSession !== 'undefined' && window.AppuSession) ? window.AppuSession.accessToken : null,
+        childId: (typeof window.AppuSession !== 'undefined' && window.AppuSession) ? window.AppuSession.childId : null
+      }),
+      elements: {
+        panel: chatHistoryPanel,
+        list: document.getElementById('chat-history-list'),
+        empty: document.getElementById('chat-history-empty'),
+        error: document.getElementById('chat-history-error'),
+        btnOpen: btnChatHistory,
+        btnClose: document.getElementById('btn-close-chat-history'),
+        btnNew: document.getElementById('btn-new-chat'),
+        btnClearAll: document.getElementById('btn-clear-all-history')
+      }
+    });
+  }
+
+  // Global App Namespace
+  window.app = {
+    avatarStage,
+    voiceEngine,
+    chatAgent,
+    chatHistoryController,
+    mascot: appMascot,
+    openDiscoveryModal,
+    closeDiscoveryModal,
+    openSettingsModal,
+    closeSettingsModal,
+    showGuestGateModal,
+    closeGuestGateModal,
+    updateGuestBadge,
+    onGuestLimitReached,
+    toggleChatDrawer,
+    handleUserInteraction,
+    ensureChatSessionReady,
+    setLanguage
+  };
+  window.avatarStage = avatarStage;
+  window.handleUserInteraction = handleUserInteraction;
+  // Expose the chat sender + grade helper so the self-contained landing trial can
+  // answer inline (without navigating into the main app shell).
+  window.chatAgent = chatAgent;
+  window.getActiveChildGrade = (typeof getActiveChildGrade === 'function') ? getActiveChildGrade : null;
+
+  const appShell = document.getElementById('app-shell');
+  let activeDialog = null;
+  let lastFocusedElement = null;
+
+  function focusableElements(container) {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(element => !element.hidden && element.offsetParent !== null);
+  }
+
+  function activateDialog(dialog, preferredFocus) {
+    if (!dialog) return;
+    lastFocusedElement = document.activeElement;
+    activeDialog = dialog;
+    dialog.setAttribute('aria-hidden', 'false');
+    const target = preferredFocus || focusableElements(dialog)[0];
+    if (target) target.focus();
+    if (appShell) appShell.inert = true;
+    if (target) window.requestAnimationFrame(() => target.focus());
+    if (target) window.setTimeout(() => {
+      if (activeDialog === dialog) target.focus();
+    }, 160);
+  }
+
+  function deactivateDialog(dialog) {
+    if (!dialog) return;
+    if (dialog.contains(document.activeElement)) {
+      if (lastFocusedElement?.isConnected && typeof lastFocusedElement.focus === 'function') {
+        lastFocusedElement.focus();
+      } else if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+    }
+    if (appShell) appShell.inert = false;
+    dialog.setAttribute('aria-hidden', 'true');
+    if (activeDialog === dialog) activeDialog = null;
+  }
+
+  // ==========================================
+  // GUEST ACCESS & 3-TURN LIMIT GATE
+  // ==========================================
+  const guestLimitModal = document.getElementById('guest-limit-modal');
+  const btnCloseGuestLimit = document.getElementById('btn-close-guest-limit');
+  const btnGuestSignin = document.getElementById('btn-guest-signin');
+  const btnBetaBannerCta = document.getElementById('beta-banner-cta');
+  const btnMainAuth = document.getElementById('btn-main-auth');
+  const btnGuestRegister = document.getElementById('btn-guest-register');
+  const btnGuestPlans = document.getElementById('btn-guest-plans');
+  const guestAccessBadge = document.getElementById('guest-access-badge');
+  const guestAccessText = document.getElementById('guest-access-text');
+
+  let currentGuestRemaining = (typeof window !== 'undefined' && window.APPU_CONFIG && typeof window.APPU_CONFIG.betaChatLimit === 'number')
+    ? window.APPU_CONFIG.betaChatLimit
+    : 5;
+
+  function showGuestGateModal() {
+    if (!guestLimitModal) return;
+    guestLimitModal.classList.add('is-visible');
+    activateDialog(guestLimitModal, btnGuestSignin);
+    voiceEngine.playClick();
+  }
+
+  function closeGuestGateModal() {
+    if (!guestLimitModal) return;
+    guestLimitModal.classList.remove('is-visible');
+    deactivateDialog(guestLimitModal);
+  }
+
+  function syncHistorySession() {
+    if (!chatHistoryController) return;
+    const isLearnerAuthed = typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated();
+
+    if (btnChatHistory) {
+      btnChatHistory.hidden = !isLearnerAuthed;
+    }
+
+    chatHistoryController.syncSession({
+      accessToken: isLearnerAuthed ? window.AppuSession.accessToken : null,
+      childId: isLearnerAuthed ? window.AppuSession.childId : null
+    }).catch(() => {});
+  }
+
+  function updateGuestBadge(guestData) {
+    syncHistorySession();
+
+    const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated();
+    const isAuthed = hasAuthenticatedParent || (typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated());
+
+    if (isAuthed || !guestAccessBadge) {
+      if (guestAccessBadge) guestAccessBadge.classList.add('is-hidden');
+      return;
+    }
+
+    if (guestData) {
+      if (typeof guestData.remaining === 'number') {
+        currentGuestRemaining = guestData.remaining;
+      } else if (guestData.guest && typeof guestData.guest.remaining === 'number') {
+        currentGuestRemaining = guestData.guest.remaining;
+      } else if (guestData.guestSession && typeof guestData.guestSession.remaining === 'number') {
+        currentGuestRemaining = guestData.guestSession.remaining;
+      }
+    }
+
+    guestAccessBadge.classList.remove('is-hidden');
+    guestAccessBadge.classList.remove('is-warning', 'is-exhausted');
+
+    if (currentGuestRemaining <= 0) {
+      if (guestAccessText) guestAccessText.textContent = '0 free chats remaining · Sign in to continue';
+      guestAccessBadge.classList.add('is-exhausted');
+      guestAccessBadge.style.cursor = 'pointer';
+      guestAccessBadge.onclick = () => {
+        ensureChatSessionReady();
+      };
+    } else if (currentGuestRemaining === 1) {
+      if (guestAccessText) guestAccessText.textContent = '1 free chat remaining';
+      guestAccessBadge.classList.add('is-warning');
+      guestAccessBadge.style.cursor = 'default';
+      guestAccessBadge.onclick = null;
+    } else {
+      if (guestAccessText) guestAccessText.textContent = `${currentGuestRemaining} free chats remaining`;
+      guestAccessBadge.style.cursor = 'default';
+      guestAccessBadge.onclick = null;
+    }
+  }
+
+  function onGuestLimitReached(err) {
+    currentGuestRemaining = 0;
+    updateGuestBadge({ remaining: 0, used: 5 });
+    showGuestGateModal();
+
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = "You've used your 5 free chats. Sign in to continue learning!";
+    }
+    avatarStage.setState('idle');
+  }
+
+  if (btnBetaBannerCta) {
+    btnBetaBannerCta.addEventListener('click', () => {
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnMainAuth) {
+    btnMainAuth.addEventListener('click', () => {
+      voiceEngine.playClick();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnGuestSignin) {
+    btnGuestSignin.addEventListener('click', () => {
+      closeGuestGateModal();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnGuestRegister) {
+    btnGuestRegister.addEventListener('click', () => {
+      closeGuestGateModal();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+
+  if (btnGuestPlans) {
+    btnGuestPlans.addEventListener('click', () => {
+      closeGuestGateModal();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(2);
+      }
+    });
+  }
+
+  if (btnCloseGuestLimit) {
+    btnCloseGuestLimit.addEventListener('click', closeGuestGateModal);
+  }
+
+  // Load initial guest status
+  if (typeof window.AppuBackendClient !== 'undefined' && typeof window.AppuBackendClient.getGuestStatus === 'function') {
+    window.AppuBackendClient.getGuestStatus().then((status) => {
+      updateGuestBadge(status);
+    }).catch(() => {});
+  }
+
+  // ==========================================
+  // CENTRALIZED UI TRANSLATION LAYER
+  // ==========================================
+  const UI_TRANSLATIONS = {
+    en: {
+      statusLabel: 'Appu is ready',
+      missionEyebrow: '✦ Your learning mission starts here',
+      missionTitleHtml: 'Start your <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">academic success</span> now!',
+      missionSubtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
+      companionTag: 'AI learning companion',
+      chipExplainTitle: 'Explain My Topic',
+      chipExplainDesc: 'Make a tricky idea feel simple',
+      chipExplainPrompt: 'Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.',
+      chipQuizTitle: 'Play a Quick Quiz',
+      chipQuizDesc: 'Five fun questions, one at a time',
+      chipQuizPrompt: 'Play a quick five-question quiz with me. Start by asking my class and favorite subject.',
+      chipHomeworkTitle: 'Homework Helper',
+      chipHomeworkDesc: 'Get hints and learn each step',
+      chipHomeworkPrompt: 'Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.',
+      chipExamTitle: 'Exam Practice',
+      chipExamDesc: 'Revise smarter and build confidence',
+      chipExamPrompt: 'Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.',
+      appuSaysLabel: 'Appu says',
+      subtitlesGreeting: 'English selected. Ask Appu anything!',
+      typeInstead: 'Type instead',
+      askAppu: 'Ask Appu',
+      micCta: 'Tap to speak',
+      voiceUnavailableNotice: "Voice isn't available on this screen — tap 'Type instead' to chat",
+      micPermissionDeniedNotice: "Microphone access was denied. Please allow microphone permissions or tap 'Type instead' to chat.",
+      noMicFoundNotice: "No microphone found on this device. Tap 'Type instead' to chat.",
+      micUnavailableLabel: 'Voice unavailable',
+      parentSetup: 'Parent Setup',
+      chatTitle: 'Chat with Appu',
+      chatSubtitle: 'Ask, explore, understand',
+      chatPlaceholder: 'Ask about science, maths, homework…',
+      guestAccessSuffix: 'complimentary chats available',
+      avatarIntroPrompt: 'Namaskara Appu! Introduce yourself as my learning companion and ask what I want to learn.',
+      betaBannerText: '🎉 APPU is in Public Beta — Try 5 AI chats free, then sign up to personalise Appu for your child, no card required',
+      betaBannerCta: 'Try Beta — Sign Up Free',
+      settingsKicker: 'Preferences',
+      settingsTitle: 'Make Appu comfortable for you',
+      settingsLead: 'Adjust how answers sound and how the page responds.',
+      settingRateTitle: 'Speaking speed',
+      settingRateDesc: 'Slower can make explanations easier to follow.',
+      settingAutospeakTitle: 'Play answers aloud',
+      settingAutospeakDesc: 'Appu speaks when audio is available.',
+      settingUisoundTitle: 'Sound effects',
+      settingUisoundDesc: 'Gentle feedback for taps and actions.',
+      btnSaveSettings: 'Save preferences',
+      discoveryKicker: 'Parent Zone',
+      discoveryTitle: 'Plan a learning support call',
+      discoveryLead: 'For a parent/guardian: choose a convenient time to speak with an IGR Academy mentor about your learner.',
+      leadNameLabel: 'Parent/Guardian name',
+      leadNamePlaceholder: 'Your full name',
+      leadPhoneLabel: 'WhatsApp number',
+      leadEmailLabel: 'Email for the meeting',
+      leadDateLabel: 'Preferred date and time',
+      leadInterestLabel: 'What support would help most?',
+      interestRoadmap: 'A personal learning roadmap',
+      interestHomework: 'Homework and concept support',
+      interestExam: 'Exam preparation',
+      interestAi: 'AI and coding skills',
+      discoveryPrivacyNote: 'Your details are used only to arrange this support call.',
+      btnSubmitDiscovery: 'Book parent call',
+      discoverySuccessTitle: "You're all set!",
+      successMeetLink: 'Open meeting link',
+      successWaLink: 'Open WhatsApp',
+      btnDoneDiscovery: 'Return to Appu',
+      drawerLearnWithAppu: 'Learn with Appu',
+      drawerCloseMenu: 'Close menu',
+      drawerParentZone: 'Parent Zone & Controls',
+      drawerReports: 'Child Progress Report',
+      drawerScheduleCall: 'Schedule Support Call',
+      drawerSoundEffects: 'Sound Effects',
+      drawerPrivacy: 'Privacy Policy',
+      drawerTerms: 'Terms & Conditions',
+      drawerCancellation: 'Cancellation & Refunds',
+      drawerShipping: 'Shipping & Delivery',
+      drawerPricing: 'Pricing',
+      drawerContact: 'Contact Us',
+      posChildNicknameLabel: 'Learner Nickname',
+      posChildDobLabel: 'Date of Birth',
+      dobAgeInvalidAlert: 'Please enter a valid date of birth (learner age must be between 3 and 25 years).',
+      promptLibraryTitle: 'Prompt Library',
+      promptLibrarySubtitle: 'Personalized sparks for your learning journey',
+      categoryAll: 'All',
+      categoryQuickConcepts: 'Quick Concepts',
+      categoryHomeworkHints: 'Homework Hints',
+      categoryCuriousMind: 'Curious Mind',
+      categoryExamDrills: 'Exam Drills',
+      btnRefreshPrompts: 'Refresh prompts',
+      btnExplorePrompts: 'Explore Prompts',
+      promptCardAskAppu: 'Ask Appu',
+      guestLimitTitle: 'Your complimentary APPU chats are complete',
+      guestLimitLead: 'Sign in to continue learning, save your progress, and unlock tailored study plans.',
+      guestFeature1: 'Personalized explanations for your syllabus',
+      guestFeature2: 'Save chat history across all your devices',
+      guestFeature3: 'Voice practice in English, Kannada and Hindi',
+      guestBtnSignin: 'Sign in',
+      guestBtnRegister: 'Create free account',
+      guestBtnPlans: 'View learning plans',
+      uploadNotesBtn: 'Upload notes',
+      dockExpandBtn: 'Expand',
+      notesModalKicker: 'Grounded Chapter Tutor',
+      notesModalTitle: 'Learn from Your Notes or Textbook',
+      notesModalLead: 'Upload your class notes, textbook PDF, or paste text. Appu will create a mind map, step-by-step lesson, and quiz directly from your material!',
+      notesTabFile: 'Upload PDF / File',
+      notesTabPaste: 'Paste Text',
+      notesDropzoneTitle: 'Drop your PDF or textbook chapter here',
+      notesDropzoneSubtitle: 'Supports PDF, TXT or Markdown files (up to 10MB)',
+      notesBrowseBtn: 'Browse File',
+      notesGuidance: 'Answers, concept maps, and quizzes will be strictly grounded in this material.',
+      notesBtnSubmit: 'Teach Me From This',
+      notesBtnCancel: 'Cancel',
+      childProgressReport: 'Child Progress Report',
+      drawerMissionsTitle: 'Learning Missions',
+      drawerProgressTitle: 'My Progress',
+      landingBrandBy: '— by IGr Academy',
+      landingLangAria: 'Choose language',
+      landingLangCurrent: 'English',
+      landingBtnSignin: 'Sign in',
+      landingBtnOpenApp: 'Open app',
+      landingKicker: 'HYPER-PERSONALISED LEARNING',
+      landingHeroTitleHtml: 'Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>',
+      landingHeroSubtext: 'Meet APPU, your AI mentor for academic excellence.',
+      landingGradeBadge: 'Class 5 onwards',
+      landingBtnTryFree: 'Try APPU free',
+      landingCtaSub: 'No sign-up needed to try',
+      landingSpeechBubble: '"Let\'s learn your way."',
+      landingMascotSpeech: "Hi! Let's learn 🚀",
+      landingMascotEncourage: "Ready when you are! 🚀",
+      landingMentorRole: 'Your AI learning mentor',
+      landingMentorAlt: 'APPU — Your AI learning mentor',
+      landingValue1: 'Understand clearly',
+      landingValue2: 'Practise confidently',
+      landingValue3: 'Learn at your pace',
+      landingQuestionTitle: 'Start with one question.',
+      landingQuestionSubtitle: 'Ask anything from your school textbook or curiosity.',
+      landingQuestionPlaceholder: 'What would you like to understand?',
+      landingQuestionHelper: 'Type or speak in English, Kannada or Hindi',
+      landingPromptLabel: 'Try asking:',
+      landingChip1Text: 'Why is the sky blue?',
+      landingChip1Prompt: 'Why is the sky blue?',
+      landingChip2Text: 'How does photosynthesis work?',
+      landingChip2Prompt: 'How does photosynthesis work?',
+      landingChip3Text: 'Explain Pythagoras theorem',
+      landingChip3Prompt: 'Explain Pythagoras theorem with an example',
+      landingChip4Text: 'What causes seasons?',
+      landingChip4Prompt: 'What causes seasons on Earth?',
+      landingMicAria: 'Speak your question',
+      landingSendAria: 'Ask Appu',
+      landingAdvantageKicker: 'THE APPU ADVANTAGE',
+      landingAdvantageTitle: 'How Appu transforms your study hours',
+      landingFeature1Title: 'Visual Concept Trees & Mind Maps',
+      landingFeature1Desc: 'Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.',
+      landingFeature2Title: 'Multilingual AI Voice Companion',
+      landingFeature2Desc: 'Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.',
+      landingFeature3Title: 'Curriculum-Safe & Parent Verified',
+      landingFeature3Desc: '100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.',
+      landingFooterCopy: '© 2026 IGR Academy • All rights reserved',
+      landingFooterPrivacy: 'Privacy Policy',
+      landingFooterTerms: 'Terms & Conditions',
+      landingFooterPricing: 'Pricing',
+      landingFooterContact: 'Contact Us',
+      voiceListeningPlaceholder: 'Listening... Speak now'
+    },
+    kn: {
+      statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
+      missionEyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
+      missionTitleHtml: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">ಸಿದ್ಧರಿದ್ದೀರಾ?</span>',
+      missionSubtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
+      companionTag: 'ಎಐ ಕಲಿಕಾ ಸಂಗಾತಿ',
+      chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
+      chipExplainDesc: 'ಕಷ್ಟಕರ ವಿಷಯವನ್ನು ಸುಲಭವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
+      chipExplainPrompt: 'ನನ್ನ ಶಾಲಾ ವಿಷಯವನ್ನು ಸರಳ ಹಾಗೂ ಆಸಕ್ತಿದಾಯಕವಾಗಿ ವಿವರಿಸಿ. ನಾನು ಯಾವ ತರಗತಿ ಮತ್ತು ಯಾವ ವಿಷಯ ಕಲಿಯಬೇಕೆಂದು ಕೇಳಿ ಪ್ರಾರಂಭಿಸಿ.',
+      chipQuizTitle: 'ರಸಪ್ರಶ್ನೆ ಆಡಿ',
+      chipQuizDesc: 'ಐದು ಮೋಜಿನ ಪ್ರಶ್ನೆಗಳು, ಒಂದೊಂದಾಗಿ',
+      chipQuizPrompt: 'ನನ್ನೊಂದಿಗೆ 5 ಪ್ರಶ್ನೆಗಳ ಒಂದು ಸಣ್ಣ ರಸಪ್ರಶ್ನೆ ಆಡಿ. ನನ್ನ ತರಗತಿ ಮತ್ತು ಮೆಚ್ಚಿನ ವಿಷಯವನ್ನು ಕೇಳಿ ಪ್ರಾರಂಭಿಸಿ.',
+      chipHomeworkTitle: 'ಮನೆಕೆಲಸದ ಸಹಾಯಕ',
+      chipHomeworkDesc: 'ಸುಳಿವು ಪಡೆಯಿರಿ ಮತ್ತು ಹಂತ-ಹಂತವಾಗಿ ಕಲಿಯಿರಿ',
+      chipHomeworkPrompt: 'ಕೇವಲ ಉತ್ತರ ನೀಡದೆ, ನನ್ನ ಮನೆಕೆಲಸದಲ್ಲಿ ನನಗೆ ಸಹಾಯ ಮಾಡಿ. ಪ್ರಶ್ನೆಯನ್ನು ಕೇಳಿ ಹಂತ-ಹಂತವಾಗಿ ಮಾರ್ಗದರ್ಶನ ನೀಡಿ.',
+      chipExamTitle: 'ಪರೀಕ್ಷಾ ತಯಾರಿ',
+      chipExamDesc: 'ಉತ್ತಮವಾಗಿ ಪುನರಾವರ್ತಿಸಿ ಮತ್ತು ಆತ್ಮವಿಶ್ವಾಸ ಹೆಚ್ಚಿಸಿಕೊಳ್ಳಿ',
+      chipExamPrompt: 'ನನ್ನ ಪರೀಕ್ಷೆಗೆ ಸಿದ್ಧತೆ ನಡೆಸಲು ಸಹಾಯ ಮಾಡಿ. ನನ್ನ ತರಗತಿ, ವಿಷಯ, ಅಧ್ಯಾಯ ಮತ್ತು ಪರೀಕ್ಷೆಯ ದಿನಾಂಕವನ್ನು ಕೇಳಿ ಪ್ರಾರಂಭಿಸಿ.',
+      appuSaysLabel: 'ಅಪ್ಪು ಹೇಳುತ್ತಾನೆ',
+      subtitlesGreeting: 'ಕನ್ನಡ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ. ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳಿ!',
+      typeInstead: 'ಬರೆಯಿರಿ',
+      askAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      micCta: 'ಮಾತನಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ',
+      voiceUnavailableNotice: "ಈ ಪರದೆಯಲ್ಲಿ ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ — ಚಾಟ್ ಮಾಡಲು 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ",
+      micPermissionDeniedNotice: "ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ. ದಯವಿಟ್ಟು ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಅನುಮತಿ ನೀಡಿ ಅಥವಾ 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      noMicFoundNotice: "ಈ ಸಾಧನದಲ್ಲಿ ಮೈಕ್ರೊಫೋನ್ ಕಂಡುಬಂದಿಲ್ಲ. ಚಾಟ್ ಮಾಡಲು 'ಬರೆಯಿರಿ' ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      micUnavailableLabel: 'ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ',
+      parentSetup: 'ಪೋಷಕರ ವಲಯ',
+      chatTitle: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಸಂಭಾಷಣೆ',
+      chatSubtitle: 'ಕೇಳಿ, ಅನ್ವೇಷಿಸಿ, ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
+      chatPlaceholder: 'ವಿಜ್ಞಾನ, ಗಣಿತ, ಮನೆಕೆಲಸದ ಬಗ್ಗೆ ಕೇಳಿ…',
+      guestAccessSuffix: 'ಉಚಿತ ಸಂಭಾಷಣೆಗಳು ಲಭ್ಯವಿದೆ',
+      avatarIntroPrompt: 'ನಮಸ್ಕಾರ ಅಪ್ಪು! ನನ್ನ ಕಲಿಕೆಯ ಸಂಗಾತಿಯಾಗಿ ಪರಿಚಯಿಸಿಕೊಂಡು, ನಾನು ಏನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ ಎಂದು ಕೇಳಿ.',
+      betaBannerText: '🎉 APPU ಈಗ ಸಾರ್ವಜನಿಕ ಬೀಟಾದಲ್ಲಿ ಲಭ್ಯವಿದೆ — 5 AI ಸಂಭಾಷಣೆಗಳನ್ನು ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ, ನಂತರ ನಿಮ್ಮ ಮಗುವಿಗಾಗಿ Appu ಅನ್ನು ವೈಯಕ್ತೀಕರಿಸಲು ನೋಂದಾಯಿಸಿ, ಕಾರ್ಡ್ ಅಗತ್ಯವಿಲ್ಲ',
+      betaBannerCta: 'ಬೀಟಾ ಪ್ರಯತ್ನಿಸಿ — ಉಚಿತವಾಗಿ ನೋಂದಾಯಿಸಿ',
+      settingsKicker: 'ಆದ್ಯತೆಗಳು',
+      settingsTitle: 'ಅಪ್ಪುವನ್ನು ನಿಮಗೆ ಅನುಕೂಲಕರವಾಗಿಸಿ',
+      settingsLead: 'ಉತ್ತರಗಳು ಹೇಗೆ ಕೇಳಿಸುತ್ತವೆ ಮತ್ತು ಪುಟ ಹೇಗೆ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತದೆ ಎಂಬುದನ್ನು ಹೊಂದಿಸಿ.',
+      settingRateTitle: 'ಮಾತಿನ ವೇಗ',
+      settingRateDesc: 'ನಿಧಾನವಾದರೆ ವಿವರಣೆಗಳನ್ನು ಅನುಸರಿಸುವುದು ಸುಲಭ.',
+      settingAutospeakTitle: 'ಉತ್ತರಗಳನ್ನು ಗಟ್ಟಿಯಾಗಿ ಓದಿ',
+      settingAutospeakDesc: 'ಆಡಿಯೋ ಲಭ್ಯವಿದ್ದಾಗ ಅಪ್ಪು ಮಾತನಾಡುತ್ತಾನೆ.',
+      settingUisoundTitle: 'ಧ್ವನಿ ಪರಿಣಾಮಗಳು',
+      settingUisoundDesc: 'ಟ್ಯಾಪ್ ಮತ್ತು ಕ್ರಿಯೆಗಳಿಗೆ ಮೃದುವಾದ ಪ್ರತಿಕ್ರಿಯೆ.',
+      btnSaveSettings: 'ಆದ್ಯತೆಗಳನ್ನು ಉಳಿಸಿ',
+      discoveryKicker: 'ಪೋಷಕರ ವಲಯ',
+      discoveryTitle: 'ಕಲಿಕಾ ಬೆಂಬಲ ಕರೆಯನ್ನು ಯೋಜಿಸಿ',
+      discoveryLead: 'ಪೋಷಕ/ಪಾಲಕರಿಗಾಗಿ: ನಿಮ್ಮ ಕಲಿಕಾರ್ಥಿಯ ಬಗ್ಗೆ IGR ಅಕಾಡೆಮಿಯ ಮಾರ್ಗದರ್ಶಕರೊಂದಿಗೆ ಮಾತನಾಡಲು ಅನುಕೂಲಕರ ಸಮಯವನ್ನು ಆರಿಸಿ.',
+      leadNameLabel: 'ಪೋಷಕ/ಪಾಲಕರ ಹೆಸರು',
+      leadNamePlaceholder: 'ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರು',
+      leadPhoneLabel: 'WhatsApp ಸಂಖ್ಯೆ',
+      leadEmailLabel: 'ಸಭೆಗಾಗಿ ಇಮೇಲ್',
+      leadDateLabel: 'ಆದ್ಯತೆಯ ದಿನಾಂಕ ಮತ್ತು ಸಮಯ',
+      leadInterestLabel: 'ಯಾವ ಬೆಂಬಲ ಹೆಚ್ಚು ಸಹಾಯಕವಾಗುತ್ತದೆ?',
+      interestRoadmap: 'ವೈಯಕ್ತಿಕ ಕಲಿಕಾ ಮಾರ್ಗಸೂಚಿ',
+      interestHomework: 'ಮನೆಕೆಲಸ ಮತ್ತು ಪರಿಕಲ್ಪನೆ ಬೆಂಬಲ',
+      interestExam: 'ಪರೀಕ್ಷಾ ತಯಾರಿ',
+      interestAi: 'ಎಐ ಮತ್ತು ಕೋಡಿಂಗ್ ಕೌಶಲ್ಯಗಳು',
+      discoveryPrivacyNote: 'ಈ ಬೆಂಬಲ ಕರೆಯನ್ನು ಏರ್ಪಡಿಸಲು ಮಾತ್ರ ನಿಮ್ಮ ವಿವರಗಳನ್ನು ಬಳಸಲಾಗುತ್ತದೆ.',
+      btnSubmitDiscovery: 'ಪೋಷಕರ ಕರೆ ಬುಕ್ ಮಾಡಿ',
+      discoverySuccessTitle: 'ನೀವು ಸಿದ್ಧರಿದ್ದೀರಿ!',
+      successMeetLink: 'ಮೀಟಿಂಗ್ ಲಿಂಕ್ ತೆರೆಯಿರಿ',
+      successWaLink: 'WhatsApp ತೆರೆಯಿರಿ',
+      btnDoneDiscovery: 'ಅಪ್ಪುಗೆ ಹಿಂತಿರುಗಿ',
+      drawerLearnWithAppu: 'ಅಪ್ಪುವಿನೊಂದಿಗೆ ಕಲಿಯಿರಿ',
+      drawerCloseMenu: 'ಮೆನು ಮುಚ್ಚಿ',
+      drawerParentZone: 'ಪೋಷಕರ ವಲಯ & ನಿಯಂತ್ರಣಗಳು',
+      drawerReports: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
+      drawerScheduleCall: 'ಬೆಂಬಲ ಕರೆ ನಿಗದಿಪಡಿಸಿ',
+      drawerSoundEffects: 'ಧ್ವನಿ ಪರಿಣಾಮಗಳು',
+      drawerPrivacy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
+      drawerTerms: 'ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು',
+      drawerCancellation: 'ರದ್ದತಿ ಮತ್ತು ಮರುಪಾವತಿ',
+      drawerShipping: 'ರವಾನೆ ಮತ್ತು ವಿತರಣೆ',
+      drawerPricing: 'ದರ ವಿವರ',
+      drawerContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
+      posChildNicknameLabel: 'ಕಲಿಕಾರ್ಥಿಯ ಅಡ್ಡಹೆಸರು',
+      posChildDobLabel: 'ಹುಟ್ಟಿದ ದಿನಾಂಕ',
+      dobAgeInvalidAlert: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಹುಟ್ಟಿದ ದಿನಾಂಕವನ್ನು ನಮೂದಿಸಿ (ಕಲಿಕಾರ್ಥಿಯ ವಯಸ್ಸು 3 ರಿಂದ 25 ವರ್ಷಗಳ ನಡುವೆ ಇರಬೇಕು).',
+      promptLibraryTitle: 'ಪ್ರಾಂಪ್ಟ್ ಲೈಬ್ರರಿ',
+      promptLibrarySubtitle: 'ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣಕ್ಕೆ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿಷಯಗಳು',
+      categoryAll: 'ಎಲ್ಲವೂ',
+      categoryQuickConcepts: 'ತ್ವರಿತ ಪರಿಕಲ್ಪನೆಗಳು',
+      categoryHomeworkHints: 'ಮನೆಕೆಲಸದ ಸುಳಿವುಗಳು',
+      categoryCuriousMind: 'ಕುತೂಹಲಕಾರಿ ಮನಸ್ಸು',
+      categoryExamDrills: 'ಪರೀಕ್ಷಾ ಅಭ್ಯಾಸ',
+      btnRefreshPrompts: 'ಹೊಸ ಪ್ರಾಂಪ್ಟ್‌ಗಳು',
+      btnExplorePrompts: 'ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಅನ್ವೇಷಿಸಿ',
+      promptCardAskAppu: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      guestLimitTitle: 'ನಿಮ್ಮ ಉಚಿತ ಅಪ್ಪು ಸಂಭಾಷಣೆಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ',
+      guestLimitLead: 'ಕಲಿಕೆಯನ್ನು ಮುಂದುವರಿಸಲು, ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲು ಮತ್ತು ವೈಯಕ್ತಿಕ ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+      guestFeature1: 'ನಿಮ್ಮ ಪಠ್ಯಕ್ರಮಕ್ಕೆ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ವಿವರಣೆಗಳು',
+      guestFeature2: 'ನಿಮ್ಮ ಎಲ್ಲ ಸಾಧನಗಳಲ್ಲಿ ಚಾಟ್ ಇತಿಹಾಸವನ್ನು ಉಳಿಸಿ',
+      guestFeature3: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಮತ್ತು ಹಿಂದಿಯಲ್ಲಿ ಧ್ವನಿ ಅಭ್ಯಾಸ',
+      guestBtnSignin: 'ಸೈನ್ ಇನ್',
+      guestBtnRegister: 'ಉಚಿತ ಖಾತೆ ರಚಿಸಿ',
+      guestBtnPlans: 'ಕಲಿಕಾ ಯೋಜನೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+      uploadNotesBtn: 'ಟಿಪ್ಪಣಿ ಅಪ್‌ಲೋಡ್',
+      dockExpandBtn: 'ವಿಸ್ತರಿಸಿ',
+      notesModalKicker: 'ಪಠ್ಯ ಆಧಾರಿತ ಬೋಧಕ',
+      notesModalTitle: 'ನಿಮ್ಮ ಟಿಪ್ಪಣಿಗಳು ಅಥವಾ ಪಠ್ಯಪುಸ್ತಕದಿಂದ ಕಲಿಯಿರಿ',
+      notesModalLead: 'ನಿಮ್ಮ ತರಗತಿ ಟಿಪ್ಪಣಿಗಳು, ಪಠ್ಯಪುಸ್ತಕ PDF ಅಪ್‌ಲೋಡ್ ಮಾಡಿ ಅಥವಾ ಪಠ್ಯ ಅಂಟಿಸಿ. ಅಪ್ಪು ನಿಮ್ಮ ಪಠ್ಯದಿಂದಲೇ ಮೈಂಡ್ ಮ್ಯಾಪ್, ಹಂತ-ಹಂತದ ಪಾಠ ಮತ್ತು ರಸಪ್ರಶ್ನೆ ರಚಿಸುತ್ತಾನೆ!',
+      notesTabFile: 'PDF / ಫೈಲ್ ಅಪ್‌ಲೋಡ್',
+      notesTabPaste: 'ಪಠ್ಯ ಅಂಟಿಸಿ',
+      notesDropzoneTitle: 'ನಿಮ್ಮ PDF ಅಥವಾ ಅಧ್ಯಾಯವನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ',
+      notesDropzoneSubtitle: 'PDF, TXT ಅಥವಾ Markdown ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತ (10MB ವರೆಗೆ)',
+      notesBrowseBtn: 'ಫೈಲ್ ಹುಡುಕಿ',
+      notesGuidance: 'ಉತ್ತರಗಳು, ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು ಮತ್ತು ರಸಪ್ರಶ್ನೆಗಳು ಸಂಪೂರ್ಣವಾಗಿ ಈ ಪಠ್ಯವನ್ನು ಆಧರಿಸಿರುತ್ತವೆ.',
+      notesBtnSubmit: 'ಇದರಿಂದ ನನಗೆ ಕಲಿಸಿ',
+      notesBtnCancel: 'ರದ್ದುಮಾಡಿ',
+      childProgressReport: 'ಮಗುವಿನ ಪ್ರಗತಿ ವರದಿ',
+      drawerMissionsTitle: 'ಕಲಿಕಾ ಕಾರ್ಯಗಳು',
+      drawerProgressTitle: 'ನನ್ನ ಪ್ರಗತಿ',
+      landingBrandBy: '— IGr ಅಕಾಡೆಮಿಯಿಂದ',
+      landingLangAria: 'ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+      landingLangCurrent: 'ಕನ್ನಡ',
+      landingBtnSignin: 'ಸೈನ್ ಇನ್',
+      landingBtnOpenApp: 'ಆಪ್ ತೆರೆಯಿರಿ',
+      landingKicker: 'ಅತ್ಯಂತ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ಕಲಿಕೆ',
+      landingHeroTitleHtml: 'ಪ್ರತಿಯೊಬ್ಬ ವಿದ್ಯಾರ್ಥಿಯೂ ವಿಭಿನ್ನ. <br><span class="landing-hero-highlight">ಕಲಿಕೆಯೂ ವಿಭಿನ್ನವಾಗಿರಬೇಕು.</span>',
+      landingHeroSubtext: 'ಶೈಕ್ಷಣಿಕ ಶ್ರೇಷ್ಠತೆಗಾಗಿ ನಿಮ್ಮ ಎಐ ಮಾರ್ಗದರ್ಶಕ ಅಪ್ಪುವನ್ನು ಭೇಟಿ ಮಾಡಿ.',
+      landingGradeBadge: '5ನೇ ತರಗತಿಯಿಂದ ಮುಂದಕ್ಕೆ',
+      landingBtnTryFree: 'ಅಪ್ಪುವನ್ನು ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ',
+      landingCtaSub: 'ಪ್ರಯತ್ನಿಸಲು ಸೈನ್-ಅಪ್ ಅಗತ್ಯವಿಲ್ಲ',
+      landingSpeechBubble: '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."',
+      landingMascotSpeech: 'ನಮಸ್ಕಾರ! ಕಲಿಯೋಣ 🚀',
+      landingMascotEncourage: 'ನೀವು ಸಿದ್ಧರಿದ್ದಾಗ ಪ್ರಾರಂಭಿಸೋಣ! 🚀',
+      landingMentorRole: 'ನಿಮ್ಮ ಎಐ ಕಲಿಕಾ ಮಾರ್ಗದರ್ಶಕ',
+      landingMentorAlt: 'ಅಪ್ಪು — ನಿಮ್ಮ ಎಐ ಕಲಿಕಾ ಮಾರ್ಗದರ್ಶಕ',
+      landingValue1: 'ಸ್ಪಷ್ಟವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
+      landingValue2: 'ಆತ್ಮವಿಶ್ವಾಸದಿಂದ ಅಭ್ಯಾಸ ಮಾಡಿ',
+      landingValue3: 'ನಿಮ್ಮ ವೇಗದಲ್ಲಿ ಕಲಿಯಿರಿ',
+      landingQuestionTitle: 'ಒಂದು ಪ್ರಶ್ನೆಯೊಂದಿಗೆ ಪ್ರಾರಂಭಿಸಿ.',
+      landingQuestionSubtitle: 'ನಿಮ್ಮ ಶಾಲಾ ಪಠ್ಯಪುಸ್ತಕದಿಂದ ಅಥವಾ ನಿಮ್ಮ ಕುತೂಹಲದಿಂದ ಏನನ್ನಾದರೂ ಕೇಳಿ.',
+      landingQuestionPlaceholder: 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?',
+      landingQuestionHelper: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ',
+      landingPromptLabel: 'ಹೀಗೆ ಕೇಳಿ ನೋಡಿ:',
+      landingChip1Text: 'ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿದೆ?',
+      landingChip1Prompt: 'ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿದೆ?',
+      landingChip2Text: 'ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?',
+      landingChip2Prompt: 'ದ್ಯುತಿಸಂಶ್ಲೇಷಣೆ ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?',
+      landingChip3Text: 'ಪೈಥಾಗೊರಸ್ ಪ್ರಮೇಯವನ್ನು ವಿವರಿಸಿ',
+      landingChip3Prompt: 'ಉದಾಹರಣೆಯೊಂದಿಗೆ ಪೈಥಾಗೊರಸ್ ಪ್ರಮೇಯವನ್ನು ವಿವರಿಸಿ',
+      landingChip4Text: 'ಋತುಗಳು ಹೇಗೆ ಬದಲಾಗುತ್ತವೆ?',
+      landingChip4Prompt: 'ಭೂಮಿಯ ಮೇಲೆ ಋತುಗಳು ಹೇಗೆ ಬದಲಾಗುತ್ತವೆ?',
+      landingMicAria: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ',
+      landingSendAria: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
+      landingAdvantageKicker: 'ಅಪ್ಪು ವಿಶೇಷತೆ',
+      landingAdvantageTitle: 'ಅಪ್ಪು ನಿಮ್ಮ ಅಧ್ಯಯನದ ಸಮಯವನ್ನು ಹೇಗೆ ಪರಿವರ್ತಿಸುತ್ತದೆ',
+      landingFeature1Title: 'ದೃಶ್ಯ ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು & ಮೈಂಡ್ ಮ್ಯಾಪ್‌ಗಳು',
+      landingFeature1Desc: 'ಪ್ರತಿಯೊಂದು ಉತ್ತರವೂ ರಚನಾತ್ಮಕ ರೇಖಾಚಿತ್ರಗಳು ಮತ್ತು ಪರಿಕಲ್ಪನೆಗಳ ಕವಲುಗಳನ್ನು ನೀಡುತ್ತದೆ, ಇದರಿಂದ ನೀವು ಕಂಠಪಾಠ ಮಾಡುವ ಬದಲು ಮೂಲ ಪರಿಕಲ್ಪನೆಯನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತೀರಿ.',
+      landingFeature2Title: 'ಬಹುಭಾಷಾ ಎಐ ಧ್ವನಿ ಸಂಗಾತಿ',
+      landingFeature2Desc: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಸಹಜವಾಗಿ ಮಾತನಾಡಿ. ಅಪ್ಪು ಸ್ಪಷ್ಟ ಆಡಿಯೋ ವಿವರಣೆಗಳು ಮತ್ತು ನೇರ ಉಪಶೀರ್ಷಿಕೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸುತ್ತಾನೆ.',
+      landingFeature3Title: 'ಪಠ್ಯಕ್ರಮಕ್ಕೆ ಸುರಕ್ಷಿತ & ಪೋಷಕರಿಂದ ಪರಿಶೀಲಿಸಲ್ಪಟ್ಟಿದೆ',
+      landingFeature3Desc: 'NCERT/CBSE ಮಾನದಂಡಗಳಿಗೆ ಅನುಗುಣವಾಗಿ 100% ಮಕ್ಕಳಿಗೆ ಸುರಕ್ಷಿತ. ಪೋಷಕರು ನೈಜ-ಸಮಯದ ಕಲಿಕಾ ಒಳನೋಟಗಳು ಮತ್ತು WhatsApp ಪ್ರಗತಿ ವರದಿಗಳನ್ನು ಪಡೆಯುತ್ತಾರೆ.',
+      landingFooterCopy: '© 2026 IGR Academy • ಎಲ್ಲ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ',
+      landingFooterPrivacy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
+      landingFooterTerms: 'ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು',
+      landingFooterPricing: 'ದರ ವಿವರ',
+      landingFooterContact: 'ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ',
+      voiceListeningPlaceholder: 'ಆಲಿಸಲಾಗುತ್ತಿದೆ... ಈಗ ಮಾತನಾಡಿ'
+    },
+    hi: {
+      statusLabel: 'अप्पू तैयार है',
+      missionEyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
+      missionTitleHtml: 'शैक्षणिक उत्कृष्टता के लिए <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">तैयार हैं?</span>',
+      missionSubtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
+      companionTag: 'एआई लर्निंग साथी',
+      chipExplainTitle: 'विषय समझाओ',
+      chipExplainDesc: 'कठिन विषय को आसान बनाएं',
+      chipExplainPrompt: 'मेरे स्कूल के विषय को आसान और मज़ेदार तरीके से समझाओ। मुझसे पूछो कि मैं कौन सी कक्षा में हूँ और क्या पढ़ना चाहता हूँ।',
+      chipQuizTitle: 'क्विज़ खेलें',
+      chipQuizDesc: 'पांच मज़ेदार सवाल, एक-एक करके',
+      chipQuizPrompt: 'मेरे साथ 5 सवालों की एक छोटी क्विज़ खेलो। मेरी कक्षा और पसंदीदा विषय पूछकर शुरू करो।',
+      chipHomeworkTitle: 'होमवर्क हेल्पर',
+      chipHomeworkDesc: 'संकेत पाएं और हर कदम सीखें',
+      chipHomeworkPrompt: 'सीधे उत्तर दिए बिना मेरे होमवर्क में मदद करो। मुझसे सवाल पूछो और कदम-दर-कदम मार्गदर्शन करो।',
+      chipExamTitle: 'परीक्षा अभ्यास',
+      chipExamDesc: 'स्मार्ट रिवीजन करें और आत्मविश्वास बढ़ाएं',
+      chipExamPrompt: 'मेरी परीक्षा की तैयारी में मदद करो। मेरी कक्षा, विषय, अध्याय और परीक्षा की तारीख पूछकर शुरू करो।',
+      appuSaysLabel: 'अप्पू कहता है',
+      subtitlesGreeting: 'हिंदी चुनी गई। अप्पू से कुछ भी पूछें!',
+      typeInstead: 'टाइप करें',
+      askAppu: 'अप्पू से पूछें',
+      micCta: 'बोलने के लिए टैप करें',
+      voiceUnavailableNotice: "इस स्क्रीन पर वॉइस उपलब्ध नहीं है — चैट करने के लिए 'टाइप करें' पर टैप करें",
+      micPermissionDeniedNotice: "माइक्रोफ़ोन अनुमति अस्वीकृत है। कृपया ब्राउज़र में अनुमति दें या 'टाइप करें' पर टैप करें.",
+      noMicFoundNotice: "इस डिवाइस पर कोई माइक्रोफ़ोन नहीं मिला। 'टाइप करें' पर टैप करें.",
+      micUnavailableLabel: 'वॉइस अनुपलब्ध',
+      parentSetup: 'पेरेंट सेटअप',
+      chatTitle: 'अप्पू से बातचीत',
+      chatSubtitle: 'पूछें, सीखें, समझें',
+      chatPlaceholder: 'विज्ञान, गणित, होमवर्क के बारे में पूछें…',
+      guestAccessSuffix: 'निःशुल्क बातचीत उपलब्ध हैं',
+      avatarIntroPrompt: 'नमस्ते अप्पू! अपने आप को मेरे सीखने के साथी के रूप में पेश करो और पूछो कि मैं क्या सीखना चाहता हूँ।',
+      betaBannerText: '🎉 APPU अभी सार्वजनिक बीटा में है — 5 AI चैट मुफ़्त आज़माएं, फिर अपने बच्चे के लिए Appu को पर्सनलाइज़ करने हेतु साइन अप करें, कार्ड की ज़रूरत नहीं',
+      betaBannerCta: 'बीटा आज़माएं — मुफ़्त साइन अप करें',
+      settingsKicker: 'प्राथमिकताएं',
+      settingsTitle: 'अप्पू को अपने अनुसार आरामदायक बनाएं',
+      settingsLead: 'उत्तर कैसे सुनाई दें और पेज कैसे प्रतिक्रिया दे, इसे समायोजित करें।',
+      settingRateTitle: 'बोलने की गति',
+      settingRateDesc: 'धीमी गति से समझाना आसान हो सकता है।',
+      settingAutospeakTitle: 'उत्तर ज़ोर से सुनाएं',
+      settingAutospeakDesc: 'ऑडियो उपलब्ध होने पर अप्पू बोलता है।',
+      settingUisoundTitle: 'ध्वनि प्रभाव',
+      settingUisoundDesc: 'टैप और क्रियाओं के लिए हल्की प्रतिक्रिया।',
+      btnSaveSettings: 'प्राथमिकताएं सहेजें',
+      discoveryKicker: 'पेरेंट ज़ोन',
+      discoveryTitle: 'सीखने की सहायता कॉल की योजना बनाएं',
+      discoveryLead: 'माता-पिता/अभिभावक के लिए: अपने बच्चे के बारे में IGR Academy के मेंटर से बात करने के लिए सुविधाजनक समय चुनें।',
+      leadNameLabel: 'माता-पिता/अभिभावक का नाम',
+      leadNamePlaceholder: 'आपका पूरा नाम',
+      leadPhoneLabel: 'WhatsApp नंबर',
+      leadEmailLabel: 'मीटिंग के लिए ईमेल',
+      leadDateLabel: 'पसंदीदा तारीख और समय',
+      leadInterestLabel: 'कौन सी सहायता सबसे उपयोगी होगी?',
+      interestRoadmap: 'एक व्यक्तिगत सीखने की रूपरेखा',
+      interestHomework: 'होमवर्क और अवधारणा सहायता',
+      interestExam: 'परीक्षा की तैयारी',
+      interestAi: 'एआई और कोडिंग कौशल',
+      discoveryPrivacyNote: 'आपकी जानकारी केवल इस सहायता कॉल की व्यवस्था के लिए उपयोग की जाती है।',
+      btnSubmitDiscovery: 'पेरेंट कॉल बुक करें',
+      discoverySuccessTitle: 'आप तैयार हैं!',
+      successMeetLink: 'मीटिंग लिंक खोलें',
+      successWaLink: 'WhatsApp खोलें',
+      btnDoneDiscovery: 'अप्पू पर वापस जाएं',
+      drawerLearnWithAppu: 'अप्पू के साथ सीखें',
+      drawerCloseMenu: 'मेनू बंद करें',
+      drawerParentZone: 'पेरेंट ज़ोन और नियंत्रण',
+      drawerReports: 'बच्चे की प्रगति रिपोर्ट',
+      drawerScheduleCall: 'सहायता कॉल बुक करें',
+      drawerSoundEffects: 'ध्वनि प्रभाव',
+      drawerPrivacy: 'गोपनीयता नीति',
+      drawerTerms: 'नियम और शर्तें',
+      drawerCancellation: 'रद्दीकरण और रिफंड',
+      drawerShipping: 'शिपिंग और डिलीवरी',
+      drawerPricing: 'मूल्य निर्धारण',
+      drawerContact: 'संपर्क करें',
+      posChildNicknameLabel: 'शिक्षार्थी का उपनाम',
+      posChildDobLabel: 'जन्म तिथि',
+      dobAgeInvalidAlert: 'कृपया एक मान्य जन्म तिथि दर्ज करें (शिक्षार्थी की आयु 3 से 25 वर्ष के बीच होनी चाहिए)।',
+      promptLibraryTitle: 'प्रॉम्प्ट लाइब्रेरी',
+      promptLibrarySubtitle: 'आपकी सीखने की यात्रा के लिए व्यक्तिगत सुझाव',
+      categoryAll: 'सभी',
+      categoryQuickConcepts: 'त्वरित अवधारणाएं',
+      categoryHomeworkHints: 'होमवर्क संकेत',
+      categoryCuriousMind: 'जिज्ञासु मन',
+      categoryExamDrills: 'परीक्षा अभ्यास',
+      btnRefreshPrompts: 'प्रॉम्प्ट ताज़ा करें',
+      btnExplorePrompts: 'प्रॉम्प्ट देखें',
+      promptCardAskAppu: 'अप्पू से पूछें',
+      guestLimitTitle: 'आपकी निःशुल्क अप्पू बातचीत पूरी हो चुकी है',
+      guestLimitLead: 'सीखना जारी रखने, अपनी प्रगति सहेजने और व्यक्तिगत अध्ययन योजनाओं को अनलॉक करने के लिए साइन इन करें।',
+      guestFeature1: 'आपके पाठ्यक्रम के लिए व्यक्तिगत विवरण',
+      guestFeature2: 'अपने सभी उपकरणों में चैट इतिहास सहेजें',
+      guestFeature3: 'अंग्रेज़ी, कन्नड़ और हिंदी में वॉइस अभ्यास',
+      guestBtnSignin: 'साइन इन करें',
+      guestBtnRegister: 'मुफ़्त खाता बनाएं',
+      guestBtnPlans: 'अध्ययन योजनाएं देखें',
+      uploadNotesBtn: 'नोट्स अपलोड करें',
+      dockExpandBtn: 'विस्तार करें',
+      notesModalKicker: 'पाठ्य-आधारित ट्यूटर',
+      notesModalTitle: 'अपने नोट्स या पाठ्यपुस्तक से सीखें',
+      notesModalLead: 'अपने क्लास नोट्स, पाठ्यपुस्तक PDF अपलोड करें या टेक्स्ट पेस्ट करें। अप्पू सीधे आपकी सामग्री से माइंड मैप, चरण-दर-चरण पाठ और क्विज़ बनाएगा!',
+      notesTabFile: 'PDF / फ़ाइल अपलोड',
+      notesTabPaste: 'टेक्स्ट पेस्ट करें',
+      notesDropzoneTitle: 'अपनी PDF या अध्याय फ़ाइल यहाँ छोड़ें',
+      notesDropzoneSubtitle: 'PDF, TXT या Markdown फ़ाइलें समर्थित (10MB तक)',
+      notesBrowseBtn: 'फ़ाइल चुनें',
+      notesGuidance: 'उत्तर, कॉन्सेप्ट मैप और क्विज़ पूरी तरह से इस सामग्री पर आधारित होंगे।',
+      notesBtnSubmit: 'इससे मुझे सिखाएं',
+      notesBtnCancel: 'रद्द करें',
+      childProgressReport: 'बच्चे की प्रगति रिपोर्ट',
+      drawerMissionsTitle: 'सीखने के मिशन',
+      drawerProgressTitle: 'मेरी प्रगति',
+      landingBrandBy: '— IGr अकादमी द्वारा',
+      landingLangAria: 'भाषा चुनें',
+      landingLangCurrent: 'हिंदी',
+      landingBtnSignin: 'साइन इन',
+      landingBtnOpenApp: 'ऐप खोलें',
+      landingKicker: 'अति-व्यक्तिगत शिक्षण',
+      landingHeroTitleHtml: 'हर छात्र अलग होता है। <br><span class="landing-hero-highlight">सीखने का तरीका भी अलग होना चाहिए।</span>',
+      landingHeroSubtext: 'शैक्षणिक उत्कृष्टता के लिए अपने एआई मेंटर अप्पू से मिलें।',
+      landingGradeBadge: 'कक्षा 5 से आगे',
+      landingBtnTryFree: 'अप्पू को मुफ़्त आज़माएं',
+      landingCtaSub: 'आज़माने के लिए साइन-अप की ज़रूरत नहीं',
+      landingSpeechBubble: '"आइए आपके तरीके से सीखें।"',
+      landingMascotSpeech: 'नमस्ते! चलिए सीखें 🚀',
+      landingMascotEncourage: 'जब आप तैयार हों, तब शुरू करें! 🚀',
+      landingMentorRole: 'आपका एआई लर्निंग मेंटर',
+      landingMentorAlt: 'अप्पू — आपका एआई लर्निंग मेंटर',
+      landingValue1: 'स्पष्ट रूप से समझें',
+      landingValue2: 'आत्मविश्वास से अभ्यास करें',
+      landingValue3: 'अपनी गति से सीखें',
+      landingQuestionTitle: 'एक प्रश्न से शुरुआत करें।',
+      landingQuestionSubtitle: 'अपनी स्कूल की पाठ्यपुस्तक से या अपनी जिज्ञासा से कुछ भी पूछें।',
+      landingQuestionPlaceholder: 'आप क्या समझना चाहते हैं?',
+      landingQuestionHelper: 'अंग्रेज़ी, कन्नड़ या हिंदी में टाइप करें या बोलें',
+      landingPromptLabel: 'यह पूछकर देखें:',
+      landingChip1Text: 'आसमान नीला क्यों है?',
+      landingChip1Prompt: 'आसमान नीला क्यों होता है?',
+      landingChip2Text: 'प्रकाश संश्लेषण कैसे काम करता है?',
+      landingChip2Prompt: 'प्रकाश संश्लेषण कैसे काम करता है?',
+      landingChip3Text: 'पाइथागोरस प्रमेय समझाएं',
+      landingChip3Prompt: 'उदाहरण के साथ पाइथागोरस प्रमेय समझाएं',
+      landingChip4Text: 'ऋतुएं कैसे बदलती हैं?',
+      landingChip4Prompt: 'पृथ्वी पर मौसम या ऋतुएं कैसे बदलती हैं?',
+      landingMicAria: 'अपना प्रश्न बोलें',
+      landingSendAria: 'अप्पू से पूछें',
+      landingAdvantageKicker: 'अप्पू की विशेषताएं',
+      landingAdvantageTitle: 'अप्पू आपकी पढ़ाई के समय को कैसे बेहतर बनाता है',
+      landingFeature1Title: 'दृश्य कॉन्सेप्ट ट्री और माइंड मैप',
+      landingFeature1Desc: 'प्रत्येक उत्तर संरचित रेखाचित्र और अवधारणा शाखाएं उत्पन्न करता है ताकि आप रटने के बजाय बुनियादी समझ विकसित कर सकें।',
+      landingFeature2Title: 'बहुभाषी एआई वॉइस साथी',
+      landingFeature2Desc: 'अंग्रेज़ी, ಕನ್ನಡ या हिंदी में स्वाभाविक रूप से बोलें। अप्पू स्पष्ट ऑडियो विवरण और लाइव सबटाइटल के साथ उत्तर देता है।',
+      landingFeature3Title: 'पाठ्यक्रम-सुरक्षित और अभिभावक-सत्यापित',
+      landingFeature3Desc: 'NCERT/CBSE मानकों के अनुरूप 100% बच्चों के लिए सुरक्षित। अभिभावकों को वास्तविक समय में सीखने की प्रगति और WhatsApp अपडेट मिलते हैं।',
+      landingFooterCopy: '© 2026 IGR Academy • सर्वाधिकार सुरक्षित',
+      landingFooterPrivacy: 'गोपनीयता नीति',
+      landingFooterTerms: 'नियम और शर्तें',
+      landingFooterPricing: 'मूल्य निर्धारण',
+      landingFooterContact: 'संपर्क करें',
+      voiceListeningPlaceholder: 'सुन रहे हैं... अब बोलें'
+    }
+  };
+  if (typeof window !== 'undefined') {
+    window.UI_TRANSLATIONS = UI_TRANSLATIONS;
+  }
+
+  function applyUiTranslations(lang) {
+    const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
+    document.documentElement.lang = lang;
+
+    const statusLabel = document.getElementById('status-label');
+    if (statusLabel) statusLabel.textContent = t.statusLabel;
+
+    const missionEyebrow = document.getElementById('mission-eyebrow');
+    if (missionEyebrow) missionEyebrow.innerHTML = `<span aria-hidden="true">✦</span> ${t.missionEyebrow.replace(/^[✦\s]+/, '')}`;
+
+    const missionTitle = document.getElementById('mission-title');
+    if (missionTitle) {
+      missionTitle.innerHTML = t.missionTitleHtml;
+      missionTitle.style.setProperty('color', '#ffffff', 'important');
+      missionTitle.style.setProperty('background', 'rgba(15, 23, 42, 0.82)', 'important');
+      missionTitle.style.setProperty('border', '1.5px solid rgba(14, 165, 233, 0.35)', 'important');
+      missionTitle.style.setProperty('border-radius', '999px', 'important');
+      missionTitle.style.setProperty('padding', '6px 20px', 'important');
+      missionTitle.style.setProperty('display', 'inline-block', 'important');
+    }
+
+    const missionSubtitle = document.getElementById('mission-subtitle');
+    if (missionSubtitle) missionSubtitle.textContent = t.missionSubtitle;
+
+    const companionTag = document.getElementById('appu-companion-tag');
+    if (companionTag) companionTag.textContent = t.companionTag;
+
+    const chipExplain = document.getElementById('chip-explain');
+    if (chipExplain) {
+      const title = chipExplain.querySelector('.chip-title');
+      const desc = chipExplain.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExplainTitle;
+      if (desc) desc.textContent = t.chipExplainDesc;
+      chipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
+    }
+
+    const chipQuiz = document.getElementById('chip-quiz');
+    if (chipQuiz) {
+      const title = chipQuiz.querySelector('.chip-title');
+      const desc = chipQuiz.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipQuizTitle;
+      if (desc) desc.textContent = t.chipQuizDesc;
+      chipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
+    }
+
+    const chipHomework = document.getElementById('chip-homework');
+    if (chipHomework) {
+      const title = chipHomework.querySelector('.chip-title');
+      const desc = chipHomework.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipHomeworkTitle;
+      if (desc) desc.textContent = t.chipHomeworkDesc;
+      chipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
+    }
+
+    const chipExam = document.getElementById('chip-exam');
+    if (chipExam) {
+      const title = chipExam.querySelector('.chip-title');
+      const desc = chipExam.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExamTitle;
+      if (desc) desc.textContent = t.chipExamDesc;
+      chipExam.setAttribute('data-prompt', t.chipExamPrompt);
+    }
+
+    const appuSaysLabel = document.getElementById('appu-says-label');
+    if (appuSaysLabel) appuSaysLabel.textContent = t.appuSaysLabel;
+
+    const typeBtnSpan = document.querySelector('#btn-toggle-chat span');
+    if (typeBtnSpan) typeBtnSpan.textContent = t.typeInstead;
+
+    const micLabel = document.querySelector('.mic-label');
+    if (micLabel) {
+      const isVoiceOk = !voiceEngine || voiceEngine.isVoiceSupported;
+      const labelText = isVoiceOk ? t.micCta : (t.micUnavailableLabel || 'Voice unavailable');
+      micLabel.dataset.idleLabel = labelText;
+      if (!voiceEngine || !voiceEngine.liveSessionActive) {
+        micLabel.textContent = labelText;
+      }
+    }
+
+    const parentBtnSpan = document.querySelector('#btn-parent-setup span');
+    if (parentBtnSpan) parentBtnSpan.textContent = t.parentSetup;
+
+    const chatTitle = document.getElementById('chat-title');
+    if (chatTitle) chatTitle.textContent = t.chatTitle;
+
+    const chatSubtitle = document.getElementById('chat-subtitle');
+    if (chatSubtitle) chatSubtitle.textContent = t.chatSubtitle;
+
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) chatInput.placeholder = t.chatPlaceholder;
+
+    // Beta banner
+    document.querySelectorAll('#beta-banner .beta-banner-item').forEach((el) => {
+      el.textContent = t.betaBannerText;
+    });
+    const betaBannerCta = document.getElementById('beta-banner-cta');
+    if (betaBannerCta) betaBannerCta.textContent = t.betaBannerCta;
+
+    // Settings modal
+    const settingsKickerText = document.getElementById('settings-kicker-text');
+    if (settingsKickerText) settingsKickerText.textContent = t.settingsKicker;
+
+    const settingsTitle = document.getElementById('settings-title');
+    if (settingsTitle) settingsTitle.textContent = t.settingsTitle;
+
+    const settingsLead = document.getElementById('settings-lead');
+    if (settingsLead) settingsLead.textContent = t.settingsLead;
+
+    const settingRateTitle = document.getElementById('setting-rate-title');
+    if (settingRateTitle) settingRateTitle.textContent = t.settingRateTitle;
+
+    const settingRateDesc = document.getElementById('setting-rate-desc');
+    if (settingRateDesc) settingRateDesc.textContent = t.settingRateDesc;
+
+    const settingAutospeakTitle = document.getElementById('setting-autospeak-title');
+    if (settingAutospeakTitle) settingAutospeakTitle.textContent = t.settingAutospeakTitle;
+
+    const settingAutospeakDesc = document.getElementById('setting-autospeak-desc');
+    if (settingAutospeakDesc) settingAutospeakDesc.textContent = t.settingAutospeakDesc;
+
+    const settingUisoundTitle = document.getElementById('setting-uisound-title');
+    if (settingUisoundTitle) settingUisoundTitle.textContent = t.settingUisoundTitle;
+
+    const settingUisoundDesc = document.getElementById('setting-uisound-desc');
+    if (settingUisoundDesc) settingUisoundDesc.textContent = t.settingUisoundDesc;
+
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    if (btnSaveSettings) btnSaveSettings.textContent = t.btnSaveSettings;
+
+    // Discovery modal
+    const discoveryKickerText = document.getElementById('discovery-kicker-text');
+    if (discoveryKickerText) discoveryKickerText.textContent = t.discoveryKicker;
+
+    const discoveryTitle = document.getElementById('parent-dialog-title');
+    if (discoveryTitle) discoveryTitle.textContent = t.discoveryTitle;
+
+    const discoveryLead = document.getElementById('discovery-lead');
+    if (discoveryLead) discoveryLead.textContent = t.discoveryLead;
+
+    const leadNameLabel = document.getElementById('lead-name-label');
+    if (leadNameLabel) leadNameLabel.textContent = t.leadNameLabel;
+
+    const leadNameInput = document.getElementById('lead-name');
+    if (leadNameInput) leadNameInput.placeholder = t.leadNamePlaceholder;
+
+    const leadPhoneLabel = document.getElementById('lead-phone-label');
+    if (leadPhoneLabel) leadPhoneLabel.textContent = t.leadPhoneLabel;
+
+    const leadEmailLabel = document.getElementById('lead-email-label');
+    if (leadEmailLabel) leadEmailLabel.textContent = t.leadEmailLabel;
+
+    const leadDateLabel = document.getElementById('lead-date-label');
+    if (leadDateLabel) leadDateLabel.textContent = t.leadDateLabel;
+
+    const leadInterestLabel = document.getElementById('lead-interest-label');
+    if (leadInterestLabel) leadInterestLabel.textContent = t.leadInterestLabel;
+
+    const optInterestRoadmap = document.getElementById('opt-interest-roadmap');
+    if (optInterestRoadmap) optInterestRoadmap.textContent = t.interestRoadmap;
+
+    const optInterestHomework = document.getElementById('opt-interest-homework');
+    if (optInterestHomework) optInterestHomework.textContent = t.interestHomework;
+
+    const optInterestExam = document.getElementById('opt-interest-exam');
+    if (optInterestExam) optInterestExam.textContent = t.interestExam;
+
+    const optInterestAi = document.getElementById('opt-interest-ai');
+    if (optInterestAi) optInterestAi.textContent = t.interestAi;
+
+    const discoveryPrivacyNoteText = document.getElementById('discovery-privacy-note-text');
+    if (discoveryPrivacyNoteText) discoveryPrivacyNoteText.textContent = t.discoveryPrivacyNote;
+
+    const btnSubmitDiscoveryText = document.getElementById('btn-submit-discovery-text');
+    if (btnSubmitDiscoveryText) btnSubmitDiscoveryText.textContent = t.btnSubmitDiscovery;
+
+    const discoverySuccessTitle = document.getElementById('discovery-success-title');
+    if (discoverySuccessTitle) discoverySuccessTitle.textContent = t.discoverySuccessTitle;
+
+    const successMeetLink = document.getElementById('success-meet-link');
+    if (successMeetLink) successMeetLink.textContent = t.successMeetLink;
+
+    const successWaLink = document.getElementById('success-wa-link');
+    if (successWaLink) successWaLink.textContent = t.successWaLink;
+
+    const btnDoneDiscovery = document.getElementById('btn-done-discovery');
+    if (btnDoneDiscovery) btnDoneDiscovery.textContent = t.btnDoneDiscovery;
+
+    // Nav drawer translations
+    const drawerTitleSmall = document.querySelector('#nav-drawer-title small');
+    if (drawerTitleSmall) drawerTitleSmall.textContent = t.drawerLearnWithAppu;
+
+    const btnCloseNavDrawer = document.getElementById('btn-close-nav-drawer');
+    if (btnCloseNavDrawer) btnCloseNavDrawer.setAttribute('aria-label', t.drawerCloseMenu);
+
+    const btnDrawerParentZone = document.getElementById('btn-drawer-parent-zone');
+    if (btnDrawerParentZone) {
+      const span = btnDrawerParentZone.querySelector('span');
+      if (span) span.textContent = t.drawerParentZone;
+    }
+
+    const btnDrawerReports = document.getElementById('btn-drawer-reports');
+    if (btnDrawerReports) {
+      const span = btnDrawerReports.querySelector('span');
+      if (span) span.textContent = t.drawerReports || t.childProgressReport;
+    }
+
+    const btnQuickSchedule = document.getElementById('btn-quick-schedule');
+    if (btnQuickSchedule) {
+      btnQuickSchedule.setAttribute('aria-label', t.drawerScheduleCall);
+      btnQuickSchedule.setAttribute('title', t.drawerScheduleCall);
+      const span = btnQuickSchedule.querySelector('span');
+      if (span) span.textContent = t.drawerScheduleCall;
+    }
+
+    const btnSoundToggle = document.getElementById('btn-sound-toggle');
+    if (btnSoundToggle) {
+      btnSoundToggle.setAttribute('aria-label', t.drawerSoundEffects);
+      const span = btnSoundToggle.querySelector('span');
+      if (span) span.textContent = t.drawerSoundEffects;
+    }
+
+    const drawerPrivacyLink = document.querySelector('.nav-drawer-legal a[href*="privacy-policy"]');
+    if (drawerPrivacyLink) drawerPrivacyLink.textContent = t.drawerPrivacy;
+
+    const drawerTermsLink = document.querySelector('.nav-drawer-legal a[href*="terms-and-conditions"]');
+    if (drawerTermsLink) drawerTermsLink.textContent = t.drawerTerms;
+
+    const drawerCancellationLink = document.querySelector('.nav-drawer-legal a[href*="cancellation-refund-policy"]');
+    if (drawerCancellationLink) drawerCancellationLink.textContent = t.drawerCancellation;
+
+    const drawerShippingLink = document.querySelector('.nav-drawer-legal a[href*="shipping-delivery-policy"]');
+    if (drawerShippingLink) drawerShippingLink.textContent = t.drawerShipping;
+
+    const drawerPricingLink = document.querySelector('.nav-drawer-legal a[href*="pricing"]');
+    if (drawerPricingLink) drawerPricingLink.textContent = t.drawerPricing;
+
+    const drawerContactLink = document.querySelector('.nav-drawer-legal a[href*="contact-us"]');
+    if (drawerContactLink) drawerContactLink.textContent = t.drawerContact;
+
+    // Nav drawer learning missions
+    const drawerMissionsTitle = document.getElementById('drawer-missions-title');
+    if (drawerMissionsTitle) drawerMissionsTitle.textContent = t.drawerMissionsTitle || 'Learning Missions';
+
+    const drawerProgressTitle = document.getElementById('drawer-progress-title');
+    if (drawerProgressTitle) drawerProgressTitle.textContent = t.drawerProgressTitle || 'My Progress';
+
+    const drawerChipExplain = document.getElementById('drawer-chip-explain');
+    if (drawerChipExplain) {
+      const title = drawerChipExplain.querySelector('.chip-title');
+      const desc = drawerChipExplain.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExplainTitle;
+      if (desc) desc.textContent = t.chipExplainDesc;
+      drawerChipExplain.setAttribute('data-prompt', t.chipExplainPrompt);
+    }
+
+    const drawerChipQuiz = document.getElementById('drawer-chip-quiz');
+    if (drawerChipQuiz) {
+      const title = drawerChipQuiz.querySelector('.chip-title');
+      const desc = drawerChipQuiz.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipQuizTitle;
+      if (desc) desc.textContent = t.chipQuizDesc;
+      drawerChipQuiz.setAttribute('data-prompt', t.chipQuizPrompt);
+    }
+
+    const drawerChipHomework = document.getElementById('drawer-chip-homework');
+    if (drawerChipHomework) {
+      const title = drawerChipHomework.querySelector('.chip-title');
+      const desc = drawerChipHomework.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipHomeworkTitle;
+      if (desc) desc.textContent = t.chipHomeworkDesc;
+      drawerChipHomework.setAttribute('data-prompt', t.chipHomeworkPrompt);
+    }
+
+    const drawerChipExam = document.getElementById('drawer-chip-exam');
+    if (drawerChipExam) {
+      const title = drawerChipExam.querySelector('.chip-title');
+      const desc = drawerChipExam.querySelector('.chip-desc');
+      if (title) title.textContent = t.chipExamTitle;
+      if (desc) desc.textContent = t.chipExamDesc;
+      drawerChipExam.setAttribute('data-prompt', t.chipExamPrompt);
+    }
+
+    const posChildNicknameLabel = document.getElementById('pos-child-nickname-label');
+    if (posChildNicknameLabel) posChildNicknameLabel.textContent = t.posChildNicknameLabel;
+
+    const posChildDobLabel = document.getElementById('pos-child-dob-label');
+    if (posChildDobLabel) posChildDobLabel.textContent = t.posChildDobLabel;
+
+    // Prompt Library translations
+    const promptLibraryTitle = document.getElementById('prompt-library-title');
+    if (promptLibraryTitle) promptLibraryTitle.textContent = t.promptLibraryTitle;
+
+    const promptLibrarySubtitle = document.getElementById('prompt-library-subtitle');
+    if (promptLibrarySubtitle) promptLibrarySubtitle.textContent = t.promptLibrarySubtitle;
+
+    const btnExplorePromptsText = document.getElementById('btn-explore-prompts-text');
+    if (btnExplorePromptsText) btnExplorePromptsText.textContent = t.btnExplorePrompts;
+
+    const tabCatAll = document.getElementById('tab-cat-all');
+    if (tabCatAll) tabCatAll.textContent = t.categoryAll;
+
+    const tabCatQuick = document.getElementById('tab-cat-quick-concepts');
+    if (tabCatQuick) tabCatQuick.textContent = t.categoryQuickConcepts;
+
+    const tabCatHw = document.getElementById('tab-cat-homework-hints');
+    if (tabCatHw) tabCatHw.textContent = t.categoryHomeworkHints;
+
+    const tabCatCurious = document.getElementById('tab-cat-curious-mind');
+    if (tabCatCurious) tabCatCurious.textContent = t.categoryCuriousMind;
+
+    const tabCatExam = document.getElementById('tab-cat-exam-drills');
+    if (tabCatExam) tabCatExam.textContent = t.categoryExamDrills;
+
+    const btnRefreshPrompts = document.getElementById('btn-refresh-prompts');
+    if (btnRefreshPrompts) {
+      btnRefreshPrompts.setAttribute('title', t.btnRefreshPrompts);
+      btnRefreshPrompts.setAttribute('aria-label', t.btnRefreshPrompts);
+      const sr = btnRefreshPrompts.querySelector('.sr-only');
+      if (sr) sr.textContent = t.btnRefreshPrompts;
+    }
+
+    // Guest limit modal
+    const guestLimitTitle = document.getElementById('guest-limit-title');
+    if (guestLimitTitle && t.guestLimitTitle) guestLimitTitle.textContent = t.guestLimitTitle;
+    const guestLimitLead = document.querySelector('.guest-limit-sheet .modal-lead');
+    if (guestLimitLead && t.guestLimitLead) guestLimitLead.textContent = t.guestLimitLead;
+    const guestFeatures = document.querySelectorAll('.guest-gate-feature span');
+    if (guestFeatures.length >= 3) {
+      if (t.guestFeature1) guestFeatures[0].textContent = t.guestFeature1;
+      if (t.guestFeature2) guestFeatures[1].textContent = t.guestFeature2;
+      if (t.guestFeature3) guestFeatures[2].textContent = t.guestFeature3;
+    }
+    const btnGuestSigninSpan = document.querySelector('#btn-guest-signin span');
+    if (btnGuestSigninSpan && t.guestBtnSignin) btnGuestSigninSpan.textContent = t.guestBtnSignin;
+    const btnGuestRegisterSpan = document.querySelector('#btn-guest-register span');
+    if (btnGuestRegisterSpan && t.guestBtnRegister) btnGuestRegisterSpan.textContent = t.guestBtnRegister;
+    const btnGuestPlansSpan = document.querySelector('#btn-guest-plans span');
+    if (btnGuestPlansSpan && t.guestBtnPlans) btnGuestPlansSpan.textContent = t.guestBtnPlans;
+
+    // Dock buttons
+    const uploadNotesSpan = document.querySelector('#btn-upload-notes span');
+    if (uploadNotesSpan && t.uploadNotesBtn) uploadNotesSpan.textContent = t.uploadNotesBtn;
+    const dockExpandSpan = document.querySelector('#btn-dock-expand span');
+    if (dockExpandSpan && t.dockExpandBtn) dockExpandSpan.textContent = t.dockExpandBtn;
+
+    // Upload notes modal
+    const notesUploadTitle = document.getElementById('notes-upload-title');
+    if (notesUploadTitle && t.notesModalTitle) notesUploadTitle.textContent = t.notesModalTitle;
+    const notesUploadLead = document.querySelector('.notes-upload-sheet .modal-lead');
+    if (notesUploadLead && t.notesModalLead) notesUploadLead.textContent = t.notesModalLead;
+    const tabNotesFileSpan = document.querySelector('#tab-notes-file span');
+    if (tabNotesFileSpan && t.notesTabFile) tabNotesFileSpan.textContent = t.notesTabFile;
+    const tabNotesPasteSpan = document.querySelector('#tab-notes-paste span');
+    if (tabNotesPasteSpan && t.notesTabPaste) tabNotesPasteSpan.textContent = t.notesTabPaste;
+    const dropzoneTitle = document.querySelector('.notes-dropzone-title');
+    if (dropzoneTitle && t.notesDropzoneTitle) dropzoneTitle.textContent = t.notesDropzoneTitle;
+    const dropzoneSub = document.querySelector('.notes-dropzone-subtitle');
+    if (dropzoneSub && t.notesDropzoneSubtitle) dropzoneSub.textContent = t.notesDropzoneSubtitle;
+    const browseNotesSpan = document.querySelector('#btn-browse-notes-file span');
+    if (browseNotesSpan && t.notesBrowseBtn) browseNotesSpan.textContent = t.notesBrowseBtn;
+    const notesGuidanceSpan = document.querySelector('.notes-guidance-pill span');
+    if (notesGuidanceSpan && t.notesGuidance) notesGuidanceSpan.textContent = t.notesGuidance;
+    const notesSubmitSpan = document.querySelector('#btn-submit-notes span');
+    if (notesSubmitSpan && t.notesBtnSubmit) notesSubmitSpan.textContent = t.notesBtnSubmit;
+    const btnCancelNotes = document.getElementById('btn-cancel-notes');
+    if (btnCancelNotes && t.notesBtnCancel) btnCancelNotes.textContent = t.notesBtnCancel;
+
+    // Nav drawer report button
+    const drawerReportSpan = document.querySelector('#btn-drawer-reports span');
+    if (drawerReportSpan && t.childProgressReport) drawerReportSpan.textContent = t.childProgressReport;
+
+    // Study toolbar tabs if present
+    const studyToolbar = document.querySelector('.study-modes-toolbar');
+    if (studyToolbar && typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.STUDY_TOOLBAR_LABELS) {
+      const lMap = LessonCardRenderer.STUDY_TOOLBAR_LABELS[lang] || LessonCardRenderer.STUDY_TOOLBAR_LABELS.en;
+      if (lMap) {
+        Object.keys(lMap).forEach(mId => {
+          const btnSpan = studyToolbar.querySelector(`.study-tab-${mId} span`);
+          if (btnSpan) btnSpan.textContent = lMap[mId];
+        });
+      }
+    }
+
+    // Parent Setup modal (delegated to its own module, which keeps a parallel translation dictionary)
+    if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.applyTranslations === 'function') {
+      window.ParentSetupUI.applyTranslations(lang);
+    }
+
+    // Parental Controls modal (delegated to its own module with its own translation dictionary)
+    if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.applyTranslations === 'function') {
+      window.ParentalControlsUI.applyTranslations(lang);
+    }
+
+    // Automatic attribute-based landing page & generic UI bindings
+    if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t[key] !== undefined) {
+          el.textContent = t[key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-html');
+        if (key && t[key] !== undefined) {
+          el.innerHTML = t[key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && t[key] !== undefined) {
+          el.placeholder = t[key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-aria-label');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('aria-label', t[key]);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-title');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('title', t[key]);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-alt]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-alt');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('alt', t[key]);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-question]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-question');
+        if (key && t[key] !== undefined) {
+          el.setAttribute('data-question', t[key]);
+        }
+      });
+    }
+
+    // Landing Page Controller sync
+    if (typeof window !== 'undefined' && window.LandingPage && typeof window.LandingPage.applyTranslations === 'function') {
+      window.LandingPage.applyTranslations(lang);
+    }
+  }
+
+  // ==========================================
+  // VOICE RESPONSE POPUP (PERSISTENT HEADS-UP DISPLAY) & STUDY MODES
+  // ==========================================
+  let voicePopupTimer = null;
+  const voiceReplyPopup = document.getElementById('voice-reply-popup');
+  const voicePopupContent = document.getElementById('voice-popup-content');
+  const btnCloseVoicePopup = document.getElementById('btn-close-voice-popup');
+  let activePopupLessonCard = null;
+  let activePopupMode = 'lesson';
+  let activeLangSwitchSeq = 0;
+
+  function cancelVoicePopupTimer() {
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.__appuCancelVoicePopupTimer = cancelVoicePopupTimer;
+  }
+
+  /**
+   * Seeds or accesses the non-enumerable per-language cache on lesson cards:
+   * card.__langVariants = { en: {...}, kn: {...}, hi: {...} }
+   */
+  function ensureLangVariantsCache(card, fallbackLang = 'en') {
+    if (!card || typeof card !== 'object') return null;
+    if (!card.__langVariants) {
+      const birthLang = card.language || card.lang || fallbackLang || 'en';
+      card.language = birthLang;
+      const variants = {};
+      variants[birthLang] = card;
+      Object.defineProperty(card, '__langVariants', {
+        value: variants,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+    return card.__langVariants;
+  }
+
+  /**
+   * Swaps the active card to a language variant, carrying over visual assets,
+   * non-enumerable variant caches, and preserving saved status without re-speaking.
+   */
+  function applyLanguageVariant(newCard, targetLang) {
+    if (!newCard) return;
+
+    const previousCard = activePopupLessonCard;
+
+    // 1. Maintain shared __langVariants across all variants
+    const variants = (previousCard && previousCard.__langVariants) || ensureLangVariantsCache(previousCard, targetLang);
+    if (variants) {
+      variants[targetLang] = newCard;
+      if (!newCard.__langVariants) {
+        Object.defineProperty(newCard, '__langVariants', {
+          value: variants,
+          writable: true,
+          enumerable: false,
+          configurable: true
+        });
+      }
+    }
+
+    // 2. Carry over illustration image and runtime promise (language-agnostic visuals)
+    if (previousCard) {
+      const imgUrl = previousCard.__diagramIllustrationUrl || (previousCard.diagram && previousCard.diagram.__diagramIllustrationUrl);
+      if (imgUrl) {
+        if (!newCard.__diagramIllustrationUrl) {
+          Object.defineProperty(newCard, '__diagramIllustrationUrl', {
+            value: imgUrl,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (newCard.diagram && !newCard.diagram.__diagramIllustrationUrl) {
+          Object.defineProperty(newCard.diagram, '__diagramIllustrationUrl', {
+            value: imgUrl,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+
+      const imgPromise = previousCard.__diagramIllustrationPromise || (previousCard.diagram && previousCard.diagram.__diagramIllustrationPromise);
+      if (imgPromise) {
+        if (!newCard.__diagramIllustrationPromise) {
+          Object.defineProperty(newCard, '__diagramIllustrationPromise', {
+            value: imgPromise,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (newCard.diagram && !newCard.diagram.__diagramIllustrationPromise) {
+          Object.defineProperty(newCard.diagram, '__diagramIllustrationPromise', {
+            value: imgPromise,
+            writable: true,
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+
+      // Preserve stable card ID, question, grade, and citation
+      if (!newCard.id && previousCard.id) newCard.id = previousCard.id;
+      if (!newCard.question && previousCard.question) newCard.question = previousCard.question;
+      if (!newCard.grade && previousCard.grade) newCard.grade = previousCard.grade;
+      if (!newCard.citation && previousCard.citation) newCard.citation = previousCard.citation;
+    }
+    newCard.language = targetLang;
+
+    // 3. Preserve Saved State
+    const wasSaved = (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function')
+      ? (window.SavedLessonsUI.isLessonSaved(previousCard) || window.SavedLessonsUI.isLessonSaved(newCard))
+      : false;
+
+    if (wasSaved && typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.saveLesson === 'function') {
+      window.SavedLessonsUI.saveLesson(newCard, { language: targetLang });
+    }
+
+    // 4. Update active card reference
+    activePopupLessonCard = newCard;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = newCard;
+    }
+
+    // 5. Re-render the active mode tab
+    renderVoicePopupStudyContent(activePopupMode || 'lesson');
+
+    // 6. Update subtitles HUD quietly (no duplicate chat drawer bubble, no auto-TTS)
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText && newCard.plainText) {
+      subtitlesText.textContent = newCard.plainText;
+      if (typeof subtitlesText.scrollTop !== 'undefined') {
+        subtitlesText.scrollTop = 0;
+      }
+    }
+  }
+
+  /**
+   * Switches the active study card to the target language (en/kn/hi)
+   * Instant if cached; otherwise renders a shimmer and regenerates the card.
+   */
+  async function switchActiveCardLanguage(targetLang) {
+    if (!activePopupLessonCard) return;
+
+    // Guard if already in this language variant
+    if (activePopupLessonCard.language === targetLang && (!activePopupLessonCard.__langVariants || activePopupLessonCard.__langVariants[targetLang] === activePopupLessonCard)) {
+      return;
+    }
+
+    const previousCard = activePopupLessonCard;
+    const variants = ensureLangVariantsCache(previousCard, currentLang);
+
+    // CACHE HIT: Instant 0ms swap
+    if (variants && variants[targetLang]) {
+      applyLanguageVariant(variants[targetLang], targetLang);
+      return;
+    }
+
+    // Rapid-toggle sequence guard:
+    const switchSeq = ++activeLangSwitchSeq;
+
+    // CACHE MISS: Render immediate shimmer placeholder while keeping toolbar active
+    if (voicePopupContent) {
+      voicePopupContent.innerHTML = '';
+      if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.renderStudyToolbar === 'function') {
+        const toolbar = LessonCardRenderer.renderStudyToolbar(activePopupMode, (newMode) => {
+          activePopupMode = newMode;
+        }, targetLang, () => {
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+            window.SavedLessonsUI.shareLessonToWhatsApp(previousCard);
+          }
+        }, { card: previousCard });
+        voicePopupContent.appendChild(toolbar);
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'voice-popup-study-wrapper is-loading-lang';
+
+      const langNames = { en: 'English', kn: 'ಕನ್ನಡ', hi: 'हिंदी' };
+      const langLabel = langNames[targetLang] || targetLang;
+
+      const shimmerBox = document.createElement('div');
+      shimmerBox.className = 'diagram-illustration-card is-loading';
+      shimmerBox.style.cssText = 'margin: 24px auto; max-width: 440px; padding: 36px 16px; text-align: center; border-radius: 16px;';
+
+      const shimmerInner = document.createElement('div');
+      shimmerInner.className = 'diagram-illustration-shimmer';
+      shimmerInner.innerHTML = `<i class="fa-solid fa-sparkles shimmer-sparkle"></i> <span class="shimmer-text">Translating into ${langLabel}...</span>`;
+
+      shimmerBox.appendChild(shimmerInner);
+      wrapper.appendChild(shimmerBox);
+      voicePopupContent.appendChild(wrapper);
+    }
+
+    const question = previousCard.question || previousCard.mindMap?.central || previousCard.topic || previousCard.plainText || '';
+    const childGrade = (typeof getActiveChildGrade === 'function')
+      ? getActiveChildGrade()
+      : ((typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.getGrade === 'function')
+          ? window.AppuSession.getGrade()
+          : (previousCard.grade || null));
+
+    const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+    const isDocMode = Boolean(
+      (activeDoc && activeDoc.text && activeDoc.text.trim()) ||
+      (previousCard.citation?.isUpload || previousCard.citation?.source === 'upload' || previousCard.isUploadSource)
+    );
+
+    let generatedCard = null;
+
+    try {
+      if (isDocMode) {
+        const docText = activeDoc?.text || previousCard.documentText || '';
+        if (docText && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function') {
+          const notesRes = await LessonCardRenderer.fetchNotesTutor({
+            question,
+            documentText: docText,
+            grade: childGrade,
+            language: targetLang,
+            timeoutMs: 25000
+          });
+          if (notesRes && notesRes.lessonCard) {
+            generatedCard = notesRes.lessonCard;
+            if (notesRes.answer && !generatedCard.plainText) {
+              generatedCard.plainText = notesRes.answer;
+            }
+          }
+        }
+      } else {
+        // Normal Mode:
+        // 1) Regenerate answer text in targetLang via backendClient if available
+        let regeneratedAnswer = '';
+        const backendClient = (typeof window !== 'undefined') ? window.AppuBackendClient : null;
+        if (backendClient && typeof backendClient.sendAppuMessage === 'function') {
+          try {
+            const hasSecureSession = (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.isAuthenticated === 'function') && window.AppuSession.isAuthenticated();
+            const payload = hasSecureSession ? {
+              accessToken: window.AppuSession.accessToken,
+              childId: window.AppuSession.childId,
+              message: question,
+              language: targetLang,
+              includeAudio: false
+            } : {
+              message: question,
+              language: targetLang,
+              includeAudio: false
+            };
+            const backendRes = await backendClient.sendAppuMessage(payload);
+            if (backendRes && backendRes.text) {
+              regeneratedAnswer = backendRes.text.replace(/\\n/g, '\n');
+            }
+          } catch (backendErr) {
+            console.warn('[LangSwitch] Backend message regen notice:', backendErr);
+          }
+        }
+
+        // 2) Fetch study visualizer with the question & answer in targetLang
+        if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
+          const visualizerCard = await LessonCardRenderer.fetchStudyVisualizer({
+            question,
+            answer: regeneratedAnswer || previousCard.plainText || '',
+            grade: childGrade,
+            language: targetLang,
+            timeoutMs: 25000
+          });
+          if (visualizerCard) {
+            generatedCard = visualizerCard;
+          }
+        }
+
+        // 3) Fallback if visualizer timed out or was offline
+        if (!generatedCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+          generatedCard = LessonCardRenderer.buildMinimalAnswerCard(
+            question,
+            regeneratedAnswer || previousCard.plainText || '',
+            childGrade
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('[LangSwitch] Failed regenerating card for language:', targetLang, err);
+      if (!generatedCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+        generatedCard = LessonCardRenderer.buildMinimalAnswerCard(question, previousCard.plainText || '', childGrade);
+      }
+    }
+
+    if (!generatedCard) {
+      if (switchSeq === activeLangSwitchSeq) {
+        renderVoicePopupStudyContent(activePopupMode || 'lesson');
+      }
+      return;
+    }
+
+    // Cache the generated variant unconditionally
+    if (variants) {
+      variants[targetLang] = generatedCard;
+    }
+
+    // Check interaction sequence guard
+    if (switchSeq !== activeLangSwitchSeq) {
+      console.log(`[LangSwitch] Discarding stale variant for ${targetLang} (current seq: ${activeLangSwitchSeq}, req: ${switchSeq})`);
+      return;
+    }
+
+    // Apply the newly generated variant
+    applyLanguageVariant(generatedCard, targetLang);
+  }
+
+  function renderVoicePopupStudyContent(mode = 'lesson') {
+    if (!voicePopupContent) return;
+    activePopupMode = mode;
+    if (mode !== 'lesson') {
+      cancelVoicePopupTimer();
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      if (mode === 'lesson') {
+        missionStage.classList.add('mode-is-lesson');
+        missionStage.classList.remove('mode-is-study-card');
+      } else {
+        missionStage.classList.remove('mode-is-lesson');
+        missionStage.classList.add('mode-is-study-card');
+      }
+    }
+    voicePopupContent.innerHTML = '';
+
+    if (activePopupLessonCard && typeof LessonCardRenderer !== 'undefined') {
+      // 1) Render Study Modes Toolbar above the content
+      if (typeof LessonCardRenderer.renderStudyToolbar === 'function') {
+        const toolbar = LessonCardRenderer.renderStudyToolbar(mode, (newMode) => {
+          renderVoicePopupStudyContent(newMode);
+        }, currentLang, () => {
+          if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.shareLessonToWhatsApp === 'function') {
+            window.SavedLessonsUI.shareLessonToWhatsApp(activePopupLessonCard);
+          }
+        }, {
+          card: activePopupLessonCard
+        });
+        voicePopupContent.appendChild(toolbar);
+      }
+
+      // 2) Render the active study mode inside wrapper
+      const wrapper = document.createElement('div');
+      wrapper.className = 'voice-popup-study-wrapper';
+
+      // Dynamic live fetch for Podcast mode if not yet generated
+      if (mode === 'podcast') {
+        const topic = activePopupLessonCard.mindMap?.central || activePopupLessonCard.topic || activePopupLessonCard.title || 'Lesson';
+        if (!activePopupLessonCard.podcastScript?.isLiveFetched && !activePopupLessonCard.__isFetchingPodcast) {
+          if (typeof LessonCardRenderer.createPodcastLoadingCard === 'function') {
+            wrapper.appendChild(LessonCardRenderer.createPodcastLoadingCard(topic));
+          }
+          voicePopupContent.appendChild(wrapper);
+
+          activePopupLessonCard.__isFetchingPodcast = true;
+          const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+          const docText = activeDoc?.text || null;
+          const childGrade = getActiveChildGrade() || activePopupLessonCard.grade || '6';
+          const lang = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+
+          LessonCardRenderer.fetchPodcast({
+            topic,
+            question: activePopupLessonCard.question || topic,
+            answer: activePopupLessonCard.plainText || '',
+            grade: childGrade,
+            language: lang,
+            documentText: docText,
+            timeoutMs: 22000
+          }).then(result => {
+            activePopupLessonCard.__isFetchingPodcast = false;
+            if (result && (result.script || (Array.isArray(result.segments) && result.segments.length > 0))) {
+              activePopupLessonCard.podcastScript = {
+                ...result,
+                isLiveFetched: true,
+                citation: activePopupLessonCard.citation
+              };
+            } else if (!activePopupLessonCard.podcastScript) {
+              activePopupLessonCard.podcastScript = LessonCardRenderer.buildFallbackPodcastScript(
+                topic,
+                activePopupLessonCard.plainText,
+                activePopupLessonCard.citation
+              );
+            }
+            if (activePopupMode === 'podcast') {
+              renderVoicePopupStudyContent('podcast');
+            }
+          }).catch(err => {
+            console.warn('[Appu] Live podcast fetch notice:', err);
+            activePopupLessonCard.__isFetchingPodcast = false;
+            if (!activePopupLessonCard.podcastScript) {
+              activePopupLessonCard.podcastScript = LessonCardRenderer.buildFallbackPodcastScript(
+                topic,
+                activePopupLessonCard.plainText,
+                activePopupLessonCard.citation
+              );
+            }
+            if (activePopupMode === 'podcast') {
+              renderVoicePopupStudyContent('podcast');
+            }
+          });
+          return;
+        } else if (activePopupLessonCard.__isFetchingPodcast) {
+          if (typeof LessonCardRenderer.createPodcastLoadingCard === 'function') {
+            wrapper.appendChild(LessonCardRenderer.createPodcastLoadingCard(topic));
+          }
+          voicePopupContent.appendChild(wrapper);
+          return;
+        }
+      }
+
+      const contentEl = typeof LessonCardRenderer.renderStudyMode === 'function'
+        ? LessonCardRenderer.renderStudyMode(mode, activePopupLessonCard, {
+            language: currentLang,
+            card: activePopupLessonCard,
+            onCelebrate: () => {
+              if (window.AppuGamification && typeof window.AppuGamification.awardXP === 'function') {
+                window.AppuGamification.awardXP(20, 'Awesome work! ⭐');
+              } else if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                window.appMascot.celebrate(3200);
+              }
+            }
+          })
+        : (mode === 'lesson'
+            ? LessonCardRenderer.render(activePopupLessonCard, {
+                language: currentLang,
+                onCelebrate: () => {
+                  if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+                    window.appMascot.celebrate(3200);
+                  }
+                }
+              })
+            : document.createElement('div'));
+
+      wrapper.appendChild(contentEl);
+      voicePopupContent.appendChild(wrapper);
+    } else {
+      voicePopupContent.textContent = activePopupLessonCard?.plainText || '';
+    }
+  }
+
+  function showVoicePopup(text, lessonCard = null, initialMode = 'lesson') {
+    if (!voiceReplyPopup || (!text && !lessonCard)) return;
+    if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      missionStage.classList.add('has-lesson-active');
+      if ((initialMode || 'lesson') === 'lesson') {
+        missionStage.classList.add('mode-is-lesson');
+        missionStage.classList.remove('mode-is-study-card');
+      } else {
+        missionStage.classList.remove('mode-is-lesson');
+        missionStage.classList.add('mode-is-study-card');
+      }
+    }
+    let cardToRender = lessonCard;
+    if (!cardToRender && text && typeof LessonCardRenderer !== 'undefined') {
+      const parsed = LessonCardRenderer.parse(text);
+      if (parsed && parsed.isRich) {
+        cardToRender = parsed;
+      }
+    }
+    if (cardToRender && !cardToRender.question && text) {
+      cardToRender.question = text;
+    }
+    if (cardToRender) {
+      cardToRender.language = cardToRender.language || currentLang || 'en';
+      ensureLangVariantsCache(cardToRender, currentLang);
+    }
+    activePopupLessonCard = cardToRender;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = cardToRender;
+    }
+    if (cardToRender) {
+      if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+        if (window.SavedLessonsUI.isLessonSaved(cardToRender)) {
+          window.SavedLessonsUI.saveLesson(cardToRender);
+        }
+      }
+      renderVoicePopupStudyContent(initialMode || 'lesson');
+    } else if (voicePopupContent) {
+      voicePopupContent.innerHTML = '';
+      voicePopupContent.textContent = text || '';
+    }
+    voiceReplyPopup.hidden = false;
+    voiceReplyPopup.removeAttribute('hidden');
+    voiceReplyPopup.classList.add('is-visible');
+
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+
+    // Only set auto-hide timer for default 'lesson' mode when not in interactive study card
+    if ((initialMode || 'lesson') === 'lesson') {
+      const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+      const readingDurationMs = Math.round((wordCount / 200) * 60 * 1000);
+      const timeoutMs = lessonCard ? Math.max(60000, readingDurationMs) : Math.max(30000, readingDurationMs);
+
+      voicePopupTimer = setTimeout(() => {
+        hideVoicePopup();
+      }, timeoutMs);
+    }
+  }
+
+  window.showVoicePopup = showVoicePopup;
+  if (window.app) {
+    window.app.showVoicePopup = showVoicePopup;
+  }
+
+  function updateVoicePopupCard(newCard) {
+    if (!newCard) return;
+    if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
+      LessonCardRenderer.purgeMermaidErrorElements();
+    }
+    newCard.language = newCard.language || currentLang || 'en';
+    if (activePopupLessonCard && activePopupLessonCard.__langVariants) {
+      Object.defineProperty(newCard, '__langVariants', {
+        value: activePopupLessonCard.__langVariants,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+      activePopupLessonCard.__langVariants[newCard.language] = newCard;
+    } else {
+      ensureLangVariantsCache(newCard, currentLang);
+    }
+    if (activePopupLessonCard && activePopupLessonCard.__diagramIllustrationUrl && !newCard.__diagramIllustrationUrl) {
+      Object.defineProperty(newCard, '__diagramIllustrationUrl', {
+        value: activePopupLessonCard.__diagramIllustrationUrl,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+    if (activePopupLessonCard && activePopupLessonCard.diagram && !newCard.diagram) {
+      newCard.diagram = activePopupLessonCard.diagram;
+    }
+    activePopupLessonCard = newCard;
+    if (typeof window !== 'undefined') {
+      window.activePopupLessonCard = newCard;
+    }
+    if (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function') {
+      if (window.SavedLessonsUI.isLessonSaved(newCard)) {
+        window.SavedLessonsUI.saveLesson(newCard);
+      }
+    }
+    if (voiceReplyPopup) {
+      if (!voiceReplyPopup.classList.contains('is-visible')) {
+        showVoicePopup(newCard.plainText || '', newCard);
+      } else {
+        renderVoicePopupStudyContent(activePopupMode || 'lesson');
+      }
+    }
+  }
+
+  function hideVoicePopup() {
+    if (voicePopupTimer) {
+      clearTimeout(voicePopupTimer);
+      voicePopupTimer = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {
+        // ignore
+      }
+    }
+    const missionStage = document.querySelector('.mission-stage');
+    if (missionStage) {
+      missionStage.classList.remove('has-lesson-active', 'mode-is-lesson', 'mode-is-study-card');
+    }
+    if (voiceReplyPopup) {
+      voiceReplyPopup.classList.remove('is-visible');
+      voiceReplyPopup.hidden = true;
+      voiceReplyPopup.setAttribute('hidden', 'true');
+    }
+    if (window.appMascot && (window.appMascot.mood === 'explaining' || window.appMascot.mood === 'celebrating')) {
+      window.appMascot.setMood('idle');
+    }
+    if (avatarStage && avatarStage.state === 'speaking') {
+      avatarStage.setState('idle');
+    }
+  }
+
+  // ==========================================
+  // LANGUAGE TOGGLE HANDLER (ENG / KANNADA / HINDI)
+  // ==========================================
+  const langEnBtn = document.getElementById('lang-en');
+  const langKnBtn = document.getElementById('lang-kn');
+  const langHiBtn = document.getElementById('lang-hi');
+
+  function setLanguage(lang, announce = true) {
+    if (lang !== 'en' && lang !== 'kn' && lang !== 'hi') lang = 'en';
+    currentLang = lang;
+    if (typeof window !== 'undefined') {
+      window.currentLang = lang;
+      if (window.app) window.app.currentLang = lang;
+    }
+    localStorage.setItem('appu_lang', lang);
+    voiceEngine.setLanguage(lang);
+    if (chatAgent) chatAgent.language = lang;
+
+    if (langEnBtn) {
+      langEnBtn.classList.toggle('is-active', lang === 'en');
+      langEnBtn.setAttribute('aria-checked', lang === 'en' ? 'true' : 'false');
+    }
+    if (langKnBtn) {
+      langKnBtn.classList.toggle('is-active', lang === 'kn');
+      langKnBtn.setAttribute('aria-checked', lang === 'kn' ? 'true' : 'false');
+    }
+    if (langHiBtn) {
+      langHiBtn.classList.toggle('is-active', lang === 'hi');
+      langHiBtn.setAttribute('aria-checked', lang === 'hi' ? 'true' : 'false');
+    }
+
+    applyUiTranslations(lang);
+
+    if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.applyTranslations === 'function') {
+      window.ParentalControlsUI.applyTranslations(lang);
+    }
+
+    if (typeof window !== 'undefined' && window.LandingPage && typeof window.LandingPage.setLanguage === 'function') {
+      if (window.LandingPage.currentLang !== lang) {
+        window.LandingPage.setLanguage(lang, false);
+      }
+    }
+
+    const isVoicePopupVisible = voiceReplyPopup && (voiceReplyPopup.classList.contains('is-visible') || !voiceReplyPopup.hidden);
+    if (activePopupLessonCard && isVoicePopupVisible) {
+      // Study card is open! Regenerate or swap card in target language quietly (no greeting, no TTS)
+      switchActiveCardLanguage(lang);
+    } else if (announce && voiceEngine) {
+      const t = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS.en;
+      if (!voiceEngine.isVoiceSupported) {
+        voiceEngine.streamSubtitles(t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat");
+      } else {
+        voiceEngine.streamSubtitles(t.subtitlesGreeting);
+      }
+    }
+  }
+
+  // Initialize UI language state on load
+  setLanguage(currentLang, false);
+  if (voiceEngine && !voiceEngine.isVoiceSupported) {
+    const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+    }
+  }
+
+  if (langEnBtn) langEnBtn.addEventListener('click', () => setLanguage('en'));
+  if (langKnBtn) langKnBtn.addEventListener('click', () => setLanguage('kn'));
+  if (langHiBtn) langHiBtn.addEventListener('click', () => setLanguage('hi'));
+
+
+  if (btnCloseVoicePopup) {
+    btnCloseVoicePopup.addEventListener('click', () => {
+      voiceEngine.playClick();
+      hideVoicePopup();
+    });
+  }
+
+  if (voiceReplyPopup) {
+    voiceReplyPopup.addEventListener('click', cancelVoicePopupTimer);
+    voiceReplyPopup.addEventListener('pointerdown', cancelVoicePopupTimer);
+  }
+
+  // ==========================================
+  // AUTH & PERSONALIZATION GATING
+  // ==========================================
+  function ensureChatSessionReady(pendingText = null) {
+    const isAuthed = typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated();
+    const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated();
+
+    if (isAuthed) {
+      // If parental controls 30-min hard lock is active, block chatting and trigger lock modal
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
+        window.ParentalControlsUI.triggerLock();
+        return false;
+      }
+
+      // If session start OTP gate is currently active, block chatting until parent OTP verification succeeds
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isSessionStartGateActive) {
+        return false;
+      }
+
+      // After enough chats, a signed-in parent is asked for feedback. This check has no side
+      // effects: it runs on drawer-open, submit AND inside handleUserInteraction, so counting
+      // here inflated one message into ~3 chats and could trip the gate after the input was
+      // already cleared (losing the child's message). The chat is counted once, on send.
+      if (window.ParentReportsUI && typeof window.ParentReportsUI.enforceFeedbackGate === 'function') {
+        if (window.ParentReportsUI.enforceFeedbackGate()) return false;
+      }
+      return true;
+    }
+
+    if (hasAuthenticatedParent) {
+      voiceEngine.playClick();
+      if (pendingText) {
+        window.__pendingChatPrompt = pendingText;
+      }
+      const shell = window.ParentOnboardingShell;
+      const children = (shell && shell.state && shell.state.children) || [];
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        if (children.length === 0) {
+          window.ParentSetupUI.openModal(3);
+        } else {
+          window.ParentSetupUI.openModal(4);
+        }
+      }
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = 'Please set up your learner profile and preferences to start chatting!';
+      }
+      return false;
+    }
+
+    // Guest user with remaining quota (> 0) can chat freely!
+    if (currentGuestRemaining > 0) {
+      return true;
+    }
+
+    // Guest quota exhausted -> show gate modal
+    voiceEngine.playClick();
+    if (pendingText) {
+      window.__pendingChatPrompt = pendingText;
+    }
+    showGuestGateModal();
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = "You've used your 5 free chats. Sign in to continue with unlimited personalized learning for your child!";
+    }
+    return false;
+  }
+
+  function getActiveChildGrade() {
+    try {
+      const fromSession = window.AppuSession && typeof window.AppuSession.getGrade === 'function' ? window.AppuSession.getGrade() : null;
+      if (fromSession) return fromSession;
+      const child = window.ParentOnboardingShell && window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.selectedChild;
+      const m = child && child.gradeBand ? String(child.gradeBand).match(/\d{1,2}/) : null;
+      if (m) return m[0];
+    } catch (_) {}
+    return null;
+  }
+  if (typeof window !== 'undefined') {
+    window.getActiveChildGrade = getActiveChildGrade;
+  }
+
+  // ==========================================
+  // CORE INTERACTION HANDLER
+  // ==========================================
+  let activeInteractionSeq = 0;
+
+  async function handleUserInteraction(text, image = null) {
+    const isDocActive = Boolean(window.activeTutorDocument && window.activeTutorDocument.text);
+    if (!isDocActive && (!text || !text.trim())) return;
+
+    if (window.ParentalControlsUI && typeof window.ParentalControlsUI.enforceSessionStartGate === 'function') {
+      const allowed = await window.ParentalControlsUI.enforceSessionStartGate(() => {
+        handleUserInteraction(text, image);
+      });
+      if (!allowed) {
+        return;
+      }
+    }
+
+    const interactionTurnId = ++activeInteractionSeq;
+
+    if (!ensureChatSessionReady(text || (isDocActive ? window.activeTutorDocument.name : ''))) {
+      return;
+    }
+
+    // Count this as exactly one chat toward the parent-feedback prompt (no-op for guests
+    // or once feedback is given).
+    if (window.ParentReportsUI && typeof window.ParentReportsUI.noteAuthedChat === 'function') {
+      window.ParentReportsUI.noteAuthedChat();
+    }
+
+    voiceEngine.playClick();
+    avatarStage.setState('thinking');
+    if (window.appMascot) window.appMascot.setMood('thinking');
+
+    // If active document mode: Route directly to appu-notes-tutor webhook
+    if (isDocActive) {
+      const rawQuestion = (text && text.trim()) ? text.trim() : '';
+      const displayQuery = rawQuestion || `Teach me from "${window.activeTutorDocument.name}"`;
+
+      // Update Subtitles HUD
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = `"${displayQuery}"`;
+      }
+
+      // Append user turn to chat drawer
+      if (chatAgent && typeof chatAgent.addMessage === 'function') {
+        chatAgent.addMessage('user', displayQuery);
+      }
+
+      // Immediate shimmer loading card
+      const childGrade = getActiveChildGrade();
+      const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+      const initialCard = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+        ? LessonCardRenderer.createLoadingCard(displayQuery, 'Reading your notes and crafting your grounded lesson...', childGrade)
+        : null;
+
+      // Close typing drawer if open so learner sees the live stage
+      const chatDrawer = document.getElementById('chat-drawer');
+      if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+        if (typeof toggleChatDrawer === 'function') {
+          toggleChatDrawer(false);
+        }
+      }
+      if (typeof showVoicePopup === 'function') {
+        showVoicePopup('Reading your notes and crafting your grounded lesson...', initialCard);
+      }
+
+      try {
+        const notesResult = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function')
+          ? await LessonCardRenderer.fetchNotesTutor({
+              question: rawQuestion,
+              documentText: window.activeTutorDocument.text,
+              grade: childGrade,
+              language: currentLangCode,
+              timeoutMs: 22000
+            })
+          : null;
+
+        if (interactionTurnId !== activeInteractionSeq) {
+          console.log('[NotesTutor] Discarding stale response from previous turn');
+          return;
+        }
+
+        if (notesResult && notesResult.answer) {
+          const reply = notesResult.answer;
+          const lessonCard = notesResult.lessonCard;
+
+          avatarStage.setState('speaking');
+          if (window.appMascot) window.appMascot.setMood('explaining');
+
+          if (typeof showVoicePopup === 'function') {
+            showVoicePopup(reply, lessonCard);
+          }
+          if (chatAgent && typeof chatAgent.addMessage === 'function') {
+            chatAgent.addMessage('appu', reply, null, null, { lessonCard });
+          }
+
+          const notesAudio = notesResult.audio_base64
+            ? (notesResult.audio_base64.startsWith('data:') ? notesResult.audio_base64 : `data:audio/mpeg;base64,${notesResult.audio_base64}`)
+            : null;
+          voiceEngine.playMessage();
+          await voiceEngine.speak(reply, notesAudio);
+        } else {
+          throw new Error('No valid response from notes tutor webhook');
+        }
+      } catch (err) {
+        if (interactionTurnId !== activeInteractionSeq) return;
+        console.warn('[NotesTutor] Interaction failed or timed out:', err);
+        avatarStage.setState('idle');
+        if (window.appMascot) window.appMascot.setMood('idle');
+        const fallbackMsg = "I couldn't process this document right now. Please try asking a specific question or re-uploading your notes!";
+        if (typeof showVoicePopup === 'function') {
+          showVoicePopup(fallbackMsg, null);
+        }
+        if (chatAgent && typeof chatAgent.addMessage === 'function') {
+          chatAgent.addMessage('appu', fallbackMsg);
+        }
+        voiceEngine.speak(fallbackMsg);
+      }
+      return;
+    }
+
+    // Update Subtitles HUD to show user's query
+    const subtitlesText = document.getElementById('subtitles-text');
+    if (subtitlesText) {
+      subtitlesText.textContent = `"${text}"`;
+      if (typeof subtitlesText.scrollTop !== 'undefined') {
+        subtitlesText.scrollTop = 0;
+      }
+    }
+
+    const result = await chatAgent.sendMessage(
+      text,
+      () => {
+        avatarStage.setState('thinking');
+        if (window.appMascot) window.appMascot.setMood('thinking');
+      },
+      async (reply, audioData, audioStreamUrl, accessToken, fullResult) => {
+        avatarStage.setState('speaking');
+        const mood = (fullResult && fullResult.mood) || 'explaining';
+        if (window.appMascot) window.appMascot.setMood(mood);
+
+        const childGrade = getActiveChildGrade();
+        const hasCompleteCard = Boolean(
+          fullResult?.lessonCard?.mindMap?.branches?.length > 0 &&
+          (fullResult?.lessonCard?.quizItems?.length > 0 || fullResult?.lessonCard?.blocks?.some(b => b.type === 'check'))
+        );
+
+        // 1) Prepare visual response card: unique, fun, visual response
+        const currentLangCode = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+        const initialCard = hasCompleteCard
+          ? fullResult.lessonCard
+          : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildVisualResponseCard === 'function')
+              ? LessonCardRenderer.buildVisualResponseCard(text, reply, childGrade, { language: currentLangCode })
+              : ((typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.createLoadingCard === 'function')
+                  ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
+                  : (fullResult ? fullResult.lessonCard : null)));
+
+        // 2) Close typing drawer if open and render stage presentation for EVERY real answer
+        const chatDrawer = document.getElementById('chat-drawer');
+        if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+          if (typeof toggleChatDrawer === 'function') {
+            toggleChatDrawer(false);
+          }
+        }
+        if (typeof showVoicePopup === 'function') {
+          showVoicePopup(reply, initialCard);
+        }
+
+        // 3) Speak immediately (ElevenLabs TTS / audio-reactive Appu)
+        const speakPromise = voiceEngine.speak(reply, audioData, audioStreamUrl, accessToken);
+        voiceEngine.playMessage();
+
+        // 4) In parallel: call Study Visualizer brain if complete card not already present
+        if (!hasCompleteCard && typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchStudyVisualizer === 'function') {
+          LessonCardRenderer.fetchStudyVisualizer({
+            question: text,
+            answer: reply,
+            grade: childGrade,
+            language: currentLangCode,
+            timeoutMs: 22000
+          }).then((realCard) => {
+            if (interactionTurnId !== activeInteractionSeq) {
+              console.log('[StudyVisualizer] Discarding stale card from previous turn');
+              return;
+            }
+
+            // TOPIC GUARD: Verify card matches current question before displaying
+            let finalCard = null;
+            if (realCard && typeof LessonCardRenderer.isCardTopicMatching === 'function' && LessonCardRenderer.isCardTopicMatching(realCard, text, reply)) {
+              finalCard = realCard;
+            } else {
+              // Build grounded minimal card directly from actual answer text - NEVER SAMPLE_CARD!
+              console.warn('[StudyVisualizer] Real visualizer timed out or topic mismatched, building grounded card from actual answer');
+              if (typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+                finalCard = LessonCardRenderer.buildMinimalAnswerCard(text, reply, childGrade);
+              }
+            }
+
+            if (finalCard) {
+              if (!finalCard.diagram && initialCard && initialCard.diagram) {
+                finalCard.diagram = initialCard.diagram;
+              }
+              if (!finalCard.__diagramIllustrationUrl && initialCard && initialCard.__diagramIllustrationUrl) {
+                finalCard.__diagramIllustrationUrl = initialCard.__diagramIllustrationUrl;
+              }
+              updateVoicePopupCard(finalCard);
+              if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
+                chatAgent.updateLastAppuMessageCard(finalCard);
+              }
+            }
+          }).catch((err) => {
+            if (interactionTurnId !== activeInteractionSeq) return;
+            console.warn('[StudyVisualizer] Background fetch caught error:', err);
+            // Build grounded minimal card directly from actual answer text - NEVER SAMPLE_CARD!
+            if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.buildMinimalAnswerCard === 'function') {
+              const groundedFallback = LessonCardRenderer.buildMinimalAnswerCard(text, reply, childGrade);
+              updateVoicePopupCard(groundedFallback);
+              if (chatAgent && typeof chatAgent.updateLastAppuMessageCard === 'function') {
+                chatAgent.updateLastAppuMessageCard(groundedFallback);
+              }
+            }
+          });
+        }
+
+        await speakPromise;
+      },
+      image
+    );
+
+    if (!result) {
+      avatarStage.setState('idle');
+      if (window.appMascot) window.appMascot.setMood('idle');
+    }
+  }
+
+  // ==========================================
+  // HERO BUTTONS & ACTIONS
+  // ==========================================
+  const btnHeroPrimary = document.getElementById('btn-hero-primary-schedule');
+  const btnHeroTalk = document.getElementById('btn-hero-talk-appu');
+  const btnQuickSchedule = document.getElementById('btn-quick-schedule');
+  const btnHeroSchedule = document.getElementById('btn-hero-schedule');
+  const btnMic = document.getElementById('btn-mic');
+  const avatarFigure = document.getElementById('avatar-figure-container');
+
+  if (btnHeroPrimary) {
+    btnHeroPrimary.addEventListener('click', () => openDiscoveryModal());
+  }
+  if (btnQuickSchedule) {
+    btnQuickSchedule.addEventListener('click', () => openDiscoveryModal());
+  }
+  if (btnHeroSchedule) {
+    btnHeroSchedule.addEventListener('click', () => openDiscoveryModal());
+  }
+
+  if (btnHeroTalk) {
+    btnHeroTalk.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        const msg = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+        voiceEngine.streamSubtitles(msg);
+        toggleChatDrawer(true);
+        return;
+      }
+      if (!ensureChatSessionReady()) return;
+      voiceEngine.toggleLiveSession();
+    });
+  }
+
+  if (btnMic) {
+    btnMic.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        const msg = t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat";
+        voiceEngine.streamSubtitles(msg);
+        toggleChatDrawer(true);
+        return;
+      }
+      if (!ensureChatSessionReady()) return;
+      voiceEngine.toggleLiveSession();
+    });
+  }
+
+  if (avatarFigure) {
+    avatarFigure.addEventListener('click', () => {
+      voiceEngine.playClick();
+      const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+      handleUserInteraction(t.avatarIntroPrompt);
+    });
+  }
+
+  // ==========================================
+  // INTENT CHIPS CAROUSEL
+  // ==========================================
+  const chipButtons = document.querySelectorAll('.chip-action-btn');
+  chipButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      chipButtons.forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+
+      const prompt = btn.getAttribute('data-prompt');
+      if (prompt) {
+        handleUserInteraction(prompt);
+      }
+    });
+  });
+
+  // ==========================================
+  // SOUND TOGGLE
+  // ==========================================
+  const btnSoundToggle = document.getElementById('btn-sound-toggle');
+  const soundIcon = document.getElementById('sound-icon');
+
+  function updateSoundUI() {
+    if (soundIcon) {
+      if (voiceEngine.soundEnabled) {
+        soundIcon.className = 'fa-solid fa-volume-high text-cyan';
+      } else {
+        soundIcon.className = 'fa-solid fa-volume-xmark text-muted';
+      }
+    }
+  }
+  updateSoundUI();
+
+  if (btnSoundToggle) {
+    btnSoundToggle.addEventListener('click', () => {
+      voiceEngine.toggleSound();
+      updateSoundUI();
+    });
+  }
+
+  // ==========================================
+  // DARK / LIGHT THEME CONTROLLER
+  // ==========================================
+  const THEME_STORAGE_KEY = 'appu_theme';
+  const btnThemeToggle = document.getElementById('btn-theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  const btnDrawerThemeToggle = document.getElementById('btn-drawer-theme-toggle');
+  const drawerThemeIcon = document.getElementById('drawer-theme-icon');
+  const drawerThemeText = document.getElementById('drawer-theme-text');
+  const landingThemeToggle = document.getElementById('landing-theme-toggle');
+  const landingThemeIcon = document.getElementById('landing-theme-icon');
+
+  function getStoredTheme() {
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'dark' || stored === 'light') return stored;
+    } catch (e) {}
+    return 'dark';
+  }
+
+  function getEffectiveTheme() {
+    return (document.documentElement && document.documentElement.getAttribute('data-theme')) || getStoredTheme();
+  }
+
+  function updateThemeUI(theme) {
+    const isDark = theme === 'dark';
+
+    // Desktop topbar toggle button
+    if (btnThemeToggle) {
+      btnThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      const span = btnThemeToggle.querySelector('span');
+      if (span) span.textContent = isDark ? 'Light theme' : 'Dark theme';
+    }
+    if (themeIcon) {
+      themeIcon.className = isDark ? 'fa-solid fa-sun text-amber' : 'fa-solid fa-moon text-cyan';
+    }
+
+    // Mobile drawer toggle button
+    if (btnDrawerThemeToggle) {
+      btnDrawerThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnDrawerThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      btnDrawerThemeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    }
+    if (drawerThemeIcon) {
+      drawerThemeIcon.className = isDark ? 'fa-solid fa-sun text-amber' : 'fa-solid fa-moon text-cyan';
+    }
+    if (drawerThemeText) {
+      drawerThemeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    }
+
+    // Landing header toggle
+    if (landingThemeToggle) {
+      landingThemeToggle.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+      landingThemeToggle.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+    if (landingThemeIcon) {
+      landingThemeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+
+    // Dynamic meta theme-color sync
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', '#06101f');
+    }
+  }
+
+  function applyTheme(theme, animate = false) {
+    const nextTheme = theme === 'dark' ? 'dark' : 'light';
+
+    if (animate && typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.classList.add('theme-transitioning');
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      }, 320);
+    }
+
+    if (document.documentElement) {
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      document.documentElement.classList.toggle('theme-dark', nextTheme === 'dark');
+      document.documentElement.classList.toggle('theme-light', nextTheme === 'light');
+    }
+
+    if (document.body) {
+      document.body.setAttribute('data-theme', nextTheme);
+      document.body.classList.toggle('theme-dark', nextTheme === 'dark');
+      document.body.classList.toggle('theme-light', nextTheme === 'light');
+    }
+
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (e) {}
+
+    updateThemeUI(nextTheme);
+    return nextTheme;
+  }
+
+  function toggleTheme(animate = true) {
+    if (voiceEngine && typeof voiceEngine.playClick === 'function') {
+      voiceEngine.playClick();
+    }
+    const current = getEffectiveTheme();
+    const target = current === 'dark' ? 'light' : 'dark';
+    return applyTheme(target, animate);
+  }
+
+  // Initialize theme from storage
+  applyTheme(getStoredTheme(), false);
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  if (btnDrawerThemeToggle) {
+    btnDrawerThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  if (landingThemeToggle) {
+    landingThemeToggle.addEventListener('click', () => {
+      toggleTheme(true);
+    });
+  }
+
+  window.appuTheme = {
+    getTheme: getEffectiveTheme,
+    setTheme: (t) => applyTheme(t, true),
+    toggleTheme: () => toggleTheme(true),
+    applyTheme: applyTheme
+  };
+  if (typeof globalThis !== 'undefined') {
+    globalThis.appuTheme = window.appuTheme;
+  }
+
+  // ==========================================
+  // CHAT DRAWER ORCHESTRATION
+  // ==========================================
+  const chatDrawer = document.getElementById('chat-drawer');
+  const chatScrim = document.getElementById('chat-scrim');
+  const btnToggleChat = document.getElementById('btn-toggle-chat');
+  const btnCloseChat = document.getElementById('btn-close-chat');
+  const btnClearChat = document.getElementById('btn-clear-chat');
+  const chatForm = document.getElementById('chat-form');
+  const chatInput = document.getElementById('chat-input');
+  const btnChatMic = document.getElementById('btn-chat-mic');
+  const btnChatAttach = document.getElementById('btn-chat-attach');
+  const chatImageInput = document.getElementById('chat-image-input');
+  const chatImagePreview = document.getElementById('chat-image-preview');
+  const chatImagePreviewThumb = document.getElementById('chat-image-preview-thumb');
+  const btnRemoveChatImage = document.getElementById('btn-remove-chat-image');
+  let pendingImage = null; // { dataUrl, mimeType }
+
+  const IMAGE_MAX_RAW_BYTES = 15 * 1024 * 1024; // pre-downscale sanity ceiling
+  const IMAGE_ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  const IMAGE_MAX_DIMENSION = 1600;
+
+  function downscaleImageFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!IMAGE_ALLOWED_TYPES.includes(file.type)) {
+        return reject(new Error('Please attach a PNG, JPEG, or WEBP photo.'));
+      }
+      if (file.size > IMAGE_MAX_RAW_BYTES) {
+        return reject(new Error('That photo is too large. Please use a smaller file.'));
+      }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
+          const scale = IMAGE_MAX_DIMENSION / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(objectUrl);
+        let quality = 0.8;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length > 5_400_000 && quality > 0.4) { // ~4MB decoded ceiling, base64 inflation
+          quality -= 0.15;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        if (dataUrl.length > 5_400_000) {
+          return reject(new Error('Could not compress this photo enough. Please try a smaller image.'));
+        }
+        resolve({ dataUrl, mimeType: 'image/jpeg' });
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Could not read that image file.')); };
+      img.src = objectUrl;
+    });
+  }
+
+  function clearPendingImage() {
+    pendingImage = null;
+    if (chatImagePreview) chatImagePreview.hidden = true;
+    if (chatImageInput) chatImageInput.value = '';
+  }
+
+  if (btnChatAttach && chatImageInput) {
+    btnChatAttach.addEventListener('click', () => chatImageInput.click());
+    chatImageInput.addEventListener('change', async () => {
+      const file = chatImageInput.files && chatImageInput.files[0];
+      if (!file) return;
+      try {
+        pendingImage = await downscaleImageFile(file);
+        if (chatImagePreviewThumb) chatImagePreviewThumb.src = pendingImage.dataUrl;
+        if (chatImagePreview) chatImagePreview.hidden = false;
+      } catch (err) {
+        clearPendingImage();
+        const subtitlesText = document.getElementById('subtitles-text');
+        if (subtitlesText) subtitlesText.textContent = err.message || 'Could not attach that photo.';
+      }
+    });
+  }
+  if (btnRemoveChatImage) {
+    btnRemoveChatImage.addEventListener('click', () => clearPendingImage());
+  }
+
+  function toggleChatDrawer(forceOpen = null) {
+    if (!chatDrawer) return;
+    const shouldOpen = forceOpen !== null ? forceOpen : !chatDrawer.classList.contains('is-open');
+
+    if (shouldOpen) {
+      chatDrawer.classList.add('is-open');
+      if (typeof hideVoicePopup === 'function') {
+        hideVoicePopup();
+      }
+      if (chatScrim) chatScrim.classList.add('is-visible');
+      activateDialog(chatDrawer, btnCloseChat);
+      voiceEngine.playClick();
+      updateGuestBadge();
+    } else {
+      chatDrawer.classList.remove('is-open');
+      if (chatScrim) chatScrim.classList.remove('is-visible');
+      deactivateDialog(chatDrawer);
+    }
+  }
+
+  if (btnToggleChat) {
+    btnToggleChat.addEventListener('click', () => {
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
+    });
+  }
+  // Tapping the center "Appu says" card or Expand button opens the typing window.
+  const responseCard = document.getElementById('response-card');
+  const btnDockExpand = document.getElementById('btn-dock-expand');
+
+  if (responseCard) {
+    const openTyping = () => {
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
+    };
+    responseCard.addEventListener('click', (e) => {
+      const selection = window.getSelection ? window.getSelection().toString() : '';
+      if (selection && selection.length > 0) return;
+      openTyping();
+    });
+    responseCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTyping(); }
+    });
+  }
+
+  if (btnDockExpand) {
+    btnDockExpand.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
+    });
+  }
+  if (btnCloseChat) {
+    btnCloseChat.addEventListener('click', () => toggleChatDrawer(false));
+  }
+  if (chatScrim) {
+    chatScrim.addEventListener('click', () => toggleChatDrawer(false));
+  }
+
+  // ==========================================
+  // NATIVE APP SHELL: LEFT NAV DRAWER (hamburger menu)
+  // ==========================================
+  const navDrawer = document.getElementById('nav-drawer');
+  const navDrawerScrim = document.getElementById('nav-drawer-scrim');
+  const btnNavMenu = document.getElementById('btn-nav-menu');
+  const btnCloseNavDrawer = document.getElementById('btn-close-nav-drawer');
+
+  function openNavDrawer() {
+    if (!navDrawer) return;
+    navDrawer.classList.add('is-open');
+    if (navDrawerScrim) navDrawerScrim.classList.add('is-visible');
+    if (btnNavMenu) btnNavMenu.setAttribute('aria-expanded', 'true');
+    activateDialog(navDrawer, btnCloseNavDrawer);
+    voiceEngine.playClick();
+  }
+
+  function closeNavDrawer() {
+    if (!navDrawer) return;
+    navDrawer.classList.remove('is-open');
+    if (navDrawerScrim) navDrawerScrim.classList.remove('is-visible');
+    if (btnNavMenu) btnNavMenu.setAttribute('aria-expanded', 'false');
+    deactivateDialog(navDrawer);
+  }
+
+  if (btnNavMenu) btnNavMenu.addEventListener('click', () => openNavDrawer());
+  if (btnCloseNavDrawer) btnCloseNavDrawer.addEventListener('click', () => closeNavDrawer());
+  if (navDrawerScrim) navDrawerScrim.addEventListener('click', () => closeNavDrawer());
+
+  const drawerMissionButtons = document.querySelectorAll('.nav-drawer-mission-btn');
+  drawerMissionButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      closeNavDrawer();
+    });
+  });
+
+  const navDrawerGamification = document.getElementById('nav-drawer-gamification');
+  if (navDrawerGamification) {
+    navDrawerGamification.addEventListener('click', () => {
+      closeNavDrawer();
+      const xpBtn = document.getElementById('btn-xp-badge');
+      if (xpBtn) xpBtn.click();
+    });
+  }
+
+  const btnDrawerHome = document.getElementById('btn-drawer-home');
+  if (btnDrawerHome) {
+    btnDrawerHome.addEventListener('click', () => {
+      closeNavDrawer();
+      const btnBackToLanding = document.getElementById('btn-back-to-landing');
+      if (btnBackToLanding) btnBackToLanding.click();
+    });
+  }
+
+  // ==========================================
+  // NATIVE APP SHELL: WELCOME GATE (post-loader sign-in screen)
+  // ==========================================
+  const welcomeGate = document.getElementById('welcome-gate');
+  const btnWelcomeGoogle = document.getElementById('btn-welcome-google');
+  const btnWelcomeLogin = document.getElementById('btn-welcome-login');
+  const btnWelcomeSkip = document.getElementById('btn-welcome-skip');
+
+  function openWelcomeGate() {
+    if (!welcomeGate) return;
+    welcomeGate.classList.add('is-open');
+    activateDialog(welcomeGate, btnWelcomeGoogle);
+  }
+
+  function closeWelcomeGate() {
+    if (!welcomeGate) return;
+    welcomeGate.classList.remove('is-open');
+    deactivateDialog(welcomeGate);
+  }
+
+  if (btnWelcomeSkip) btnWelcomeSkip.addEventListener('click', () => closeWelcomeGate());
+  if (btnWelcomeLogin) {
+    btnWelcomeLogin.addEventListener('click', () => {
+      closeWelcomeGate();
+      if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal(1);
+      }
+    });
+  }
+  if (btnWelcomeGoogle) {
+    btnWelcomeGoogle.addEventListener('click', () => {
+      if (btnWelcomeGoogle.disabled) return;
+      btnWelcomeGoogle.disabled = true;
+      const restore = () => { btnWelcomeGoogle.disabled = false; };
+      if (window.ParentOnboardingShell && typeof window.ParentOnboardingShell.signInWithGoogle === 'function') {
+        window.ParentOnboardingShell.signInWithGoogle().then(restore).catch((err) => {
+          console.warn('[Appu] Google sign-in warning:', err?.message || err);
+          restore();
+        });
+      } else {
+        restore();
+      }
+    });
+  }
+
+  // ==========================================
+  // NATIVE APP SHELL: LEGAL PAGE VIEWER (in-app, no browser chrome)
+  // ==========================================
+  const legalViewer = document.getElementById('legal-viewer');
+  const legalViewerTitle = document.getElementById('legal-viewer-title');
+  const legalViewerFrame = document.getElementById('legal-viewer-frame');
+  const btnCloseLegalViewer = document.getElementById('btn-close-legal-viewer');
+
+  function openLegalViewer(href, title) {
+    if (!legalViewer || !legalViewerFrame) return;
+    legalViewerFrame.onload = () => {
+      // These pages carry their own "Return to Appu" header for when they're opened
+      // standalone in a real browser. Hide it here so the viewer's own header (with its
+      // own close button) isn't duplicated. Same-origin local page, so this is safe.
+      try {
+        const innerHeader = legalViewerFrame.contentDocument?.querySelector('.policy-header');
+        if (innerHeader) innerHeader.style.display = 'none';
+      } catch (e) {}
+    };
+    legalViewerFrame.src = href;
+    if (legalViewerTitle) legalViewerTitle.textContent = title || 'Legal';
+    legalViewer.classList.add('is-open');
+    activateDialog(legalViewer, btnCloseLegalViewer);
+  }
+
+  function closeLegalViewer() {
+    if (!legalViewer) return;
+    legalViewer.classList.remove('is-open');
+    deactivateDialog(legalViewer);
+    legalViewerFrame.src = 'about:blank';
+  }
+
+  if (btnCloseLegalViewer) btnCloseLegalViewer.addEventListener('click', () => closeLegalViewer());
+
+  if (btnClearChat) {
+    btnClearChat.addEventListener('click', async () => {
+      voiceEngine.playClick();
+      const isAuthed = typeof window.AppuSession !== 'undefined' &&
+        typeof window.AppuSession.isAuthenticated === 'function' &&
+        window.AppuSession.isAuthenticated();
+      const activeConvId = chatHistoryController ? chatHistoryController.getActiveConversationId() : null;
+
+      if (isAuthed && activeConvId) {
+        const ok = (typeof window !== 'undefined' && typeof window.confirm === 'function')
+          ? window.confirm('Delete the active conversation for this learner?')
+          : true;
+        if (ok && chatHistoryController) {
+          await chatHistoryController.deleteConversation(activeConvId);
+        }
+      } else {
+        chatAgent.clearHistory();
+      }
+    });
+  }
+
+  if (chatInput) {
+    chatInput.addEventListener('focus', () => {
+      const isAuthed = typeof window.AppuSession !== 'undefined' &&
+        typeof window.AppuSession.isAuthenticated === 'function' &&
+        window.AppuSession.isAuthenticated();
+      const hasAuthenticatedParent = typeof window.ParentOnboardingShell !== 'undefined' &&
+        typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+        window.ParentOnboardingShell.isParentAuthenticated();
+
+      if (hasAuthenticatedParent && !isAuthed) {
+        chatInput.blur();
+        ensureChatSessionReady();
+      } else if (!isAuthed && currentGuestRemaining <= 0) {
+        chatInput.blur();
+        ensureChatSessionReady();
+      }
+    });
+  }
+
+  if (chatForm && chatInput) {
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      let text = chatInput.value.trim();
+      if (!text && !pendingImage) return;
+      if (!text && pendingImage) text = 'Please help me understand this.';
+
+      if (!ensureChatSessionReady(text)) {
+        return;
+      }
+
+      chatInput.value = '';
+      const imageToSend = pendingImage;
+      clearPendingImage();
+      if (typeof toggleChatDrawer === 'function') {
+        toggleChatDrawer(false);
+      }
+      handleUserInteraction(text, imageToSend);
+    });
+  }
+
+  if (btnChatMic) {
+    btnChatMic.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        const msg = t.voiceUnavailableNotice || "Voice isn't available on this screen — type your question here";
+        if (chatInput) {
+          chatInput.placeholder = msg;
+          chatInput.focus();
+        }
+        return;
+      }
+      if (!ensureChatSessionReady()) return;
+      voiceEngine.toggleLiveSession();
+    });
+  }
+
+  // ==========================================
+  // DISCOVERY MODAL & CALENDAR INTEGRATION
+  // ==========================================
+  const discoveryModal = document.getElementById('discovery-modal');
+  const btnCloseDiscovery = document.getElementById('btn-close-discovery-modal');
+  const discoveryForm = document.getElementById('discovery-form');
+  const discoverySuccessView = document.getElementById('discovery-success-view');
+  const btnDoneDiscovery = document.getElementById('btn-done-discovery');
+
+  function openDiscoveryModal() {
+    if (discoveryModal) {
+      if (discoveryForm) discoveryForm.style.display = 'block';
+      if (discoverySuccessView) discoverySuccessView.style.display = 'none';
+
+      // Prefill default datetime (tomorrow 11:00 AM)
+      const leadDate = document.getElementById('lead-date');
+      if (leadDate && !leadDate.value) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(11, 0, 0, 0);
+        leadDate.value = tomorrow.toISOString().slice(0, 16);
+      }
+
+      discoveryModal.classList.add('is-visible');
+      activateDialog(discoveryModal, discoveryModal);
+    }
+  }
+
+  function closeDiscoveryModal() {
+    if (discoveryModal) {
+      discoveryModal.classList.remove('is-visible');
+      deactivateDialog(discoveryModal);
+    }
+  }
+
+  if (btnCloseDiscovery) btnCloseDiscovery.addEventListener('click', closeDiscoveryModal);
+  if (btnDoneDiscovery) btnDoneDiscovery.addEventListener('click', closeDiscoveryModal);
+
+  if (discoveryForm) {
+    discoveryForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('lead-name')?.value?.trim();
+      const phone = document.getElementById('lead-phone')?.value?.trim();
+      const email = document.getElementById('lead-email')?.value?.trim();
+      const dateVal = document.getElementById('lead-date')?.value;
+      const interest = document.getElementById('lead-interest')?.value;
+
+      const submitBtn = document.getElementById('btn-submit-discovery');
+      const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scheduling...';
+      }
+
+      try {
+        // Route discovery scheduling through the backend API gateway, never directly to n8n.
+        const scheduleMessage = [
+          `Schedule a parent learning support call:`,
+          `Name: ${name}`,
+          `Phone: ${phone}`,
+          `Email: ${email}`,
+          `Date/Time: ${dateVal}`,
+          `Interest: ${interest}`
+        ].join('\n');
+
+        const backendClient = window.AppuBackendClient;
+        let data = {};
+        if (backendClient && typeof backendClient.sendAppuMessage === 'function') {
+          data = await backendClient.sendAppuMessage({
+            message: scheduleMessage,
+            language: currentLang || 'en'
+          });
+        } else {
+          throw new Error('AppuBackendClient unavailable for discovery scheduling');
+        }
+
+        const meetLink = data.meetLink || data.googleMeetUrl || 'https://meet.google.com/new';
+        const waLink = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${name}! Your IGR Academy learning support call for ${interest} has been scheduled. Google Meet: ${meetLink}`)}`;
+
+        const meetLinkEl = document.getElementById('success-meet-link');
+        const waLinkEl = document.getElementById('success-wa-link');
+        const successSummaryEl = document.getElementById('success-summary');
+
+        if (meetLinkEl) meetLinkEl.href = meetLink;
+        if (waLinkEl) waLinkEl.href = waLink;
+        if (successSummaryEl) {
+          successSummaryEl.textContent = `Confirmed for ${name}! Google Meet link generated and calendar invite dispatched to ${email}.`;
+        }
+
+        discoveryForm.style.display = 'none';
+        discoverySuccessView.style.display = 'flex';
+        voiceEngine.playSuccess();
+        avatarStage.setState('success');
+
+        // Add confirmation message to chat
+        chatAgent.addMessage('appu', `🎉 Parent learning support call scheduled!\nName: ${name}\nSupport: ${interest}\nDate and time: ${new Date(dateVal).toLocaleString()}\nMeeting link: ${meetLink}`);
+
+      } catch (err) {
+        console.error('Discovery call submission error:', err);
+        discoveryForm.style.display = 'none';
+        discoverySuccessView.style.display = 'flex';
+        voiceEngine.playSuccess();
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+        }
+      }
+    });
+  }
+
+  // ==========================================
+  // SETTINGS MODAL & PREFERENCES
+  // ==========================================
+  const settingsModal = document.getElementById('settings-modal');
+  const btnSettings = document.getElementById('btn-settings');
+  const btnCloseSettings = document.getElementById('btn-close-settings-modal');
+  const btnSaveSettings = document.getElementById('btn-save-settings');
+
+  const settingVoiceRate = document.getElementById('setting-voice-rate');
+  const settingAutoSpeak = document.getElementById('setting-auto-speak');
+  const settingUiSound = document.getElementById('setting-ui-sound');
+  const rateVal = document.getElementById('rate-val');
+
+  function openSettingsModal() {
+    if (settingsModal) {
+      if (settingVoiceRate) settingVoiceRate.value = voiceEngine.rate;
+      if (rateVal) rateVal.textContent = voiceEngine.rate.toFixed(2);
+      if (settingAutoSpeak) settingAutoSpeak.checked = voiceEngine.autoSpeak;
+      if (settingUiSound) settingUiSound.checked = voiceEngine.soundEnabled;
+
+      settingsModal.classList.add('is-visible');
+      activateDialog(settingsModal, settingsModal);
+    }
+  }
+
+  function closeSettingsModal() {
+    if (settingsModal) {
+      settingsModal.classList.remove('is-visible');
+      deactivateDialog(settingsModal);
+    }
+  }
+
+  if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
+  if (btnCloseSettings) btnCloseSettings.addEventListener('click', closeSettingsModal);
+
+  if (settingVoiceRate && rateVal) {
+    settingVoiceRate.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      rateVal.textContent = val.toFixed(2);
+      voiceEngine.setPlaybackRate(val);
+    });
+  }
+
+  if (btnSaveSettings) {
+    btnSaveSettings.addEventListener('click', () => {
+      if (settingVoiceRate) voiceEngine.setPlaybackRate(parseFloat(settingVoiceRate.value));
+      if (settingAutoSpeak) voiceEngine.autoSpeak = settingAutoSpeak.checked;
+      if (settingUiSound) voiceEngine.soundEnabled = settingUiSound.checked;
+
+      localStorage.setItem('appu_voice_rate', voiceEngine.rate);
+      localStorage.setItem('appu_auto_speak', voiceEngine.autoSpeak);
+      localStorage.setItem('appu_sound_sfx', voiceEngine.soundEnabled);
+
+      voiceEngine.playSuccess();
+      closeSettingsModal();
+    });
+  }
+
+  // ==========================================
+  // ACTIVE DOCUMENT & NOTES TUTOR (GROUNDED CHAPTER TEACHING)
+  // ==========================================
+  window.activeTutorDocument = null;
+
+  const activeDocBannerDock = document.getElementById('active-doc-banner-dock');
+  const activeDocNameDock = document.getElementById('active-doc-name-dock');
+  const btnClearDocDock = document.getElementById('btn-clear-doc-dock');
+  const activeDocBannerDrawer = document.getElementById('active-doc-banner-drawer');
+  const activeDocNameDrawer = document.getElementById('active-doc-name-drawer');
+  const btnClearDocDrawer = document.getElementById('btn-clear-doc-drawer');
+  const btnUploadNotes = document.getElementById('btn-upload-notes');
+  const btnChatUploadNotes = document.getElementById('btn-chat-upload-notes');
+
+  const notesUploadModal = document.getElementById('notes-upload-modal');
+  const btnCloseNotesModal = document.getElementById('btn-close-notes-modal');
+  const btnCancelNotes = document.getElementById('btn-cancel-notes');
+  const tabNotesFile = document.getElementById('tab-notes-file');
+  const tabNotesPaste = document.getElementById('tab-notes-paste');
+  const notesTabpanelFile = document.getElementById('notes-tabpanel-file');
+  const notesTabpanelPaste = document.getElementById('notes-tabpanel-paste');
+  const notesDropzone = document.getElementById('notes-dropzone');
+  const notesFileInput = document.getElementById('notes-file-input');
+  const btnBrowseNotesFile = document.getElementById('btn-browse-notes-file');
+  const notesFileStatus = document.getElementById('notes-file-status');
+  const notesFilename = document.getElementById('notes-filename');
+  const notesFileStats = document.getElementById('notes-file-stats');
+  const btnRemoveNotesFile = document.getElementById('btn-remove-notes-file');
+  const notesPasteInput = document.getElementById('notes-paste-input');
+  const notesCharCount = document.getElementById('notes-char-count');
+  const btnSubmitNotes = document.getElementById('btn-submit-notes');
+
+  let pendingExtractedDoc = null;
+
+  function setActiveTutorDocument(doc) {
+    if (!doc || !doc.text) return;
+    const name = doc.name || 'Your Notes';
+    const text = String(doc.text).slice(0, 16000).trim();
+    window.activeTutorDocument = { name, text };
+    window.__APPU_ACTIVE_DOCUMENT__ = { name, text };
+
+    if (activeDocNameDock) activeDocNameDock.textContent = name;
+    if (activeDocNameDrawer) activeDocNameDrawer.textContent = name;
+    if (activeDocBannerDock) {
+      activeDocBannerDock.hidden = false;
+      activeDocBannerDock.removeAttribute('hidden');
+    }
+    if (activeDocBannerDrawer) {
+      activeDocBannerDrawer.hidden = false;
+      activeDocBannerDrawer.removeAttribute('hidden');
+    }
+  }
+
+  function clearActiveTutorDocument() {
+    window.activeTutorDocument = null;
+    window.__APPU_ACTIVE_DOCUMENT__ = null;
+    pendingExtractedDoc = null;
+    if (activeDocBannerDock) activeDocBannerDock.hidden = true;
+    if (activeDocBannerDrawer) activeDocBannerDrawer.hidden = true;
+    resetNotesUploadState();
+    if (voiceEngine && typeof voiceEngine.playClick === 'function') {
+      voiceEngine.playClick();
+    }
+  }
+
+  function openNotesUploadModal() {
+    if (!notesUploadModal) return;
+    notesUploadModal.classList.add('is-visible');
+    activateDialog(notesUploadModal, tabNotesFile || notesUploadModal);
+  }
+
+  function closeNotesUploadModal() {
+    if (!notesUploadModal) return;
+    notesUploadModal.classList.remove('is-visible');
+    deactivateDialog(notesUploadModal);
+  }
+
+  function resetNotesUploadState() {
+    pendingExtractedDoc = null;
+    if (notesFileInput) notesFileInput.value = '';
+    if (notesFileStatus) notesFileStatus.hidden = true;
+    if (notesPasteInput) notesPasteInput.value = '';
+    if (notesCharCount) notesCharCount.textContent = '0 / 16,000 characters';
+    if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+  }
+
+  function switchNotesTab(activeTab) {
+    if (!tabNotesFile || !tabNotesPaste) return;
+    if (activeTab === 'file') {
+      tabNotesFile.classList.add('is-active');
+      tabNotesFile.setAttribute('aria-selected', 'true');
+      tabNotesPaste.classList.remove('is-active');
+      tabNotesPaste.setAttribute('aria-selected', 'false');
+      if (notesTabpanelFile) notesTabpanelFile.hidden = false;
+      if (notesTabpanelPaste) notesTabpanelPaste.hidden = true;
+      if (btnSubmitNotes) {
+        btnSubmitNotes.disabled = !pendingExtractedDoc;
+      }
+    } else {
+      tabNotesPaste.classList.add('is-active');
+      tabNotesPaste.setAttribute('aria-selected', 'true');
+      tabNotesFile.classList.remove('is-active');
+      tabNotesFile.setAttribute('aria-selected', 'false');
+      if (notesTabpanelPaste) notesTabpanelPaste.hidden = false;
+      if (notesTabpanelFile) notesTabpanelFile.hidden = true;
+      if (notesPasteInput) {
+        notesPasteInput.focus();
+        if (btnSubmitNotes) {
+          btnSubmitNotes.disabled = !(notesPasteInput.value && notesPasteInput.value.trim().length > 0);
+        }
+      }
+    }
+  }
+
+  async function extractTextFromPdfFile(file) {
+    if (typeof window !== 'undefined' && window.pdfjsLib) {
+      try {
+        if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += (fullText ? '\n\n' : '') + pageText;
+          if (fullText.length >= 16000) break;
+        }
+        return fullText.slice(0, 16000);
+      } catch (pdfErr) {
+        console.warn('[NotesTutor] pdfjsLib extraction failed, falling back to text read:', pdfErr);
+      }
+    }
+    return await file.text();
+  }
+
+  async function processSelectedFile(file) {
+    if (!file) return;
+    if (notesFilename) notesFilename.textContent = file.name;
+    if (notesFileStats) notesFileStats.textContent = 'Extracting text...';
+    if (notesFileStatus) notesFileStatus.hidden = false;
+    if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+
+    try {
+      let extracted = '';
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        extracted = await extractTextFromPdfFile(file);
+      } else {
+        extracted = await file.text();
+      }
+
+      const capped = String(extracted || '').slice(0, 16000).trim();
+      if (!capped) {
+        if (notesFileStats) notesFileStats.textContent = 'Could not extract readable text from this file.';
+        return;
+      }
+
+      pendingExtractedDoc = {
+        name: file.name,
+        text: capped
+      };
+
+      if (notesFileStats) {
+        notesFileStats.textContent = `Ready • ${capped.length.toLocaleString()} characters extracted`;
+      }
+      if (btnSubmitNotes) btnSubmitNotes.disabled = false;
+    } catch (err) {
+      console.warn('[NotesTutor] File text extraction failed:', err);
+      if (notesFileStats) notesFileStats.textContent = 'Extraction failed. Please try pasting the text instead.';
+    }
+  }
+
+  // Event Listeners for Notes Upload UI
+  if (btnUploadNotes) btnUploadNotes.addEventListener('click', openNotesUploadModal);
+  if (btnChatUploadNotes) btnChatUploadNotes.addEventListener('click', openNotesUploadModal);
+  if (btnCloseNotesModal) btnCloseNotesModal.addEventListener('click', closeNotesUploadModal);
+  if (btnCancelNotes) btnCancelNotes.addEventListener('click', closeNotesUploadModal);
+
+  if (btnClearDocDock) btnClearDocDock.addEventListener('click', clearActiveTutorDocument);
+  if (btnClearDocDrawer) btnClearDocDrawer.addEventListener('click', clearActiveTutorDocument);
+
+  if (tabNotesFile) tabNotesFile.addEventListener('click', () => switchNotesTab('file'));
+  if (tabNotesPaste) tabNotesPaste.addEventListener('click', () => switchNotesTab('paste'));
+
+  if (notesDropzone) {
+    notesDropzone.addEventListener('click', () => {
+      if (notesFileInput) notesFileInput.click();
+    });
+    notesDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      notesDropzone.classList.add('dragover');
+    });
+    notesDropzone.addEventListener('dragleave', () => {
+      notesDropzone.classList.remove('dragover');
+    });
+    notesDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      notesDropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  if (notesFileInput) {
+    notesFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        processSelectedFile(e.target.files[0]);
+      }
+    });
+  }
+
+  if (btnRemoveNotesFile) {
+    btnRemoveNotesFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pendingExtractedDoc = null;
+      if (notesFileInput) notesFileInput.value = '';
+      if (notesFileStatus) notesFileStatus.hidden = true;
+      if (btnSubmitNotes) btnSubmitNotes.disabled = true;
+    });
+  }
+
+  if (notesPasteInput) {
+    notesPasteInput.addEventListener('input', () => {
+      const val = notesPasteInput.value || '';
+      const len = val.length;
+      if (notesCharCount) {
+        notesCharCount.textContent = `${len.toLocaleString()} / 16,000 characters`;
+      }
+      if (tabNotesPaste && tabNotesPaste.classList.contains('is-active')) {
+        if (btnSubmitNotes) {
+          btnSubmitNotes.disabled = len === 0;
+        }
+      }
+    });
+  }
+
+  if (btnSubmitNotes) {
+    btnSubmitNotes.addEventListener('click', () => {
+      let docToActivate = null;
+      const isPasteActive = tabNotesPaste && tabNotesPaste.classList.contains('is-active');
+
+      if (isPasteActive) {
+        const text = (notesPasteInput && notesPasteInput.value ? notesPasteInput.value : '').slice(0, 16000).trim();
+        if (!text) return;
+        const firstLine = text.split('\n')[0].replace(/^#+\s*/, '').slice(0, 30).trim();
+        const docName = firstLine ? `Notes: ${firstLine}` : 'Pasted Notes';
+        docToActivate = { name: docName, text };
+      } else {
+        if (!pendingExtractedDoc || !pendingExtractedDoc.text) return;
+        docToActivate = pendingExtractedDoc;
+      }
+
+      setActiveTutorDocument(docToActivate);
+      closeNotesUploadModal();
+
+      // Auto-send on Upload: If user uploads without typing a question, auto-send empty question
+      handleUserInteraction('');
+    });
+  }
+
+  // Initialize Phase 2 Parent Setup UI
+  if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.init === 'function') {
+    window.ParentSetupUI.init();
+  }
+
+  // Restore authenticated session after page refresh or email verification callback
+  if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.restoreSession === 'function') {
+    window.ParentOnboardingShell.restoreSession().then((res) => {
+      updateGuestBadge();
+      const hash = typeof window !== 'undefined' && window.location ? (window.location.hash || '') : '';
+      const search = typeof window !== 'undefined' && window.location ? (window.location.search || '') : '';
+      // Prefer the flag captured before Supabase strips the hash from the URL; fall back to a
+      // live check in case that early capture script didn't run for some reason.
+      const isAuthRedirect = window.__APPU_AUTH_REDIRECT__
+        || hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=email_verification') || search.includes('code=');
+
+      if (isAuthRedirect) {
+        if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
+          window.ParentSetupUI.openModal();
+        }
+        try {
+          if (window.history && typeof window.history.replaceState === 'function') {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        } catch (e) {}
+      }
+
+      sessionCheckDone = true;
+      sessionIsAuthenticated = !!(res && res.status && res.status !== 'UNAUTHENTICATED');
+      maybeShowNativeWelcomeGate();
+    }).catch((err) => {
+      console.warn('[Appu] Session restoration warning:', err?.message || err);
+      updateGuestBadge();
+      sessionCheckDone = true;
+      sessionIsAuthenticated = false;
+      maybeShowNativeWelcomeGate();
+    });
+  } else {
+    if (typeof window.ParentOnboardingShell !== 'undefined' && typeof window.ParentOnboardingShell.updateHeaderSessionBadge === 'function') {
+      window.ParentOnboardingShell.updateHeaderSessionBadge();
+    }
+    updateGuestBadge();
+    sessionCheckDone = true;
+    sessionIsAuthenticated = false;
+    maybeShowNativeWelcomeGate();
+  }
+
+  // Native app only: the email verification link opens as an Android App Link (see
+  // AndroidManifest.xml) straight into this already-running app instead of a browser.
+  // Supabase's own detectSessionInUrl only runs once at client construction against the
+  // page's own URL, so a link arriving later has to be applied manually.
+  // Mobile web (narrow, non-native) adopts the app's minimal chrome: add the same
+  // is-native class and relocate the crowded header controls (language switch, sign-in,
+  // parent, etc.) into the nav drawer, exactly as the native path below does — minus the
+  // Capacitor/legal-viewer specifics that only apply inside the packaged app.
+  if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+      && typeof window !== 'undefined' && window.innerWidth <= 640) {
+    document.body.classList.add('is-native');
+    // NOTE: unlike the native app, mobile web KEEPS the language switch in the top bar
+    // (user request) — only the other controls move into the drawer.
+    const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
+    const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
+    const navAccountSlot = document.getElementById('nav-drawer-account-slot');
+    const parentSessionBadgeEl = document.getElementById('parent-session-badge');
+    const btnMainAuthEl = document.getElementById('btn-main-auth');
+    const btnParentSetupEl = document.getElementById('btn-parent-setup');
+    const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
+    const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
+    if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
+    if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
+    if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnMainAuthEl) navAccountSlot.appendChild(btnMainAuthEl);
+    if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
+    if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
+    if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
+    if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
+  }
+
+  // Parent Zone & Controls affordance in mobile slide-out nav drawer
+  const btnDrawerParentZoneEl = document.getElementById('btn-drawer-parent-zone');
+  if (btnDrawerParentZoneEl) {
+    btnDrawerParentZoneEl.addEventListener('click', () => {
+      closeNavDrawer();
+      if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
+        window.ParentSetupUI.openModal();
+      } else {
+        const btnParentSetup = document.getElementById('btn-parent-setup');
+        if (btnParentSetup) btnParentSetup.click();
+      }
+    });
+  }
+
+  // Responsive synchronization for avatar status pill (placed below Appu model on mobile)
+  function syncResponsiveSlots() {
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768) ||
+      (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+    const statusPill = document.getElementById('avatar-status-pill');
+    const mobileSlot = document.getElementById('mobile-status-slot');
+    const topbarCenter = document.querySelector('.topbar-center');
+
+    if (isMobile) {
+      if (mobileSlot && statusPill && !mobileSlot.contains(statusPill)) {
+        mobileSlot.appendChild(statusPill);
+      }
+    } else {
+      if (topbarCenter && statusPill && !topbarCenter.contains(statusPill)) {
+        const btnExplore = document.getElementById('btn-explore-prompts');
+        if (btnExplore && topbarCenter.contains(btnExplore)) {
+          topbarCenter.insertBefore(statusPill, btnExplore);
+        } else {
+          topbarCenter.appendChild(statusPill);
+        }
+      }
+    }
+  }
+  syncResponsiveSlots();
+  if (typeof window !== 'undefined') {
+    window.syncResponsiveSlots = syncResponsiveSlots;
+    window.addEventListener('resize', syncResponsiveSlots);
+  }
+
+  // Sync public beta banner visibility (hidden when user is authenticated)
+  function syncBetaBannerVisibility() {
+    const isAuthed = (typeof window.ParentOnboardingShell !== 'undefined' &&
+      typeof window.ParentOnboardingShell.isParentAuthenticated === 'function' &&
+      window.ParentOnboardingShell.isParentAuthenticated()) ||
+      (typeof window.AppuSession !== 'undefined' &&
+      typeof window.AppuSession.isAuthenticated === 'function' &&
+      window.AppuSession.isAuthenticated());
+    const betaBanner = document.getElementById('beta-banner');
+    if (betaBanner) {
+      if (isAuthed) {
+        betaBanner.classList.add('is-hidden');
+        if (typeof betaBanner.style?.setProperty === 'function') {
+          betaBanner.style.setProperty('display', 'none', 'important');
+        } else if (betaBanner.style) {
+          betaBanner.style.display = 'none';
+        }
+        if (document.body) document.body.classList.add('is-authenticated');
+      } else {
+        betaBanner.classList.remove('is-hidden');
+        if (typeof betaBanner.style?.removeProperty === 'function') {
+          betaBanner.style.removeProperty('display');
+        } else if (betaBanner.style) {
+          betaBanner.style.display = '';
+        }
+        if (document.body) document.body.classList.remove('is-authenticated');
+      }
+    }
+  }
+  syncBetaBannerVisibility();
+
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+    document.body.classList.add('is-native');
+
+    // Legal/marketing page links (Privacy Policy, Terms, etc.) point at separate local
+    // HTML files. Letting the WebView navigate to them would leave the running app (and
+    // its whole boot sequence -- loader video, welcome gate) and force a full reload with
+    // no way back except re-running that boot sequence. Render them in the in-app legal
+    // viewer (an iframe over the same local bundled page) instead, so the running app
+    // stays untouched underneath and nothing ever leaves the app.
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('.nav-drawer-legal a, .welcome-gate-fineprint a');
+      if (!link) return;
+      e.preventDefault();
+      const href = link.getAttribute('href');
+      if (!href) return;
+      closeNavDrawer();
+      openLegalViewer(href, link.textContent.trim());
+    });
+
+    // Relocate topbar controls that don't fit a minimal native chrome into the new
+    // left nav drawer. IDs and their existing listeners are untouched — appendChild
+    // moves a live node without detaching listeners already bound to it above.
+    const navLangSlot = document.getElementById('nav-drawer-lang-slot');
+    const navActionsSlot = document.getElementById('nav-drawer-actions-slot');
+    const navBadgeSlot = document.getElementById('nav-drawer-badge-slot');
+    const navAccountSlot = document.getElementById('nav-drawer-account-slot');
+    const languageSwitchEl = document.querySelector('.language-switch');
+    const parentSessionBadgeEl = document.getElementById('parent-session-badge');
+    const btnMainAuthEl = document.getElementById('btn-main-auth');
+    const btnParentSetupEl = document.getElementById('btn-parent-setup');
+    const btnQuickScheduleEl = document.getElementById('btn-quick-schedule');
+    const btnSoundToggleEl = document.getElementById('btn-sound-toggle');
+
+    if (navLangSlot && languageSwitchEl) navLangSlot.appendChild(languageSwitchEl);
+    if (navActionsSlot && btnQuickScheduleEl) navActionsSlot.appendChild(btnQuickScheduleEl);
+    if (navActionsSlot && btnSoundToggleEl) navActionsSlot.appendChild(btnSoundToggleEl);
+    if (navBadgeSlot && parentSessionBadgeEl) navBadgeSlot.appendChild(parentSessionBadgeEl);
+    if (navAccountSlot && btnMainAuthEl) navAccountSlot.appendChild(btnMainAuthEl);
+    if (navAccountSlot && btnParentSetupEl) navAccountSlot.appendChild(btnParentSetupEl);
+
+    // Auto-close the drawer only for rows that navigate to another screen/modal;
+    // sound toggle and language buttons stay open so users can adjust and re-check.
+    if (btnQuickScheduleEl) btnQuickScheduleEl.addEventListener('click', closeNavDrawer);
+    if (btnMainAuthEl) btnMainAuthEl.addEventListener('click', closeNavDrawer);
+    if (btnParentSetupEl) btnParentSetupEl.addEventListener('click', closeNavDrawer);
+
+    const CapApp = window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (CapApp && typeof CapApp.addListener === 'function') {
+      CapApp.addListener('appUrlOpen', ({ url }) => {
+        const CapBrowser = window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+        if (CapBrowser && typeof CapBrowser.close === 'function') {
+          CapBrowser.close().catch(() => {});
+        }
+        if (typeof window.ParentOnboardingShell?.handleDeepLinkAuth !== 'function') return;
+        window.ParentOnboardingShell.handleDeepLinkAuth(url).then((result) => {
+          updateGuestBadge();
+          if (result && result.isAuthRedirect && result.status !== 'UNAUTHENTICATED') {
+            closeWelcomeGate();
+            if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.openModal === 'function') {
+              window.ParentSetupUI.openModal();
+            }
+          }
+        }).catch((err) => {
+          console.warn('[Appu] Deep link auth warning:', err?.message || err);
+        });
+      });
+    }
+
+    // Native back button: close whatever's open (modal/drawer) instead of exiting the
+    // app unexpectedly. On the bare main screen, require a second press within 2s
+    // ("press back again to exit") -- standard Android pattern, avoids accidental exits.
+    let lastBackPressAt = 0;
+    if (CapApp && typeof CapApp.addListener === 'function') {
+      CapApp.addListener('backButton', () => {
+        if (legalViewer && legalViewer.classList.contains('is-open')) {
+          closeLegalViewer();
+          return;
+        }
+        if (welcomeGate && welcomeGate.classList.contains('is-open')) {
+          closeWelcomeGate();
+          return;
+        }
+        const openModal = document.getElementById('parent-setup-modal');
+        if (openModal && openModal.classList.contains('is-visible')) {
+          if (window.ParentSetupUI && typeof window.ParentSetupUI.closeModal === 'function') {
+            window.ParentSetupUI.closeModal();
+          }
+          return;
+        }
+        if (settingsModal && settingsModal.classList.contains('is-visible')) {
+          closeSettingsModal();
+          return;
+        }
+        if (discoveryModal && discoveryModal.classList.contains('is-visible')) {
+          closeDiscoveryModal();
+          return;
+        }
+        if (guestLimitModal && guestLimitModal.classList.contains('is-visible')) {
+          closeGuestGateModal();
+          return;
+        }
+        if (navDrawer && navDrawer.classList.contains('is-open')) {
+          closeNavDrawer();
+          return;
+        }
+        if (chatDrawer && chatDrawer.classList.contains('is-open')) {
+          toggleChatDrawer(false);
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastBackPressAt < 2000) {
+          CapApp.exitApp();
+          return;
+        }
+        lastBackPressAt = now;
+        const subtitlesText = document.getElementById('subtitles-text');
+        if (subtitlesText) {
+          const previousText = subtitlesText.textContent;
+          subtitlesText.textContent = 'Press back again to exit';
+          setTimeout(() => {
+            if (subtitlesText.textContent === 'Press back again to exit') {
+              subtitlesText.textContent = previousText;
+            }
+          }, 2000);
+        }
+      });
+    }
+  }
+
+  const parentSetupModal = document.getElementById('parent-setup-modal');
+
+  // Close modals on outside click (scrim)
+  window.addEventListener('click', (e) => {
+    if (e.target === discoveryModal) closeDiscoveryModal();
+    if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === guestLimitModal) closeGuestGateModal();
+    if (e.target === notesUploadModal) closeNotesUploadModal();
+    if (e.target === parentSetupModal && parentSetupModal) {
+      if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
+        window.ParentSetupUI.closeModal();
+      } else {
+        if (parentSetupModal.contains(document.activeElement)) {
+          const btnOpen = document.getElementById('btn-parent-setup');
+          if (btnOpen?.isConnected) btnOpen.focus();
+          else if (document.activeElement) document.activeElement.blur();
+        }
+        parentSetupModal.classList.remove('is-visible');
+        parentSetupModal.setAttribute('aria-hidden', 'true');
+      }
+    }
+  });
+
+  // Close modals on Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && activeDialog) {
+      const items = focusableElements(activeDialog);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    if (e.key === 'Escape') {
+      if (parentSetupModal && parentSetupModal.classList.contains('is-visible')) {
+        if (typeof window.ParentSetupUI !== 'undefined' && typeof window.ParentSetupUI.closeModal === 'function') {
+          window.ParentSetupUI.closeModal();
+        } else {
+          if (parentSetupModal.contains(document.activeElement)) {
+            const btnOpen = document.getElementById('btn-parent-setup');
+            if (btnOpen?.isConnected) btnOpen.focus();
+            else if (document.activeElement) document.activeElement.blur();
+          }
+          parentSetupModal.classList.remove('is-visible');
+          parentSetupModal.setAttribute('aria-hidden', 'true');
+        }
+        return;
+      }
+
+      // Do not allow dismissing other modals or app shell if parental controls hard lock is active
+      if (window.ParentalControlsUI && window.ParentalControlsUI.isLocked) {
+        return;
+      }
+
+      closeDiscoveryModal();
+      closeSettingsModal();
+      closeGuestGateModal();
+      closeNotesUploadModal();
+      toggleChatDrawer(false);
+      closeNavDrawer();
+      closeWelcomeGate();
+      closeLegalViewer();
+      if (typeof hideVoicePopup === 'function') {
+        hideVoicePopup();
+      }
+    }
+  });
+
+  // ==========================================
+  // PARENTAL CONTROLS & TIME LIMITS INITIALIZATION
+  // ==========================================
+  if (typeof window.ParentalControlsUI !== 'undefined' && typeof window.ParentalControlsUI.init === 'function') {
+    window.ParentalControlsUI.init();
+  }
+
+  // ==========================================
+  // PLAYFUL GAMIFICATION ENGINE & QUEST MODAL
+  // ==========================================
+  const GAMIFICATION_STORAGE_KEY = 'appu_gamification_v1';
+  const LEVEL_THRESHOLDS = [
+    { level: 1, title: 'Seedling Scholar 🌱', minXp: 0, maxXp: 50 },
+    { level: 2, title: 'Curious Explorer 🚀', minXp: 50, maxXp: 150 },
+    { level: 3, title: 'Brain Booster 💡', minXp: 150, maxXp: 300 },
+    { level: 4, title: 'Star Student 🌟', minXp: 300, maxXp: 500 },
+    { level: 5, title: 'Master Mind 🏆', minXp: 500, maxXp: 1000 }
+  ];
+
+  function playChime(type = 'xp') {
+    try {
+      if (voiceEngine && !voiceEngine.soundEnabled) return;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'level-up') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.38);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.14);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+        osc.start(now);
+        osc.stop(now + 0.32);
+      }
+    } catch (_) {}
+  }
+
+  function launchGameConfetti() {
+    const canvas = document.getElementById('game-confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = 'block';
+
+    const colors = ['#0ea5e9', '#38bdf8', '#fbbf24', '#f59e0b', '#fb7185', '#ff8a65', '#14b8a6', '#4ade80'];
+    const particles = [];
+    const count = 48;
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 260,
+        y: canvas.height / 2 + (Math.random() - 0.5) * 120,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 1.1) * 13,
+        size: Math.random() * 8 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        alpha: 1,
+        shape: Math.random() > 0.4 ? 'rect' : 'circle'
+      });
+    }
+
+    let startTime = null;
+    const duration = 2000;
+
+    function frame(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = elapsed / duration;
+
+      if (progress >= 1) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35;
+        p.rotation += p.rotSpeed;
+        p.alpha = Math.max(0, 1 - progress);
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function getGamificationState() {
+    try {
+      const raw = localStorage.getItem(GAMIFICATION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          xp: typeof parsed.xp === 'number' ? parsed.xp : 120,
+          streak: typeof parsed.streak === 'number' ? parsed.streak : 3,
+          badges: Array.isArray(parsed.badges) ? parsed.badges : ['plant-detective', 'quick-thinker', 'curious-mind']
+        };
+      }
+    } catch (_) {}
+    return {
+      xp: 120,
+      streak: 3,
+      badges: ['plant-detective', 'quick-thinker', 'curious-mind']
+    };
+  }
+
+  function saveGamificationState(state) {
+    try {
+      localStorage.setItem(GAMIFICATION_STORAGE_KEY, JSON.stringify(state));
+    } catch (_) {}
+  }
+
+  function calculateLevel(xp) {
+    for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+      if (xp >= LEVEL_THRESHOLDS[i].minXp) {
+        return LEVEL_THRESHOLDS[i];
+      }
+    }
+    return LEVEL_THRESHOLDS[0];
+  }
+
+  function showXpToast(amount, reason) {
+    const container = document.getElementById('game-toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'game-xp-toast';
+    toast.innerHTML = `<span class="toast-star">⭐</span><strong>+${amount} XP</strong><span class="toast-reason">${reason || 'Great job!'}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('is-floating');
+    }, 20);
+
+    setTimeout(() => {
+      toast.classList.add('is-fadeout');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 400);
+    }, 2200);
+  }
+
+  function updateGamificationUI() {
+    const state = getGamificationState();
+    const currentLvlInfo = calculateLevel(state.xp);
+    const span = currentLvlInfo.maxXp - currentLvlInfo.minXp;
+    const progressInLvl = state.xp - currentLvlInfo.minXp;
+    const pct = Math.min(100, Math.max(5, Math.round((progressInLvl / span) * 100)));
+
+    // Topbar Widgets
+    const streakCountEl = document.getElementById('game-streak-count');
+    const xpCountEl = document.getElementById('game-xp-count');
+    const levelTagEl = document.getElementById('game-level-tag');
+    const xpFillEl = document.getElementById('game-xp-fill');
+    const streakBtn = document.getElementById('btn-streak-badge');
+    const xpBtn = document.getElementById('btn-xp-badge');
+
+    if (streakCountEl) streakCountEl.textContent = state.streak;
+    if (xpCountEl) xpCountEl.textContent = state.xp;
+    if (levelTagEl) levelTagEl.textContent = `Lvl ${currentLvlInfo.level}`;
+    if (xpFillEl) xpFillEl.style.width = `${pct}%`;
+    if (streakBtn) streakBtn.title = `${state.streak}-day learning streak!`;
+    if (xpBtn) xpBtn.title = `${state.xp} Learning Stars! Click to view achievements`;
+
+    // Drawer Gamification Widgets
+    const drawerStreakCountEl = document.getElementById('drawer-streak-count');
+    const drawerXpCountEl = document.getElementById('drawer-xp-count');
+    const drawerLevelTagEl = document.getElementById('drawer-level-tag');
+    if (drawerStreakCountEl) drawerStreakCountEl.textContent = state.streak;
+    if (drawerXpCountEl) drawerXpCountEl.textContent = state.xp;
+    if (drawerLevelTagEl) drawerLevelTagEl.textContent = `Lvl ${currentLvlInfo.level}`;
+
+    // Modal Details
+    const modalStreakEl = document.getElementById('stat-streak-val');
+    const modalXpEl = document.getElementById('stat-xp-val');
+    const modalBadgesEl = document.getElementById('stat-badges-val');
+    const modalLevelSubtitle = document.getElementById('game-level-subtitle');
+    const modalProgressText = document.getElementById('game-progress-text');
+    const modalXpFill = document.getElementById('modal-xp-fill');
+
+    if (modalStreakEl) modalStreakEl.textContent = `${state.streak} Days`;
+    if (modalXpEl) modalXpEl.textContent = `${state.xp} XP`;
+    if (modalBadgesEl) modalBadgesEl.textContent = `${state.badges.length} Badges`;
+    if (modalLevelSubtitle) modalLevelSubtitle.textContent = `Level ${currentLvlInfo.level}: ${currentLvlInfo.title}`;
+    if (modalProgressText) modalProgressText.textContent = `${progressInLvl} / ${span} XP`;
+    if (modalXpFill) modalXpFill.style.width = `${pct}%`;
+  }
+
+  const AppuGamification = {
+    awardXP(amount, reason) {
+      const state = getGamificationState();
+      const prevLvl = calculateLevel(state.xp);
+      state.xp += amount;
+      const nextLvl = calculateLevel(state.xp);
+      saveGamificationState(state);
+      updateGamificationUI();
+
+      showXpToast(amount, reason);
+      launchGameConfetti();
+
+      if (nextLvl.level > prevLvl.level) {
+        playChime('level-up');
+        if (window.appMascot && typeof window.appMascot.celebrate === 'function') {
+          window.appMascot.celebrate(3000);
+        }
+      } else {
+        playChime('xp');
+      }
+    },
+    getState: getGamificationState,
+    updateUI: updateGamificationUI,
+    launchConfetti: launchGameConfetti
+  };
+
+  // Expose to window and globalThis
+  window.AppuGamification = AppuGamification;
+  if (typeof globalThis !== 'undefined') {
+    globalThis.AppuGamification = AppuGamification;
+  }
+
+  // Hook up Gamification Modal Open / Close
+  const gameModal = document.getElementById('gamification-modal');
+  const gameModalOverlay = document.getElementById('gamification-modal-overlay');
+  const btnCloseGamification = document.getElementById('btn-close-gamification');
+  const btnStreakBadge = document.getElementById('btn-streak-badge');
+  const btnXpBadge = document.getElementById('btn-xp-badge');
+
+  function openGamificationModal() {
+    updateGamificationUI();
+    if (gameModal) {
+      gameModal.removeAttribute('hidden');
+      gameModal.classList.add('is-open');
+    }
+  }
+
+  function closeGamificationModal() {
+    if (gameModal) {
+      gameModal.setAttribute('hidden', '');
+      gameModal.classList.remove('is-open');
+    }
+  }
+
+  btnStreakBadge?.addEventListener('click', openGamificationModal);
+  btnXpBadge?.addEventListener('click', openGamificationModal);
+  btnCloseGamification?.addEventListener('click', closeGamificationModal);
+  gameModalOverlay?.addEventListener('click', closeGamificationModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && gameModal && !gameModal.hasAttribute('hidden')) {
+      closeGamificationModal();
+    }
+  });
+
+  // Initial UI refresh
+  updateGamificationUI();
+
+  // ==========================================
+  // DEV-ONLY VISUALS & STUDY MODES DEMO HARNESS (?demo=1)
+  // ==========================================
+  function initVisualsDemo() {
+    const sampleCard = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || {
+      mood: 'explaining',
+      gradeTone: 'junior',
+      blocks: [
+        { type: 'hook', text: 'Ever wonder how a plant eats without a mouth? 🌱' },
+        { type: 'diagram', kind: 'mermaid', spec: 'flowchart LR; Sun-->Leaf; Water-->Leaf; CO2-->Leaf; Leaf-->Sugar; Leaf-->Oxygen' },
+        { type: 'steps', items: ['Leaves catch sunlight', 'Roots drink water', 'Leaf mixes them into sugar', 'Plant breathes out oxygen'] },
+        { type: 'analogy', text: 'A leaf is like a tiny solar-powered kitchen.' },
+        { type: 'check', q: 'What gas does the plant breathe out?', a: 'Oxygen' }
+      ],
+      plainText: 'Plants make their food through photosynthesis. Leaves catch sunlight, roots absorb water from the soil, and they take in carbon dioxide from the air. Inside the leaf, these mix together to produce sugar for energy, and the plant releases oxygen for us to breathe!'
+    };
+
+    const existingBar = document.getElementById('dev-demo-bar');
+    if (existingBar) existingBar.remove();
+
+    const bar = document.createElement('div');
+    bar.id = 'dev-demo-bar';
+    bar.className = 'dev-demo-bar';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Study Modes & Visuals Demo Controls');
+    bar.innerHTML = `
+      <span class="demo-badge">🎬 STUDY MODES DEMO</span>
+      <button id="btn-demo-replay" class="demo-btn" type="button"><i class="fa-solid fa-play" aria-hidden="true"></i> <span>Run Flow</span></button>
+      <button id="btn-demo-quiz" class="demo-btn" type="button"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Quiz Me</span></button>
+      <button id="btn-demo-flashcards" class="demo-btn" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> <span>Flashcards</span></button>
+      <button id="btn-demo-guide" class="demo-btn" type="button"><i class="fa-solid fa-book-open-reader" aria-hidden="true"></i> <span>Study Guide</span></button>
+      <button id="btn-demo-mindmap" class="demo-btn" type="button"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> <span>Mind Map</span></button>
+      <button id="btn-demo-podcast" class="demo-btn" type="button"><i class="fa-solid fa-headphones" aria-hidden="true"></i> <span>Podcast</span></button>
+      <button id="btn-demo-chat" class="demo-btn" type="button"><i class="fa-solid fa-comments" aria-hidden="true"></i> <span>In Chat</span></button>
+      <button id="btn-demo-celebrate" class="demo-btn" type="button"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> <span>Celebrate</span></button>
+      <button id="btn-demo-close" class="demo-close-btn" type="button" aria-label="Close demo bar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    `;
+    document.body.appendChild(bar);
+
+    document.getElementById('btn-demo-close')?.addEventListener('click', () => {
+      bar.remove();
+    });
+
+    document.getElementById('btn-demo-celebrate')?.addEventListener('click', () => {
+      if (window.AppuGamification) {
+        window.AppuGamification.awardXP(25, 'Super Learner! 🚀');
+      } else if (window.appMascot) {
+        window.appMascot.celebrate(3500);
+      }
+    });
+
+    document.getElementById('btn-demo-chat')?.addEventListener('click', () => {
+      toggleChatDrawer(true);
+    });
+
+    const runDemoFlow = (targetMode = 'lesson') => {
+      const subtitlesText = document.getElementById('subtitles-text');
+      if (subtitlesText) {
+        subtitlesText.textContent = '"How does photosynthesis work?"';
+      }
+
+      // Step 1: Thinking
+      if (avatarStage) avatarStage.setState('thinking');
+      if (window.appMascot) window.appMascot.setMood('thinking');
+
+      setTimeout(() => {
+        // Step 2: Explaining + Reveal Lesson Card / Study Mode
+        if (avatarStage) avatarStage.setState('speaking');
+        if (window.appMascot) window.appMascot.setMood('explaining');
+
+        showVoicePopup(sampleCard.plainText, sampleCard, targetMode);
+        if (voiceEngine) {
+          voiceEngine.speak(sampleCard.plainText);
+        }
+
+        // Also populate chat drawer
+        if (chatAgent) {
+          const exists = chatAgent.messages.some(m => m.lessonCard);
+          if (!exists) {
+            chatAgent.addMessage('user', 'How does photosynthesis work?');
+            chatAgent.addMessage('appu', sampleCard.plainText, null, null, {
+              lessonCard: sampleCard,
+              mood: 'explaining'
+            });
+          }
+        }
+      }, 1000);
+    };
+
+    document.getElementById('btn-demo-replay')?.addEventListener('click', () => runDemoFlow('lesson'));
+    document.getElementById('btn-demo-quiz')?.addEventListener('click', () => runDemoFlow('quiz'));
+    document.getElementById('btn-demo-flashcards')?.addEventListener('click', () => runDemoFlow('flashcards'));
+    document.getElementById('btn-demo-guide')?.addEventListener('click', () => runDemoFlow('guide'));
+    document.getElementById('btn-demo-mindmap')?.addEventListener('click', () => runDemoFlow('mindmap'));
+    document.getElementById('btn-demo-podcast')?.addEventListener('click', () => runDemoFlow('podcast'));
+
+    return { runDemoFlow };
+  }
+
+  // Expose Study Modes and Voice Popup API
+  window.AppuStudyModes = {
+    show: (mode = 'lesson') => {
+      const card = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD) || null;
+      showVoicePopup(card?.plainText || '', card, mode);
+    },
+    showQuiz: () => window.AppuStudyModes.show('quiz'),
+    showFlashcards: () => window.AppuStudyModes.show('flashcards'),
+    showGuide: () => window.AppuStudyModes.show('guide'),
+    showMindMap: () => window.AppuStudyModes.show('mindmap'),
+    showPodcast: () => window.AppuStudyModes.show('podcast')
+  };
+
+  if (window.app) {
+    window.app.showVoicePopup = showVoicePopup;
+    window.app.updateVoicePopupCard = updateVoicePopupCard;
+    window.app.hideVoicePopup = hideVoicePopup;
+    window.app.showStudyMode = (mode) => window.AppuStudyModes.show(mode);
+    window.app.demoTalkingAppu = (mode = 'lesson') => {
+      window.AppuStudyModes.show(mode);
+      if (avatarStage) avatarStage.setState('speaking');
+      if (voiceEngine) {
+        const text = (typeof LessonCardRenderer !== 'undefined' && LessonCardRenderer.SAMPLE_CARD?.plainText) || "Let's explore how photosynthesis powers our planet!";
+        voiceEngine.speak(text);
+      }
+    };
+    window.app.cancelVoicePopupTimer = cancelVoicePopupTimer;
+    window.app.switchActiveCardLanguage = switchActiveCardLanguage;
+    window.app.ensureLangVariantsCache = ensureLangVariantsCache;
+    window.app.applyLanguageVariant = applyLanguageVariant;
+    window.app.setLanguage = setLanguage;
+    window.app.getLangVariants = (card) => (card || activePopupLessonCard)?.__langVariants || null;
+    window.app.avatarStage = avatarStage;
+    window.app.voiceEngine = voiceEngine;
+    window.app.setActiveTutorDocument = setActiveTutorDocument;
+    window.app.getActiveLessonCard = () => activePopupLessonCard;
+
+    window.app.saveLesson = (card, meta) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.saveLesson === 'function' ? window.SavedLessonsUI.saveLesson(card, meta) : null);
+    window.app.getSavedLessons = () => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.getSavedLessons === 'function' ? window.SavedLessonsUI.getSavedLessons() : []);
+    window.app.isLessonSaved = (card) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.isLessonSaved === 'function' ? window.SavedLessonsUI.isLessonSaved(card) : false);
+    window.app.toggleSaveLesson = (card, meta) => (typeof window !== 'undefined' && window.SavedLessonsUI && typeof window.SavedLessonsUI.toggleSaveLesson === 'function' ? window.SavedLessonsUI.toggleSaveLesson(card, meta) : { isSaved: false, entry: null });
+    window.app.clearActiveTutorDocument = clearActiveTutorDocument;
+    window.app.openNotesUploadModal = openNotesUploadModal;
+    window.app.closeNotesUploadModal = closeNotesUploadModal;
+    window.app.getTheme = () => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.getTheme() : 'light');
+    window.app.setTheme = (t) => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.setTheme(t) : t);
+    window.app.toggleTheme = () => (typeof window !== 'undefined' && window.appuTheme ? window.appuTheme.toggleTheme() : 'dark');
+  }
+
+  if (typeof window !== 'undefined' && /[?&]demo=/i.test(window.location.search)) {
+    const demoControls = initVisualsDemo();
+    let initialMode = 'lesson';
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const demoVal = (params.get('demo') || '').toLowerCase();
+      if (demoVal === 'quiz') initialMode = 'quiz';
+      else if (demoVal === 'flashcards' || demoVal === 'flashcard') initialMode = 'flashcards';
+      else if (demoVal === 'guide' || demoVal === 'studyguide') initialMode = 'guide';
+      else if (demoVal === 'mindmap' || demoVal === 'mind-map') initialMode = 'mindmap';
+      else if (demoVal === 'podcast') initialMode = 'podcast';
+    } catch (e) {
+      initialMode = 'lesson';
+    }
+
+    // Auto-trigger the demo sequence after 600ms on first load
+    setTimeout(() => {
+      if (demoControls && typeof demoControls.runDemoFlow === 'function') {
+        demoControls.runDemoFlow(initialMode);
+      }
+    }, 600);
+  }
+});
+

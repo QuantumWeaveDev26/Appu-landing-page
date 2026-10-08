@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>APPU Admin</title>
+  <link rel="stylesheet" href="admin.css?v=20261006-07" />
+</head>
+<body>
+  <!-- LOGIN GATE -->
+  <section id="admin-login" class="admin-login" hidden>
+    <form id="admin-login-form" class="admin-login-card">
+      <h1>APPU Admin</h1>
+      <p class="admin-login-sub">Sign in with an admin account.</p>
+      <label>Email<input id="admin-email" type="email" autocomplete="username" required /></label>
+      <label>Password<input id="admin-password" type="password" autocomplete="current-password" required /></label>
+      <button type="submit" id="admin-login-btn">Sign in</button>
+      <div id="admin-login-error" class="admin-error" role="alert"></div>
+    </form>
+  </section>
+
+  <!-- DASHBOARD -->
+  <main id="admin-dashboard" class="admin-dashboard" hidden>
+    <header class="admin-topbar">
+      <div class="admin-brand">APPU <span>Admin</span></div>
+      <div class="admin-topbar-right">
+        <span id="admin-who" class="admin-who"></span>
+        <button id="admin-refresh" type="button" class="admin-ghost-btn">Refresh</button>
+        <button id="admin-signout" type="button" class="admin-ghost-btn">Sign out</button>
+      </div>
+    </header>
+
+    <div id="admin-banner" class="admin-banner" hidden></div>
+
+    <section class="admin-cards" id="admin-cards"></section>
+
+    <section class="admin-panel">
+      <h2>Sign-ups (last 14 days)</h2>
+      <div id="admin-chart" class="admin-chart"></div>
+    </section>
+
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>Accounts</h2>
+        <input id="admin-search" type="search" placeholder="Search by email…" />
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Email</th><th>Signed up</th><th>Last login</th>
+              <th>Children</th><th>Chats</th><th>Last activity</th><th>Subscription</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-body"></tbody>
+        </table>
+      </div>
+      <div class="admin-pager">
+        <button id="admin-prev" type="button" class="admin-ghost-btn">Prev</button>
+        <span id="admin-page-info"></span>
+        <button id="admin-next" type="button" class="admin-ghost-btn">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="admin-loading" class="admin-loading">Loading…</div>
+
+  <script src="appu-config.js?v=20261006-03"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="admin.js?v=20261006-07"></script>
+</body>
+</html>
