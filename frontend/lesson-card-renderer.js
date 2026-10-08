@@ -3015,7 +3015,7 @@
       const illustCard = safeQuery('.diagram-illustration-card');
       if (illustCard) {
         const topicToFetch = (targetCard && (targetCard.topic || targetCard.mindMap?.central || targetCard.title)) || title || 'Science';
-        const gradeToFetch = options.grade || (targetCard && targetCard.grade) || (typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function' ? window.appuSession.getGrade() : '6');
+        const gradeToFetch = options.grade || (targetCard && targetCard.grade) || (typeof window !== 'undefined' && typeof window.getActiveChildGrade === 'function' ? window.getActiveChildGrade() : null) || '6';
 
         if (targetCard && !targetCard.__diagramIllustrationPromise) {
           const promise = fetchStudyImage({

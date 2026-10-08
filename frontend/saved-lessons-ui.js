@@ -127,8 +127,8 @@
       const id = lessonCard.id || metadata.id || `sl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const knownGrade = (typeof window !== 'undefined' && window.getActiveChildGrade && typeof window.getActiveChildGrade === 'function')
         ? window.getActiveChildGrade()
-        : ((typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
-            ? window.appuSession.getGrade()
+        : ((typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.getGrade === 'function')
+            ? window.AppuSession.getGrade()
             : null);
       const grade = metadata.grade || (knownGrade ? (lessonCard.grade || knownGrade) : (lessonCard.grade && lessonCard.grade !== '6' ? lessonCard.grade : null));
       const language = metadata.language || lessonCard.language || (typeof window !== 'undefined' && window.app && window.app.currentLang) || 'en';
@@ -375,7 +375,7 @@
     // 4. Assemble message with standard educational format
     const resolvedChild = (typeof childName === 'string' && childName.trim())
       ? childName.trim()
-      : ((typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getChildName === 'function' && window.appuSession.getChildName()) || '');
+      : ((typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.getChildName === 'function' && window.AppuSession.getChildName()) || '');
 
     const header = resolvedChild
       ? `*Study note from ${resolvedChild} (via APPU):*`

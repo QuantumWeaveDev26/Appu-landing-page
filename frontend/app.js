@@ -1533,8 +1533,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const question = previousCard.question || previousCard.mindMap?.central || previousCard.topic || previousCard.plainText || '';
     const childGrade = (typeof getActiveChildGrade === 'function')
       ? getActiveChildGrade()
-      : ((typeof window !== 'undefined' && window.appuSession && typeof window.appuSession.getGrade === 'function')
-          ? window.appuSession.getGrade()
+      : ((typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.getGrade === 'function')
+          ? window.AppuSession.getGrade()
           : (previousCard.grade || null));
 
     const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
@@ -1692,9 +1692,7 @@ document.addEventListener('DOMContentLoaded', () => {
           activePopupLessonCard.__isFetchingPodcast = true;
           const activeDoc = (typeof window !== 'undefined') ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
           const docText = activeDoc?.text || null;
-          const childGrade = (window.appuSession && typeof window.appuSession.getGrade === 'function')
-            ? window.appuSession.getGrade()
-            : '6';
+          const childGrade = getActiveChildGrade() || activePopupLessonCard.grade || '6';
           const lang = (window.app && window.app.currentLang) || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
 
           LessonCardRenderer.fetchPodcast({
@@ -2081,15 +2079,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getActiveChildGrade() {
     try {
-      if (window.parentSetupUI && typeof window.parentSetupUI.getActiveChild === 'function') {
-        const child = window.parentSetupUI.getActiveChild();
-        if (child && (child.grade || child.gradeBand)) return String(child.grade || child.gradeBand);
-      }
-      const stored = localStorage.getItem('appu_active_child');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && (parsed.grade || parsed.gradeBand)) return String(parsed.grade || parsed.gradeBand);
-      }
+      const fromSession = window.AppuSession && typeof window.AppuSession.getGrade === 'function' ? window.AppuSession.getGrade() : null;
+      if (fromSession) return fromSession;
+      const child = window.ParentOnboardingShell && window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.selectedChild;
+      const m = child && child.gradeBand ? String(child.gradeBand).match(/\d{1,2}/) : null;
+      if (m) return m[0];
     } catch (_) {}
     return null;
   }

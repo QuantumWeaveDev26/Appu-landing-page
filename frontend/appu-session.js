@@ -79,6 +79,25 @@
     },
 
     /**
+     * Active child's class as a bare number string ("Grade 7" -> "7"), or null.
+     * @returns {string|null}
+     */
+    getGrade() {
+      const band = _parentContext && _parentContext.gradeBand;
+      const m = band ? String(band).match(/\d{1,2}/) : null;
+      return m ? m[0] : null;
+    },
+
+    /**
+     * Active child's display name, or null.
+     * @returns {string|null}
+     */
+    getChildName() {
+      const name = _parentContext && _parentContext.childName;
+      return name ? String(name) : null;
+    },
+
+    /**
      * Clears in-memory session.
      */
     clear() {

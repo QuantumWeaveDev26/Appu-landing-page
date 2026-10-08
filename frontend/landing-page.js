@@ -1777,8 +1777,8 @@
     isAuthed() {
       const win = getWin();
       try {
-        // The session global is window.AppuSession (capital A). The old lowercase
-        // `appuSession` never existed, so sign-in could never reveal the app.
+        // The session global is window.AppuSession (capital A). An all-lowercase
+        // spelling never existed, so checking it meant sign-in could never reveal the app.
         if (win.AppuSession && typeof win.AppuSession.isAuthenticated === 'function' && win.AppuSession.isAuthenticated()) return true;
         // A signed-in parent still finishing setup (no child session yet) also belongs in
         // the app -- the setup modal continues on top of it.
