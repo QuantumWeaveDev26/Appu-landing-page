@@ -186,21 +186,18 @@
       const btnBackToLanding = document.getElementById('btn-back-to-landing');
       const topbarBrand = document.querySelector('.topbar .brand');
 
-      // Check URL parameters and location hash
       const urlParams = new URLSearchParams(win.location ? win.location.search : '');
-      const viewParam = urlParams.get('view');
-      const appParam = urlParams.get('app');
-      const hash = win.location ? win.location.hash : '';
 
-      const bypassRequestsApp = (viewParam === 'app' || appParam === '1' || hash === '#app');
-      const sessionReady = Boolean(win.appuSession && typeof win.appuSession.isAuthenticated === 'function');
-      if (bypassRequestsApp && (!sessionReady || this.isAuthed())) {
-        // Returning signed-in users go straight to the app.
+      if (this.isAuthed()) {
+        // Signed-in users go straight to the app.
         this.showApp();
       } else {
-        // Anonymous users stay on the self-contained landing trial. The main app is
-        // locked behind sign-in: no ?app=1 / ?view=app / #app bypass when not signed in.
+        // Anonymous users stay on the self-contained landing trial; the main app is locked
+        // behind sign-in (no ?app=1 / ?view=app / #app bypass). A returning user's session
+        // restores asynchronously, so keep watching briefly and move them into the app as
+        // soon as it does, instead of leaving a signed-in user on the landing page.
         this.showLanding();
+        this.watchForAuth(15000);
       }
 
       // Check stored language and apply initial translations
@@ -287,6 +284,7 @@
       if (btnBackToLanding) {
         btnBackToLanding.addEventListener('click', (e) => {
           e.preventDefault();
+          this.stopAuthWatch(); // explicit choice: don't auto-bounce back into the app
           this.showLanding();
         });
       }
@@ -295,6 +293,7 @@
           // If clicked in app view, allow user to return to marketing landing
           if (document.body.classList.contains('view-app')) {
             e.preventDefault();
+            this.stopAuthWatch();
             this.showLanding();
           }
         });
@@ -1778,8 +1777,45 @@
     isAuthed() {
       const win = getWin();
       try {
-        return Boolean(win.appuSession && typeof win.appuSession.isAuthenticated === 'function' && win.appuSession.isAuthenticated());
+        // The session global is window.AppuSession (capital A). The old lowercase
+        // `appuSession` never existed, so sign-in could never reveal the app.
+        if (win.AppuSession && typeof win.AppuSession.isAuthenticated === 'function' && win.AppuSession.isAuthenticated()) return true;
+        // A signed-in parent still finishing setup (no child session yet) also belongs in
+        // the app -- the setup modal continues on top of it.
+        return Boolean(win.ParentOnboardingShell && typeof win.ParentOnboardingShell.isParentAuthenticated === 'function' && win.ParentOnboardingShell.isParentAuthenticated());
       } catch (_) { return false; }
+    },
+
+    // Moves a signed-in user from the landing into the app as soon as auth is detected.
+    // ms: how long to keep watching (page load); null: while the sign-in modal is open.
+    watchForAuth(ms) {
+      const win = getWin();
+      const self = this;
+      this.stopAuthWatch();
+      const startedAt = Date.now();
+      const modal = document.getElementById('parent-setup-modal');
+      let closedAt = null;
+      this._authGateWatcher = win.setInterval(function () {
+        if (self.isAuthed()) {
+          self.stopAuthWatch();
+          if (!document.body || !document.body.classList.contains('view-app')) self.showApp();
+          return;
+        }
+        if (ms === null) {
+          // Keep watching for as long as setup is open (no time cap); stop shortly after the
+          // modal closes while still signed out (the user cancelled).
+          if (modal && modal.classList.contains('is-visible')) { closedAt = null; return; }
+          if (closedAt === null) closedAt = Date.now();
+          if (Date.now() - closedAt > 3000) self.stopAuthWatch();
+        } else if (Date.now() - startedAt > ms) {
+          self.stopAuthWatch();
+        }
+      }, 400);
+    },
+
+    stopAuthWatch() {
+      const win = getWin();
+      if (this._authGateWatcher) { win.clearInterval(this._authGateWatcher); this._authGateWatcher = null; }
     },
 
     trialLimit() {
@@ -1812,7 +1848,6 @@
 
     openSignIn() {
       const win = getWin();
-      const self = this;
 
       // Open the sign-in modal OVER the landing. The main app stays hidden until the
       // user is actually authenticated -- cancelling the modal must leave them here,
@@ -1827,22 +1862,9 @@
         return;
       }
 
-      // Reveal the app only once sign-in succeeds; if the modal is closed while still
+      // Reveal the app as soon as sign-in succeeds; if the modal is closed while still
       // signed out, stop and stay on the landing page.
-      if (this._authGateWatcher) { win.clearInterval(this._authGateWatcher); this._authGateWatcher = null; }
-      const modal = document.getElementById('parent-setup-modal');
-      const startedAt = Date.now();
-      this._authGateWatcher = win.setInterval(function () {
-        if (self.isAuthed()) {
-          win.clearInterval(self._authGateWatcher); self._authGateWatcher = null;
-          if (!document.body || !document.body.classList.contains('view-app')) self.showApp();
-          return;
-        }
-        const modalOpen = modal && modal.classList.contains('is-visible');
-        if (!modalOpen || Date.now() - startedAt > 120000) {
-          win.clearInterval(self._authGateWatcher); self._authGateWatcher = null;
-        }
-      }, 400);
+      this.watchForAuth(null);
     },
 
     showTrialGate() {
