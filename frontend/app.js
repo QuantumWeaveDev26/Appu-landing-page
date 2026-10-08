@@ -2030,10 +2030,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       }
 
-      // After enough chats, a signed-in parent must give feedback before continuing.
+      // After enough chats, a signed-in parent is asked for feedback. This check has no side
+      // effects: it runs on drawer-open, submit AND inside handleUserInteraction, so counting
+      // here inflated one message into ~3 chats and could trip the gate after the input was
+      // already cleared (losing the child's message). The chat is counted once, on send.
       if (window.ParentReportsUI && typeof window.ParentReportsUI.enforceFeedbackGate === 'function') {
         if (window.ParentReportsUI.enforceFeedbackGate()) return false;
-        if (typeof window.ParentReportsUI.noteAuthedChat === 'function') window.ParentReportsUI.noteAuthedChat();
       }
       return true;
     }
@@ -2117,6 +2119,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!ensureChatSessionReady(text || (isDocActive ? window.activeTutorDocument.name : ''))) {
       return;
+    }
+
+    // Count this as exactly one chat toward the parent-feedback prompt (no-op for guests
+    // or once feedback is given).
+    if (window.ParentReportsUI && typeof window.ParentReportsUI.noteAuthedChat === 'function') {
+      window.ParentReportsUI.noteAuthedChat();
     }
 
     voiceEngine.playClick();
