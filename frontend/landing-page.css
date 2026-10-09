@@ -2010,3 +2010,24 @@ body.view-landing[data-theme="light"] {
   background: #e6edf8;
   border-top-color: rgba(15, 23, 42, 0.1);
 }
+
+/* ==========================================================================
+   CLEAN BACKGROUND
+   Replaces the graph-paper grid, colour glows, aurora blooms and blurred
+   depth-orbs with a plain, calm surface in both themes. Everything drawn on
+   top (chalk marks, science objects, cards, text) is unchanged.
+   ========================================================================== */
+body.view-landing { background: #0d1117 !important; }
+.marketing-landing {
+  background-color: #0d1117;
+  background-image: none;
+}
+.landing-aurora-glow,
+.landing-blob,
+.depth-orb { display: none; }
+
+body.view-landing[data-theme="light"] { background: #f8fafc !important; }
+[data-theme="light"] .marketing-landing {
+  background-color: #f8fafc;
+  background-image: none;
+}
