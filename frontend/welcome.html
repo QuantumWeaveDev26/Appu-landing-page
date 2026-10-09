@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APPU AI — Your learning companion</title>
+  <meta name="description" content="APPU is a calm, curriculum-aligned AI learning companion for students in Classes 5 to 12, with progress updates for parents on WhatsApp.">
+  <link rel="icon" href="assets/igr-logo.png">
+  <script>
+    // Apply the saved (or system) theme before first paint to avoid a flash.
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem('appu_theme'); } catch (e) {}
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="welcome.css?v=20261009-1">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <a class="brand" href="welcome.html" aria-label="APPU AI home">
+      <img src="assets/igr-logo.png" alt="" width="28" height="28">
+      <span>APPU</span>
+    </a>
+    <nav class="topbar-actions" aria-label="Primary">
+      <a class="link-quiet" href="pricing.html">Pricing</a>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+        <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+      <a class="btn btn-outline" href="./">Sign in</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">For Classes 5 to 12</p>
+      <h1 id="hero-title">What would you like to learn today?</h1>
+      <p class="lede">APPU explains any topic step by step, in English, ಕನ್ನಡ or हिंदी, at your own pace.</p>
+
+      <form id="ask-form" class="composer" action="./" method="get" role="search" aria-label="Ask APPU">
+        <label class="visually-hidden" for="ask-input">Ask APPU a question</label>
+        <textarea id="ask-input" name="ask" rows="1" placeholder="Ask anything, like “Why do leaves change colour?”" autocomplete="off"></textarea>
+        <button class="send-btn" type="submit" aria-label="Ask APPU">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </form>
+
+      <ul class="chips" aria-label="Example questions">
+        <li><button type="button" class="chip" data-prompt="Explain photosynthesis like I'm in Class 6">Explain photosynthesis</button></li>
+        <li><button type="button" class="chip" data-prompt="Help me solve linear equations step by step">Solve linear equations</button></li>
+        <li><button type="button" class="chip" data-prompt="Quiz me on the French Revolution">Quiz me on history</button></li>
+        <li><button type="button" class="chip" data-prompt="What is Newton's third law, with an example?">Newton's third law</button></li>
+      </ul>
+      <p class="fineprint">No sign-up needed to try.</p>
+    </section>
+
+    <section class="preview" aria-label="Example conversation">
+      <div class="msg msg-user"><p>Why is the sky blue?</p></div>
+      <div class="msg msg-appu">
+        <span class="avatar" aria-hidden="true">A</span>
+        <div>
+          <p>Great question! Sunlight looks white, but it is really a mix of every colour.</p>
+          <ol>
+            <li>When sunlight enters the air, it bumps into tiny gas molecules.</li>
+            <li>Blue light has a short wavelength, so it scatters the most.</li>
+            <li>That scattered blue light reaches your eyes from every direction.</li>
+          </ol>
+          <p class="muted">Want a quick 3-question quiz on this?</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title" class="visually-hidden">Why APPU</h2>
+      <article>
+        <h3>Understand, don't memorise</h3>
+        <p>Answers come with simple diagrams, concept maps and practice questions.</p>
+      </article>
+      <article>
+        <h3>Speaks your language</h3>
+        <p>Talk or type in English, Kannada or Hindi, and hear clear spoken explanations.</p>
+      </article>
+      <article>
+        <h3>Safe, with parents in the loop</h3>
+        <p>Aligned to NCERT and CBSE, with learning updates for parents on WhatsApp.</p>
+      </article>
+    </section>
+
+    <section class="cta" aria-labelledby="cta-title">
+      <h2 id="cta-title">Start with one question.</h2>
+      <a class="btn btn-primary" href="./">Try APPU free</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© IGR Academy · APPU</span>
+    <nav aria-label="Legal">
+      <a href="privacy-policy.html">Privacy</a>
+      <a href="terms-and-conditions.html">Terms</a>
+      <a href="contact-us.html">Contact</a>
+    </nav>
+  </footer>
+
+  <script src="welcome.js?v=20261009-1"></script>
+</body>
+</html>
