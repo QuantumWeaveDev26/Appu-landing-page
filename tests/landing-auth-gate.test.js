@@ -38,3 +38,28 @@ describe('Landing header CTA for a signed-in user', () => {
     }
   });
 });
+
+describe('Sign-out and reload transitions', () => {
+  const shell = fs.readFileSync(path.join(__dirname, '../frontend/parent-onboarding-shell.js'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '../frontend/index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../frontend/landing-page.css'), 'utf8');
+
+  test('the shell announces every auth status change and the landing returns to landing on sign-out', () => {
+    assert.match(shell, /new CustomEvent\('appu:auth-status'/);
+    assert.match(landing, /addEventListener\('appu:auth-status'/);
+    assert.match(landing, /else if \(inApp\) \{\s*\n\s*this\.stopAuthWatch\(\);\s*\n\s*this\.showLanding\(\);/);
+  });
+
+  test('a reload with a saved session hides the landing until auth settles (no flash)', () => {
+    assert.match(html, /classList\.add\('appu-restoring'\)/);
+    assert.match(html, /\^sb-\.\+-auth-token\$/);
+    assert.match(css, /html\.appu-restoring body #marketing-landing/);
+    assert.match(landing, /classList\.remove\('appu-restoring'\)/);
+  });
+});
+
+describe('Auth events after load', () => {
+  test('auto-reveal of the app is limited to the reload restore, so Home is not undone by token refreshes', () => {
+    assert.match(landing, /if \(!inApp && html\.classList\.contains\('appu-restoring'\)\) this\.showApp\(\);/);
+  });
+});

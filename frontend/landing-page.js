@@ -203,6 +203,8 @@
         this.watchForAuth(15000);
       }
 
+      this.bindAuthStatus();
+
       // Check stored language and apply initial translations
       let savedLang = 'en';
       try {
@@ -1337,6 +1339,34 @@
           win.history.replaceState({}, '', url.toString());
         }
       } catch (_) {}
+    },
+
+    // Keeps the visible view in step with auth: signing out of the app returns to the
+    // landing, and a reload with a saved session reveals the app (or landing) only once
+    // the restore has settled, so neither flashes first.
+    bindAuthStatus() {
+      const win = getWin();
+      const html = document.documentElement;
+      const settle = () => html.classList.remove('appu-restoring');
+      const sync = (status) => {
+        if (status === 'AUTH_CHECKING') return;
+        const inApp = document.body && document.body.classList.contains('view-app');
+        if (this.isAuthed()) {
+          // Only reveal the app for the initial reload restore. Later auth events (token
+          // refresh, tab refocus) must not pull someone who chose Home back into the app.
+          if (!inApp && html.classList.contains('appu-restoring')) this.showApp();
+        } else if (inApp) {
+          this.stopAuthWatch();
+          this.showLanding();
+        }
+        settle();
+      };
+      if (typeof win.addEventListener === 'function') {
+        win.addEventListener('appu:auth-status', (e) => sync(e && e.detail && e.detail.status));
+      }
+      // The restore may have finished before this ran (its event is then already gone).
+      const shell = win.ParentOnboardingShell;
+      if (win.__APPU_AUTH_SETTLED__ && shell && typeof shell.getAuthStatus === 'function') sync(shell.getAuthStatus());
     },
 
     // Header CTA: "Sign in" for visitors, "Open app" for a signed-in user on the landing.
