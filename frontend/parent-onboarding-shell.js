@@ -91,6 +91,13 @@
   function finishAuthTransition(status) {
     state.authStatus = status;
     notifyAuthStateChanged();
+    // Lets the landing page react (e.g. return to the landing on sign-out) without polling.
+    try {
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+        window.__APPU_AUTH_SETTLED__ = true;
+        window.dispatchEvent(new CustomEvent('appu:auth-status', { detail: { status } }));
+      }
+    } catch (_) {}
     if (_resolveReady) {
       _resolveReady(status);
       _resolveReady = null;
