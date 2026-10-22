@@ -23,7 +23,7 @@ export class ElevenLabsStreamService {
     }
     this.apiKey = options.apiKey.trim();
     this.voiceId = options.voiceId || '2vNb4zVImeugpHCemE1R';
-    this.modelId = options.modelId || 'eleven_v3';
+    this.modelId = options.modelId || 'eleven_v4';
     this.stability = options.stability ?? 0.75;
     this.similarityBoost = options.similarityBoost ?? 0.8;
     this.speed = options.speed ?? 0.82;
