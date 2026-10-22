@@ -50,7 +50,7 @@ class MockElevenLabsStreamService extends ElevenLabsStreamService {
   public synthesisHistory: Array<{ text: string }> = [];
 
   constructor() {
-    super({ apiKey: 'mock_test_key_for_unit_tests', voiceId: '2vNb4zVImeugpHCemE1R', modelId: 'eleven_v3' });
+    super({ apiKey: 'mock_test_key_for_unit_tests', voiceId: '2vNb4zVImeugpHCemE1R', modelId: 'eleven_v4' });
   }
 
   public override async getAudioStream(text: string): Promise<{
@@ -77,7 +77,7 @@ class MockElevenLabsStreamService extends ElevenLabsStreamService {
     return {
       stream,
       contentType: 'audio/mpeg',
-      modelId: 'eleven_v3'
+      modelId: 'eleven_v4'
     };
   }
 }
@@ -336,7 +336,7 @@ describe('APPU Kannada Eleven v3 Decoupled Audio Streaming Suite', () => {
 
     assert.equal(audioRes.statusCode, 200);
     assert.equal(audioRes.headers['content-type'], 'audio/mpeg');
-    assert.equal(audioRes.headers['x-appu-voice-model'], 'eleven_v3');
+    assert.equal(audioRes.headers['x-appu-voice-model'], 'eleven_v4');
     assert.equal(audioRes.headers['x-appu-request-id'], requestId);
     assert.ok(audioRes.rawPayload.length > 0, 'Must stream binary audio bytes');
 

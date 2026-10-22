@@ -246,7 +246,7 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
       elevenLabsStreamService = new ElevenLabsStreamService({
         apiKey: apiKey.trim(),
         voiceId: config.ELEVENLABS_VOICE_ID || process.env.ELEVENLABS_VOICE_ID || '2vNb4zVImeugpHCemE1R',
-        modelId: 'eleven_v3'
+        modelId: 'eleven_v4'
       });
     }
   }
