@@ -3224,30 +3224,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return fullText.slice(0, 16000);
       } catch (pdfErr) {
-        console.warn('[NotesTutor] pdfjsLib extraction failed, falling back to text read:', pdfErr);
+        console.warn('[NotesTutor] pdfjsLib extraction failed:', pdfErr);
       }
     }
-    return await file.text();
+    // Never fall back to file.text() for a PDF: that yields raw PDF bytes, not readable notes.
+    return null;
   }
+
+  const NOTES_MAX_BYTES = 10 * 1024 * 1024;
+  let notesFileSeq = 0;
 
   async function processSelectedFile(file) {
     if (!file) return;
+    const seq = ++notesFileSeq;
+    pendingExtractedDoc = null;
     if (notesFilename) notesFilename.textContent = file.name;
     if (notesFileStats) notesFileStats.textContent = 'Extracting text...';
     if (notesFileStatus) notesFileStatus.hidden = false;
     if (btnSubmitNotes) btnSubmitNotes.disabled = true;
 
-    try {
-      let extracted = '';
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        extracted = await extractTextFromPdfFile(file);
-      } else {
-        extracted = await file.text();
-      }
+    const lowerName = file.name.toLowerCase();
+    const isPdf = file.type === 'application/pdf' || lowerName.endsWith('.pdf');
+    const isText = /.(txt|md|markdown)$/.test(lowerName) || file.type === 'text/plain' || file.type === 'text/markdown';
+    const fail = (msg) => { if (seq === notesFileSeq && notesFileStats) notesFileStats.textContent = msg; };
 
+    if (!isPdf && !isText) {
+      fail('This file type is not supported. Please upload a PDF, TXT or Markdown file, or paste the text.');
+      return;
+    }
+    if (file.size > NOTES_MAX_BYTES) {
+      fail('This file is larger than 10MB. Please upload a smaller file or paste the text.');
+      return;
+    }
+
+    try {
+      const extracted = isPdf ? await extractTextFromPdfFile(file) : await file.text();
+      if (seq !== notesFileSeq) return; // a newer file was picked meanwhile
+
+      if (isPdf && extracted === null) {
+        fail('Could not open this PDF. Please check your connection and try again, or paste the text.');
+        return;
+      }
       const capped = String(extracted || '').slice(0, 16000).trim();
       if (!capped) {
-        if (notesFileStats) notesFileStats.textContent = 'Could not extract readable text from this file.';
+        fail(isPdf
+          ? 'No readable text found. This PDF may be a scan or photo; please paste the text instead.'
+          : 'Could not extract readable text from this file.');
         return;
       }
 
@@ -3262,7 +3284,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnSubmitNotes) btnSubmitNotes.disabled = false;
     } catch (err) {
       console.warn('[NotesTutor] File text extraction failed:', err);
-      if (notesFileStats) notesFileStats.textContent = 'Extraction failed. Please try pasting the text instead.';
+      fail('Extraction failed. Please try pasting the text instead.');
     }
   }
 
@@ -3299,6 +3321,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (notesFileInput) {
+    // Clear the previous pick before the file dialog opens; otherwise choosing the same
+    // file again fires no change event and the upload silently does nothing.
+    notesFileInput.addEventListener('click', () => {
+      notesFileInput.value = '';
+    });
     notesFileInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files.length > 0) {
         processSelectedFile(e.target.files[0]);
