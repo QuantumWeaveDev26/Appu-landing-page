@@ -20,3 +20,10 @@ test('landing answers show only the concept mind map, not the full lesson card',
   assert.match(body, /cardEl\.querySelector\('\.concept-tree-wrapper'\)/);
   assert.doesNotMatch(body, /answerSlot\.appendChild\(cardEl\)/);
 });
+
+test('landing mic is a live conversation: it listens again after Appu finishes speaking', () => {
+  assert.match(js, /resumeLiveVoice\(\) \{[\s\S]*?ve\.isSpeaking[\s\S]*?this\.startListening\(\)/);
+  const answer = js.slice(js.indexOf('answerInline(query) {'), js.indexOf('enterApp(question'));
+  assert.match(answer, /\.then\(\(\) => self\.resumeLiveVoice\(\)/);
+  assert.match(js, /showTrialGate\(\) \{\s*if \(this\.liveVoice\) this\.stopLiveVoice\(\);/);
+});

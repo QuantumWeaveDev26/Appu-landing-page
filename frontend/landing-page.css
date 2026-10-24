@@ -1123,6 +1123,13 @@ body.is-transitioning-to-app #marketing-landing {
   animation: landing-mic-pulse 1.4s infinite;
 }
 
+/* Live mic is on (between turns too): steady red ring until tapped off. */
+.landing-mic-btn.is-live {
+  color: #ffffff;
+  background: rgba(239, 68, 68, 0.75);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+}
+
 @keyframes landing-mic-pulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
   50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.15); }

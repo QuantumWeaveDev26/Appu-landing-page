@@ -170,6 +170,7 @@
     currentLang: 'en',
     recognition: null,
     isListening: false,
+    liveVoice: false, // live mic: keeps listening turn after turn until tapped off
     initialized: false,
     translations: LANDING_TRANSLATIONS,
 
@@ -1237,9 +1238,10 @@
       }
     },
 
+    // Live mic (Gemini-style): one tap starts a conversation. Appu listens, answers,
+    // waits until it has finished speaking, then listens again. Tap again to stop.
     toggleVoiceInput() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const micBtn = document.getElementById('landing-btn-mic');
       const input = document.getElementById('landing-question-input');
 
       if (!SpeechRec) {
@@ -1250,14 +1252,33 @@
         return;
       }
 
-      if (this.isListening) {
-        if (this.recognition) {
-          try { this.recognition.stop(); } catch (_) {}
-        }
-        this.isListening = false;
-        if (micBtn) micBtn.classList.remove('is-listening');
-        return;
+      if (this.liveVoice) { this.stopLiveVoice(); return; }
+      this.liveVoice = true;
+      const micBtn = document.getElementById('landing-btn-mic');
+      if (micBtn) micBtn.classList.add('is-live');
+      this.startListening();
+    },
+
+    stopLiveVoice() {
+      this.liveVoice = false;
+      if (this.recognition) {
+        try { this.recognition.abort(); } catch (_) {}
       }
+      this.isListening = false;
+      const micBtn = document.getElementById('landing-btn-mic');
+      if (micBtn) micBtn.classList.remove('is-listening', 'is-live');
+      const input = document.getElementById('landing-question-input');
+      const win = getWin();
+      const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
+      if (input && !input.disabled) input.placeholder = t.landingQuestionPlaceholder || 'What would you like to understand?';
+    },
+
+    // Listen for one question; on a pause it is sent. Silence just listens again.
+    startListening() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const micBtn = document.getElementById('landing-btn-mic');
+      const input = document.getElementById('landing-question-input');
+      if (!this.liveVoice || !SpeechRec || this.isListening) return;
 
       try {
         const rec = new SpeechRec();
@@ -1265,13 +1286,14 @@
         rec.lang = this.currentLang === 'kn' ? 'kn-IN' : (this.currentLang === 'hi' ? 'hi-IN' : 'en-IN');
         rec.interimResults = true;
         rec.maxAlternatives = 1;
+        let fatal = false;
 
         rec.onstart = () => {
           this.isListening = true;
           if (micBtn) micBtn.classList.add('is-listening');
           const win = getWin();
           const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
-          if (input) input.placeholder = t.voiceListeningPlaceholder || 'Listening... Speak now';
+          if (input) { input.value = ''; input.placeholder = t.voiceListeningPlaceholder || 'Listening... Speak now'; }
         };
 
         rec.onresult = (event) => {
@@ -1283,30 +1305,45 @@
         };
 
         rec.onerror = (err) => {
-          console.warn('[LandingVoice] Speech error:', err);
-          this.isListening = false;
-          if (micBtn) micBtn.classList.remove('is-listening');
+          console.warn('[LandingVoice] Speech error:', err && err.error);
+          // Mic blocked or missing: leave live mode instead of retrying forever.
+          if (err && /not-allowed|service-not-allowed|audio-capture/.test(err.error)) fatal = true;
         };
 
         rec.onend = () => {
+          if (this.recognition !== rec) return;
           this.isListening = false;
           if (micBtn) micBtn.classList.remove('is-listening');
+          if (fatal || !this.liveVoice) { if (fatal) this.stopLiveVoice(); return; }
           const finalQuery = input ? input.value.trim() : '';
           if (finalQuery) {
+            if (input) input.placeholder = 'Appu is answering… tap the mic to stop';
             this.answerInline(finalQuery);
           } else {
-            const win = getWin();
-            const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
-            if (input) input.placeholder = t.landingQuestionPlaceholder || 'What would you like to understand?';
+            setTimeout(() => this.startListening(), 250);
           }
         };
 
         rec.start();
       } catch (err) {
         console.warn('[LandingVoice] Start failed:', err);
-        this.isListening = false;
-        if (micBtn) micBtn.classList.remove('is-listening');
+        this.stopLiveVoice();
       }
+    },
+
+    // After an answer: once Appu has finished speaking, listen again (live mode only).
+    resumeLiveVoice() {
+      if (!this.liveVoice) return;
+      const ve = getWin().voiceEngine || (getWin().app && getWin().app.voiceEngine);
+      let quiet = 0;
+      const startedAt = Date.now();
+      const tick = () => {
+        if (!this.liveVoice) return;
+        quiet = (ve && ve.isSpeaking) ? 0 : quiet + 1;
+        if (quiet >= 3 || Date.now() - startedAt > 90000) { this.startListening(); return; }
+        setTimeout(tick, 250);
+      };
+      setTimeout(tick, 500);
     },
 
     showLanding() {
@@ -1929,6 +1966,7 @@
     },
 
     showTrialGate() {
+      if (this.liveVoice) this.stopLiveVoice();
       const convo = this.ensureTrialConvo();
       if (document.getElementById('landing-trial-gate')) return;
       const gate = document.createElement('div');
@@ -1971,6 +2009,7 @@
       const Renderer = win.LessonCardRenderer;
       // Safety net: if the chat pipeline or renderer isn't ready, degrade to the app flow.
       if (!agent || typeof agent.sendMessage !== 'function' || !Renderer || typeof Renderer.render !== 'function') {
+        if (this.liveVoice) this.stopLiveVoice();
         this.enterApp(q, null);
         return;
       }
@@ -2041,8 +2080,9 @@
             answerSlot.appendChild(pE);
             try {
               const veE = win.voiceEngine || (win.app && win.app.voiceEngine);
-              if (veE && typeof veE.speak === 'function') veE.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '');
-            } catch (_) {}
+              if (veE && typeof veE.speak === 'function') Promise.resolve(veE.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '')).then(() => self.resumeLiveVoice(), () => self.resumeLiveVoice());
+              else self.resumeLiveVoice();
+            } catch (_) { self.resumeLiveVoice(); }
             return;
           }
 
@@ -2072,8 +2112,9 @@
           try { turn.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
           try {
             const ve = win.voiceEngine || (win.app && win.app.voiceEngine);
-            if (ve && typeof ve.speak === 'function') ve.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '');
-          } catch (_) {}
+            if (ve && typeof ve.speak === 'function') Promise.resolve(ve.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '')).then(() => self.resumeLiveVoice(), () => self.resumeLiveVoice());
+            else self.resumeLiveVoice();
+          } catch (_) { self.resumeLiveVoice(); }
           if (!authed) {
             used += 1;
             try { win.localStorage.setItem('appu_trial_used', String(used)); } catch (_) {}
@@ -2095,6 +2136,7 @@
       } catch (err) {
         answerSlot.classList.remove('is-thinking');
         answerSlot.innerHTML = '<p class="landing-trial-text">Oops — I had trouble with that one. Please try again!</p>';
+        this.resumeLiveVoice();
       }
     },
 
