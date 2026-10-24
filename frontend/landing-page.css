@@ -1835,6 +1835,29 @@ body.is-transitioning-to-app #marketing-landing {
   z-index: 5;
 }
 .landing-question-container.has-trial .landing-question-helper { display: none; }
+/* First-question personalization (nickname, class, favourite subject). */
+.landing-profile-step { margin-top: 14px; }
+.landing-profile-q { margin: 0 0 10px; font-weight: 800; color: #52e0ff; }
+.landing-profile-options { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.landing-profile-input {
+  flex: 1 1 200px; min-width: 0;
+  padding: 0.6rem 0.9rem; border-radius: 12px;
+  border: 1.5px solid rgba(56, 189, 248, 0.35); background: rgba(8, 20, 39, 0.9);
+  color: #e6eefc; font: inherit; font-size: 1rem;
+}
+.landing-profile-input:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22); }
+.landing-profile-next {
+  padding: 0.6rem 1.2rem; border-radius: 12px; border: 0; cursor: pointer;
+  background: #4f46e5; color: #fff; font: inherit; font-weight: 800;
+}
+.landing-profile-skip {
+  padding: 0.55rem 0.9rem; border-radius: 9999px; cursor: pointer;
+  background: transparent; border: 1.5px dashed rgba(151, 184, 226, 0.35);
+  color: #94a3b8; font: inherit; font-weight: 700; font-size: 0.85rem;
+}
+[data-theme="light"] .landing-profile-input { background: #ffffff; color: #0f1b2e; }
+[data-theme="light"] .landing-profile-q { color: #0369a1; }
+
 /* Landing answer is just the mind map, compact enough to fit one screen. */
 .landing-trial-a .concept-tree-branches-grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

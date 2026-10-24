@@ -13,7 +13,7 @@ import { UsageService } from '../domain/usage/service.js';
 import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
 import { PersonalisationRepository } from '../domain/personalisation/repository.js';
-import type { GuestMentorContext } from '../domain/personalisation/types.js';
+import { buildGuestMentorContext } from '../domain/personalisation/guest-context.js';
 import { AdaptiveLearningService } from '../domain/adaptive-learning/service.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
@@ -96,7 +96,13 @@ const guestMessageSchema = z.object({
     .optional(),
   guestToken: z.string().optional(),
   includeAudio: z.boolean().optional(),
-  imageBase64: z.string().trim().max(6_000_000, 'Image payload too large').optional()
+  imageBase64: z.string().trim().max(6_000_000, 'Image payload too large').optional(),
+  // Optional self-declared landing-page personalization (guests only).
+  guestProfile: z.object({
+    nickname: z.string().trim().min(1).max(30).regex(/^[^<>`$]*$/, 'Invalid nickname').optional(),
+    grade: z.string().regex(/^(5|6|7|8|9|10|11|12)$/, 'Invalid class').optional(),
+    favoriteSubject: z.string().trim().min(1).max(40).regex(/^[^<>`$]*$/, 'Invalid subject').optional()
+  }).optional()
 });
 
 /**
@@ -624,7 +630,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       });
     }
 
-    const { message, language, guestToken, includeAudio, imageBase64 } = parseResult.data;
+    const { message, language, guestToken, includeAudio, imageBase64, guestProfile } = parseResult.data;
 
     let imagePayload: { mimeType: string; base64: string } | null = null;
     if (imageBase64) {
@@ -709,11 +715,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     // n8n never generates audio itself; all languages route through the decoupled stream below.
     const n8nIncludeAudio = false;
 
-    const mentorContext: GuestMentorContext = {
-      mode: 'guest',
-      primaryLanguage: effectiveLanguage,
-      personalizationEnabled: false
-    };
+    const mentorContext = buildGuestMentorContext(effectiveLanguage, guestProfile);
 
     const envelope: N8nMessageEnvelope = {
       requestId: initiation.request.id,

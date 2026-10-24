@@ -5,7 +5,8 @@
  * 
  * SECURITY INVARIANTS:
  * - Authenticated browser sends ONLY: childId, message, language, plus Authorization Bearer token.
- * - Guest browser sends ONLY: message, language, guestToken.
+ * - Guest browser sends ONLY: message, language, guestToken, plus the optional
+ *   self-declared landing profile (guestProfile: nickname, grade, favoriteSubject).
  * - Browser NEVER passes: householdId, plan, entitlements, personalisation, n8n webhook URL.
  * - Upstream server errors and status codes are mapped to safe, friendly child-facing messages.
  * - Access token is NEVER logged or echoed.
@@ -89,6 +90,23 @@
       }
     } catch {}
     return null;
+  }
+
+  // Landing-page personalization the guest chose (nickname, class, favourite subject).
+  // Cleaned to the same rules the backend enforces, so a bad value never blocks a message.
+  function getStoredGuestProfile() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem('appu_guest_profile') || 'null'); } catch { return null; }
+    if (!raw || typeof raw !== 'object') return null;
+    const clean = (v, max) => (typeof v === 'string' && v.trim() && v.trim().length <= max && !/[<>`$]/.test(v)) ? v.trim() : undefined;
+    const profile = {};
+    const nickname = clean(raw.nickname, 30);
+    const subject = clean(raw.favoriteSubject, 40);
+    const grade = /^(5|6|7|8|9|10|11|12)$/.test(String(raw.grade || '')) ? String(raw.grade) : undefined;
+    if (nickname) profile.nickname = nickname;
+    if (grade) profile.grade = grade;
+    if (subject) profile.favoriteSubject = subject;
+    return Object.keys(profile).length ? profile : null;
   }
 
   function setStoredGuestToken(token) {
@@ -249,6 +267,10 @@
       const storedGuestToken = guestToken || getStoredGuestToken();
       if (storedGuestToken) {
         payload.guestToken = storedGuestToken;
+      }
+      const guestProfile = getStoredGuestProfile();
+      if (guestProfile) {
+        payload.guestProfile = guestProfile;
       }
     }
 
@@ -905,6 +927,7 @@
     getApiBaseUrl,
     resolveAudioStreamUrl,
     getStoredGuestToken,
+    getStoredGuestProfile,
     setStoredGuestToken,
     sendAppuMessage,
     getGuestStatus,

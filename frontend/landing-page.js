@@ -1997,6 +1997,107 @@
       }
     },
 
+    // Landing personalization: nickname, class and favourite subject, kept in this browser.
+    // AppuBackendClient sends it with guest messages; parent setup pre-fills from it at sign-in.
+    getGuestProfile() {
+      try {
+        const p = JSON.parse(getWin().localStorage.getItem('appu_guest_profile') || 'null');
+        return (p && typeof p === 'object') ? p : null;
+      } catch (_) { return null; }
+    },
+
+    // Ask the three questions inside the answer area, one at a time (each skippable),
+    // then answer the question the child originally asked.
+    askGuestProfile(pendingQuestion) {
+      const win = getWin();
+      const strings = {
+        en: { intro: 'Hi! I’m Appu. Before I answer, tell me a little about you.', name: 'What should I call you?', namePh: 'Your nickname', next: 'Next', skip: 'Skip', grade: 'Which class are you in?', classWord: 'Class', subject: 'Which subject do you like most?',
+          subjects: ['Maths', 'Science', 'English', 'Social Science', 'Computers', 'Kannada', 'Hindi'] },
+        kn: { intro: 'ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು. ಉತ್ತರಿಸುವ ಮೊದಲು ನಿಮ್ಮ ಬಗ್ಗೆ ಸ್ವಲ್ಪ ಹೇಳಿ.', name: 'ನಿಮ್ಮನ್ನು ಏನೆಂದು ಕರೆಯಲಿ?', namePh: 'ನಿಮ್ಮ ಅಡ್ಡಹೆಸರು', next: 'ಮುಂದೆ', skip: 'ಬಿಟ್ಟುಬಿಡಿ', grade: 'ನೀವು ಯಾವ ತರಗತಿಯಲ್ಲಿದ್ದೀರಿ?', classWord: 'ತರಗತಿ', subject: 'ನಿಮಗೆ ಯಾವ ವಿಷಯ ಹೆಚ್ಚು ಇಷ್ಟ?',
+          subjects: ['ಗಣಿತ', 'ವಿಜ್ಞಾನ', 'ಇಂಗ್ಲಿಷ್', 'ಸಮಾಜ ವಿಜ್ಞಾನ', 'ಕಂಪ್ಯೂಟರ್', 'ಕನ್ನಡ', 'ಹಿಂದಿ'] },
+        hi: { intro: 'नमस्ते! मैं अप्पू हूँ। जवाब देने से पहले, अपने बारे में थोड़ा बताइए।', name: 'मैं आपको किस नाम से बुलाऊँ?', namePh: 'आपका उपनाम', next: 'आगे', skip: 'छोड़ें', grade: 'आप किस कक्षा में हैं?', classWord: 'कक्षा', subject: 'आपको कौन-सा विषय सबसे ज़्यादा पसंद है?',
+          subjects: ['गणित', 'विज्ञान', 'अंग्रेज़ी', 'सामाजिक विज्ञान', 'कंप्यूटर', 'कन्नड़', 'हिंदी'] }
+      };
+      const t = strings[this.currentLang] || strings.en;
+      const profile = {};
+      const self = this;
+      const input = document.getElementById('landing-question-input');
+      if (input) input.value = '';
+
+      const convo = this.ensureTrialConvo();
+      convo.querySelectorAll('.landing-trial-turn').forEach(function (n) { n.remove(); });
+      const turn = document.createElement('div');
+      turn.className = 'landing-trial-turn';
+      turn.innerHTML = '<div class="landing-trial-q"><span>' + this.escTrial(pendingQuestion) + '</span></div>' +
+        '<div class="landing-trial-a landing-profile">' +
+        '<div class="landing-trial-who"><span class="landing-trial-dot" aria-hidden="true"></span> APPU</div>' +
+        '<p class="landing-trial-text">' + this.escTrial(t.intro) + '</p>' +
+        '<div class="landing-profile-step" aria-live="polite"></div></div>';
+      convo.appendChild(turn);
+      const step = turn.querySelector('.landing-profile-step');
+      try { turn.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+
+      const button = function (label, cls, onClick) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = cls;
+        b.textContent = label;
+        b.addEventListener('click', onClick);
+        return b;
+      };
+      const ask = function (question) {
+        step.innerHTML = '';
+        const h = document.createElement('p');
+        h.className = 'landing-profile-q';
+        h.textContent = question;
+        step.appendChild(h);
+        const row = document.createElement('div');
+        row.className = 'landing-profile-options';
+        step.appendChild(row);
+        return row;
+      };
+      const finish = function () {
+        try { win.localStorage.setItem('appu_guest_profile', JSON.stringify(profile)); } catch (_) {}
+        turn.remove();
+        self.answerInline(pendingQuestion);
+      };
+      const askSubject = function () {
+        const row = ask(t.subject);
+        t.subjects.forEach(function (sub, i) {
+          // Saved in English so Appu's prompt gets a stable subject name.
+          row.appendChild(button(sub, 'landing-prompt-chip landing-profile-chip', function () { profile.favoriteSubject = strings.en.subjects[i]; finish(); }));
+        });
+        row.appendChild(button(t.skip, 'landing-profile-skip', finish));
+      };
+      const askGrade = function () {
+        const row = ask(t.grade);
+        ['5', '6', '7', '8', '9', '10', '11', '12'].forEach(function (g) {
+          row.appendChild(button(t.classWord + ' ' + g, 'landing-prompt-chip landing-profile-chip', function () { profile.grade = g; askSubject(); }));
+        });
+        row.appendChild(button(t.skip, 'landing-profile-skip', askSubject));
+      };
+      const askName = function () {
+        const row = ask(t.name);
+        const field = document.createElement('input');
+        field.type = 'text';
+        field.className = 'landing-profile-input';
+        field.maxLength = 30;
+        field.placeholder = t.namePh;
+        field.setAttribute('aria-label', t.name);
+        const next = function () {
+          const name = field.value.replace(/[<>`$]/g, '').trim().slice(0, 30);
+          if (name) profile.nickname = name;
+          askGrade();
+        };
+        field.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); next(); } });
+        row.appendChild(field);
+        row.appendChild(button(t.next, 'landing-profile-next', next));
+        row.appendChild(button(t.skip, 'landing-profile-skip', askGrade));
+        try { field.focus({ preventScroll: true }); } catch (_) {}
+      };
+      askName();
+    },
+
     // Self-contained landing trial: answer the question INLINE on the landing page
     // (never navigates to the main app). The main app is reached only after sign-in.
     answerInline(query) {
@@ -2018,6 +2119,8 @@
       const limit = this.trialLimit();
       let used = this.trialUsed();
       if (!authed && used >= limit) { this.showTrialGate(); return; }
+      // First question on the landing page: get to know the child before answering.
+      if (!authed && !this.getGuestProfile()) { this.askGuestProfile(q); return; }
 
       const convo = this.ensureTrialConvo();
       // Landing trial shows ONE response at a time: clear the previous turn(s)
@@ -2035,6 +2138,7 @@
       const lang = (win.app && win.app.currentLang) || win.currentLang || 'en';
       let grade = null;
       try { if (typeof win.getActiveChildGrade === 'function') grade = win.getActiveChildGrade(); } catch (_) {}
+      if (!grade) { const gp = this.getGuestProfile(); if (gp && gp.grade) grade = gp.grade; }
 
       const self = this;
       const onFinish = function (replyText, audioSource, audioStreamUrl, accessToken, result) {

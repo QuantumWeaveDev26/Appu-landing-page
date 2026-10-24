@@ -1517,6 +1517,11 @@
     // -------------------------------------------------------------
     // Step 3: Learner Setup & Quota-Aware Form Step
     // -------------------------------------------------------------
+    // Answers the child gave on the landing page (nickname, class, favourite subject).
+    function landingGuestProfile() {
+      try { return (window.AppuBackendClient && window.AppuBackendClient.getStoredGuestProfile()) || null; } catch { return null; }
+    }
+
     async function renderChildStep() {
       setStep(3);
       if (childListContainer) {
@@ -1526,6 +1531,12 @@
       try {
         await window.ParentOnboardingShell.fetchChildren();
         const vm = window.ParentOnboardingShell.getSubscriptionViewModel();
+        // First learner only: pre-fill from the landing-page answers (still editable).
+        const guestProfile = vm.children.length === 0 ? landingGuestProfile() : null;
+        if (guestProfile) {
+          if (childNameInput && !childNameInput.value.trim() && guestProfile.nickname) childNameInput.value = guestProfile.nickname;
+          if (childGradeSelect && guestProfile.grade) childGradeSelect.value = 'Grade ' + guestProfile.grade;
+        }
 
         if (!childListContainer) return;
         childListContainer.innerHTML = '';
@@ -1675,7 +1686,10 @@
       const title = document.getElementById('pos-pers-child-name');
       if (title) title.textContent = child.preferredName;
 
-      if (posChildNickname) posChildNickname.value = child.nickname || '';
+      // Only the first learner inherits the landing-page answers.
+      const learners = (window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.children) || [];
+      const guestProfile = learners.length <= 1 ? landingGuestProfile() : null;
+      if (posChildNickname) posChildNickname.value = child.nickname || (guestProfile && guestProfile.nickname) || '';
       if (posChildGender) posChildGender.value = child.gender || '';
       if (posChildDob) posChildDob.value = child.dob || '';
       if (posParentPhone) posParentPhone.value = '';
@@ -1696,6 +1710,7 @@
           if (persResponse) persResponse.value = pers.responseStyle || 'playful';
           if (persInterests) persInterests.value = (pers.interests || []).join(', ');
           if (persSubjects) persSubjects.value = (pers.favoriteSubjects || []).join(', ');
+          if (persSubjects && !persSubjects.value && guestProfile && guestProfile.favoriteSubject) persSubjects.value = guestProfile.favoriteSubject;
           if (persGoals) persGoals.value = (pers.goals || []).join(', ');
         }
 

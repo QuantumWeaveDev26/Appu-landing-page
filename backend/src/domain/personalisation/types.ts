@@ -71,6 +71,16 @@ export interface GuestMentorContext {
   mode: 'guest';
   primaryLanguage: string;
   personalizationEnabled: false;
+  // Self-declared on the landing page (never server-owned learner data); each is optional.
+  learnerName?: string;
+  grade?: string;
+  favoriteSubjects?: string[];
+}
+
+export interface GuestProfileInput {
+  nickname?: string;
+  grade?: string;
+  favoriteSubject?: string;
 }
 
 export type MentorContext = AuthenticatedMentorContext | GuestMentorContext;
