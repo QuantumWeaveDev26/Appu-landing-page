@@ -2123,10 +2123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.ParentReportsUI && typeof window.ParentReportsUI.noteAuthedChat === 'function') {
       window.ParentReportsUI.noteAuthedChat();
     }
-    // Real daily streak + "ask 3 questions today" challenge (one count per real question).
-    if (window.AppuDaily && typeof window.AppuDaily.afterQuestion === 'function') {
-      window.AppuDaily.afterQuestion();
-    }
 
     voiceEngine.playClick();
     avatarStage.setState('thinking');
@@ -3876,22 +3872,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (raw) {
         const parsed = JSON.parse(raw);
         return {
-          xp: typeof parsed.xp === 'number' ? parsed.xp : 0,
-          streak: currentStreak(),
-          badges: Array.isArray(parsed.badges) ? parsed.badges : []
+          xp: typeof parsed.xp === 'number' ? parsed.xp : 120,
+          streak: typeof parsed.streak === 'number' ? parsed.streak : 3,
+          badges: Array.isArray(parsed.badges) ? parsed.badges : ['plant-detective', 'quick-thinker', 'curious-mind']
         };
       }
     } catch (_) {}
     return {
-      xp: 0,
-      streak: currentStreak(),
-      badges: []
+      xp: 120,
+      streak: 3,
+      badges: ['plant-detective', 'quick-thinker', 'curious-mind']
     };
-  }
-
-  // The streak is the real consecutive-day count from AppuDaily (not a stored number).
-  function currentStreak() {
-    return (window.AppuDaily && typeof window.AppuDaily.getStreak === 'function') ? window.AppuDaily.getStreak() : 0;
   }
 
   function saveGamificationState(state) {
