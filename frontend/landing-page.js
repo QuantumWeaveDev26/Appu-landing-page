@@ -1894,7 +1894,12 @@
       convo.id = 'landing-trial-convo';
       convo.className = 'landing-trial-convo';
       convo.setAttribute('aria-live', 'polite');
-      if (section && section.parentNode) {
+      // Chat-style: answers sit ABOVE the question bar, which stays pinned below them.
+      const form = document.getElementById('landing-question-form');
+      if (form && form.parentNode) {
+        form.parentNode.insertBefore(convo, form);
+        form.parentNode.classList.add('has-trial');
+      } else if (section && section.parentNode) {
         section.parentNode.insertBefore(convo, section.nextSibling);
       } else {
         document.body.appendChild(convo);

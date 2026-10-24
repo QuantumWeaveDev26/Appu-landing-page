@@ -1,0 +1,16 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const js = fs.readFileSync(path.resolve(__dirname, '../frontend/landing-page.js'), 'utf8');
+const css = fs.readFileSync(path.resolve(__dirname, '../frontend/landing-page.css'), 'utf8');
+
+test('landing answers render above the question bar', () => {
+  const body = js.slice(js.indexOf('ensureTrialConvo() {'), js.indexOf('openSignIn() {'));
+  assert.match(body, /form\.parentNode\.insertBefore\(convo, form\)/);
+});
+
+test('question bar stays pinned below the answers', () => {
+  assert.match(css, /\.has-trial \.landing-question-box \{[^}]*position: sticky;[^}]*bottom: 12px;/);
+});
