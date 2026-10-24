@@ -1815,8 +1815,26 @@ body.is-transitioning-to-app #marketing-landing {
 .landing-trial-gate-inner .landing-btn-primary { margin: 0 auto; }
 .landing-question-form.is-locked { opacity: .6; }
 
+/* Answers render above the bar (inside the question container), chat-style. */
+.landing-question-container > .landing-trial-convo {
+  max-width: none;
+  margin: 0 0 18px;
+  padding: 0;
+  text-align: left;
+}
+.landing-question-container.has-trial .landing-question-box {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+}
+.landing-question-container.has-trial .landing-question-helper { display: none; }
+/* Solid while pinned so the answer doesn't show through the bar. */
+.landing-question-container.has-trial .landing-input-wrap { background: #081427; }
+[data-theme="light"] .landing-question-container.has-trial .landing-input-wrap { background: #ffffff; }
+
 @media (max-width: 640px) {
   .landing-trial-convo { padding: 0 14px; margin-bottom: 36px; }
+  .landing-question-container > .landing-trial-convo { padding: 0; margin-bottom: 14px; }
   .landing-trial-q { max-width: 92%; }
 }
 
