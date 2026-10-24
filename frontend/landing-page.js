@@ -2059,13 +2059,17 @@
           who.className = 'landing-trial-who';
           who.innerHTML = '<span class="landing-trial-dot" aria-hidden="true"></span> APPU';
           answerSlot.appendChild(who);
-          if (cardEl) { answerSlot.appendChild(cardEl); }
+          // Landing shows ONLY the concept mind map, sized to fit one screen (no long card).
+          const mindMap = cardEl ? cardEl.querySelector('.concept-tree-wrapper') : null;
+          if (mindMap) { answerSlot.appendChild(mindMap); }
           else {
             const p = document.createElement('p');
             p.className = 'landing-trial-text';
             p.textContent = reply;
             answerSlot.appendChild(p);
           }
+          // Settle the view so the mind map and the question bar fill one screen.
+          try { turn.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
           try {
             const ve = win.voiceEngine || (win.app && win.app.voiceEngine);
             if (ve && typeof ve.speak === 'function') ve.speak(reply, audioSource || null, audioStreamUrl || null, accessToken || '');

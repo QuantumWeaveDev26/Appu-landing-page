@@ -14,3 +14,9 @@ test('landing answers render above the question bar', () => {
 test('question bar stays pinned below the answers', () => {
   assert.match(css, /\.has-trial \.landing-question-box \{[^}]*position: sticky;[^}]*bottom: 12px;/);
 });
+
+test('landing answers show only the concept mind map, not the full lesson card', () => {
+  const body = js.slice(js.indexOf('answerInline(query) {'), js.indexOf('enterApp(question'));
+  assert.match(body, /cardEl\.querySelector\('\.concept-tree-wrapper'\)/);
+  assert.doesNotMatch(body, /answerSlot\.appendChild\(cardEl\)/);
+});
