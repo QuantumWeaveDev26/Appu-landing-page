@@ -1052,6 +1052,21 @@
   /**
    * Generates playful cartoon-styled HTML for sequential animated explanatory diagrams.
    */
+  // Static lesson-block labels in the learner's language (QA F15). Kannada/Hindi strings
+  // still need native-speaker review.
+  const BLOCK_LABELS = {
+    en: { analogy: 'Think of it like this', steps: 'Step by Step', check: 'Quick Check!', tapStep: 'Tap step to explore' },
+    kn: { analogy: 'ಇದನ್ನು ಹೀಗೆ ಯೋಚಿಸಿ', steps: 'ಹಂತ ಹಂತವಾಗಿ', check: 'ತ್ವರಿತ ಪರೀಕ್ಷೆ!', tapStep: 'ಹಂತವನ್ನು ಒತ್ತಿ ನೋಡಿ' },
+    hi: { analogy: 'इसे ऐसे समझो', steps: 'कदम दर कदम', check: 'झटपट जाँच!', tapStep: 'कदम दबाकर देखो' }
+  };
+  function blockLabel(key, options = {}) {
+    const lang = (options && options.language)
+      || (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang)))
+      || 'en';
+    const table = BLOCK_LABELS[String(lang).slice(0, 2)] || BLOCK_LABELS.en;
+    return table[key] || BLOCK_LABELS.en[key];
+  }
+
   function buildCartoonExplanatoryDiagramHTML(diagram, options = {}) {
     if (!diagram || !Array.isArray(diagram.parts) || diagram.parts.length < 2) return '';
 
@@ -1067,7 +1082,7 @@
             <span class="pill-sparkle" aria-hidden="true">✨</span>
             <span class="pill-text">${escapeHTML(title)}</span>
           </div>
-          <span class="cartoon-flow-hint"><i class="fa-solid fa-hand-pointer text-cyan" aria-hidden="true"></i> Tap step to explore</span>
+          <span class="cartoon-flow-hint"><i class="fa-solid fa-hand-pointer text-cyan" aria-hidden="true"></i> ${escapeHTML(blockLabel('tapStep', options))}</span>
         </div>
 
         <div class="cartoon-steps-strip" role="list">
@@ -1665,7 +1680,7 @@
           const items = Array.isArray(block.items) ? block.items : [];
 
           stepsDiv.innerHTML = `
-            <div class="steps-header"><i class="fa-solid fa-list-check text-cyan" aria-hidden="true"></i> <span>Step by Step</span></div>
+            <div class="steps-header"><i class="fa-solid fa-list-check text-cyan" aria-hidden="true"></i> <span>${escapeHTML(blockLabel('steps', options))}</span></div>
             <ol class="lesson-steps-list">
               ${items.map((item, idx) => `
                 <li class="lesson-step-item" style="--step-index: ${idx}">
@@ -1683,7 +1698,7 @@
           const analogyDiv = document.createElement('div');
           analogyDiv.className = 'lesson-block lesson-block-analogy';
           analogyDiv.innerHTML = `
-            <div class="analogy-header"><i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i> <span>Think of it like this</span></div>
+            <div class="analogy-header"><i class="fa-solid fa-lightbulb text-amber" aria-hidden="true"></i> <span>${escapeHTML(blockLabel('analogy', options))}</span></div>
             <blockquote class="analogy-body">${escapeHTML(block.text || '')}</blockquote>
           `;
           container.appendChild(analogyDiv);
@@ -1696,7 +1711,7 @@
           checkDiv.innerHTML = `
             <div class="check-header">
               <i class="fa-solid fa-circle-question text-cyan" aria-hidden="true"></i>
-              <span>Quick Check!</span>
+              <span>${escapeHTML(blockLabel('check', options))}</span>
               <span class="quiz-xp-badge">+20 XP ⭐</span>
             </div>
             <p class="check-question">${escapeHTML(block.q || '')}</p>

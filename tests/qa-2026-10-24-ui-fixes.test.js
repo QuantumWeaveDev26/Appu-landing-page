@@ -68,3 +68,14 @@ test('F10: pasted notes are validated by trimmed content and a code-point 16,000
   // Downstream caps use the same character semantics as the counter.
   assert.doesNotMatch(app + read('lesson-card-renderer.js'), /\.slice\(0, 16000\)\.trim\(\)|String\(documentText\)\.trim\(\)\.slice\(0, 16000\)/);
 });
+
+test('F15: one footer on the landing page; lesson block labels follow the selected language', () => {
+  const css = read('style.css');
+  assert.match(css, /body\.view-landing \.landing-footer-strip \{ display: none; \}/);
+  assert.match(css, /body\.view-app \.landing-footer-strip \{ display: none; \}/);
+  const js = read('lesson-card-renderer.js');
+  for (const key of ['tapStep', 'analogy', 'steps', 'check']) assert.match(js, new RegExp(`blockLabel\('${key}', options\)`));
+  assert.doesNotMatch(js, /<span>Think of it like this<\/span>|<span>Step by Step<\/span>|> Tap step to explore</);
+  assert.match(js, /kn: \{ analogy: 'ಇದನ್ನು ಹೀಗೆ ಯೋಚಿಸಿ'/);
+  assert.match(js, /hi: \{ analogy: 'इसे ऐसे समझो'/);
+});
