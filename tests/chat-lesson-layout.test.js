@@ -21,8 +21,11 @@ test('mind map without a title never shows the sample photosynthesis wording', (
   assert.doesNotMatch(fn, /Photosynthesis Concept Map|Trace inputs, cellular/);
 });
 
-test('conversation column is a notebook page (grid paper + spiral rings) that beats the chat-first reset', () => {
-  const blk = css.slice(css.indexOf('/* ===== Notebook page behind the whole conversation'));
-  assert.match(blk, /body\.chat-first #chat-drawer \{[\s\S]*?position: relative !important;[\s\S]*?#0e192d !important;/);
-  assert.match(blk, /body\.chat-first #chat-drawer::before \{[\s\S]*?data:image\/svg\+xml/);
+test('whole response area right of the menu is notebook paper with spiral rings', () => {
+  const blk = css.slice(css.indexOf('/* ===== Notebook paper behind the whole response area'));
+  assert.ok(blk.includes('body.chat-first #app-shell {'), 'grid paper on the app shell');
+  assert.ok(blk.includes('#0e192d;'), 'dark paper colour');
+  assert.ok(blk.includes('body.chat-first #app-shell::before {') && blk.includes('data:image/svg+xml'), 'spiral rings');
+  // The old chat-first reset must no longer hide the shell background or its ::before.
+  assert.ok(!css.includes('body.chat-first .app-shell::before,'), 'rings are not hidden');
 });
