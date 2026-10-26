@@ -63,6 +63,7 @@
       quotaActiveTitle: 'Learner profile active',
       quotaActiveDesc: 'Your student companion is configured for this learner profile.',
       btnManagePlans: 'Manage Subscription Plans',
+      billingPausedNotice: 'Paid plans and payments are on hold during the free beta, so there is nothing to change yet. Your current access: {plan}.',
       childAlertEnterNameClass: 'Please enter learner name and class.',
       childAddErrorDefault: 'Failed to add learner profile.',
       childLoadErrorDefault: 'Failed to load learners',
@@ -160,6 +161,7 @@
       quotaActiveTitle: 'ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಸಕ್ರಿಯವಾಗಿದೆ',
       quotaActiveDesc: 'ಈ ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್‌ಗಾಗಿ ನಿಮ್ಮ ವಿದ್ಯಾರ್ಥಿ ಸಂಗಾತಿಯನ್ನು ಸಂರಚಿಸಲಾಗಿದೆ.',
       btnManagePlans: 'ಚಂದಾದಾರಿಕೆ ಯೋಜನೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ',
+      billingPausedNotice: 'ಉಚಿತ ಬೀಟಾ ಅವಧಿಯಲ್ಲಿ ಪಾವತಿ ಯೋಜನೆಗಳು ಮತ್ತು ಪಾವತಿಗಳನ್ನು ತಡೆಹಿಡಿಯಲಾಗಿದೆ, ಆದ್ದರಿಂದ ಈಗ ಬದಲಾಯಿಸಲು ಏನೂ ಇಲ್ಲ. ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಪ್ರವೇಶ: {plan}.',
       childAlertEnterNameClass: 'ದಯವಿಟ್ಟು ಕಲಿಕಾರ್ಥಿಯ ಹೆಸರು ಮತ್ತು ತರಗತಿಯನ್ನು ನಮೂದಿಸಿ.',
       childAddErrorDefault: 'ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಸೇರಿಸಲು ವಿಫಲವಾಗಿದೆ.',
       childLoadErrorDefault: 'ಕಲಿಕಾರ್ಥಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ',
@@ -257,6 +259,7 @@
       quotaActiveTitle: 'शिक्षार्थी प्रोफ़ाइल सक्रिय है',
       quotaActiveDesc: 'आपका स्टूडेंट साथी इस शिक्षार्थी प्रोफ़ाइल के लिए कॉन्फ़िगर किया गया है।',
       btnManagePlans: 'सब्सक्रिप्शन प्लान प्रबंधित करें',
+      billingPausedNotice: 'मुफ़्त बीटा के दौरान पेड प्लान और भुगतान रोके गए हैं, इसलिए अभी बदलने के लिए कुछ नहीं है। आपकी मौजूदा पहुँच: {plan}।',
       childAlertEnterNameClass: 'कृपया शिक्षार्थी का नाम और कक्षा दर्ज करें।',
       childAddErrorDefault: 'शिक्षार्थी प्रोफ़ाइल जोड़ने में विफल।',
       childLoadErrorDefault: 'शिक्षार्थी लोड करने में विफल',
@@ -1644,7 +1647,15 @@
 
           const btnUp = quotaNotice.querySelector('#pos-btn-view-upgrade-from-quota');
           if (btnUp) {
-            btnUp.addEventListener('click', () => renderPlansStep());
+            btnUp.addEventListener('click', () => {
+              // Beta: plan selection is skipped and billing is paused, so going to the
+              // plans step only redrew this screen (QA F17). Say why instead.
+              if (typeof APPU_CONFIG !== 'undefined' && APPU_CONFIG.betaMode) {
+                showAlert(t('billingPausedNotice').replace('{plan}', vm.planName || ''), 'info');
+                return;
+              }
+              renderPlansStep();
+            });
           }
         } else {
           // Quota allows adding more learners
