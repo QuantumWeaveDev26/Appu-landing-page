@@ -20,6 +20,7 @@ import {
   appuGatewayRoutes,
   appuCallbackRoutes,
   appuAudioRoutes,
+  appuVoiceLineRoutes,
   usageRoutes,
   conversationRoutes,
   whatsappContextRoutes,
@@ -393,6 +394,9 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
         elevenLabsStreamService,
         guestSessionSecret: config.GUEST_SESSION_SECRET
       });
+      // Fixed mini-game lines in Appu's voice (Class 5-8 brain break).
+      const voice = elevenLabsStreamService;
+      app.register(appuVoiceLineRoutes, { synthesize: (text: string) => voice.getAudioStream(text) });
     }
   }
 

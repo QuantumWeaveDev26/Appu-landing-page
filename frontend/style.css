@@ -13710,3 +13710,70 @@ html body.view-app.chat-first .app-shell .response-dock {
 /* Landing page on 2K/4K: scale the whole page so its 1200px content is not a thin strip. */
 @media (min-width: 2200px) { html body.view-landing { zoom: 1.35; } }
 @media (min-width: 3000px) { html body.view-landing { zoom: 1.85; } }
+
+/* ===== Brain break mini game (Class 5-8, every 10 active minutes) ===== */
+.brain-break {
+  width: 100%;
+  max-width: 520px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #13213a;
+  color: #f1f5f9;
+  box-shadow: 0 10px 30px rgba(2, 8, 23, 0.45);
+  font-family: Manrope, system-ui, sans-serif;
+}
+.brain-break-icon { font-size: 30px; line-height: 1; margin-bottom: 8px; }
+.brain-break-msg { margin: 0 0 14px; font-size: 16px; line-height: 1.5; }
+.brain-break-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.brain-break-btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid #2c4a72;
+  background: transparent;
+  color: #e2e8f0;
+  font: 600 16px/1 Manrope, system-ui, sans-serif;
+  cursor: pointer;
+}
+.brain-break-btn.is-primary { background: #0ea5e9; border-color: #0ea5e9; color: #04131f; }
+.brain-break-btn:focus-visible, .brain-break-tile:focus-visible, .brain-break-card:focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
+.brain-break-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.brain-break-title { margin: 0; font: 700 20px/1.2 'Space Grotesk', Manrope, sans-serif; }
+.brain-break-clock { font-size: 14px; color: #94a3b8; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.brain-break-clock.is-low { color: #fbbf24; font-weight: 700; }
+.brain-break-board.is-match { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.brain-break-col { display: grid; gap: 10px; }
+.brain-break-board.is-flip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.brain-break-tile, .brain-break-card {
+  min-height: 52px;
+  border-radius: 14px;
+  border: 1px solid #2c4a72;
+  background: #0f1b30;
+  color: #f8fafc;
+  font: 700 18px/1.2 Manrope, system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.brain-break-card { aspect-ratio: 1; min-height: 0; font-size: 30px; }
+.brain-break-card:not(.is-open) { color: #38bdf8; }
+.brain-break-tile.is-picked, .brain-break-card.is-open { border-color: #38bdf8; background: #12325a; }
+.brain-break-tile.is-matched, .brain-break-card.is-matched { border-color: #22c55e; background: #0f3a28; cursor: default; }
+.brain-break-tile.is-wrong { border-color: #f87171; background: #3b1720; }
+.brain-break-status { min-height: 20px; margin: 12px 0 0; font-size: 14px; color: #94a3b8; }
+.brain-break.is-won .brain-break-msg, .brain-break.is-lost .brain-break-msg { font-weight: 700; }
+.brain-break.is-won { box-shadow: 0 0 0 2px #22c55e, 0 10px 30px rgba(2, 8, 23, 0.45); }
+.brain-break > .brain-break-btn { margin-top: 14px; }
+.brain-break-tile:disabled, .brain-break-card:disabled { opacity: 1; }
+@media (hover: hover) {
+  .brain-break-tile:not(:disabled):hover, .brain-break-card:not(:disabled):hover { border-color: #38bdf8; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .brain-break-tile:not(:disabled):active, .brain-break-card:not(:disabled):active { transform: scale(0.96); }
+}
+html[data-theme="light"] .brain-break { background: #ffffff; color: #0f172a; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12); }
+html[data-theme="light"] .brain-break-btn { color: #0f172a; border-color: #cbd5e1; }
+html[data-theme="light"] .brain-break-btn.is-primary { color: #04131f; border-color: #0ea5e9; }
+html[data-theme="light"] .brain-break-tile, html[data-theme="light"] .brain-break-card { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+html[data-theme="light"] .brain-break-tile.is-picked, html[data-theme="light"] .brain-break-card.is-open { background: #e0f2fe; }
+html[data-theme="light"] .brain-break-tile.is-matched, html[data-theme="light"] .brain-break-card.is-matched { background: #dcfce7; }
+html[data-theme="light"] .brain-break-tile.is-wrong { background: #fee2e2; }
