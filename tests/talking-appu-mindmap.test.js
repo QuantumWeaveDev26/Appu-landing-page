@@ -551,10 +551,10 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
 
     // Object with label
     const fullObj = {
-      label: 'NCERT Class 7 Science - Nutrition in Animals',
+      label: 'NCERT Class 7 Science - The World of Metals and Non-metals',
       class: 7,
       subject: 'Science',
-      chapter: 'Nutrition in Animals'
+      chapter: 'The World of Metals and Non-metals'
     };
     assert.deepEqual(LessonCardRenderer.normalizeCitation(fullObj), fullObj);
 
@@ -569,10 +569,10 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
     const payloadWithCitation = {
       topic: 'Digestive System in Animals',
       citation: {
-        label: 'NCERT Class 7 Science - Nutrition in Animals',
+        label: 'NCERT Class 7 Science - The World of Metals and Non-metals',
         class: 7,
         subject: 'Science',
-        chapter: 'Nutrition in Animals'
+        chapter: 'The World of Metals and Non-metals'
       },
       mindMap: {
         central: 'Digestive System',
@@ -597,20 +597,20 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
     const card = LessonCardRenderer.fromVisualizerPayload(payloadWithCitation, 'Digestion breakdown', '7');
     assert.ok(card);
     assert.ok(card.citation, 'card must contain citation');
-    assert.equal(card.citation.label, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.equal(card.citation.label, 'NCERT Class 7 Science - The World of Metals and Non-metals');
     assert.ok(card.mindMap.citation, 'mindMap must contain citation');
-    assert.equal(card.mindMap.citation.label, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.equal(card.mindMap.citation.label, 'NCERT Class 7 Science - The World of Metals and Non-metals');
     assert.ok(card.studyGuide.citation, 'studyGuide must contain citation');
-    assert.equal(card.studyGuide.citation.label, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.equal(card.studyGuide.citation.label, 'NCERT Class 7 Science - The World of Metals and Non-metals');
     assert.ok(card.quizItems[0].citation, 'quiz item must inherit citation');
-    assert.equal(card.quizItems[0].citation, 'NCERT Class 7 Science - Nutrition in Animals');
+    assert.equal(card.quizItems[0].citation, 'NCERT Class 7 Science - The World of Metals and Non-metals');
   });
 
   test('render() displays lesson-citation-pill in diagram-header when citation is present', () => {
     const card = {
       mood: 'explaining',
       gradeTone: 'middle',
-      citation: { label: 'NCERT Class 7 Science - Nutrition in Animals' },
+      citation: { label: 'NCERT Class 7 Science - The World of Metals and Non-metals' },
       blocks: [
         {
           type: 'diagram',
@@ -626,7 +626,7 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
     const diag = el.querySelector('.lesson-block-diagram');
     assert.ok(diag, 'Must contain diagram block');
     assert.ok(diag.innerHTML.includes('lesson-citation-pill'), 'Diagram header must contain lesson-citation-pill');
-    assert.ok(diag.innerHTML.includes('NCERT Class 7 Science - Nutrition in Animals'), 'Must include citation text');
+    assert.ok(diag.innerHTML.includes('NCERT Class 7 Science - The World of Metals and Non-metals'), 'Must include citation text');
     assert.ok(diag.innerHTML.includes('Source:'), 'Must include Source: label');
   });
 
@@ -657,11 +657,11 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
       title: 'Respiration Map',
       central: 'Respiration',
       branches: [{ label: 'Aerobic', children: [] }],
-      citation: { label: 'NCERT Class 7 Science - Respiration in Organisms' }
+      citation: { label: 'NCERT Class 7 Science - Changes Around Us: Physical and Chemical' }
     };
     const el1 = LessonCardRenderer.renderMindMap(mapWithCit);
     assert.ok(el1.innerHTML.includes('lesson-citation-pill'));
-    assert.ok(el1.innerHTML.includes('NCERT Class 7 Science - Respiration in Organisms'));
+    assert.ok(el1.innerHTML.includes('NCERT Class 7 Science - Changes Around Us: Physical and Chemical'));
 
     const mapNoCit = {
       title: 'Simple Map',
@@ -680,7 +680,7 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
         options: ['Liver', 'Pancreas', 'Stomach', 'Kidney'],
         correctIndex: 0,
         explanation: 'The liver secretes bile which helps digest fats.',
-        citation: 'NCERT Class 7 Science - Nutrition in Animals'
+        citation: 'NCERT Class 7 Science - The World of Metals and Non-metals'
       }
     ];
 
@@ -690,7 +690,15 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
     btn0.click();
 
     assert.ok(el.innerHTML.includes('quiz-citation-pill'), 'Quiz feedback box must show quiz-citation-pill');
-    assert.ok(el.innerHTML.includes('Source: NCERT Class 7 Science - Nutrition in Animals'), 'Must format with Source: prefix');
+    assert.ok(el.innerHTML.includes('Source: NCERT Class 7 Science - The World of Metals and Non-metals'), 'Must format with Source: prefix');
+  });
+
+  test('QA F02: a verified badge links its source; a wrong-class claim is never shown under the learner class', () => {
+    const ok = LessonCardRenderer.renderStudyGuide({ topic: 'Forces', keyPoints: ['A push or pull'], citation: 'NCERT Class 8 Science - Exploring Forces' });
+    assert.ok(ok.innerHTML.includes('class="citation-source-link" href="https://ncert.nic.in/'));
+    const bad = LessonCardRenderer.renderStudyGuide({ topic: 'Photosynthesis', keyPoints: ['Plants make food'], citation: 'NCERT Class 8 Science - Photosynthesis in Higher Plants' });
+    assert.ok(!bad.innerHTML.includes('NCERT Class 8 Science - Photosynthesis'));
+    assert.ok(bad.innerHTML.includes('Related chapter: NCERT Class 11 Biology - Photosynthesis in Higher Plants'));
   });
 
   test('renderStudyGuide() renders citation pill in guide-badge-row when present', () => {
@@ -698,13 +706,13 @@ describe('Task D: NCERT Citations & Grounded Curriculum Source Pills', () => {
       topic: 'Acids and Bases',
       grade: 'Class 7',
       keyPoints: ['Acids taste sour', 'Bases feel soapy'],
-      citation: { label: 'NCERT Class 7 Science - Acids, Bases and Salts' }
+      citation: { label: 'NCERT Class 7 Science - Exploring Substances: Acidic, Basic, and Neutral' }
     };
 
     const el = LessonCardRenderer.renderStudyGuide(guideWithCit);
     assert.ok(el.innerHTML.includes('guide-badge-row'));
     assert.ok(el.innerHTML.includes('lesson-citation-pill'));
-    assert.ok(el.innerHTML.includes('NCERT Class 7 Science - Acids, Bases and Salts'));
+    assert.ok(el.innerHTML.includes('NCERT Class 7 Science - Exploring Substances: Acidic, Basic, and Neutral'));
   });
 });
 
@@ -729,12 +737,12 @@ describe('Task E: Notes Tutor & Document Upload Teaching', () => {
     assert.equal(formatted.text, 'Your uploaded notes');
 
     // NCERT citation check
-    const ncertCit = { label: 'NCERT Class 7 Science - Nutrition in Animals' };
+    const ncertCit = { label: 'NCERT Class 7 Science - The World of Metals and Non-metals' };
     const formattedNcert = LessonCardRenderer.formatCitationDisplay(ncertCit);
     assert.ok(formattedNcert);
     assert.equal(formattedNcert.isUpload, false);
     assert.equal(formattedNcert.icon, 'fa-book-bookmark');
-    assert.equal(formattedNcert.text, 'Source: NCERT Class 7 Science - Nutrition in Animals');
+    assert.equal(formattedNcert.text, 'Source: NCERT Class 7 Science - The World of Metals and Non-metals');
   });
 
   test('fetchNotesTutor returns null if documentText is missing or empty', async () => {

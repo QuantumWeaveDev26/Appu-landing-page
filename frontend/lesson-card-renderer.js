@@ -122,18 +122,100 @@
   }
 
   /**
+   * Safe access to the verified 2026-27 curriculum catalogue (browser global or CommonJS).
+   */
+  function getCurriculum() {
+    if (typeof window !== 'undefined' && window.APPU_CURRICULUM) return window.APPU_CURRICULUM;
+    if (typeof globalThis !== 'undefined' && globalThis.APPU_CURRICULUM) return globalThis.APPU_CURRICULUM;
+    if (typeof require === 'function') {
+      try {
+        return require('./curriculum-catalogue.js');
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  const normalizeTitle = (s) => String(s || '').toLowerCase()
+    .replace(/^\s*(chapter|ch\.?)\s*\d+\s*[:.\-–]?\s*/, '')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+
+  /**
+   * Checks a precise curriculum claim ("NCERT Class 8 Science - <chapter>") against the
+   * verified catalogue (QA F02). A model can pair the learner's grade with a chapter from
+   * another class, so the claim is only shown as a source when class + chapter match.
+   * Returns { status: 'verified' | 'other-class' | 'unverified' | 'not-a-claim', ... }.
+   */
+  function verifyCurriculumCitation(norm) {
+    if (!norm) return { status: 'unverified' };
+    const label = String(norm.label || '');
+    let cls = norm.class != null ? String(norm.class) : null;
+    let chapter = norm.chapter || null;
+    if (!cls || !chapter) {
+      const m = label.match(/class\s*(\d{1,2})\b[^-–:,]*[-–:,]\s*(?:chapter\s*\d+\s*[:.\-–]\s*)?(.+)$/i);
+      if (m) { cls = cls || m[1]; chapter = chapter || m[2]; }
+    }
+    const claimsSource = /\bncert\b|\bcbse\b|\bchapter\b/i.test(label) || Boolean(norm.chapter);
+    if (!claimsSource) return { status: 'not-a-claim' };
+    const catalogue = getCurriculum();
+    const wanted = normalizeTitle(chapter);
+    if (!catalogue || !catalogue.classes || !wanted) return { status: 'unverified' };
+    const find = (g) => {
+      const subjects = catalogue.classes[g] || {};
+      for (const subject of Object.keys(subjects)) {
+        const hit = (subjects[subject].chapters || []).find((c) => normalizeTitle(c) === wanted);
+        if (hit) return { cls: g, subject, chapter: hit, url: (subjects[subject].sourceUrls || [])[0] || null };
+      }
+      return null;
+    };
+    const exact = cls ? find(cls) : null;
+    if (exact) return { status: 'verified', ...exact };
+    for (const g of Object.keys(catalogue.classes)) {
+      const other = find(g);
+      if (other) return { status: 'other-class', ...other };
+    }
+    return { status: 'unverified' };
+  }
+
+  /** Badge text; a verified curriculum reference links to its official source (QA F02). */
+  function citationTextHtml(cit) {
+    if (!cit) return '';
+    if (cit.url && /^https:\/\//.test(cit.url)) {
+      return `<a class="citation-source-link" href="${escapeHTML(cit.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(cit.text)}</a>`;
+    }
+    return `<span>${escapeHTML(cit.text)}</span>`;
+  }
+
+  /**
    * Helper: Formats citation for UI pill rendering with appropriate icon and label.
+   * Precise NCERT/CBSE claims must be verified (QA F02): verified ones keep their source
+   * link; a chapter that belongs to a different class is shown as a qualified "related"
+   * reference under its real class; anything unverifiable is omitted (returns null).
    */
   function formatCitationDisplay(citation) {
     const norm = normalizeCitation(citation);
     if (!norm || !norm.label) return null;
     const rawLabel = norm.label;
     const isUpload = norm.source === 'upload' || rawLabel.toLowerCase().includes('upload');
-    const icon = isUpload ? 'fa-file-lines' : 'fa-book-bookmark';
-    const text = isUpload
-      ? (rawLabel.startsWith('Source:') ? rawLabel : rawLabel)
-      : (rawLabel.startsWith('Source:') || rawLabel.startsWith('From ') ? rawLabel : `Source: ${rawLabel}`);
-    return { label: rawLabel, text, icon, isUpload };
+    if (isUpload) {
+      return { label: rawLabel, text: rawLabel, icon: 'fa-file-lines', isUpload: true };
+    }
+    const check = verifyCurriculumCitation(norm);
+    if (check.status === 'unverified') return null;
+    if (check.status === 'verified' || check.status === 'other-class') {
+      const ref = `NCERT Class ${check.cls} ${check.subject} - ${check.chapter}`;
+      return {
+        label: ref,
+        text: check.status === 'verified' ? `Source: ${ref}` : `Related chapter: ${ref}`,
+        icon: 'fa-book-bookmark',
+        isUpload: false,
+        url: check.url,
+        verification: check.status
+      };
+    }
+    const text = rawLabel.startsWith('Source:') || rawLabel.startsWith('From ') ? rawLabel : `Source: ${rawLabel}`;
+    return { label: rawLabel, text, icon: 'fa-book-bookmark', isUpload: false };
   }
 
   const SAMPLE_CITATION = {
@@ -1138,7 +1220,7 @@
         const pill = document.createElement('div');
         pill.className = `lesson-citation-pill plain-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}`;
         pill.setAttribute('title', `Source: ${cit.label}`);
-        pill.innerHTML = `<i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i> <span>${escapeHTML(cit.text)}</span>`;
+        pill.innerHTML = `<i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i> ${citationTextHtml(cit)}`;
         plainDiv.appendChild(pill);
       }
       const p = document.createElement('p');
@@ -1158,7 +1240,7 @@
       topCitation.innerHTML = `
         <div class="lesson-citation-pill plain-citation-pill ${topCit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(topCit.label)}">
           <i class="fa-solid ${topCit.icon} text-amber" aria-hidden="true"></i>
-          <span>${escapeHTML(topCit.text)}</span>
+          ${citationTextHtml(topCit)}
         </div>
       `;
       container.appendChild(topCitation);
@@ -1489,7 +1571,7 @@
                 ${bCit ? `
                   <div class="lesson-citation-pill ${bCit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(bCit.label)}">
                     <i class="fa-solid ${bCit.icon} text-amber" aria-hidden="true"></i>
-                    <span>${escapeHTML(bCit.text)}</span>
+                    ${citationTextHtml(bCit)}
                   </div>
                 ` : ''}
               </div>
@@ -1555,7 +1637,7 @@
               ${bCit ? `
                 <div class="lesson-citation-pill ${bCit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(bCit.label)}">
                   <i class="fa-solid ${bCit.icon} text-amber" aria-hidden="true"></i>
-                  <span>${escapeHTML(bCit.text)}</span>
+                  ${citationTextHtml(bCit)}
                 </div>
               ` : ''}
             </div>
@@ -1785,7 +1867,7 @@
                 return `
                   <div class="quiz-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
                     <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
-                    <span>${escapeHTML(cit.text)}</span>
+                    ${citationTextHtml(cit)}
                   </div>
                 `;
               })()}
@@ -2080,7 +2162,7 @@
           ${cit ? `
             <div class="lesson-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
               <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
-              <span>${escapeHTML(cit.text)}</span>
+              ${citationTextHtml(cit)}
             </div>
           ` : ''}
         </div>
@@ -2192,7 +2274,7 @@
           ${cit ? `
             <div class="lesson-citation-pill ${cit.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(cit.label)}">
               <i class="fa-solid ${cit.icon} text-amber" aria-hidden="true"></i>
-              <span>${escapeHTML(cit.text)}</span>
+              ${citationTextHtml(cit)}
             </div>
           ` : ''}
         </div>
@@ -2232,7 +2314,7 @@
 
     const citationDisplay = formatCitationDisplay(data.citation || options.citation);
     const citationHtml = citationDisplay
-      ? `<span class="lesson-citation-pill ${citationDisplay.isUpload ? 'is-upload-source' : ''}"><i class="fa-solid ${citationDisplay.icon}" aria-hidden="true"></i> ${escapeHTML(citationDisplay.text)}</span>`
+      ? `<span class="lesson-citation-pill ${citationDisplay.isUpload ? 'is-upload-source' : ''}"><i class="fa-solid ${citationDisplay.icon}" aria-hidden="true"></i> ${citationTextHtml(citationDisplay)}</span>`
       : '';
 
     const segments = Array.isArray(data.segments) ? data.segments : [];
@@ -2740,7 +2822,7 @@
     const citationHtml = citationDisplay
       ? `<div class="lesson-citation-pill ${citationDisplay.isUpload ? 'is-upload-source' : ''}" title="Source: ${escapeHTML(citationDisplay.label)}">
            <i class="fa-solid ${citationDisplay.icon} text-amber" aria-hidden="true"></i>
-           <span>${escapeHTML(citationDisplay.text)}</span>
+           ${citationTextHtml(citationDisplay)}
          </div>`
       : '';
 

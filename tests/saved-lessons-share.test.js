@@ -159,7 +159,7 @@ describe('Appu 2.0: Saved Lessons & WhatsApp Share Controller', () => {
     const card = {
       topic: 'Water Cycle',
       plainText: 'The water cycle describes how water evaporates, condenses into clouds, and falls as precipitation.',
-      citation: 'NCERT Class 6 Science - Water',
+      citation: 'NCERT Class 6 Science - Exploring Magnets',
       studyGuide: {
         keyPoints: [
           'Sun heats water bodies causing evaporation',
@@ -185,7 +185,7 @@ describe('Appu 2.0: Saved Lessons & WhatsApp Share Controller', () => {
     assert.match(summary, /• Sun heats water bodies/);
     assert.match(summary, /🎯 \*Steps:\*/);
     assert.match(summary, /1\. Evaporation from oceans/);
-    assert.match(summary, /📖 \*Source:\* NCERT Class 6 Science - Water/);
+    assert.match(summary, /📖 \*Source:\* NCERT Class 6 Science - Exploring Magnets/);
     assert.match(summary, /Shared via APPU Learning Companion/);
 
     // Budget check

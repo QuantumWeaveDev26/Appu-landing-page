@@ -362,14 +362,15 @@
     }
     steps = steps.slice(0, 4);
 
-    // 3. Citation extraction
+    // 3. Citation extraction: only a verified curriculum reference is shared (QA F02).
     let citationLine = '';
     if (card.citation) {
-      if (typeof card.citation === 'string') {
-        citationLine = card.citation.trim();
-      } else if (typeof card.citation === 'object') {
-        citationLine = card.citation.label || card.citation.text || '';
-      }
+      const renderer = (typeof window !== 'undefined' && window.LessonCardRenderer)
+        || (typeof require === 'function' ? (() => { try { return require('./lesson-card-renderer.js'); } catch (e) { return null; } })() : null);
+      const display = renderer && typeof renderer.formatCitationDisplay === 'function'
+        ? renderer.formatCitationDisplay(card.citation)
+        : null;
+      citationLine = display ? display.label : '';
     }
 
     // 4. Assemble message with standard educational format
