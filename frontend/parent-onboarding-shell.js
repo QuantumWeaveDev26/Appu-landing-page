@@ -312,7 +312,31 @@
       }
 
       if (authRes.error) {
-        throw new Error(authRes.error.message || 'Authentication failed');
+        const raw = String(authRes.error.message || '');
+        // Signed up but never clicked the link: send them to the verify screen (with resend).
+        if (!isSignUp && /email not confirmed/i.test(raw)) {
+          return {
+            status: 'VERIFICATION_REQUIRED',
+            needsVerification: true,
+            email,
+            user: null,
+            message: `Your email is not verified yet. Open the link we sent to ${email}, or resend it below.`
+          };
+        }
+        if (/rate limit|too many/i.test(raw)) {
+          throw new Error('Too many emails were sent just now. Please wait a few minutes and try again.');
+        }
+        if (/sending (confirmation|magic link|recovery)? ?email|error sending/i.test(raw)) {
+          throw new Error('We could not send the verification email right now. Please try again in a few minutes.');
+        }
+        throw new Error(raw || 'Authentication failed');
+      }
+
+      // Supabase answers a sign-up for an already-registered email with a user that has no
+      // identities and sends NO email (to avoid revealing accounts). Say so instead of
+      // claiming a verification link was sent.
+      if (isSignUp && authRes.data?.user && Array.isArray(authRes.data.user.identities) && authRes.data.user.identities.length === 0) {
+        throw new Error('This email already has an APPU account. Please sign in instead.');
       }
 
       if (!authRes.data || !authRes.data.session) {

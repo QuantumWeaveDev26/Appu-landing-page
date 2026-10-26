@@ -1150,6 +1150,56 @@ describe('Parent Onboarding Integration Shell & Session Flow', () => {
     );
   });
 
+  test('signUp for an already-registered email (no identities, no email sent) says to sign in', async () => {
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async signUp({ email }) {
+            return { data: { user: { id: 'obfuscated', email, identities: [] }, session: null }, error: null };
+          }
+        }
+      })
+    };
+    await assert.rejects(
+      () => ParentOnboardingShell.signInParent({ email: 'taken@example.com', password: 'Password123!', isSignUp: true }),
+      (err) => { assert.match(err.message, /already has an APPU account/); return true; }
+    );
+  });
+
+  test('signing in with an unverified email returns VERIFICATION_REQUIRED so the user can resend', async () => {
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async signInWithPassword() {
+            return { data: { user: null, session: null }, error: { message: 'Email not confirmed' } };
+          }
+        }
+      })
+    };
+    const result = await ParentOnboardingShell.signInParent({ email: 'pending@example.com', password: 'Password123!' });
+    assert.equal(result.status, 'VERIFICATION_REQUIRED');
+    assert.equal(result.email, 'pending@example.com');
+  });
+
+  test('email rate-limit errors become a plain "wait and retry" message', async () => {
+    global.window = global.window || {};
+    global.window.supabase = {
+      createClient: () => ({
+        auth: {
+          async signUp() {
+            return { data: { user: null, session: null }, error: { message: 'email rate limit exceeded' } };
+          }
+        }
+      })
+    };
+    await assert.rejects(
+      () => ParentOnboardingShell.signInParent({ email: 'new@example.com', password: 'Password123!', isSignUp: true }),
+      (err) => { assert.match(err.message, /wait a few minutes/); return true; }
+    );
+  });
+
   test('resendVerificationEmail calls supabase.auth.resend with signup type and redirect URL', async () => {
     let capturedResendArgs = null;
     global.window = global.window || {};
