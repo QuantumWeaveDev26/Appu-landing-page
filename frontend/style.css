@@ -13847,3 +13847,26 @@ html[data-theme="light"] .nav-profile-name { color: #0f172a; }
 html[data-theme="light"] .nav-profile-sub, html[data-theme="light"] .nav-profile-chevron { color: #475569; }
 html[data-theme="light"] .nav-profile-menu { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14); }
 html[data-theme="light"] .nav-profile-menu button { color: #0f172a; }
+
+/* ===== Lesson cards inside the chat (chat-first): one full-width column =====
+   The popup-era 2-column grid (diagram | steps) left the mind map squeezed into
+   half the answer with an empty right side and a lot of scrolling. */
+body.chat-first #chat-messages .appu-lesson-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+body.chat-first #chat-messages .concept-tree-branches-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+/* Chat bubbles keep line breaks for plain-text answers (pre-wrap), but lesson cards
+   inherited it: every newline in their HTML template became an empty line, leaving
+   big gaps inside the cards. Cards lay themselves out, so use normal white-space. */
+#chat-messages .msg-study-body,
+#chat-messages .appu-lesson-card,
+#chat-messages .appu-study-card,
+#chat-messages .msg-bubble > .study-mode-toolbar,
+#chat-messages .msg-bubble > [class*="study-toolbar"] {
+  white-space: normal;
+}

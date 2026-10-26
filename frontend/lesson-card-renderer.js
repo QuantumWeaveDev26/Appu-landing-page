@@ -2250,8 +2250,9 @@
     const diagId = 'mindmap-' + Math.random().toString(36).substring(2, 10);
     const isShimmer = Boolean(mapData.loading || mapData.kind === 'shimmer' || (!mapData.spec && mapData.isLoading));
 
-    const title = mapData.title || (isShimmer ? 'Generating Mind Map...' : 'Photosynthesis Concept Map');
-    const summary = mapData.summary || (isShimmer ? 'Creating structured visual concept map...' : 'Trace inputs, cellular reactions, and vital outputs');
+    // Never fall back to the sample's photosynthesis wording on a real answer's map.
+    const title = mapData.title || (isShimmer ? 'Generating Mind Map...' : (mapData.central ? `${mapData.central} Concept Map` : 'Concept Map'));
+    const summary = mapData.summary || (isShimmer ? 'Creating structured visual concept map...' : '');
     let central = mapData.central || title;
     let branches = Array.isArray(mapData.branches) && mapData.branches.length > 0 ? mapData.branches : [];
     const spec = mapData.spec || '';
@@ -2294,7 +2295,7 @@
           ` : ''}
         </div>
         <h2 class="mindmap-title">${escapeHTML(title)}</h2>
-        <p class="mindmap-desc">${escapeHTML(summary)}</p>
+        ${summary ? `<p class="mindmap-desc">${escapeHTML(summary)}</p>` : ''}
       </div>
 
       <div class="mindmap-canvas-wrap is-concept-mindmap" id="${diagId}-wrap">
