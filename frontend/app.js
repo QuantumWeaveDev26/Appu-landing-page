@@ -3,6 +3,12 @@
  * Connects AvatarStage, VoiceEngine, ChatAgent, Modals, Audio SFX, Guest Access Control, and Secure Backend Gateway.
  */
 
+// QA F07: Capture initial location hash at script parse time before showLanding() or routing rewrites url.hash.
+let initialLocationHash = '';
+try {
+  initialLocationHash = (typeof window !== 'undefined' && window.location && window.location.hash) || '';
+} catch (e) {}
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // Native app only: once we know whether a session already exists, show the
@@ -3009,6 +3015,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (discoveryModal) {
       discoveryModal.classList.remove('is-visible');
       deactivateDialog(discoveryModal);
+      try {
+        if (typeof window !== 'undefined' && window.location && window.location.hash === '#discovery' && window.history && typeof window.history.replaceState === 'function') {
+          const url = new URL(window.location.href);
+          url.hash = '';
+          window.history.replaceState({}, '', url.toString());
+        }
+      } catch (e) {}
     }
   }
 
@@ -4297,6 +4310,25 @@ document.addEventListener('DOMContentLoaded', () => {
         demoControls.runDemoFlow(initialMode);
       }
     }, 600);
+  }
+
+  // QA F07: Auto-open discovery modal if arrived with #discovery (e.g. from contact-us.html or pricing.html)
+  // after the landing page view settles (~600ms).
+  const shouldOpenDiscovery = (initialLocationHash === '#discovery') ||
+    (typeof window !== 'undefined' && window.location && window.location.hash === '#discovery');
+
+  if (shouldOpenDiscovery) {
+    setTimeout(() => {
+      openDiscoveryModal();
+    }, 600);
+  }
+
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('hashchange', () => {
+      if (window.location && window.location.hash === '#discovery') {
+        openDiscoveryModal();
+      }
+    });
   }
 });
 

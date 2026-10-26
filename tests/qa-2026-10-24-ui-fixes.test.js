@@ -79,3 +79,19 @@ test('F15: one footer on the landing page; lesson block labels follow the select
   assert.match(js, /kn: \{ analogy: 'ಇದನ್ನು ಹೀಗೆ ಯೋಚಿಸಿ'/);
   assert.match(js, /hi: \{ analogy: 'इसे ऐसे समझो'/);
 });
+
+test('F07: #discovery hash is captured at init and opens discovery booking modal', () => {
+  const app = read('app.js');
+  // Hash is captured early at script parse time
+  assert.match(app, /initialLocationHash = \(typeof window !== 'undefined' && window\.location && window\.location\.hash\) \|\| '';/);
+  // Checked on load and schedules openDiscoveryModal after landing settles
+  assert.match(app, /const shouldOpenDiscovery = \(initialLocationHash === '#discovery'\) \|\|/);
+  assert.match(app, /if \(shouldOpenDiscovery\) \{\s+setTimeout\(\(\) => \{\s+openDiscoveryModal\(\);\s+\}, 600\);/);
+  // Listens to hashchange for dynamic navigation
+  assert.match(app, /window\.addEventListener\('hashchange', \(\) => \{\s+if \(window\.location && window\.location\.hash === '#discovery'\) \{\s+openDiscoveryModal\(\);/);
+  // Landing page does not overwrite #discovery hash
+  const landing = read('landing-page.js');
+  assert.match(landing, /if \(url\.hash !== '#discovery'\) \{\s+url\.hash = '';\s+\}/);
+  // Modal close clears #discovery from url.hash
+  assert.match(app, /if \(typeof window !== 'undefined' && window\.location && window\.location\.hash === '#discovery'/);
+});

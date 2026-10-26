@@ -1372,7 +1372,9 @@
           const url = new URL(win.location.href);
           url.searchParams.delete('app');
           url.searchParams.set('view', 'landing');
-          url.hash = '';
+          if (url.hash !== '#discovery') {
+            url.hash = '';
+          }
           win.history.replaceState({}, '', url.toString());
         }
       } catch (_) {}
