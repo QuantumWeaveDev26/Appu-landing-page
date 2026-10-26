@@ -609,6 +609,21 @@
     });
   }
 
+  // Saves an answer's visual lesson card so it comes back when the chat is reopened.
+  async function saveLessonCard(params = {}) {
+    const { accessToken, childId, conversationId, requestId, lessonCard, baseUrl } = params;
+    if (!childId || !conversationId || !requestId || !lessonCard || typeof lessonCard !== 'object') {
+      return { error: 'invalid_request', message: 'Missing childId, conversationId, requestId or lessonCard' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/conversations/${encodeURIComponent(String(conversationId).trim())}/lesson-card`,
+      method: 'PUT',
+      body: { childId: String(childId).trim(), requestId: String(requestId).trim(), lessonCard },
+      baseUrl
+    });
+  }
+
   async function deleteConversation(params = {}) {
     const { accessToken, childId, conversationId, baseUrl } = params;
     if (!childId || typeof childId !== 'string' || !childId.trim()) {
@@ -934,6 +949,7 @@
     createConversation,
     listConversations,
     getConversationMessages,
+    saveLessonCard,
     deleteConversation,
     clearConversations,
     formatWhatsAppStudyNote,

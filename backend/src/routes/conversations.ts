@@ -24,6 +24,15 @@ const conversationParamsSchema = z.object({
   conversationId: z.string().uuid()
 });
 
+// A lesson card is a few KB of JSON; cap it so the column cannot be used for bulk storage.
+const MAX_LESSON_CARD_CHARS = 200_000;
+
+const saveLessonCardSchema = z.object({
+  childId: z.string().uuid(),
+  requestId: z.string().uuid(),
+  lessonCard: z.record(z.unknown())
+});
+
 const createConversationSchema = z.object({
   childId: z.string().uuid(),
   firstMessage: z.string().trim().max(2000).optional()
@@ -165,6 +174,69 @@ export const conversationRoutes: FastifyPluginAsync<ConversationRouteOptions> = 
       );
 
       return reply.status(200).send({ messages });
+    }
+  );
+
+  /**
+   * PUT /api/appu/conversations/:conversationId/lesson-card
+   * Body: { childId, requestId, lessonCard } -> 204
+   * Stores the visual lesson card of one answer so it comes back with the history.
+   */
+  fastify.put(
+    '/api/appu/conversations/:conversationId/lesson-card',
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const paramsResult = conversationParamsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        throw new BadRequestError('Invalid conversationId parameter', {
+          errors: paramsResult.error.flatten().fieldErrors
+        });
+      }
+
+      const bodyResult = saveLessonCardSchema.safeParse(request.body);
+      if (!bodyResult.success) {
+        throw new BadRequestError('Invalid lesson card request body', {
+          errors: bodyResult.error.flatten().fieldErrors
+        });
+      }
+      const { childId, requestId, lessonCard } = bodyResult.data;
+      if (JSON.stringify(lessonCard).length > MAX_LESSON_CARD_CHARS) {
+        throw new BadRequestError('Lesson card is too large');
+      }
+
+      const principal = request.principal!;
+      const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
+        opts.db,
+        principal.userId
+      );
+
+      const child = await TenancyRepository.getChildProfile(opts.db, household.id, childId);
+      if (!child) {
+        throw new NotFoundError('Child profile not found');
+      }
+
+      let saved: boolean;
+      try {
+        saved = await ConversationRepository.saveLessonCard(
+          opts.db,
+          household.id,
+          child.id,
+          paramsResult.data.conversationId,
+          requestId,
+          lessonCard
+        );
+      } catch (err) {
+        // Database not yet migrated (026): nothing to store into; the answer still works.
+        if ((err as { code?: string })?.code === '42703') {
+          return reply.status(503).send({ error: 'lesson_card_storage_unavailable' });
+        }
+        throw err;
+      }
+      if (!saved) {
+        throw new NotFoundError('Answer not found');
+      }
+
+      return reply.status(204).send();
     }
   );
 

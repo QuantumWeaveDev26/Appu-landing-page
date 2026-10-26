@@ -180,7 +180,7 @@ export class ConversationRepository {
     limit: number = 100
   ): Promise<ConversationMessage[]> {
     const boundedLimit = Math.max(1, limit);
-    const res = await db.query<{
+    type Row = {
       id: string;
       conversation_id: string;
       request_id: string | null;
@@ -188,10 +188,12 @@ export class ConversationRepository {
       text: string;
       has_image_attachment: boolean;
       created_at: Date;
-    }>(
-      `SELECT id, conversation_id, request_id, role, text, has_image_attachment, created_at
+      lesson_card?: unknown | null;
+    };
+    const buildSql = (withCard: boolean) =>
+      `SELECT id, conversation_id, request_id, role, text, has_image_attachment, created_at${withCard ? ', lesson_card' : ''}
        FROM (
-         SELECT m.id, m.conversation_id, m.request_id, m.role, m.text, m.has_image_attachment, m.created_at,
+         SELECT m.id, m.conversation_id, m.request_id, m.role, m.text, m.has_image_attachment, m.created_at,${withCard ? ' m.lesson_card,' : ''}
                 (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) AS role_rank
          FROM conversation_messages m
          JOIN conversation_sessions s ON s.id = m.conversation_id
@@ -202,19 +204,60 @@ export class ConversationRepository {
          ORDER BY m.created_at DESC, (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) DESC, m.id DESC
          LIMIT $4
        ) sub
-       ORDER BY sub.created_at ASC, sub.role_rank ASC, sub.id ASC`,
-      [conversationId, householdId, childId, boundedLimit]
-    );
+       ORDER BY sub.created_at ASC, sub.role_rank ASC, sub.id ASC`;
+    const params = [conversationId, householdId, childId, boundedLimit];
 
-    return res.rows.map((row) => ({
+    let rows: Row[];
+    try {
+      rows = (await db.query<Row>(buildSql(true), params)).rows;
+    } catch (err) {
+      // Database not yet migrated (026 adds lesson_card): keep history working without cards.
+      if ((err as { code?: string })?.code !== '42703') throw err;
+      rows = (await db.query<Row>(buildSql(false), params)).rows;
+    }
+
+    return rows.map((row) => ({
       id: row.id,
       conversationId: row.conversation_id,
       requestId: row.request_id,
       role: row.role,
       text: row.text,
       hasImageAttachment: Boolean(row.has_image_attachment),
-      createdAt: row.created_at
+      createdAt: row.created_at,
+      lessonCard: row.lesson_card ?? null
     }));
+  }
+
+  /**
+   * Saves the visual lesson card on the assistant answer of one turn (matched by its
+   * appu request id) inside an owned, non-expired conversation. Returns false when no
+   * such answer exists.
+   */
+  static async saveLessonCard(
+    db: Queryable,
+    householdId: string,
+    childId: string,
+    conversationId: string,
+    requestId: string,
+    lessonCard: unknown
+  ): Promise<boolean> {
+    const res = await db.query<{ id: string }>(
+      `UPDATE conversation_messages
+       SET lesson_card = $5::jsonb
+       WHERE conversation_id = $1
+         AND request_id = $4
+         AND role = 'assistant'
+         AND EXISTS (
+           SELECT 1 FROM conversation_sessions s
+           WHERE s.id = $1
+             AND s.household_id = $2
+             AND s.child_id = $3
+             AND s.expires_at > NOW()
+         )
+       RETURNING id`,
+      [conversationId, householdId, childId, requestId, JSON.stringify(lessonCard)]
+    );
+    return res.rows.length > 0;
   }
 
   static async listContext(

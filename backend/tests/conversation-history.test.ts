@@ -229,6 +229,32 @@ describe('APPU Conversation History Domain & Repository Suite', () => {
     assert.equal(updatedSession?.title, 'What is shown here?');
   });
 
+  test('listMessages still works on a database without the lesson_card column (before migration 026)', async () => {
+    const session = await ConversationRepository.create(db, householdA, childA, 'New conversation');
+    const requestId = crypto.randomUUID();
+    await createTestAppuRequest(db, requestId);
+    await ConversationService.appendSuccessfulExchange(db, {
+      householdId: householdA,
+      childId: childA,
+      conversationId: session.id,
+      requestId,
+      userText: 'Hi',
+      assistantText: 'Hello!'
+    });
+    // Simulate Postgres "undefined column" for any query that reads lesson_card.
+    const unmigrated = {
+      query: (sql: string, params?: unknown[]) => {
+        if (sql.includes('lesson_card')) {
+          return Promise.reject(Object.assign(new Error('column "lesson_card" does not exist'), { code: '42703' }));
+        }
+        return db.query(sql, params as any);
+      }
+    } as unknown as Queryable;
+
+    const messages = await ConversationRepository.listMessages(unmigrated, householdA, childA, session.id, 100);
+    assert.deepEqual(messages.map((m) => [m.role, m.text, m.lessonCard]), [['user', 'Hi', null], ['assistant', 'Hello!', null]]);
+  });
+
   test('deleting one conversation cannot delete a sibling conversation', async () => {
     const siblingSession = await ConversationRepository.create(db, householdA, siblingChild, 'Sibling chat');
     const siblingConversationId = siblingSession.id;
@@ -507,6 +533,63 @@ describe('APPU Conversation REST API Suite', () => {
     });
     assert.equal(afterClear.statusCode, 200);
     assert.equal(afterClear.json().conversations.length, 0);
+  });
+
+  test('lesson card saved on an answer comes back with the conversation history', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/appu/conversations',
+      headers: authA,
+      payload: { childId: childA, firstMessage: 'Explain photosynthesis' }
+    });
+    const conversationId = created.json().conversation.id;
+    const requestId = crypto.randomUUID();
+    await createTestAppuRequest(db, requestId);
+    await ConversationService.appendSuccessfulExchange(db, {
+      householdId: householdA,
+      childId: childA,
+      conversationId,
+      requestId,
+      userText: 'Explain photosynthesis',
+      assistantText: 'Plants make food from sunlight.'
+    });
+    const lessonCard = { title: 'Photosynthesis', mindMap: { central: 'Photosynthesis', branches: [{ label: 'Inputs', children: ['Sunlight'] }] } };
+
+    const saved = await app.inject({
+      method: 'PUT',
+      url: `/api/appu/conversations/${conversationId}/lesson-card`,
+      headers: authA,
+      payload: { childId: childA, requestId, lessonCard }
+    });
+    assert.equal(saved.statusCode, 204);
+
+    const opened = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations/${conversationId}/messages?childId=${childA}`,
+      headers: authA
+    });
+    const messages = opened.json().messages;
+    const answer = messages.find((m: any) => m.role === 'assistant');
+    const question = messages.find((m: any) => m.role === 'user');
+    assert.deepEqual(answer.lessonCard, lessonCard);
+    assert.equal(question.lessonCard, null);
+
+    // Another household cannot write onto this answer.
+    const foreign = await app.inject({
+      method: 'PUT',
+      url: `/api/appu/conversations/${conversationId}/lesson-card`,
+      headers: authB,
+      payload: { childId: childB, requestId, lessonCard }
+    });
+    assert.equal(foreign.statusCode, 404);
+
+    const tooBig = await app.inject({
+      method: 'PUT',
+      url: `/api/appu/conversations/${conversationId}/lesson-card`,
+      headers: authA,
+      payload: { childId: childA, requestId, lessonCard: { blob: 'x'.repeat(200_001) } }
+    });
+    assert.equal(tooBig.statusCode, 400);
   });
 
   test('conversation API returns 404 for another child or household', async () => {

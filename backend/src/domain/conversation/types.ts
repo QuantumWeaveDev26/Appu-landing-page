@@ -37,6 +37,8 @@ export interface ConversationMessage {
   text: string;
   hasImageAttachment: boolean;
   createdAt: Date;
+  /** Visual lesson card saved for an assistant answer (migration 026), else null. */
+  lessonCard?: unknown | null;
 }
 
 export interface ConversationHistoryEntry {

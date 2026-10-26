@@ -390,8 +390,11 @@ class ChatAgent {
       const appuMsg = this.addMessage('appu', responseText, actionCard, null, {
         isSystem: isSystemNotice,
         lessonCard: result.lessonCard || null,
-        mood: result.mood || null
+        mood: result.mood || null,
+        requestId: result.requestId || null,
+        conversationId: result.conversationId || null
       });
+      if (appuMsg.lessonCard) this.persistLessonCard(appuMsg);
       return appuMsg;
 
     } catch (error) {
@@ -426,11 +429,36 @@ class ChatAgent {
         hasImageAttachment: Boolean(m.hasImageAttachment),
         attachmentLabel: m.hasImageAttachment ? 'Photo attached' : null,
         imageDataUrl: null,
-        actionCard: null
+        actionCard: null,
+        lessonCard: m.lessonCard || null
       };
       this.messages.push(msgObj);
       this.renderMessage(msgObj);
     }
+  }
+
+  // Saves an answer's lesson card with the stored chat (signed-in learners only), so the
+  // visuals come back after a reload or when the chat is reopened. Best effort: a failure
+  // only means the card is not restored later.
+  persistLessonCard(msg) {
+    if (!msg || !msg.lessonCard || !msg.requestId || !msg.conversationId) return;
+    const session = (typeof window !== 'undefined' && window.AppuSession) || null;
+    const client = (typeof window !== 'undefined' && window.AppuBackendClient) || null;
+    if (!session || !session.accessToken || !session.childId || !client || typeof client.saveLessonCard !== 'function') return;
+    let card;
+    try {
+      // Drop oversized strings (e.g. inline data: images) so the rest of the card still fits.
+      card = JSON.parse(JSON.stringify(msg.lessonCard, (k, v) => (typeof v === 'string' && v.length > 50000 ? undefined : v)));
+    } catch (_) {
+      return;
+    }
+    Promise.resolve(client.saveLessonCard({
+      accessToken: session.accessToken,
+      childId: session.childId,
+      conversationId: msg.conversationId,
+      requestId: msg.requestId,
+      lessonCard: card
+    })).catch(() => {});
   }
 
   updateLastAppuMessageCard(lessonCard) {
@@ -438,6 +466,7 @@ class ChatAgent {
     const lastAppu = [...this.messages].reverse().find(m => m.sender === 'appu');
     if (!lastAppu) return;
     lastAppu.lessonCard = lessonCard;
+    this.persistLessonCard(lastAppu);
     if (!this.messagesContainer) return;
     // Re-render that answer in place with the same renderer as new messages, so the lesson
     // card and its study-mode tabs (mind map, quiz, flashcards...) appear on the answer.
