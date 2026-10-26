@@ -301,11 +301,11 @@
 
   function open() {
     if (!modal) return;
+    // Close the ☰ drawer properly first (scrim, ARIA, inert background: QA F01).
+    if (window.app && typeof window.app.closeNavDrawer === 'function') window.app.closeNavDrawer();
     // Not signed in yet → route to the parent sign-in/setup flow so the feature is
     // discoverable to everyone but only usable once authenticated.
     if (!parentToken()) {
-      const drawer = document.getElementById('nav-drawer');
-      if (drawer) drawer.setAttribute('aria-hidden', 'true');
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
         window.ParentSetupUI.openModal(1);
         return;

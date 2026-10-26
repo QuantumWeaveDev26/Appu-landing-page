@@ -472,6 +472,15 @@
    * @param {string|Object} savedLessonOrId
    * @returns {boolean}
    */
+  // Close the ☰ nav drawer through the app's own handler so its scrim, ARIA state and
+  // inert background reset together. Removing its class by hand left a blurring scrim
+  // over the lesson (QA F01).
+  function closeNavDrawer() {
+    if (typeof window !== 'undefined' && window.app && typeof window.app.closeNavDrawer === 'function') {
+      window.app.closeNavDrawer();
+    }
+  }
+
   function reopenLesson(savedLessonOrId) {
     let item = savedLessonOrId;
     if (typeof savedLessonOrId === 'string') {
@@ -481,13 +490,7 @@
     if (!item || !item.card) return false;
 
     closePanel();
-
-    if (typeof document !== 'undefined') {
-      const navDrawer = document.getElementById('nav-drawer');
-      const navScrim = document.getElementById('nav-drawer-scrim');
-      if (navDrawer) navDrawer.classList.remove('is-open');
-      if (navScrim) navScrim.classList.remove('is-open');
-    }
+    closeNavDrawer();
 
     if (typeof window !== 'undefined' && window.app && typeof window.app.showVoicePopup === 'function') {
       window.app.showVoicePopup(item.card.plainText || '', item.card, 'lesson');
@@ -547,12 +550,8 @@
     if (typeof document === 'undefined') return;
     const panel = document.getElementById('saved-lessons-panel');
     const scrim = document.getElementById('saved-lessons-scrim');
-    const navDrawer = document.getElementById('nav-drawer');
-    const navScrim = document.getElementById('nav-drawer-scrim');
 
-    // Close nav drawer if open
-    if (navDrawer) navDrawer.classList.remove('is-open');
-    if (navScrim) navScrim.classList.remove('is-open');
+    closeNavDrawer();
 
     if (scrim) {
       scrim.style.display = 'block';

@@ -2735,6 +2735,12 @@ document.addEventListener('DOMContentLoaded', () => {
     deactivateDialog(navDrawer);
   }
 
+  // Other panels (My Learning, reports) close the drawer through this, never by hand,
+  // so the scrim, ARIA state and inert background always reset together (QA F01).
+  window.app.closeNavDrawer = () => {
+    if (navDrawer && navDrawer.classList.contains('is-open')) closeNavDrawer();
+  };
+
   if (btnNavMenu) btnNavMenu.addEventListener('click', () => openNavDrawer());
   if (btnCloseNavDrawer) btnCloseNavDrawer.addEventListener('click', () => closeNavDrawer());
   if (navDrawerScrim) navDrawerScrim.addEventListener('click', () => closeNavDrawer());
