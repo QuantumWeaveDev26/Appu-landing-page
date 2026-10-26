@@ -1124,6 +1124,7 @@
       slot.appendChild(row);
       const toggle = row.querySelector('#btn-profile-menu');
       const menu = row.querySelector('#nav-profile-menu');
+      if (!toggle || !menu) return; // DOM without innerHTML parsing (unit-test mocks)
       const setOpen = (open) => {
         menu.hidden = !open;
         toggle.setAttribute('aria-expanded', String(open));
@@ -1147,6 +1148,7 @@
       });
     }
     row.hidden = false;
+    if (!row.querySelector('.nav-profile-avatar')) return;
     row.querySelector('.nav-profile-avatar').textContent = (profile.name || '?').trim().charAt(0).toUpperCase();
     row.querySelector('.nav-profile-name').textContent = profile.name;
     row.querySelector('.nav-profile-sub').textContent = profile.sub;

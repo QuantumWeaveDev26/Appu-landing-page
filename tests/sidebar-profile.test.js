@@ -8,7 +8,7 @@ const badge = js.slice(js.indexOf('function updateHeaderSessionBadge() {'), js.i
 
 test('signed-in learner sees a Claude-style profile row with name and class', () => {
   assert.match(badge, /renderSidebarProfile\(\{ name: childName, sub: gradeMatch \? `Class \$\{gradeMatch\[0\]\}` : 'Learner' \}\)/);
-  assert.match(badge, /\.match\(\/\d\{1,2\}\/\)/, 'grade regex must keep its backslash');
+  assert.match(badge, /\.match\(\/\\d\{1,2\}\/\)/, 'grade regex must keep its backslash');
 });
 
 test('signed-in parent without a learner still gets a profile row', () => {
