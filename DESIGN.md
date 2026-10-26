@@ -1,21 +1,21 @@
 # Design
 
 Mode: **Operate** (the signed-in learning app), with the public landing page following the same pattern later.
-Pinned reference: the Claude.ai home screen (manager, 2026-10-26). Owner decision: keep Appu's full stage.
+Pinned reference: the Claude.ai / Claude Code chat (manager, 2026-10-26). Second manager review the same day: no stage background, no mascot, no separate answer container, so the conversation is the page.
 
 ## Direction contract (Phase 1: app home)
 
-- **THESIS:** One obvious action. The home screen is Appu on stage, one line of greeting, and one big ask box, like Claude's home screen. It refuses the dashboard arrangement the app shipped before (a crowded top bar, mission cards around the stage, and a separate "Type instead" step).
-- **OWN-WORLD:** The incumbent Appu world is kept: deep navy stage, cyan accent `--cyan #0ea5e9` / `--cyan-bright #38bdf8`, Manrope body text, Space Grotesk display, Appu's photo avatar on the auditorium stage. The ask box is a single rounded surface (radius 24px, 1px cyan-tinted border, no glow) holding the text, **+**, the mic and send.
-- **STORY:** A child opens Appu, sees Appu and "What shall we learn today?", and types or speaks. Everything else (history, saved lessons, parent controls, settings, language) is one tap away in the sidebar.
+- **THESIS:** The conversation is the page. Empty, it is one greeting and one ask box; in use, questions and Appu's answers flow down a plain column with the ask box pinned to the bottom, like Claude. It refuses the stage + popup + "Appu says" card arrangement shipped before.
+- **OWN-WORLD:** Plain navy page `#0b1322` (no glows, no stage, no mascot); cyan accent `#0ea5e9` / `#38bdf8`; Manrope body, Space Grotesk headings. User turns: a rounded `#12325a` bubble on the right. Appu turns: no box; the lesson card with its study-mode tabs is inline.
+- **STORY:** A child sees "What shall we learn today?", types or speaks, and reads the answer right there, switching to quiz, flashcards or mind map on the answer itself. History, saved lessons, parent controls, settings and language sit in the sidebar.
 - **FIRST VIEWPORT:**
-  - **Phone (390 px):** a slim top bar (menu, logo, streak/XP/timer). The stage fills the middle, with the greeting over its top. At the bottom, pinned: the "Appu says" line, the try-chips, and the ask box.
-  - **Desktop (1100 px and up):** a persistent 280 px sidebar on the left. In the main column, the stage, with the greeting and ask box centred below Appu (max 720 px).
-- **FORM:** A Claude-style home: sidebar, greeting, composer. Pinned by the brief; no seed was rolled.
+  - **Phone:** a slim top bar (menu, streak, XP, timer), the greeting in the upper third, and the try-chips and ask box pinned to the bottom.
+  - **Desktop:** a permanent 280 px sidebar on the left. The greeting, chips and ask box are centred together; once chatting, the ask box pins to the bottom of a 760 px column.
+- **FORM:** A Claude-style chat (sidebar, greeting, composer, transcript). Pinned by the brief; no seed was rolled.
 
 ## Durable rules
 
-- **One primary input on screen.** The home ask box is the composer. The chat drawer remains for the conversation history view.
+- **One primary input on screen.** The home ask box is the only composer. The former chat drawer is the main column (`body.chat-first`); the stage, the voice popup and the "Appu says" card are hidden. Answers carry their own study-mode tabs.
 - **Top bar:** only the menu, brand, streak, XP, level, study timer, and sign-in (guests only). Everything else lives in the sidebar.
 - **Sidebar order:** New chat, Recent chats, My Learning, learning missions (as a list), Explore prompts, Parent Zone, Child Progress Report, then settings (language, sound, voice settings, theme, tour, home). Legal links go at the bottom.
 - **Mission shortcuts:** small pill chips (min 44 px tall), never cards.

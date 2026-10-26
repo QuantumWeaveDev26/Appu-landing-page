@@ -904,6 +904,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const missionTitle = document.getElementById('mission-title');
     if (missionTitle) {
       missionTitle.innerHTML = t.missionTitleHtml;
+    }
+    // The pill look belongs to the old stage; the chat-first greeting is plain text.
+    if (missionTitle && !document.body.classList.contains('chat-first')) {
       missionTitle.style.setProperty('color', '#ffffff', 'important');
       missionTitle.style.setProperty('background', 'rgba(15, 23, 42, 0.82)', 'important');
       missionTitle.style.setProperty('border', '1.5px solid rgba(14, 165, 233, 0.35)', 'important');
@@ -1790,6 +1793,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showVoicePopup(text, lessonCard = null, initialMode = 'lesson') {
+    // Chat-first layout: answers already appear inline in the conversation.
+    if (document.body.classList.contains('chat-first')) return;
     if (!voiceReplyPopup || (!text && !lessonCard)) return;
     if (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.purgeMermaidErrorElements === 'function') {
       LessonCardRenderer.purgeMermaidErrorElements();
@@ -1855,7 +1860,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  window.showVoicePopup = showVoicePopup;
+  // Saved lessons reopen through this; in the chat-first layout they appear as a message.
+  window.showVoicePopup = (text, lessonCard = null, initialMode = 'lesson') => {
+    if (document.body.classList.contains('chat-first') && lessonCard && chatAgent && typeof chatAgent.addMessage === 'function') {
+      chatAgent.addMessage('appu', text || lessonCard.plainText || '', null, null, { lessonCard });
+      return;
+    }
+    showVoicePopup(text, lessonCard, initialMode);
+  };
   if (window.app) {
     window.app.showVoicePopup = showVoicePopup;
   }
@@ -2177,7 +2189,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // learner cancel, and offer Try again. The document and question are kept throughout.
       const notesAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
       const showNotesStatus = (message, actions = {}) => {
-        const host = document.getElementById('voice-popup-content');
+        const host = document.body.classList.contains('chat-first')
+          ? document.getElementById('chat-messages')
+          : document.getElementById('voice-popup-content');
         if (!host) return;
         let bar = document.getElementById('notes-request-status');
         if (!bar) {
@@ -2185,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', () => {
           bar.id = 'notes-request-status';
           bar.className = 'notes-request-status';
           bar.setAttribute('role', 'status');
-          host.prepend(bar);
+          if (host.id === 'chat-messages') host.appendChild(bar); else host.prepend(bar);
         }
         bar.innerHTML = '';
         const msg = document.createElement('span');
@@ -2715,6 +2729,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function toggleChatDrawer(forceOpen = null) {
     if (!chatDrawer) return;
+    // Chat-first layout: the conversation is the page, never an overlay to open/close.
+    if (document.body.classList.contains('chat-first')) return;
     const shouldOpen = forceOpen !== null ? forceOpen : !chatDrawer.classList.contains('is-open');
 
     if (shouldOpen) {
@@ -2958,6 +2974,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const homeBadgeSlot = document.getElementById('nav-drawer-badge-slot');
   const homeSessionBadge = document.getElementById('parent-session-badge');
   if (homeBadgeSlot && homeSessionBadge && !homeBadgeSlot.contains(homeSessionBadge)) homeBadgeSlot.appendChild(homeSessionBadge);
+
+  // Chat-first layout (Claude-style): the conversation replaces the stage as the main
+  // column, the greeting is its empty state and the home ask box is the composer.
+  const appShellEl = document.getElementById('app-shell');
+  const missionStageEl = document.querySelector('.mission-stage');
+  if (appShellEl && missionStageEl && chatDrawer) {
+    document.body.classList.add('chat-first');
+    chatDrawer.classList.remove('is-open');
+    missionStageEl.after(chatDrawer);
+    chatDrawer.setAttribute('role', 'region');
+    chatDrawer.removeAttribute('aria-modal');
+    chatDrawer.setAttribute('aria-hidden', 'false');
+    chatDrawer.setAttribute('aria-label', 'Conversation with Appu');
+    const titleEl = document.getElementById('mission-title');
+    if (titleEl) titleEl.removeAttribute('style');
+    const intro = document.querySelector('.mission-intro');
+    const messagesEl = document.getElementById('chat-messages');
+    if (intro && messagesEl) {
+      intro.classList.add('home-greeting');
+      messagesEl.before(intro);
+    }
+    if (messagesEl && typeof MutationObserver !== 'undefined') {
+      new MutationObserver(() => {
+        const last = messagesEl.lastElementChild;
+        if (last && typeof last.scrollIntoView === 'function') last.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      }).observe(messagesEl, { childList: true });
+    }
+  }
 
   // Desktop: the menu is a permanent sidebar (like Claude), not a modal drawer.
   const sidebarQuery = window.matchMedia ? window.matchMedia('(min-width: 1100px)') : null;

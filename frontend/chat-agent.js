@@ -36,6 +36,7 @@ class ChatAgent {
 
     const row = document.createElement('div');
     row.className = `message-row ${msg.sender}`;
+    if (msg.isWelcome) row.className += ' is-welcome';
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
@@ -63,7 +64,29 @@ class ChatAgent {
         }
       };
       const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback });
-      bubble.appendChild(cardEl);
+      // Study modes (quiz, flashcards, mind map...) live on the answer itself, so the
+      // conversation can be the whole page without a separate lesson popup.
+      if (msg.sender === 'appu' && typeof renderer.renderStudyToolbar === 'function' && typeof renderer.renderStudyMode === 'function') {
+        const lang = (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) || 'en';
+        const studyBody = document.createElement('div');
+        studyBody.className = 'msg-study-body';
+        studyBody.appendChild(cardEl);
+        const toolbar = renderer.renderStudyToolbar('lesson', (mode) => {
+          studyBody.innerHTML = '';
+          studyBody.appendChild(mode === 'lesson'
+            ? renderer.render(parsedCard, { onCelebrate: celebrateCallback })
+            : renderer.renderStudyMode(mode, parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
+          toolbar.querySelectorAll('.study-tab-btn[data-mode]').forEach((b) => {
+            const on = b.getAttribute('data-mode') === mode;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-selected', String(on));
+          });
+        }, lang, { card: parsedCard });
+        bubble.appendChild(toolbar);
+        bubble.appendChild(studyBody);
+      } else {
+        bubble.appendChild(cardEl);
+      }
       msg.plainText = parsedCard.plainText || msg.text;
     } else {
       const textSpan = document.createElement('span');

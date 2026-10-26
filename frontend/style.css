@@ -13398,3 +13398,193 @@ body.is-authenticated #beta-banner {
     margin-right: auto;
   }
 }
+
+/* ==========================================================================
+   CHAT-FIRST LAYOUT (Claude-style), 2026-10-26: see DESIGN.md.
+   Plain background; the conversation is the page; answers inline (no popup,
+   no stage, no mascot card); the ask box is pinned to the bottom.
+   ========================================================================== */
+body.view-app.chat-first { background: #0b1322 !important; }
+body.chat-first .app-shell {
+  display: flex !important;
+  flex-direction: column;
+  min-height: calc(100dvh - 40px);
+  height: auto;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+body.chat-first .mission-stage,
+body.chat-first .response-dock .response-card,
+body.chat-first #chat-drawer .drawer-header,
+body.chat-first #chat-drawer .chat-composer,
+body.chat-first #chat-scrim,
+body.chat-first #chat-drawer .message-row.is-welcome { display: none !important; }
+body.chat-first .topbar { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+
+body.chat-first #chat-drawer {
+  position: static !important;
+  transform: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex: 1 0 auto;
+  display: flex !important;
+  flex-direction: column;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  color: #e6eefc;
+}
+body.chat-first #chat-messages {
+  overflow: visible !important;
+  padding: 8px 4px 24px !important;
+  gap: 22px !important;
+  background: transparent !important;
+}
+body.chat-first .message-row { max-width: 100% !important; }
+body.chat-first .message-row.user { max-width: 80% !important; }
+body.chat-first .message-row.user .msg-bubble {
+  background: #12325a !important;
+  color: #f1f5f9 !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  padding: 10px 16px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+body.chat-first .message-row.appu { width: 100%; }
+body.chat-first .message-row.appu .msg-bubble {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #e6eefc !important;
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+}
+body.chat-first .msg-time { display: none; }
+body.chat-first .msg-actions-bar { border-top: 0 !important; }
+body.chat-first .message-row.appu .study-modes-toolbar { justify-content: flex-start; margin-bottom: 10px; }
+
+/* Empty state: the greeting sits above the composer until the first real message */
+body.chat-first .home-greeting {
+  display: block;
+  margin: clamp(48px, 18vh, 180px) auto 24px;
+  text-align: center;
+}
+body.chat-first #chat-drawer:has(.message-row:not(.is-welcome)) .home-greeting { display: none; }
+body.chat-first .home-greeting #mission-title {
+  margin: 0 0 8px;
+  font: 800 clamp(28px, 4vw, 40px)/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+body.chat-first .home-greeting #mission-subtitle {
+  margin: 0;
+  font: 500 17px/1.4 var(--font-body);
+  color: #9fb3cf;
+  background: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+/* Composer pinned to the bottom of the page */
+body.chat-first .response-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  padding: 12px 0 16px;
+  background: linear-gradient(to top, #0b1322 78%, rgba(11, 19, 34, 0));
+}
+body.chat-first .response-dock .home-try-chips { justify-content: center; }
+body.chat-first #chat-drawer:has(.message-row:not(.is-welcome)) ~ .response-dock .home-try-chips { display: none !important; }
+body.chat-first .notes-request-status { color: #e6eefc; }
+
+@media (max-width: 768px) {
+  body.chat-first .home-greeting { margin-top: clamp(32px, 14vh, 120px); padding: 0 12px; }
+  body.chat-first .response-dock .home-try-chips { justify-content: flex-start; }
+  body.chat-first .response-dock { padding: 10px 4px 12px; }
+}
+/* chat-first, second pass */
+body.chat-first .home-greeting #mission-title,
+body.chat-first .home-greeting #mission-subtitle { border: 0 !important; outline: 0 !important; box-shadow: none !important; background: none !important; backdrop-filter: none !important; }
+body.chat-first .home-greeting #mission-title::before,
+body.chat-first .home-greeting #mission-title::after,
+body.chat-first .home-greeting #mission-subtitle::before,
+body.chat-first .home-greeting #mission-subtitle::after,
+body.chat-first .app-shell::before,
+body.chat-first .app-shell::after { display: none !important; }
+body.chat-first .app-shell .response-dock { border: 0 !important; box-shadow: none !important; border-radius: 0 !important; backdrop-filter: none !important; }
+/* Empty state: greeting and ask box sit together, like Claude's home */
+body.chat-first:not(:has(#chat-messages .message-row:not(.is-welcome))) #chat-drawer { flex: 0 0 auto; }
+body.chat-first:not(:has(#chat-messages .message-row:not(.is-welcome))) .response-dock { position: static; background: none; }
+/* chat-first, third pass: win over older id/theme rules; body must not be its own
+   scroll container or the sticky composer cannot stick. */
+body.view-app.chat-first { overflow-x: clip !important; overflow-y: visible !important; }
+body.view-app.chat-first #app-shell { display: flex !important; flex-direction: column !important; }
+body.view-app.chat-first #mission-title,
+body.view-app.chat-first #mission-subtitle {
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* chat-first, fourth pass.
+   - The old stage positioned the greeting absolutely; in the conversation it flows.
+   - Phones (incl. mobile web, which gets .is-native): the page scrolls and the ask box
+     stays pinned to the bottom of the screen, even when empty (Claude's phone layout).
+   - The greeting "pill" comes from a long !important list; out-rank it. */
+html body.view-app.chat-first #chat-drawer .mission-intro.home-greeting {
+  position: static !important;
+  transform: none !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  opacity: 1 !important;
+}
+html body.view-app.chat-first #chat-drawer #mission-title,
+html body.view-app.chat-first #chat-drawer #mission-subtitle {
+  display: block;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+}
+html body.view-app.chat-first,
+html body.view-app.chat-first #app-shell { height: auto !important; max-height: none !important; overflow-y: visible !important; }
+html body.view-app.chat-first #app-shell { min-height: calc(100dvh - 40px); }
+@media (max-width: 768px) {
+  html body.view-app.chat-first .response-dock {
+    position: sticky !important;
+    bottom: 0;
+    margin-top: auto;
+    background: linear-gradient(to top, #0b1322 80%, rgba(11, 19, 34, 0)) !important;
+  }
+  html body.view-app.chat-first #chat-drawer { flex: 1 0 auto !important; }
+}
+/* chat-first: plain background, no glows (manager feedback 2026-10-26) */
+html:has(body.view-app.chat-first) { background: #0b1322 !important; }
+html body.view-app.chat-first { background: #0b1322 !important; background-image: none !important; }
+html body.view-app.chat-first::before,
+html body.view-app.chat-first::after { display: none !important; }
+html body.view-app.chat-first .ambient-orb { display: none !important; }
+/* overflow-x:hidden on the phone shell silently turns overflow-y into a scroll box,
+   which trapped the conversation in one screen and broke the sticky composer. */
+html body.view-app.chat-first #app-shell { overflow-x: clip !important; overflow-y: visible !important; flex-shrink: 0 !important; }
+/* The native drawer rule pins the chat to one screen (100dvh); in chat-first it is the page. */
+html body.view-app.chat-first #chat-drawer { height: auto !important; max-height: none !important; min-height: 0 !important; }
