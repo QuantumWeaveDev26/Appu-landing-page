@@ -2987,6 +2987,16 @@ document.addEventListener('DOMContentLoaded', () => {
     chatDrawer.removeAttribute('aria-modal');
     chatDrawer.setAttribute('aria-hidden', 'false');
     chatDrawer.setAttribute('aria-label', 'Conversation with Appu');
+    // Progress, study timer and sign-in live in the sidebar; the main window is only the
+    // conversation (moving the live nodes keeps their ids and listeners).
+    const drawerProgress = document.getElementById('nav-drawer-gamification');
+    const timerBadge = document.getElementById('parental-timer-badge');
+    if (drawerProgress && timerBadge) drawerProgress.appendChild(timerBadge);
+    const accountSlot = document.getElementById('nav-drawer-account-slot');
+    const mainAuthBtn = document.getElementById('btn-main-auth');
+    if (accountSlot && mainAuthBtn && !accountSlot.contains(mainAuthBtn)) accountSlot.appendChild(mainAuthBtn);
+    const primaryNav = document.querySelector('.nav-drawer-primary');
+    if (primaryNav && drawerProgress) primaryNav.after(drawerProgress);
     const titleEl = document.getElementById('mission-title');
     if (titleEl) titleEl.removeAttribute('style');
     const intro = document.querySelector('.mission-intro');

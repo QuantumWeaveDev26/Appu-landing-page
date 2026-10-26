@@ -16,7 +16,7 @@ Pinned reference: the Claude.ai / Claude Code chat (manager, 2026-10-26). Second
 ## Durable rules
 
 - **One primary input on screen.** The home ask box is the only composer. The former chat drawer is the main column (`body.chat-first`); the stage, the voice popup and the "Appu says" card are hidden. Answers carry their own study-mode tabs.
-- **Top bar:** only the menu, brand, streak, XP, level, study timer, and sign-in (guests only). Everything else lives in the sidebar.
+- **Main window = conversation only.** No top bar on desktop; on phones only the ☰ menu button. Streak, stars, level and the study timer sit in the sidebar's "My Progress"; Sign in sits at the bottom of the sidebar.
 - **Sidebar order:** New chat, Recent chats, My Learning, learning missions (as a list), Explore prompts, Parent Zone, Child Progress Report, then settings (language, sound, voice settings, theme, tour, home). Legal links go at the bottom.
 - **Mission shortcuts:** small pill chips (min 44 px tall), never cards.
 - **Touch targets:** at least 44 px (composer buttons 40 px, matching Claude's compact bar). Text: at least 16 px in inputs (avoids iOS zoom), at least 14 px for labels.
