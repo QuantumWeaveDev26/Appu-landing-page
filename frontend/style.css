@@ -13117,3 +13117,273 @@ body.is-authenticated #beta-banner {
     transition: none !important;
   }
 }
+
+/* ==========================================================================
+   SIMPLE HOME (Claude-style), 2026-10-26: see DESIGN.md.
+   One greeting, one ask box, missions as small chips; everything else in the
+   sidebar (a permanent sidebar from 1100px, a slide-out menu below).
+   ========================================================================== */
+
+/* Beta notice: one static line, no marquee */
+.beta-banner .beta-banner-track { animation: none !important; transform: none !important; }
+.beta-banner .beta-banner-item + .beta-banner-item { display: none; }
+.beta-banner .beta-banner-item { white-space: normal; }
+
+/* Top bar keeps only menu, brand, progress, timer and guest sign-in */
+.topbar .parent-zone-btn,
+.topbar #btn-back-to-landing,
+.topbar #btn-sound-toggle,
+.topbar #btn-settings,
+.topbar .language-switch { display: none !important; }
+#mission-eyebrow { display: none; }
+#nav-drawer-gamification { display: none; }
+
+/* Composer area: Appu says, try-chips, ask box */
+.app-shell .response-dock {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+.response-dock .control-dock[hidden] { display: none !important; }
+
+.response-dock .home-try-chips {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 2px 0 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  grid-template-columns: none;
+}
+.response-dock .home-try-chips::-webkit-scrollbar { display: none; }
+.home-try-chips .mission-card {
+  position: static !important;
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 8px 16px 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: rgba(15, 29, 51, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+.home-try-chips .mission-card:hover { border-color: rgba(56, 189, 248, 0.6); }
+.home-try-chips .mission-card:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.home-try-chips .chip-desc,
+.home-try-chips .mission-arrow { display: none !important; }
+.home-try-chips .mission-icon {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px;
+  border-radius: 50% !important;
+  font-size: 13px !important;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: none !important;
+}
+.home-try-chips .mission-copy { display: inline; }
+.home-try-chips .chip-title { font-size: 14px !important; font-weight: 700; white-space: nowrap; color: #e2e8f0; }
+
+.home-ask {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 10px 8px 18px;
+  border-radius: 24px;
+  background: #0d1b30;
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  transition: border-color 0.2s ease;
+}
+.home-ask:focus-within { border-color: #38bdf8; }
+.home-ask-input {
+  width: 100%;
+  min-height: 28px;
+  max-height: 160px;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: #f1f5f9;
+  font: 500 16px/1.45 var(--font-body);
+}
+.home-ask-input::placeholder { color: #9fb3cf; }
+.home-ask-row { display: flex; align-items: center; gap: 8px; }
+.home-ask-spacer { flex: 1; }
+.home-add-wrap { position: relative; }
+.home-ask-icon,
+.home-ask .mic-button,
+.home-ask-send {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px;
+  margin: 0 !important;
+  border: 0;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: none !important;
+  transform: none;
+}
+.home-ask-icon { background: rgba(148, 163, 184, 0.16); color: #e2e8f0; }
+.home-ask-icon:hover { background: rgba(148, 163, 184, 0.26); }
+.home-ask .mic-button { background: rgba(56, 189, 248, 0.16) !important; color: #7dd3fc !important; animation: none !important; }
+.home-ask .mic-button:not([aria-pressed="true"]):not(.is-listening) .mic-rings { display: none; }
+.home-ask .mic-button[aria-pressed="true"],
+.home-ask .mic-button.is-listening { background: #ef4444 !important; color: #fff !important; }
+.home-ask-send { background: #0ea5e9; color: #fff; transition: opacity 0.2s ease, background 0.2s ease; }
+.home-ask-send:hover:not(:disabled) { background: #0284c7; }
+.home-ask-send:disabled { opacity: 0.35; cursor: default; }
+.home-ask button:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.home-add-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  z-index: 40;
+  min-width: 230px;
+  padding: 6px;
+  border-radius: 16px;
+  background: #0f1d33;
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+.home-add-menu[hidden] { display: none; }
+.home-add-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #e2e8f0;
+  font: 600 15px/1.2 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.home-add-item i { width: 18px; color: #7dd3fc; }
+.home-add-item:hover,
+.home-add-item:focus-visible { background: rgba(56, 189, 248, 0.14); outline: none; }
+
+/* Sidebar: New chat and Recent chats first */
+.nav-drawer-primary { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.nav-drawer-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: 700 15px/1.2 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.nav-drawer-primary-btn i { width: 18px; color: #38bdf8; }
+.nav-drawer-primary-btn:first-child { background: rgba(14, 165, 233, 0.16); }
+.nav-drawer-primary-btn:hover { background: rgba(148, 163, 184, 0.14); }
+.nav-drawer-primary-btn:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+
+/* Desktop: permanent sidebar, centred content (Claude layout) */
+@media (min-width: 1100px) {
+  body.view-app.has-sidebar #nav-drawer {
+    transform: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 280px;
+    box-shadow: none;
+    border-right: 1px solid rgba(148, 163, 184, 0.16);
+    z-index: 60;
+  }
+  body.view-app.has-sidebar #btn-nav-menu,
+  body.view-app.has-sidebar #btn-close-nav-drawer,
+  body.view-app.has-sidebar #nav-drawer-scrim { display: none !important; }
+  body.view-app.has-sidebar .app-shell,
+  body.view-app.has-sidebar .beta-banner { margin-left: 280px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ask, .home-ask-send { transition: none; }
+}
+
+/* Simple home: second pass (chips stay one row, quiet sidebar, progress always visible) */
+.beta-banner .beta-banner-track { justify-content: center; width: 100%; padding: 0 !important; }
+.response-dock .home-try-chips { flex-direction: row !important; flex-wrap: nowrap !important; display: flex !important; }
+.topbar #gamification-widget { display: flex !important; }
+@media (max-width: 768px) {
+  .topbar #gamification-widget { gap: 4px; }
+  .topbar #gamification-widget .game-label,
+  .topbar .game-level-pill { display: none !important; }
+  .topbar .game-pill { min-height: 36px; padding: 4px 8px; }
+}
+@media (min-width: 1100px) {
+  body.view-app.has-sidebar .topbar .brand { display: none !important; }
+}
+/* Sidebar rows: one line each, no cards */
+.nav-drawer .nav-drawer-mission-btn,
+.nav-drawer .nav-drawer-parent-btn,
+.nav-drawer .nav-drawer-saved-link,
+.nav-drawer .nav-drawer-report-link,
+.nav-drawer .nav-drawer-home-link,
+.nav-drawer .nav-drawer-tour-link,
+.nav-drawer .nav-drawer-theme-link {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #e2e8f0 !important;
+  font: 600 15px/1.25 var(--font-body) !important;
+  text-align: left;
+}
+.nav-drawer .nav-drawer-mission-btn:hover,
+.nav-drawer .nav-drawer-parent-btn:hover,
+.nav-drawer .nav-drawer-saved-link:hover,
+.nav-drawer .nav-drawer-report-link:hover,
+.nav-drawer .nav-drawer-home-link:hover,
+.nav-drawer .nav-drawer-tour-link:hover,
+.nav-drawer .nav-drawer-theme-link:hover { background: rgba(148, 163, 184, 0.14) !important; }
+.nav-drawer .nav-drawer-mission-btn .chip-desc { display: none !important; }
+.nav-drawer .nav-drawer-mission-btn .chip-title { font-size: 15px !important; font-weight: 600 !important; }
+.nav-drawer .nav-drawer-mission-btn i,
+.nav-drawer .nav-drawer-parent-btn i { width: 18px; font-size: 15px; }
+.nav-drawer .nav-drawer-section-title { margin: 14px 12px 4px; font-size: 12px; letter-spacing: 0.04em; }
+.beta-banner .beta-banner-track { flex: 1 1 auto; min-width: 0; justify-content: flex-start; overflow: hidden; }
+.beta-banner .beta-banner-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 !important; }

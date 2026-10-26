@@ -323,13 +323,16 @@ describe('Response Dock Answer Area Bounded Scroll & Footer Safety', () => {
       'Mobile response-card p must have internal vertical scroll'
     );
 
-    // Verify all control dock affordances are present and unregressed in index.html
-    const controlDockMatch = htmlSource.match(/<div class="control-dock"[\s\S]*?<\/section>/i);
-    assert.ok(controlDockMatch, 'control-dock must exist');
-    assert.ok(controlDockMatch[0].includes('id="btn-toggle-chat"'), 'Must have Type instead button');
-    assert.ok(controlDockMatch[0].includes('id="btn-upload-notes"'), 'Must have Upload notes button');
-    assert.ok(controlDockMatch[0].includes('id="btn-mic"'), 'Must have Mic button');
-    assert.ok(controlDockMatch[0].includes('Tap to speak'), 'Must have Tap to speak label');
+    // Simple home (2026-10-26, DESIGN.md): the dock holds one ask box with the mic and a
+    // "+" menu for notes/photos; the old control-dock buttons stay in the DOM for app.js.
+    const dockMatch = htmlSource.match(/<section class="response-dock"[\s\S]*?<\/section>/i);
+    assert.ok(dockMatch, 'response-dock must exist');
+    const askMatch = dockMatch[0].match(/<form id="home-ask-form"[\s\S]*?<\/form>/i);
+    assert.ok(askMatch, 'Must have the home ask box');
+    assert.ok(askMatch[0].includes('id="btn-mic"') && askMatch[0].includes('aria-label="Tap to speak to Appu"'), 'Mic button lives in the ask box');
+    assert.ok(askMatch[0].includes('id="btn-home-notes"'), 'Upload notes is reachable from the ask box');
+    assert.ok(dockMatch[0].includes('id="btn-toggle-chat"'), 'Type instead button kept for app.js');
+    assert.ok(dockMatch[0].includes('id="btn-upload-notes"'), 'Upload notes button kept for app.js');
   });
 
   test('style.css enforces z-index and padding separation so footer strip never overlaps dock', () => {

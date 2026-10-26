@@ -400,8 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
     en: {
       statusLabel: 'Appu is ready',
       missionEyebrow: '✦ Your learning mission starts here',
-      missionTitleHtml: 'Start your <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">academic success</span> now!',
-      missionSubtitle: 'Choose a mission or ask Appu anything from class 5 to 12.',
+      missionTitleHtml: 'What shall we learn today?',
+      missionSubtitle: 'Ask Appu anything from Class 5 to 12.',
+      homeAskPlaceholder: 'Ask Appu anything…',
       companionTag: 'AI learning companion',
       chipExplainTitle: 'Explain My Topic',
       chipExplainDesc: 'Make a tricky idea feel simple',
@@ -562,8 +563,9 @@ document.addEventListener('DOMContentLoaded', () => {
     kn: {
       statusLabel: 'ಅಪ್ಪು ಸಿದ್ಧವಾಗಿದ್ದಾನೆ',
       missionEyebrow: '✦ ನಿಮ್ಮ ಕಲಿಕೆಯ ಪಯಣ ಇಲ್ಲಿಂದ ಆರಂಭ',
-      missionTitleHtml: 'ಶೈಕ್ಷಣಿಕ ಸಾಧನೆಗೆ <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">ಸಿದ್ಧರಿದ್ದೀರಾ?</span>',
-      missionSubtitle: 'ಕಲಿಕೆಯ ವಿಷಯವನ್ನು ಆರಿಸಿ ಅಥವಾ 5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
+      missionTitleHtml: 'ಇಂದು ಏನು ಕಲಿಯೋಣ?',
+      missionSubtitle: '5 ರಿಂದ 12ನೇ ತರಗತಿಯ ಯಾವುದೇ ಪ್ರಶ್ನೆಯನ್ನು ಅಪ್ಪುವಿಗೆ ಕೇಳಿ.',
+      homeAskPlaceholder: 'ಅಪ್ಪುವಿಗೆ ಏನಾದರೂ ಕೇಳಿ…',
       companionTag: 'ಎಐ ಕಲಿಕಾ ಸಂಗಾತಿ',
       chipExplainTitle: 'ವಿಷಯ ವಿವರಿಸಿ',
       chipExplainDesc: 'ಕಷ್ಟಕರ ವಿಷಯವನ್ನು ಸುಲಭವಾಗಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ',
@@ -724,8 +726,9 @@ document.addEventListener('DOMContentLoaded', () => {
     hi: {
       statusLabel: 'अप्पू तैयार है',
       missionEyebrow: '✦ आपकी सीखने की यात्रा यहाँ से शुरू होती है',
-      missionTitleHtml: 'शैक्षणिक उत्कृष्टता के लिए <span style="color: #ffffff !important; background: none !important; -webkit-text-fill-color: #ffffff !important;">तैयार हैं?</span>',
-      missionSubtitle: 'कोई विषय चुनें या कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछें।',
+      missionTitleHtml: 'आज क्या सीखें?',
+      missionSubtitle: 'कक्षा 5 से 12 तक का कोई भी सवाल अप्पू से पूछो।',
+      homeAskPlaceholder: 'अप्पू से कुछ भी पूछो…',
       companionTag: 'एआई लर्निंग साथी',
       chipExplainTitle: 'विषय समझाओ',
       chipExplainDesc: 'कठिन विषय को आसान बनाएं',
@@ -911,6 +914,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const missionSubtitle = document.getElementById('mission-subtitle');
     if (missionSubtitle) missionSubtitle.textContent = t.missionSubtitle;
+    const homeAskInputEl = document.getElementById('home-ask-input');
+    if (homeAskInputEl && t.homeAskPlaceholder) homeAskInputEl.placeholder = t.homeAskPlaceholder;
 
     const companionTag = document.getElementById('appu-companion-tag');
     if (companionTag) companionTag.textContent = t.companionTag;
@@ -2825,6 +2830,157 @@ document.addEventListener('DOMContentLoaded', () => {
       const btnBackToLanding = document.getElementById('btn-back-to-landing');
       if (btnBackToLanding) btnBackToLanding.click();
     });
+  }
+
+  // ==========================================
+  // SIMPLE HOME (Claude-style): one ask box + a sidebar for everything else
+  // ==========================================
+  const homeAskForm = document.getElementById('home-ask-form');
+  const homeAskInput = document.getElementById('home-ask-input');
+  const btnHomeSend = document.getElementById('btn-home-send');
+  const btnHomeAdd = document.getElementById('btn-home-add');
+  const homeAddMenu = document.getElementById('home-add-menu');
+
+  if (homeAskForm && homeAskInput && chatForm && chatInput) {
+    const syncHomeAsk = () => {
+      homeAskInput.style.height = 'auto';
+      homeAskInput.style.height = `${Math.min(homeAskInput.scrollHeight, 160)}px`;
+      if (btnHomeSend) btnHomeSend.disabled = !homeAskInput.value.trim();
+    };
+    homeAskInput.addEventListener('input', syncHomeAsk);
+    homeAskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        homeAskForm.requestSubmit();
+      }
+    });
+    // Sends through the chat composer so guest limits, history and voice behave exactly
+    // as before; the box only clears once the chat form has accepted the question.
+    homeAskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = homeAskInput.value.trim();
+      if (!text) return;
+      chatInput.value = text;
+      chatForm.requestSubmit();
+      if (!chatInput.value) {
+        homeAskInput.value = '';
+        syncHomeAsk();
+      }
+    });
+  }
+
+  if (btnHomeAdd && homeAddMenu) {
+    const setAddMenu = (open) => {
+      homeAddMenu.hidden = !open;
+      btnHomeAdd.setAttribute('aria-expanded', String(open));
+      if (open) {
+        const first = homeAddMenu.querySelector('button');
+        if (first) first.focus();
+      }
+    };
+    btnHomeAdd.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setAddMenu(homeAddMenu.hidden);
+    });
+    document.addEventListener('click', (e) => {
+      if (!homeAddMenu.hidden && !homeAddMenu.contains(e.target)) setAddMenu(false);
+    });
+    homeAddMenu.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setAddMenu(false);
+        btnHomeAdd.focus();
+      }
+    });
+    const btnHomePhoto = document.getElementById('btn-home-photo');
+    if (btnHomePhoto) {
+      btnHomePhoto.addEventListener('click', () => {
+        setAddMenu(false);
+        if (!ensureChatSessionReady()) return;
+        toggleChatDrawer(true);
+        const attach = document.getElementById('btn-chat-attach');
+        if (attach) attach.click();
+      });
+    }
+    const btnHomeNotes = document.getElementById('btn-home-notes');
+    if (btnHomeNotes) {
+      btnHomeNotes.addEventListener('click', () => {
+        setAddMenu(false);
+        const notes = document.getElementById('btn-upload-notes');
+        if (notes) notes.click();
+      });
+    }
+  }
+
+  // Sidebar rows: New chat, Recent chats, and the settings that left the top bar.
+  const btnDrawerNewChat = document.getElementById('btn-drawer-new-chat');
+  if (btnDrawerNewChat) {
+    btnDrawerNewChat.addEventListener('click', () => {
+      closeNavDrawer();
+      const popupClose = document.getElementById('btn-close-voice-popup');
+      const popup = document.getElementById('voice-reply-popup');
+      if (popup && !popup.hidden && popupClose) popupClose.click();
+      const btnNew = document.getElementById('btn-new-chat');
+      if (btnNew) btnNew.click();
+      if (homeAskInput) homeAskInput.focus();
+    });
+  }
+  const btnDrawerRecent = document.getElementById('btn-drawer-recent');
+  if (btnDrawerRecent) {
+    btnDrawerRecent.addEventListener('click', () => {
+      closeNavDrawer();
+      if (!ensureChatSessionReady()) return;
+      toggleChatDrawer(true);
+      const btnHistory = document.getElementById('btn-chat-history');
+      if (btnHistory) btnHistory.click();
+    });
+  }
+  const btnDrawerSound = document.getElementById('btn-drawer-sound');
+  if (btnDrawerSound) {
+    btnDrawerSound.addEventListener('click', () => {
+      const btnSound = document.getElementById('btn-sound-toggle');
+      if (btnSound) btnSound.click();
+    });
+  }
+  const btnDrawerVoiceSettings = document.getElementById('btn-drawer-voice-settings');
+  if (btnDrawerVoiceSettings) {
+    btnDrawerVoiceSettings.addEventListener('click', () => {
+      closeNavDrawer();
+      const btnSettings = document.getElementById('btn-settings');
+      if (btnSettings) btnSettings.click();
+    });
+  }
+
+  // Language and the signed-in badge live in the sidebar on every platform now.
+  const homeLangSlot = document.getElementById('nav-drawer-lang-slot');
+  const homeLangSwitch = document.querySelector('.topbar .language-switch');
+  if (homeLangSlot && homeLangSwitch) homeLangSlot.appendChild(homeLangSwitch);
+  const homeBadgeSlot = document.getElementById('nav-drawer-badge-slot');
+  const homeSessionBadge = document.getElementById('parent-session-badge');
+  if (homeBadgeSlot && homeSessionBadge && !homeBadgeSlot.contains(homeSessionBadge)) homeBadgeSlot.appendChild(homeSessionBadge);
+
+  // Desktop: the menu is a permanent sidebar (like Claude), not a modal drawer.
+  const sidebarQuery = window.matchMedia ? window.matchMedia('(min-width: 1100px)') : null;
+  const applySidebarMode = () => {
+    if (!navDrawer) return;
+    const persistent = Boolean(sidebarQuery && sidebarQuery.matches);
+    document.body.classList.toggle('has-sidebar', persistent);
+    if (persistent) {
+      if (navDrawer.classList.contains('is-open')) closeNavDrawer();
+      navDrawer.setAttribute('aria-hidden', 'false');
+      navDrawer.setAttribute('role', 'navigation');
+      navDrawer.removeAttribute('aria-modal');
+      navDrawer.inert = false;
+    } else {
+      navDrawer.setAttribute('role', 'dialog');
+      navDrawer.setAttribute('aria-modal', 'true');
+      if (!navDrawer.classList.contains('is-open')) navDrawer.setAttribute('aria-hidden', 'true');
+    }
+  };
+  applySidebarMode();
+  if (sidebarQuery) {
+    if (typeof sidebarQuery.addEventListener === 'function') sidebarQuery.addEventListener('change', applySidebarMode);
+    else if (typeof sidebarQuery.addListener === 'function') sidebarQuery.addListener(applySidebarMode);
   }
 
   // ==========================================

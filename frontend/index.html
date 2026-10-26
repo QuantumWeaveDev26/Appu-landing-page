@@ -49,10 +49,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261026-01">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261026-01">
-  <link rel="stylesheet" href="landing-page.css?v=20261026-01">
-  <link rel="stylesheet" href="tour.css?v=20261026-01">
+  <link rel="stylesheet" href="style.css?v=20261026-02">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261026-02">
+  <link rel="stylesheet" href="landing-page.css?v=20261026-02">
+  <link rel="stylesheet" href="tour.css?v=20261026-02">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -649,8 +649,8 @@
       </div>
       <section class="mission-intro">
         <p id="mission-eyebrow" class="eyebrow"><span aria-hidden="true">✦</span> Your learning mission starts here</p>
-        <h2 id="mission-title" data-i18n-html="missionTitleHtml">Start your <span>academic success</span> now!</h2>
-        <p id="mission-subtitle">Choose a mission or ask Appu anything from class 5 to 12.</p>
+        <h2 id="mission-title" data-i18n-html="missionTitleHtml">What shall we learn today?</h2>
+        <p id="mission-subtitle">Ask Appu anything from Class 5 to 12.</p>
       </section>
 
       <div id="avatar-3d-wrapper" class="avatar-stage state-idle mood-idle">
@@ -686,20 +686,6 @@
         }
       </script>
 
-      <div class="mission-deck" aria-label="Choose a learning mission">
-        <button id="chip-explain" class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
-        </button>
-        <button id="chip-quiz" class="mission-card chip-action-btn mission-violet" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
-        </button>
-        <button id="chip-homework" class="mission-card chip-action-btn mission-green" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
-        </button>
-        <button id="chip-exam" class="mission-card chip-action-btn mission-amber" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
-          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
-        </button>
-      </div>
 
       <!-- VOICE RESPONSE POPUP: persistent assistant reply view during hands-free voice sessions -->
       <div id="voice-reply-popup" class="voice-reply-popup" role="region" aria-live="polite" aria-label="Appu's response" hidden>
@@ -736,13 +722,41 @@
           <p id="subtitles-text">Namaskara! Pick a learning mission, type a question, or tap the microphone to talk.</p>
         </div>
       </div>
-      <div class="control-dock">
+      <div class="mission-deck home-try-chips" aria-label="Choose a learning mission">
+        <button id="chip-explain" class="mission-card chip-action-btn mission-cyan" type="button" data-prompt="Explain a school topic to me in a simple, fun way. Start by asking which topic and class I am in.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span class="mission-copy"><strong class="chip-title">Explain My Topic</strong><small class="chip-desc">Make a tricky idea feel simple</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+        <button id="chip-quiz" class="mission-card chip-action-btn mission-violet" type="button" data-prompt="Play a quick five-question quiz with me. Start by asking my class and favorite subject.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span><span class="mission-copy"><strong class="chip-title">Play a Quick Quiz</strong><small class="chip-desc">Five fun questions, one at a time</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+        <button id="chip-homework" class="mission-card chip-action-btn mission-green" type="button" data-prompt="Help me with my homework without simply giving the answer. Ask me to share the question and guide me step by step.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-book-open-reader"></i></span><span class="mission-copy"><strong class="chip-title">Homework Helper</strong><small class="chip-desc">Get hints and learn each step</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+        <button id="chip-exam" class="mission-card chip-action-btn mission-amber" type="button" data-prompt="Help me practise for an exam. Start by asking my class, subject, chapter, and exam date.">
+          <span class="mission-icon" aria-hidden="true"><i class="fa-solid fa-medal"></i></span><span class="mission-copy"><strong class="chip-title">Exam Practice</strong><small class="chip-desc">Revise smarter and build confidence</small></span><i class="fa-solid fa-arrow-right mission-arrow" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="home-ask-form" class="home-ask" aria-label="Ask Appu">
+        <label class="sr-only" for="home-ask-input">Ask Appu anything</label>
+        <textarea id="home-ask-input" class="home-ask-input" rows="1" maxlength="2000" placeholder="Ask Appu anything…" enterkeyhint="send"></textarea>
+        <div class="home-ask-row">
+          <div class="home-add-wrap">
+            <button id="btn-home-add" class="home-ask-icon" type="button" aria-label="Add a photo or notes" aria-expanded="false" aria-controls="home-add-menu"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+            <div id="home-add-menu" class="home-add-menu" role="menu" hidden>
+              <button id="btn-home-photo" class="home-add-item" type="button" role="menuitem"><i class="fa-solid fa-camera" aria-hidden="true"></i><span>Photo of homework</span></button>
+              <button id="btn-home-notes" class="home-add-item" type="button" role="menuitem"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>Upload notes</span></button>
+            </div>
+          </div>
+          <span class="home-ask-spacer"></span>
+          <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Tap to speak to Appu"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
+          <button id="btn-home-send" class="home-ask-send" type="submit" aria-label="Send to Appu" disabled><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+        </div>
+      </form>
+      <div class="control-dock" hidden>
         <div class="dock-btn-group">
           <button id="btn-toggle-chat" class="dock-btn type-btn" type="button"><i class="fa-regular fa-message" aria-hidden="true"></i><span>Type instead</span></button>
           <button id="btn-upload-notes" class="dock-btn notes-btn" type="button" aria-label="Upload notes or textbook"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i><span>Upload notes</span></button>
         </div>
-        <button id="btn-mic" class="mic-button" type="button" aria-pressed="false" aria-label="Tap to speak to Appu"><span id="voice-portal" class="mic-rings" aria-hidden="true"></span><i class="fa-solid fa-microphone" aria-hidden="true"></i></button>
-        <span class="mic-label">Tap to speak</span>
       </div>
     </section>
   </div>
@@ -772,6 +786,10 @@
       <button id="btn-close-nav-drawer" class="icon-btn close-btn" type="button" aria-label="Close menu"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </header>
     <nav class="nav-drawer-body">
+      <div class="nav-drawer-primary">
+        <button id="btn-drawer-new-chat" class="nav-drawer-primary-btn" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>New chat</span></button>
+        <button id="btn-drawer-recent" class="nav-drawer-primary-btn" type="button"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>Recent chats</span></button>
+      </div>
       <div id="nav-drawer-lang-slot" class="nav-drawer-slot"></div>
       <div id="nav-drawer-gamification" class="nav-drawer-gamification" role="region" aria-label="Learning Progress">
         <span class="nav-drawer-section-title" id="drawer-progress-title">My Progress</span>
@@ -820,6 +838,8 @@
       <button id="btn-drawer-parent-zone" class="nav-drawer-parent-btn" type="button"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> <span data-i18n="drawerParentZone">Parent Zone & Controls</span></button>
       <button id="btn-drawer-saved-lessons" class="nav-drawer-saved-link" type="button"><i class="fa-solid fa-bookmark text-amber" aria-hidden="true"></i> <span>My Learning <small class="saved-count-pill" id="nav-drawer-saved-count" style="display:none">0</small></span></button>
       <button id="btn-drawer-reports" class="nav-drawer-report-link" type="button"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Child Progress Report</span></button>
+      <button id="btn-drawer-sound" class="nav-drawer-theme-link" type="button"><i class="fa-solid fa-volume-high text-cyan" aria-hidden="true"></i> <span>Sound effects</span></button>
+      <button id="btn-drawer-voice-settings" class="nav-drawer-theme-link" type="button"><i class="fa-solid fa-sliders text-cyan" aria-hidden="true"></i> <span>Voice settings</span></button>
       <button id="btn-drawer-home" class="nav-drawer-home-link" type="button"><i class="fa-solid fa-house text-cyan" aria-hidden="true"></i> <span>Home (Landing Page)</span></button>
       <button id="btn-drawer-tour" class="nav-drawer-tour-link" type="button"><i class="fa-solid fa-wand-magic-sparkles text-cyan" aria-hidden="true"></i> <span>Take the tour 🎈</span></button>
       <button id="btn-drawer-theme-toggle" class="nav-drawer-theme-link" type="button" aria-label="Switch to light theme" title="Switch to light theme"><i id="drawer-theme-icon" class="fa-solid fa-sun text-amber" aria-hidden="true"></i> <span id="drawer-theme-text">Light Mode</span></button>
@@ -1496,27 +1516,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261026-01"></script>
-  <script src="appu-config.js?v=20261026-01"></script>
-  <script src="appu-session.js?v=20261026-01"></script>
-  <script src="appu-backend-client.js?v=20261026-01"></script>
-  <script src="parent-onboarding-shell.js?v=20261026-01"></script>
-  <script src="parent-setup-ui.js?v=20261026-01"></script>
-  <script src="prompt-library-ui.js?v=20261026-01"></script>
-  <script src="avatar-stage.js?v=20261026-01"></script>
-  <script src="mascot-avatar.js?v=20261026-01"></script>
-  <script src="lottie-catalog.js?v=20261026-01"></script>
-  <script src="curriculum-catalogue.js?v=20261026-01"></script>
-  <script src="lesson-card-renderer.js?v=20261026-01"></script>
-  <script src="voice-engine.js?v=20261026-01"></script>
-  <script src="chat-history.js?v=20261026-01"></script>
-  <script src="chat-agent.js?v=20261026-01"></script>
-  <script src="parent-reports-ui.js?v=20261026-01"></script>
-  <script src="parental-controls-ui.js?v=20261026-01"></script>
-  <script src="saved-lessons-ui.js?v=20261026-01"></script>
-  <script src="app.js?v=20261026-01"></script>
-  <script src="landing-page.js?v=20261026-01"></script>
-  <script src="tour.js?v=20261026-01"></script>
+  <script src="voice-contract.js?v=20261026-02"></script>
+  <script src="appu-config.js?v=20261026-02"></script>
+  <script src="appu-session.js?v=20261026-02"></script>
+  <script src="appu-backend-client.js?v=20261026-02"></script>
+  <script src="parent-onboarding-shell.js?v=20261026-02"></script>
+  <script src="parent-setup-ui.js?v=20261026-02"></script>
+  <script src="prompt-library-ui.js?v=20261026-02"></script>
+  <script src="avatar-stage.js?v=20261026-02"></script>
+  <script src="mascot-avatar.js?v=20261026-02"></script>
+  <script src="lottie-catalog.js?v=20261026-02"></script>
+  <script src="curriculum-catalogue.js?v=20261026-02"></script>
+  <script src="lesson-card-renderer.js?v=20261026-02"></script>
+  <script src="voice-engine.js?v=20261026-02"></script>
+  <script src="chat-history.js?v=20261026-02"></script>
+  <script src="chat-agent.js?v=20261026-02"></script>
+  <script src="parent-reports-ui.js?v=20261026-02"></script>
+  <script src="parental-controls-ui.js?v=20261026-02"></script>
+  <script src="saved-lessons-ui.js?v=20261026-02"></script>
+  <script src="app.js?v=20261026-02"></script>
+  <script src="landing-page.js?v=20261026-02"></script>
+  <script src="tour.js?v=20261026-02"></script>
 
   <!-- Motion (motion.dev) Pro-Grade Physics Engine for Marketing Landing (ESM, Lazy, Fail-Safe) -->
   <script type="module">
