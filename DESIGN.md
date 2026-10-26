@@ -17,7 +17,7 @@ Pinned reference: the Claude.ai / Claude Code chat (manager, 2026-10-26). Second
 
 - **One primary input on screen.** The home ask box is the only composer. The former chat drawer is the main column (`body.chat-first`); the stage, the voice popup and the "Appu says" card are hidden. Answers carry their own study-mode tabs.
 - **Main window = conversation only.** No top bar on desktop; on phones only the ☰ menu button. Streak, stars, level and the study timer sit in the sidebar's "My Progress"; Sign in sits at the bottom of the sidebar.
-- **Sidebar order (fits without scrolling):** New chat, Recent chats, My Learning; My Progress (streak, stars, level, timer); ▸ Learning missions (collapsible, incl. Explore prompts); Parent Zone; Child Progress Report; ▸ Settings (collapsible: language, sound, voice settings, theme, tour, home); legal links as a small wrapped footer; Sign in at the bottom.
+- **Sidebar order (fits without scrolling):** New chat, Recent chats, My Learning; My Progress (streak, stars, level, timer); ▸ Learning missions (collapsible, incl. Explore prompts); Parent Zone; Child Progress Report; ▸ Settings (collapsible: language, sound, voice settings, theme, tour, home); Sign in at the bottom. No policy links in the app sidebar (they stay on the public landing page). Progress pills show icon + number only.
 - **Mission shortcuts:** small pill chips (min 44 px tall), never cards.
 - **Touch targets:** at least 44 px (composer buttons 40 px, matching Claude's compact bar). Text: at least 16 px in inputs (avoids iOS zoom), at least 14 px for labels.
 - **No marquee or scrolling banners;** the beta notice is a static, dismiss-free pill.

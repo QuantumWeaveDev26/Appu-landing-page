@@ -13677,3 +13677,6 @@ html body.view-app.chat-first .nav-drawer-body > .nav-drawer-slot:empty { displa
 @media (prefers-reduced-motion: reduce) { .nav-drawer-group-chevron { transition: none; } }
 html body.view-app.chat-first .nav-drawer-legal { display: flex !important; flex-wrap: wrap; gap: 4px 12px; padding: 8px 12px; }
 html body.view-app.chat-first .nav-drawer-legal a { font-size: 12px; color: #8ea3c0; padding: 0 !important; }
+/* Progress shows icon + number only; policy links stay on the public site, not in the app sidebar. */
+html body.view-app.chat-first #nav-drawer-gamification .nav-game-pill .game-label { display: none !important; }
+html body.view-app.chat-first .nav-drawer-legal { display: none !important; }
