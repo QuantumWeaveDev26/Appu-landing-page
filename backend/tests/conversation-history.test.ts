@@ -19,6 +19,7 @@ import {
   type ConversationSummary,
   type ConversationHistoryEntry
 } from '../src/domain/conversation/index.js';
+import { ConversationQuizService } from '../src/domain/quiz/index.js';
 
 function createTestDatabase(): TransactionalQueryable {
   const memDb = newDb();
@@ -334,6 +335,45 @@ describe('APPU Conversation History Domain & Repository Suite', () => {
     const longText = 'a'.repeat(200);
     assert.equal(ConversationService.normalizeTitle(longText).length, 120);
   });
+  // F03 (QA 2026-10-24): a question and its answer are written in one transaction, so they
+  // share created_at. Ordering must never fall back to the random message id.
+  test('a question always precedes its answer even when both share a timestamp', async () => {
+    const session = await ConversationRepository.create(db, householdA, childA, 'Order check');
+    const sameInstant = new Date('2026-10-24T12:06:00.000Z');
+    for (let turn = 0; turn < 3; turn++) {
+      const requestId = crypto.randomUUID();
+      await createTestAppuRequest(db, requestId);
+      const at = new Date(sameInstant.getTime() + turn * 1000);
+      // Answer gets the lexicographically smaller id: the old id tiebreak put it first.
+      await db.query(
+        `INSERT INTO conversation_messages (id, conversation_id, request_id, role, text, has_image_attachment, created_at)
+         VALUES ($1, $2, $3, 'assistant', $4, FALSE, $5), ($6, $2, $3, 'user', $7, $8, $5)`,
+        [`00000000-0000-4000-8000-00000000000${turn}`, session.id, requestId, `answer ${turn}`, at,
+         `ffffffff-ffff-4fff-bfff-fffffffffff${turn}`, `question ${turn}`, turn === 0]
+      );
+    }
+    const expected = ['question 0', 'answer 0', 'question 1', 'answer 1', 'question 2', 'answer 2'];
+
+    const listed = await ConversationRepository.listMessages(db, householdA, childA, session.id);
+    assert.deepEqual(listed.map((m) => m.text), expected);
+    const context = await ConversationRepository.listContext(db, householdA, childA, session.id);
+    assert.deepEqual(context.map((m) => m.text), expected);
+    const all = await ConversationRepository.listAllMessages(db, householdA, childA, session.id);
+    assert.deepEqual(all.map((m) => m.text), expected);
+  });
+
+  test('appendSuccessfulExchange stamps the answer after its question', async () => {
+    const session = await ConversationRepository.create(db, householdA, childA, 'New conversation');
+    const requestId = crypto.randomUUID();
+    await createTestAppuRequest(db, requestId);
+    await ConversationService.appendSuccessfulExchange(db, {
+      householdId: householdA, childId: childA, conversationId: session.id, requestId,
+      userText: 'What is 7 x 4?', assistantText: '28', hasImageAttachment: false
+    });
+    const listed = await ConversationRepository.listMessages(db, householdA, childA, session.id);
+    assert.deepEqual(listed.map((m) => m.role), ['user', 'assistant']);
+  });
+
 });
 
 class TestAuthVerifier implements AuthVerifier {
@@ -700,5 +740,92 @@ describe('APPU Conversation Gateway Suite', () => {
     });
 
     assert.equal(res.statusCode, 404);
+  });
+
+  // ---- QA F18 (2026-10-24): conversational quiz graded from stored records ----
+  const QUIZ = [
+    { q: 'Which pigment in the leaves captures sunlight?', o: { A: 'Chlorophyll', B: 'Carotene', C: 'Xanthophyll' }, a: 'A', reply: 'A) Chlorophyll. Please continue to Question 2 of 5.' },
+    { q: 'What gas do plants take in to make food?', o: { A: 'Oxygen', B: 'Carbon Dioxide', C: 'Nitrogen' }, a: 'B', reply: 'B) Carbon dioxide. Continue to Question 3 of 5.' },
+    { q: 'Where in the cell does photosynthesis happen?', o: { A: 'Mitochondria', B: 'Chloroplast', C: 'Nucleus' }, a: 'B', reply: 'B) Chloroplast. Continue to Question 4 of 5.' },
+    { q: 'What do plants release as a byproduct?', o: { A: 'Oxygen', B: 'Carbon Dioxide', C: 'Nitrogen' }, a: 'A', reply: 'A) Oxygen. Continue to Question 5 of 5.' },
+    { q: 'A shaded plant has plenty of water and CO2. Which change raises its rate most?', o: { A: 'More light', B: 'Different soil', C: 'More water' }, a: 'A', reply: 'A) More light. That is my answer to Question 5. Please give my final score out of five.' }
+  ];
+  const ask = (i: number) => `Question ${i + 1}: ${QUIZ[i].q}\n${Object.entries(QUIZ[i].o).map(([k, v]) => `${k}) ${v}`).join('\n')}\n\n[[QUIZ_ITEM ${JSON.stringify({ n: i + 1, of: 5, question: QUIZ[i].q, options: QUIZ[i].o, answer: QUIZ[i].a })}]]`;
+  const send = async (conversationId: string, message: string, brainText: string) => {
+    n8nClient.nextResponse = { text: brainText, audioSource: null, audioDurationMs: null };
+    const res = await app.inject({ method: 'POST', url: '/api/appu/message', headers: authHeaders, payload: { childId, conversationId, message } });
+    assert.equal(res.statusCode, 200, res.body);
+    return { body: JSON.parse(res.body), protocol: n8nClient.lastEnvelope?.quizProtocol ?? '' };
+  };
+
+  test('the recorded five-question quiz scores 5/5 from stored answers even when the brain says 4/5', async () => {
+    const session = await ConversationRepository.create(db, householdId, childId, 'Quiz');
+    let turn = await send(session.id, 'Quiz me: Class 8 Science, photosynthesis, five questions.', ask(0));
+    assert.ok(!turn.body.text.includes('QUIZ_ITEM'), 'machine tag hidden from the learner');
+    assert.match(turn.protocol, /QUIZ_ITEM/);
+
+    for (let i = 0; i < 4; i++) {
+      turn = await send(session.id, QUIZ[i].reply, `Spot on! ${ask(i + 1)}`);
+      assert.match(turn.protocol, new RegExp(`Question ${i + 1} of 5.*CORRECT`));
+      assert.equal(turn.body.quiz.correct, i + 1);
+      assert.equal(turn.body.quiz.final, false);
+    }
+
+    // The brain repeats the QA failure: invents a wrong Q4 and says 4/5.
+    turn = await send(session.id, QUIZ[4].reply,
+      'You got 4 out of 5 right, Navee! The tricky one was Question 4 - plants release oxygen, not carbon dioxide.');
+    assert.match(turn.protocol, /FINAL SCORE: 5 out of 5/);
+    assert.match(turn.protocol, /do not say any question was missed/);
+    assert.equal(turn.body.quiz.final, true);
+    assert.equal(turn.body.quiz.correct, 5);
+    assert.match(turn.body.text, /You got 5 out of 5 right/);
+
+    const history = await ConversationRepository.listAllMessages(db, householdId, childId, session.id);
+    assert.ok(history.every((m) => !m.text.includes('QUIZ_ITEM')), 'stored history has no machine tags');
+  });
+
+  test('incorrect, corrected and skipped answers score deterministically', async () => {
+    const session = await ConversationRepository.create(db, householdId, childId, 'Quiz 2');
+    await send(session.id, 'Quiz me', ask(0));
+    await send(session.id, 'B) Carotene', ask(1));                       // incorrect
+    await send(session.id, 'A... no wait, B', ask(2));                    // corrected to the right answer
+    await send(session.id, "I don't know, skip", ask(3));                 // skipped
+    await send(session.id, 'Oxygen', ask(4));                             // correct by option text
+    const last = await send(session.id, 'C) More water', 'You got 3 out of 5.');
+    assert.equal(last.body.quiz.correct, 2);
+    assert.match(last.body.text, /You got 2 out of 5/);
+    assert.match(last.protocol, /Q1 .*learner: B\) Carotene/);
+    assert.match(last.protocol, /Q3 .*learner: skipped/);
+  });
+
+  test('interruption, a failed brain call and a reload neither change nor double-count an answer', async () => {
+    const session = await ConversationRepository.create(db, householdId, childId, 'Quiz 3');
+    await send(session.id, 'Quiz me', ask(0));
+
+    // Interruption (e.g. a clarifying question, or the study-time lock then a parent unlock).
+    let turn = await send(session.id, 'What does pigment mean?', `A pigment is a colour substance. ${ask(0)}`);
+    assert.match(turn.protocol, /Question 1 of 5 .* is still waiting/);
+    assert.equal(turn.body.quiz, null);
+
+    // A failed brain call must not consume the answer.
+    n8nClient.nextError = Object.assign(new Error('upstream down'), { code: 'upstream_failure' });
+    const failed = await app.inject({ method: 'POST', url: '/api/appu/message', headers: authHeaders, payload: { childId, conversationId: session.id, message: 'A) Chlorophyll' } });
+    assert.notEqual(failed.statusCode, 200);
+    n8nClient.nextError = null;
+
+    // Reload/resume: state comes only from the database, so a fresh request continues the quiz.
+    turn = await send(session.id, 'A) Chlorophyll', `Yes! ${ask(1)}`);
+    assert.equal(turn.body.quiz.correct, 1);
+    assert.equal(turn.body.quiz.answered, 1);
+
+    // Replaying the same plan (a duplicated commit) records nothing new.
+    const scope = { householdId, childId, conversationId: session.id };
+    const plan = await ConversationQuizService.prepareTurn(db, scope, 'B) Carbon Dioxide');
+    await ConversationQuizService.commitTurn(db, scope, plan, crypto.randomUUID(), 'Nice!');
+    const again = await ConversationQuizService.commitTurn(db, scope, plan, crypto.randomUUID(), 'Nice!');
+    assert.equal(again.quiz?.correct, 2);
+    assert.equal(again.quiz?.answered, 2);
+    const rows = await db.query(`SELECT status FROM conversation_quiz_items WHERE conversation_id = $1 AND status = 'answered'`, [session.id]);
+    assert.equal(rows.rows.length, 2);
   });
 });

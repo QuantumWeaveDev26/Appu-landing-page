@@ -14,6 +14,7 @@ import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
 import { PersonalisationRepository } from '../domain/personalisation/repository.js';
 import { buildGuestMentorContext } from '../domain/personalisation/guest-context.js';
+import { ConversationQuizService, extractQuizItem, type QuizTurnOutcome, type QuizTurnPlan } from '../domain/quiz/index.js';
 import { AdaptiveLearningService } from '../domain/adaptive-learning/service.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
@@ -424,6 +425,21 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         }
       }
 
+      // Conversational quiz (QA F18): grade the learner's reply against the stored question.
+      // Nothing is written until the brain succeeds; a quiz-store failure never blocks chat.
+      let quizPlan: QuizTurnPlan | null = null;
+      if (conversation) {
+        try {
+          quizPlan = await ConversationQuizService.prepareTurn(
+            opts.db,
+            { householdId: household.id, childId: child.id, conversationId: conversation.id },
+            message
+          );
+        } catch (err) {
+          request.log.warn({ err, requestId: lifecycle.id }, 'Quiz state unavailable; continuing without it');
+        }
+      }
+
       // 5. Construct structured server-generated envelope for n8n
       // n8n never generates audio itself for the website channel: every language is served via
       // the decoupled Eleven v3 streaming path below (was Kannada/Hindi-only; English previously
@@ -451,7 +467,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         mentorContext,
         parentPhone,
         whatsappConsent,
-        ...(experimentalLearning ? { experimentalLearning: true } : {})
+        ...(experimentalLearning ? { experimentalLearning: true } : {}),
+        ...(quizPlan ? { quizProtocol: quizPlan.protocol } : {})
       };
 
       // 6. Forward to n8n via secure client with reservation rollback on failure.
@@ -492,6 +509,28 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         requestId: lifecycle.id,
         outcome: AppuRequestStates.SUCCEEDED
       });
+
+      // Record the graded quiz answer once, store any new question, strip the machine tag
+      // and pin a final score to the stored records before the text is saved or voiced.
+      let quizResult: QuizTurnOutcome['quiz'] = null;
+      if (conversation && quizPlan) {
+        try {
+          const outcome = await ConversationQuizService.commitTurn(
+            opts.db,
+            { householdId: household.id, childId: child.id, conversationId: conversation.id },
+            quizPlan,
+            lifecycle.id,
+            response.text
+          );
+          response.text = outcome.text;
+          quizResult = outcome.quiz;
+        } catch (err) {
+          request.log.warn({ err, requestId: lifecycle.id }, 'Failed to record quiz turn');
+          response.text = extractQuizItem(response.text).text;
+        }
+      } else {
+        response.text = extractQuizItem(response.text).text;
+      }
 
       if (conversation) {
         try {
@@ -616,6 +655,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         audioSource: audioStreamUrl ? null : finalAudioSource,
         audioStreamUrl,
         audioDurationMs: audioStreamUrl ? null : finalAudioDurationMs,
+        quiz: quizResult,
         guestSession: null
       });
     }
@@ -759,6 +799,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       throw new BadGatewayError('Could not reach AI mentor service. Please try again later.');
     }
     const tN8nEnd = performance.now();
+    // Guests have no stored quiz state; never show or voice a quiz machine tag.
+    if (response && typeof response.text === 'string') response.text = extractQuizItem(response.text).text;
 
     // 6. Generate signed token reflecting the successfully completed turn count
     const guestTokenResult = GuestSessionService.signGuestToken({

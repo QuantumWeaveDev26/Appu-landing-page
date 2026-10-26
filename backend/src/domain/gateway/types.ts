@@ -19,6 +19,8 @@ export interface N8nMessageEnvelope {
   parentPhone?: string | null;
   whatsappConsent?: boolean;
   experimentalLearning?: boolean;
+  // Conversational quiz protocol + authoritative quiz state (QA F18); prepended to the agent input.
+  quizProtocol?: string;
 }
 
 export interface N8nMessageResponse {
