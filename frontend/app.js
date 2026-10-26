@@ -3134,7 +3134,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setActiveTutorDocument(doc) {
     if (!doc || !doc.text) return;
     const name = doc.name || 'Your Notes';
-    const text = String(doc.text).slice(0, 16000).trim();
+    const text = Array.from(String(doc.text)).slice(0, 16000).join('').trim();
     window.activeTutorDocument = { name, text };
     window.__APPU_ACTIVE_DOCUMENT__ = { name, text };
 
@@ -3180,6 +3180,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notesFileStatus) notesFileStatus.hidden = true;
     if (notesPasteInput) notesPasteInput.value = '';
     if (notesCharCount) notesCharCount.textContent = '0 / 16,000 characters';
+    const pasteError = document.getElementById('notes-paste-error');
+    if (pasteError) { pasteError.hidden = true; pasteError.textContent = ''; }
     if (btnSubmitNotes) btnSubmitNotes.disabled = true;
   }
 
@@ -3205,7 +3207,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (notesPasteInput) {
         notesPasteInput.focus();
         if (btnSubmitNotes) {
-          btnSubmitNotes.disabled = !(notesPasteInput.value && notesPasteInput.value.trim().length > 0);
+          btnSubmitNotes.disabled = !checkPastedNotes().ok;
         }
       }
     }
@@ -3228,7 +3230,7 @@ document.addEventListener('DOMContentLoaded', () => {
           fullText += (fullText ? '\n\n' : '') + pageText;
           if (fullText.length >= 16000) break;
         }
-        return fullText.slice(0, 16000);
+        return Array.from(fullText).slice(0, 16000).join('');
       } catch (pdfErr) {
         console.warn('[NotesTutor] pdfjsLib extraction failed:', pdfErr);
       }
@@ -3271,7 +3273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fail('Could not open this PDF. Please check your connection and try again, or paste the text.');
         return;
       }
-      const capped = String(extracted || '').slice(0, 16000).trim();
+      const capped = Array.from(String(extracted || '')).slice(0, 16000).join('').trim();
       if (!capped) {
         fail(isPdf
           ? 'No readable text found. This PDF may be a scan or photo; please paste the text instead.'
@@ -3349,16 +3351,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Pasted notes (QA F10): count characters (code points, so an emoji is one), accept up
+  // to exactly NOTES_PASTE_MAX, and explain why submission is blocked instead of failing
+  // silently on whitespace-only or over-limit text.
+  const NOTES_PASTE_MAX = 16000;
+  function checkPastedNotes() {
+    const val = notesPasteInput ? (notesPasteInput.value || '') : '';
+    const len = Array.from(val).length;
+    let error = '';
+    if (len > 0 && !val.trim()) error = 'Please paste some notes text. Spaces alone cannot be taught.';
+    else if (len > NOTES_PASTE_MAX) error = `This is ${len.toLocaleString()} characters; the limit is ${NOTES_PASTE_MAX.toLocaleString()}. Please shorten it by ${(len - NOTES_PASTE_MAX).toLocaleString()} character${len - NOTES_PASTE_MAX === 1 ? '' : 's'}, or upload it as a PDF or TXT file.`;
+    return { val, len, error, ok: Boolean(val.trim()) && !error };
+  }
+
   if (notesPasteInput) {
     notesPasteInput.addEventListener('input', () => {
-      const val = notesPasteInput.value || '';
-      const len = val.length;
+      const state = checkPastedNotes();
       if (notesCharCount) {
-        notesCharCount.textContent = `${len.toLocaleString()} / 16,000 characters`;
+        notesCharCount.textContent = `${state.len.toLocaleString()} / 16,000 characters`;
       }
+      const pasteError = document.getElementById('notes-paste-error');
+      if (pasteError) {
+        pasteError.textContent = state.error;
+        pasteError.hidden = !state.error;
+      }
+      notesPasteInput.setAttribute('aria-invalid', state.error ? 'true' : 'false');
       if (tabNotesPaste && tabNotesPaste.classList.contains('is-active')) {
         if (btnSubmitNotes) {
-          btnSubmitNotes.disabled = len === 0;
+          btnSubmitNotes.disabled = !state.ok;
         }
       }
     });
@@ -3370,8 +3390,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const isPasteActive = tabNotesPaste && tabNotesPaste.classList.contains('is-active');
 
       if (isPasteActive) {
-        const text = (notesPasteInput && notesPasteInput.value ? notesPasteInput.value : '').slice(0, 16000).trim();
-        if (!text) return;
+        const state = checkPastedNotes();
+        if (!state.ok) return;
+        const text = state.val.trim();
         const firstLine = text.split('\n')[0].replace(/^#+\s*/, '').slice(0, 30).trim();
         const docName = firstLine ? `Notes: ${firstLine}` : 'Pasted Notes';
         docToActivate = { name: docName, text };

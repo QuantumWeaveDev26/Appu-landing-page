@@ -54,3 +54,17 @@ test('F05: XP accessible name, level title, progress value and next level come f
   assert.match(app, /nextLevelEl\.textContent = isTopLevel \? 'Top level reached' : `Next: Level \$\{currentLvlInfo\.level \+ 1\}`/);
   assert.match(read('index.html'), /<span id="game-next-level">/);
 });
+
+test('F10: pasted notes are validated by trimmed content and a code-point 16,000 limit', () => {
+  const app = read('app.js');
+  const check = app.slice(app.indexOf('function checkPastedNotes()'), app.indexOf('function checkPastedNotes()') + 700);
+  assert.match(check, /const len = Array\.from\(val\)\.length;/);
+  assert.match(check, /if \(len > 0 && !val\.trim\(\)\) error = /);
+  assert.match(check, /else if \(len > NOTES_PASTE_MAX\) error = /);
+  assert.match(app, /const NOTES_PASTE_MAX = 16000;/);
+  assert.match(app, /btnSubmitNotes\.disabled = !state\.ok;/);
+  assert.match(app, /btnSubmitNotes\.disabled = !checkPastedNotes\(\)\.ok;/);
+  assert.match(read('index.html'), /<p id="notes-paste-error" class="notes-paste-error" role="alert" hidden><\/p>/);
+  // Downstream caps use the same character semantics as the counter.
+  assert.doesNotMatch(app + read('lesson-card-renderer.js'), /\.slice\(0, 16000\)\.trim\(\)|String\(documentText\)\.trim\(\)\.slice\(0, 16000\)/);
+});

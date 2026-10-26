@@ -4436,7 +4436,7 @@
       return null;
     }
 
-    const cappedText = String(documentText).trim().slice(0, 16000);
+    const cappedText = Array.from(String(documentText).trim()).slice(0, 16000).join('');
     const payload = {
       question: typeof question === 'string' ? question.trim() : '',
       documentText: cappedText,
@@ -4638,7 +4638,7 @@
     };
 
     if (documentText && String(documentText).trim()) {
-      payload.documentText = String(documentText).trim().slice(0, 16000);
+      payload.documentText = Array.from(String(documentText).trim()).slice(0, 16000).join('');
     }
 
     const targetUrl = resolvePodcastEndpoint();
