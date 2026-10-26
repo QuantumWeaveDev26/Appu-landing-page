@@ -37,6 +37,7 @@ class ChatAgent {
     const row = document.createElement('div');
     row.className = `message-row ${msg.sender}`;
     if (msg.isWelcome) row.className += ' is-welcome';
+    row._appuMsg = msg;
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
@@ -437,30 +438,25 @@ class ChatAgent {
     const lastAppu = [...this.messages].reverse().find(m => m.sender === 'appu');
     if (!lastAppu) return;
     lastAppu.lessonCard = lessonCard;
-    if (this.messagesContainer) {
-      const appuBubbles = this.messagesContainer.querySelectorAll('.msg-row.appu-msg');
-      if (appuBubbles.length > 0) {
-        const lastRow = appuBubbles[appuBubbles.length - 1];
-        const bubble = lastRow.querySelector('.msg-bubble');
-        if (bubble) {
-          const renderer = (typeof window !== 'undefined' && window.LessonCardRenderer) || (typeof LessonCardRenderer !== 'undefined' ? LessonCardRenderer : null);
-          const parsedCard = renderer ? renderer.parse(lessonCard) : null;
-          if (renderer && parsedCard && parsedCard.isRich) {
-            bubble.innerHTML = '';
-            const celebrateCallback = () => {
-              if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
-                window.appMascot.celebrate(3200);
-              }
-            };
-            const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback });
-            bubble.appendChild(cardEl);
-            try {
-              lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } catch (_) {}
-          }
-        }
-      }
+    if (!this.messagesContainer) return;
+    // Re-render that answer in place with the same renderer as new messages, so the lesson
+    // card and its study-mode tabs (mind map, quiz, flashcards...) appear on the answer.
+    const lastRow = Array.from(this.messagesContainer.children).find(r => r._appuMsg === lastAppu);
+    if (!lastRow) return;
+    const realContainer = this.messagesContainer;
+    const scratch = document.createElement('div');
+    this.messagesContainer = scratch;
+    try {
+      this.renderMessage(lastAppu);
+    } finally {
+      this.messagesContainer = realContainer;
     }
+    const freshRow = scratch.firstElementChild;
+    if (!freshRow) return;
+    lastRow.replaceWith(freshRow);
+    try {
+      freshRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (_) {}
   }
 
   clearHistory() {
