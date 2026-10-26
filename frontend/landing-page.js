@@ -1951,7 +1951,7 @@
       // user is actually authenticated -- cancelling the modal must leave them here,
       // never drop them into the locked app.
       if (win.ParentSetupUI && typeof win.ParentSetupUI.openModal === 'function') {
-        win.ParentSetupUI.openModal(1);
+        win.ParentSetupUI.openModal(1, 'signin');
       } else {
         // Fallback only (no modal controller): reveal the app and use its auth button.
         this.showApp();

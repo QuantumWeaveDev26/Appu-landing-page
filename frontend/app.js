@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnBetaBannerCta) {
     btnBetaBannerCta.addEventListener('click', () => {
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-        window.ParentSetupUI.openModal(1);
+        window.ParentSetupUI.openModal(1, 'signup');
       }
     });
   }
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnMainAuth.addEventListener('click', () => {
       voiceEngine.playClick();
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-        window.ParentSetupUI.openModal(1);
+        window.ParentSetupUI.openModal(1, 'signin');
       }
     });
   }
@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnGuestSignin.addEventListener('click', () => {
       closeGuestGateModal();
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-        window.ParentSetupUI.openModal(1);
+        window.ParentSetupUI.openModal(1, 'signin');
       }
     });
   }
@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnGuestRegister.addEventListener('click', () => {
       closeGuestGateModal();
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-        window.ParentSetupUI.openModal(1);
+        window.ParentSetupUI.openModal(1, 'signup');
       }
     });
   }
@@ -2795,7 +2795,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnWelcomeLogin.addEventListener('click', () => {
       closeWelcomeGate();
       if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
-        window.ParentSetupUI.openModal(1);
+        window.ParentSetupUI.openModal(1, 'signin');
       }
     });
   }
@@ -3947,6 +3947,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (xpFillEl) xpFillEl.style.width = `${pct}%`;
     if (streakBtn) streakBtn.title = `${state.streak}-day learning streak!`;
     if (xpBtn) xpBtn.title = `${state.xp} Learning Stars! Click to view achievements`;
+
+    // Accessible names, level tooltip, progress values and "next level" all come from the
+    // same current progress (QA F05: they kept their static 120 XP / Level 2 / Level 3 text).
+    const levelLabel = `Level ${currentLvlInfo.level}: ${currentLvlInfo.title.replace(/\s*\p{Extended_Pictographic}+\s*$/u, '')}`;
+    const realPct = Math.min(100, Math.max(0, Math.round((progressInLvl / span) * 100)));
+    const isTopLevel = currentLvlInfo.level >= LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1].level;
+    if (xpBtn) xpBtn.setAttribute('aria-label', `XP Stars: ${state.xp}`);
+    const levelPill = document.querySelector('.game-level-pill');
+    if (levelPill) levelPill.title = levelLabel;
+    const levelBar = levelPill ? levelPill.querySelector('[role="progressbar"]') : null;
+    if (levelBar) {
+      levelBar.setAttribute('aria-valuenow', String(realPct));
+      levelBar.setAttribute('aria-label', isTopLevel ? `${levelLabel}, top level` : `${levelLabel}, ${progressInLvl} of ${span} XP to Level ${currentLvlInfo.level + 1}`);
+    }
+    const nextLevelEl = document.getElementById('game-next-level');
+    if (nextLevelEl) nextLevelEl.textContent = isTopLevel ? 'Top level reached' : `Next: Level ${currentLvlInfo.level + 1}`;
 
     // Drawer Gamification Widgets
     const drawerStreakCountEl = document.getElementById('drawer-streak-count');

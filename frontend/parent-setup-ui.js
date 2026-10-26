@@ -610,10 +610,31 @@
         .replace(/'/g, '&#039;');
     }
 
-    function openModal(preferredStep) {
+    // authMode 'signup' | 'signin' picks the auth tab every time, so a Sign Up CTA never
+    // inherits a previously used Sign In tab (QA F13).
+    // While the modal is open everything else on the page is inert, so Tab/Shift+Tab stay
+    // inside it and the composer behind it cannot take focus (QA F06). Each element's
+    // previous inert state is restored on close.
+    let inertedBackground = [];
+    function setBackgroundInert(on) {
+      if (on) {
+        if (inertedBackground.length || !document.body) return;
+        inertedBackground = Array.from(document.body.children)
+          // The guided tour stacks above everything and must stay usable.
+          .filter((el) => el !== modal && !el.contains(modal) && !el.classList.contains('appu-tour') && !/^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(el.tagName))
+          .map((el) => ({ el, was: Boolean(el.inert) }));
+        inertedBackground.forEach(({ el }) => { el.inert = true; });
+      } else {
+        inertedBackground.forEach(({ el, was }) => { el.inert = was; });
+        inertedBackground = [];
+      }
+    }
+
+    function openModal(preferredStep, authMode) {
       lastFocusedElement = document.activeElement;
       modal.classList.add('is-visible');
       modal.setAttribute('aria-hidden', 'false');
+      setBackgroundInert(true);
       clearAlert();
 
       // BETA: label the modal clearly as beta signup, not the normal paid-plan setup copy.
@@ -661,6 +682,11 @@
         setStep(1);
       }
 
+      if (!isAuthed && (preferredStep === 1 || preferredStep === undefined) && (authMode === 'signup' || authMode === 'signin')) {
+        const tab = authMode === 'signup' ? document.getElementById('pos-tab-signup') : document.getElementById('pos-tab-login');
+        if (tab) tab.click();
+      }
+
       // If returning with email verification confirmation on a device without automatic session:
       if (!isAuthed && typeof window !== 'undefined' && window.location) {
         const hash = window.location.hash || '';
@@ -682,6 +708,7 @@
     }
 
     function closeModal() {
+      setBackgroundInert(false);
       // Restore focus to opener element BEFORE setting aria-hidden='true' to avoid:
       // "Blocked aria-hidden on an element because its descendant retained focus."
       if (modal.contains(document.activeElement)) {
@@ -1906,7 +1933,7 @@
 
   return {
     init,
-    openModal: (step) => { if (activeOpenModal) activeOpenModal(step); },
+    openModal: (step, authMode) => { if (activeOpenModal) activeOpenModal(step, authMode); },
     closeModal: () => { if (activeCloseModal) activeCloseModal(); },
     applyTranslations: (lang) => { if (activeApplyTranslations) activeApplyTranslations(lang); }
   };

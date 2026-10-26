@@ -2421,7 +2421,7 @@
         </div>
 
         <div class="podcast-progress-wrap">
-          <div class="podcast-progress-bar">
+          <div class="podcast-progress-bar" role="progressbar" aria-label="Audio lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div class="podcast-progress-fill" style="width: 0%"></div>
           </div>
           <div class="podcast-time-row">
@@ -2448,6 +2448,20 @@
     const playBtn = container.querySelector('.podcast-play-btn');
     const playerCard = container.querySelector('.podcast-player-card');
     const progressFill = container.querySelector('.podcast-progress-fill');
+    const progressBar = container.querySelector('.podcast-progress-bar');
+
+    // Keep the button's accessible name and the progressbar value in step with what is
+    // shown (QA F16: the name stayed "Play Appu Audio Lesson" while it read "Pause").
+    function setPlayButton(icon, text, ariaLabel) {
+      if (!playBtn) return;
+      playBtn.innerHTML = '<i class="fa-solid ' + icon + ' play-icon" aria-hidden="true"></i> <span class="play-btn-text">' + text + '</span>';
+      playBtn.setAttribute('aria-label', ariaLabel);
+    }
+    function setProgress(pct) {
+      const value = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+      if (progressFill) progressFill.style.width = value + '%';
+      if (progressBar) progressBar.setAttribute('aria-valuenow', String(value));
+    }
     const timeElapsed = container.querySelector('.time-elapsed');
     const timeTotal = container.querySelector('.time-total');
     const captionText = container.querySelector('.podcast-caption-text');
@@ -2495,7 +2509,7 @@
       });
       audioElement.addEventListener('ended', () => {
         stopPlayback(true);
-        if (progressFill) progressFill.style.width = '100%';
+        setProgress(100);
       });
       audioElement.addEventListener('pause', () => {
         if (!audioElement.ended && !isPaused && isPlaying) {
@@ -2532,7 +2546,7 @@
       isPaused = false;
       if (playerCard) playerCard.classList.remove('is-playing');
       if (playBtn) {
-        playBtn.innerHTML = '<i class="fa-solid fa-play play-icon" aria-hidden="true"></i> <span class="play-btn-text">' + (isComplete ? 'Listen again' : 'Listen to this lesson') + '</span>';
+        setPlayButton('fa-play', isComplete ? 'Listen again' : 'Listen to this lesson', isComplete ? 'Play Appu Audio Lesson again' : 'Play Appu Audio Lesson');
       }
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -2556,7 +2570,7 @@
       isPaused = true;
       if (playerCard) playerCard.classList.remove('is-playing');
       if (playBtn) {
-        playBtn.innerHTML = '<i class="fa-solid fa-play play-icon" aria-hidden="true"></i> <span class="play-btn-text">Resume</span>';
+        setPlayButton('fa-play', 'Resume', 'Resume Appu Audio Lesson');
       }
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -2575,7 +2589,7 @@
       isPaused = false;
       if (playerCard) playerCard.classList.add('is-playing');
       if (playBtn) {
-        playBtn.innerHTML = '<i class="fa-solid fa-pause play-icon" aria-hidden="true"></i> <span class="play-btn-text">Pause</span>';
+        setPlayButton('fa-pause', 'Pause', 'Pause Appu Audio Lesson');
       }
 
       // 1. Native ElevenLabs audio playback
@@ -2602,7 +2616,7 @@
           elapsedSeconds = Math.round(curr);
           const dur = (isFinite(audioElement.duration) && audioElement.duration > 0) ? audioElement.duration : totalSeconds;
           const pct = Math.min(100, Math.round((curr / dur) * 100));
-          if (progressFill) progressFill.style.width = pct + '%';
+          setProgress(pct);
           const m = Math.floor(curr / 60);
           const s = Math.floor(curr % 60);
           if (timeElapsed) timeElapsed.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -2616,7 +2630,7 @@
 
           if (audioElement.ended || curr >= dur) {
             stopPlayback(true);
-            if (progressFill) progressFill.style.width = '100%';
+            setProgress(100);
             if (timeElapsed) timeElapsed.textContent = formattedDuration;
           }
         }, 250);
@@ -2641,7 +2655,7 @@
             utterance.pitch = 1.05;
             utterance.onend = () => {
               stopPlayback(true);
-              if (progressFill) progressFill.style.width = '100%';
+              setProgress(100);
               if (timeElapsed) timeElapsed.textContent = formattedDuration;
             };
             utterance.onerror = () => {
@@ -2658,7 +2672,7 @@
       progressInterval = setInterval(() => {
         elapsedSeconds += 1;
         const pct = Math.min(100, Math.round((elapsedSeconds / totalSeconds) * 100));
-        if (progressFill) progressFill.style.width = pct + '%';
+        setProgress(pct);
         const m = Math.floor(elapsedSeconds / 60);
         const s = elapsedSeconds % 60;
         if (timeElapsed) timeElapsed.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -4041,6 +4055,18 @@
   }
 
   /**
+   * Turns a sentence into a mind-map branch. A heading is used only when the text really
+   * has one ("Inputs: sunlight and water"); plain prose keeps the whole sentence as the
+   * branch. Using a sentence's first three words as a heading produced fragments like
+   * "That beautiful reddish" (QA F14).
+   */
+  function sentenceToBranch(sentence, idx) {
+    const section = String(sentence || '').match(/^\s*\**([^:.!?*]{2,40}?)\**\s*:\s+(.+)$/);
+    if (section) return { label: section[1].trim(), children: [section[2].trim()] };
+    return { label: sentence || `Key Point ${idx + 1}`, children: [] };
+  }
+
+  /**
    * Helper: Extracts short readable branch ideas from text.
    */
   function extractBranchesFromText(text) {
@@ -4051,15 +4077,7 @@
       .map(s => s.trim())
       .filter(s => s.length >= 10 && !s.toLowerCase().startsWith('let me know') && !s.toLowerCase().startsWith('ask me'));
     if (sentences.length === 0) return [];
-    return sentences.slice(0, 4).map((s, idx) => {
-      const words = s.split(/\s+/);
-      const label = words.slice(0, 3).join(' ');
-      const detail = words.length > 3 ? words.slice(3).join(' ') : s;
-      return {
-        label: label || `Key Point ${idx + 1}`,
-        children: detail ? [detail] : []
-      };
-    });
+    return sentences.slice(0, 4).map(sentenceToBranch);
   }
 
   /**
@@ -4146,13 +4164,7 @@
     const branches = [];
     if (cleanSentences.length > 0) {
       cleanSentences.slice(0, 5).forEach((sentence, idx) => {
-        const words = sentence.split(/\s+/);
-        const label = words.slice(0, 3).join(' ');
-        const detail = words.length > 3 ? words.slice(3).join(' ') : sentence;
-        branches.push({
-          label: label || `Key Point ${idx + 1}`,
-          children: [detail]
-        });
+        branches.push(sentenceToBranch(sentence, idx));
       });
     } else {
       branches.push({
