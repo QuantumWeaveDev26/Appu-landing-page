@@ -24,3 +24,4 @@ Pinned reference: the Claude.ai / Claude Code chat (manager, 2026-10-26). Second
 - **Depth:** declared once. Composer: border only. Popups: shadow only.
 - **Motion:** the composer's send button fades from disabled to active, and the sidebar slides in on phones. Reduced-motion is respected.
 - **Languages:** en / kn / hi copy for every new string. Kannada and Hindi need native review.
+- **Adaptive to every screen:** under 1100 px the phone/tablet layout (☰ drawer, composer pinned to the bottom); from 1100 px a permanent 280 px sidebar, with the app filling the rest and the conversation column centred, `clamp(720px, 54vw, 1000px)` wide. 2K and 4K screens scale the whole page (app ×1.25/×1.6, landing ×1.35/×1.85 at 2200/3000 px) so text never looks tiny. Checked at 390, 768, 1024, 1280, 1440, 1920, 2560 and 3840 px wide.

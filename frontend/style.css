@@ -13680,3 +13680,33 @@ html body.view-app.chat-first .nav-drawer-legal a { font-size: 12px; color: #8ea
 /* Progress shows icon + number only; policy links stay on the public site, not in the app sidebar. */
 html body.view-app.chat-first #nav-drawer-gamification .nav-game-pill .game-label { display: none !important; }
 html body.view-app.chat-first .nav-drawer-legal { display: none !important; }
+
+/* ==========================================================================
+   ADAPTIVE LAYOUT (all screen sizes), 2026-10-26.
+   The app area always fills the space beside the sidebar and the conversation
+   column is centred in it; the column widens gently with the screen; on 2K/4K
+   screens the whole app scales up so text and controls keep a readable size.
+   ========================================================================== */
+@media (min-width: 1100px) {
+  html body.view-app.has-sidebar #app-shell {
+    width: auto !important;
+    max-width: none !important;
+    margin-left: 280px !important;
+    margin-right: 0 !important;
+    padding-inline: clamp(16px, 3vw, 56px) !important;
+    box-sizing: border-box;
+  }
+  html body.view-app.has-sidebar .beta-banner { margin-left: 280px !important; width: auto !important; max-width: none !important; }
+}
+html body.view-app.chat-first #chat-drawer,
+html body.view-app.chat-first .app-shell .response-dock {
+  max-width: clamp(720px, 54vw, 1000px) !important;
+  width: 100%;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+@media (min-width: 2200px) { html body.view-app.chat-first { zoom: 1.25; } }
+@media (min-width: 3000px) { html body.view-app.chat-first { zoom: 1.6; } }
+/* Landing page on 2K/4K: scale the whole page so its 1200px content is not a thin strip. */
+@media (min-width: 2200px) { html body.view-landing { zoom: 1.35; } }
+@media (min-width: 3000px) { html body.view-landing { zoom: 1.85; } }
