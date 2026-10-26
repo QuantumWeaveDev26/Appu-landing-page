@@ -74,7 +74,7 @@ export class ReportService {
        FROM conversation_messages m
        JOIN conversation_sessions s ON s.id = m.conversation_id
        WHERE s.child_id = $1 AND s.household_id = $2
-       ORDER BY m.created_at ASC, m.id ASC
+       ORDER BY m.created_at ASC, (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) ASC, m.id ASC
        LIMIT 200`,
       [childId, householdId]
     );

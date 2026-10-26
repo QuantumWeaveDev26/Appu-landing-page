@@ -1,0 +1,72 @@
+F18 live re-test, 2026-10-26: draft n8n brain drr7AUOcj1VrU0j8 (real OpenAI model) + backend quiz protocol (src/domain/quiz).
+Executions 34992, 34993, 34996, 34997, 35000, 35001 (n8n manual test runs, synthetic learner Navee / Grade 8).
+Machine QUIZ_ITEM lines are stripped by the backend and never shown; the grade lines below come from stored records.
+
+LEARNER: Play a quick five-question quiz with me. I'm in Class 8 and my topic is Science: photosynthesis. Ask one question at a time.
+
+APPU:    Hey Navee! Ready to crack some photosynthesis puzzles? Here's your first quiz question.
+         
+         Which pigment in green plants primarily absorbs sunlight to kickstart photosynthesis?
+         A) Chlorophyll
+         B) Carotene
+         C) Xanthophyll
+         
+         What's your answer?
+
+LEARNER: A) Chlorophyll. Please continue to Question 2 of 5.
+
+APPU:    Nice! You nailed the pigment that makes leaves the solar panels of nature. Now, here’s question 2:
+         
+         What gas do plants take in from the air to start photosynthesis?
+         A) Oxygen
+         B) Carbon dioxide
+         C) Nitrogen
+         
+         Which one powers the green magic?
+
+LEARNER: B) Carbon dioxide. Continue to Question 3 of 5.
+
+APPU:    Spot on, Navee! Carbon dioxide is the secret ingredient plants breathe in to cook their food using sunlight. Now, imagine photosynthesis as a kitchen—the water is like the chef’s helper, bringing in hydrogen and oxygen.
+         
+         Question 3: What part of the plant primarily absorbs water for photosynthesis?
+         A) Roots
+         B) Stem
+         C) Leaf
+         
+         Your move!
+
+LEARNER: C) Leaf... no wait, A) Roots. Next question please.
+
+APPU:    Right choice correcting yourself—roots are indeed the water-absorbing champions for photosynthesis. Now, for question 4: Which of these is a by-product released by plants during photosynthesis?
+         
+         A) Oxygen
+         B) Carbon dioxide
+         C) Glucose
+         
+         Which one flows out into the air like a gift from the plants?
+
+LEARNER: A) Oxygen. Continue to Question 5 of 5.
+
+APPU:    Awesome, Navee! You’re on a roll with the plant science trophies. Question 5 coming up:
+         
+         Which energy source powers the entire process of photosynthesis in green plants?
+         
+         A) Sunlight
+         B) Soil nutrients
+         C) Water
+         
+         What’s your final pick to crown this quiz?
+
+LEARNER: A) Sunlight. That is my answer to Question 5. Please give my final score out of five.
+
+APPU:    Perfect score, Navee! You got 5 out of 5 questions right on photosynthesis—like a true plant pro. 🌿
+         
+         Want to explore how plants use glucose after making it, or shall we jump to another cool Science topic?
+
+STORED QUIZ RECORDS (system-graded):
+Q1/5  Which pigment in green plants primarily absorbs sunlight to kickstart photosynthesis?  key=A) Chlorophyll  learner=A) Chlorophyll  CORRECT
+Q2/5  What gas do plants take in from the air to start photosynthesis?  key=B) Carbon dioxide  learner=B) Carbon dioxide  CORRECT
+Q3/5  What part of the plant primarily absorbs water for photosynthesis?  key=A) Roots  learner=A) Roots  CORRECT
+Q4/5  Which of these is a by-product released by plants during photosynthesis?  key=A) Oxygen  learner=A) Oxygen  CORRECT
+Q5/5  Which energy source powers the entire process of photosynthesis in green plants?  key=A) Sunlight  learner=A) Sunlight  CORRECT
+FINAL SCORE (computed): 5/5

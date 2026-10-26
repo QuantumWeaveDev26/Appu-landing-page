@@ -1,0 +1,7 @@
+QA ORBIT 742 - Rectangle Area Revision
+A rectangle has four right angles.
+Area = length x width.
+Perimeter = 2 x (length + width).
+Example: length 7 metres, width 4 metres.
+Area = 28 square metres. Perimeter = 22 metres.
+Question: What is the area of this rectangle?

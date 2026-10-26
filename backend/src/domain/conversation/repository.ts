@@ -152,7 +152,7 @@ export class ConversationRepository {
       const msgRes = await db.query<{ text: string }>(
         `SELECT text FROM conversation_messages
          WHERE conversation_id = $1
-         ORDER BY created_at DESC, id DESC
+         ORDER BY created_at DESC, (CASE WHEN role = 'user' THEN 0 ELSE 1 END) DESC, id DESC
          LIMIT 1`,
         [row.id]
       );
@@ -191,17 +191,18 @@ export class ConversationRepository {
     }>(
       `SELECT id, conversation_id, request_id, role, text, has_image_attachment, created_at
        FROM (
-         SELECT m.id, m.conversation_id, m.request_id, m.role, m.text, m.has_image_attachment, m.created_at
+         SELECT m.id, m.conversation_id, m.request_id, m.role, m.text, m.has_image_attachment, m.created_at,
+                (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) AS role_rank
          FROM conversation_messages m
          JOIN conversation_sessions s ON s.id = m.conversation_id
          WHERE m.conversation_id = $1
            AND s.household_id = $2
            AND s.child_id = $3
            AND s.expires_at > NOW()
-         ORDER BY m.created_at DESC, m.id DESC
+         ORDER BY m.created_at DESC, (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) DESC, m.id DESC
          LIMIT $4
        ) sub
-       ORDER BY sub.created_at ASC, sub.id ASC`,
+       ORDER BY sub.created_at ASC, sub.role_rank ASC, sub.id ASC`,
       [conversationId, householdId, childId, boundedLimit]
     );
 
@@ -230,17 +231,18 @@ export class ConversationRepository {
     }>(
       `SELECT role, text
        FROM (
-         SELECT m.id, m.role, m.text, m.created_at
+         SELECT m.id, m.role, m.text, m.created_at,
+                (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) AS role_rank
          FROM conversation_messages m
          JOIN conversation_sessions s ON s.id = m.conversation_id
          WHERE m.conversation_id = $1
            AND s.household_id = $2
            AND s.child_id = $3
            AND s.expires_at > NOW()
-         ORDER BY m.created_at DESC, m.id DESC
+         ORDER BY m.created_at DESC, (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) DESC, m.id DESC
          LIMIT $4
        ) sub
-       ORDER BY sub.created_at ASC, sub.id ASC`,
+       ORDER BY sub.created_at ASC, sub.role_rank ASC, sub.id ASC`,
       [conversationId, householdId, childId, maxMessages]
     );
 
@@ -344,7 +346,7 @@ export class ConversationRepository {
          AND s.household_id = $2
          AND s.child_id = $3
          AND s.expires_at > NOW()
-       ORDER BY m.created_at ASC, m.id ASC`,
+       ORDER BY m.created_at ASC, (CASE WHEN m.role = 'user' THEN 0 ELSE 1 END) ASC, m.id ASC`,
       [conversationId, householdId, childId]
     );
 
