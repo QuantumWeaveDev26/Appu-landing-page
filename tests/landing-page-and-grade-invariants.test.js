@@ -90,39 +90,31 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(html.includes('Sign in</span>'), 'Button must display Sign in copy');
   });
 
-  test('Hero section contains exact kicker, headline, subtext, Class 5 badge, and primary CTA', () => {
-    assert.ok(html.includes('HYPER-PERSONALISED LEARNING'), 'Must contain kicker HYPER-PERSONALISED LEARNING');
-    assert.ok(html.includes('Every student is different.'), 'Headline part 1 must match');
-    assert.ok(html.includes('Learning should be too.'), 'Headline part 2 must match');
-    assert.ok(html.includes('Meet APPU, your AI mentor for academic excellence.'), 'Hero subtext must match');
-    assert.ok(html.includes('Class 5 onwards'), 'Must contain Class 5 onwards badge');
-    assert.ok(html.includes('id="landing-btn-try-free"'), 'Try APPU free CTA must exist');
-    assert.ok(html.includes('Try APPU free'), 'CTA button copy must be Try APPU free');
-    assert.ok(html.includes('No sign-up needed to try'), 'CTA helper copy must state No sign-up needed to try');
+  test('Front door: one greeting, class range and free-to-try note (Claude-style, 2026-10-26)', () => {
+    assert.ok(html.includes('class="landing-front"'), 'Front door section must exist');
+    assert.ok(html.includes("Hi! I'm Appu."), 'Greeting must introduce Appu');
+    assert.ok(html.includes('What shall we learn today?'), 'Greeting must ask what to learn');
+    assert.ok(html.includes('Class 5–12 · Free to try, no sign-up'), 'Class range and free-trial note must show');
+    assert.ok(!html.includes('class="landing-playful-backdrop"'), 'Decorative backdrop is removed');
+    assert.ok(!html.includes('class="landing-mascot-companion"'), 'Robot mascot is removed');
   });
 
-  test('Hero visual contains authorized Puneeth likeness, speech bubble, and nameplate', () => {
-    assert.ok(html.includes('src="assets/appu-mentor-portrait.jpg"') || html.includes('src="assets/appu-cutout-new.png"'), 'Must use authorized Puneeth likeness asset');
-    assert.ok(html.includes('"Let\'s learn your way."'), 'Speech bubble must state "Let\'s learn your way."');
-    assert.ok(html.includes('class="landing-speech-bubble"'), 'Speech bubble container must exist');
+  test('Front door keeps the Appu photo with its nameplate', () => {
+    assert.ok(html.includes('src="assets/appu-mentor-portrait.webp"'), 'Must keep the Appu mentor photo');
     assert.ok(html.includes('class="landing-mentor-nameplate"'), 'Nameplate container must exist');
     assert.ok(html.includes('APPU</strong>'), 'Nameplate must show APPU');
     assert.ok(html.includes('Your AI learning mentor</span>'), 'Nameplate must show Your AI learning mentor');
-    assert.ok(html.includes('class="landing-mascot-companion"'), 'Mascot companion container must exist');
-    assert.ok(html.includes('class="landing-playful-backdrop"'), 'Playful kid-friendly backdrop must exist');
-    assert.ok(html.includes('motif-planet'), 'Floating motifs must include planet');
   });
 
-  test('Value proposition band renders the three pillars with clean separators', () => {
-    assert.ok(html.includes('Understand clearly'), 'Value band pillar 1');
-    assert.ok(html.includes('Practise confidently'), 'Value band pillar 2');
-    assert.ok(html.includes('Learn at your pace'), 'Value band pillar 3');
+  test('"What Appu does" lists three short facts', () => {
+    assert.ok(html.includes('Explains it your way'), 'Fact 1');
+    assert.ok(html.includes('Talks with you'), 'Fact 2');
+    assert.ok(html.includes('Parents stay in charge'), 'Fact 3');
   });
 
-  test('"Start with one question." section renders working interactive input, mic, send arrow, and chips', () => {
-    assert.ok(html.includes('Start with one question.'), 'Section heading must be Start with one question.');
+  test('Front door ask box has working input, mic, send arrow, and chips', () => {
     assert.ok(html.includes('id="landing-question-input"'), 'Question input must exist');
-    assert.ok(html.includes('placeholder="What would you like to understand?"'), 'Placeholder must match mockup');
+    assert.ok(html.includes('placeholder="Ask Appu anything…"'), 'Placeholder must match mockup');
     assert.ok(html.includes('id="landing-btn-mic"'), 'Interactive mic button must exist');
     assert.ok(html.includes('id="landing-btn-send"'), 'Send arrow button must exist');
     assert.ok(html.includes('Type or speak in English, Kannada or Hindi'), 'Helper copy must match');
@@ -196,24 +188,13 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.ok(html.includes('data-i18n="landingBrandBy"'), 'landingBrandBy data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingLangCurrent"'), 'landingLangCurrent data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingBtnSignin"'), 'landingBtnSignin data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingKicker"'), 'landingKicker data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n-html="landingHeroTitleHtml"'), 'landingHeroTitleHtml data-i18n-html attribute must exist');
     assert.ok(html.includes('data-i18n="landingHeroSubtext"'), 'landingHeroSubtext data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingGradeBadge"'), 'landingGradeBadge data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingBtnTryFree"'), 'landingBtnTryFree data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingCtaSub"'), 'landingCtaSub data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingSpeechBubble"'), 'landingSpeechBubble data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingMascotSpeech"'), 'landingMascotSpeech data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingMentorRole"'), 'landingMentorRole data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingValue1"'), 'landingValue1 data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingValue2"'), 'landingValue2 data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingValue3"'), 'landingValue3 data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingQuestionTitle"'), 'landingQuestionTitle data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n-placeholder="landingQuestionPlaceholder"'), 'landingQuestionPlaceholder attribute must exist');
     assert.ok(html.includes('data-i18n="landingQuestionHelper"'), 'landingQuestionHelper data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingPromptLabel"'), 'landingPromptLabel data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingChip1Text"'), 'landingChip1Text data-i18n attribute must exist');
-    assert.ok(html.includes('data-i18n="landingAdvantageKicker"'), 'landingAdvantageKicker data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingAdvantageTitle"'), 'landingAdvantageTitle data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingFeature1Title"'), 'landingFeature1Title data-i18n attribute must exist');
     assert.ok(html.includes('data-i18n="landingFooterCopy"'), 'landingFooterCopy data-i18n attribute must exist');
@@ -295,7 +276,7 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.equal(currentLabelEl.textContent, 'ಕನ್ನಡ');
     assert.equal(helperEl.textContent, 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ');
     assert.equal(speechSpan.textContent, '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."');
-    assert.equal(questionInput.placeholder, 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?');
+    assert.equal(questionInput.placeholder, 'ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳು…');
 
     // Switch to Hindi
     LandingPage.setLanguage('hi', false);
@@ -303,7 +284,7 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.equal(currentLabelEl.textContent, 'हिंदी');
     assert.equal(helperEl.textContent, 'अंग्रेज़ी, कन्नड़ या हिंदी में टाइप करें या बोलें');
     assert.equal(speechSpan.textContent, '"आइए आपके तरीके से सीखें।"');
-    assert.equal(questionInput.placeholder, 'आप क्या समझना चाहते हैं?');
+    assert.equal(questionInput.placeholder, 'अप्पू से कुछ भी पूछो…');
 
     // Switch back to English
     LandingPage.setLanguage('en', false);
@@ -311,7 +292,7 @@ describe('PRIORITY 1: New Marketing Landing Page & Design Mockup Invariants', ()
     assert.equal(currentLabelEl.textContent, 'English');
     assert.equal(helperEl.textContent, 'Type or speak in English, Kannada or Hindi');
     assert.equal(speechSpan.textContent, '"Let\'s learn your way."');
-    assert.equal(questionInput.placeholder, 'What would you like to understand?');
+    assert.equal(questionInput.placeholder, 'Ask Appu anything…');
     } finally {
       global.document = origDoc;
     }

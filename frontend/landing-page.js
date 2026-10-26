@@ -21,11 +21,11 @@
       landingBtnSignin: 'Sign in',
       landingBtnOpenApp: 'Open app',
       landingKicker: 'HYPER-PERSONALISED LEARNING',
-      landingHeroTitleHtml: 'Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>',
-      landingHeroSubtext: 'Meet APPU, your AI mentor for academic excellence.',
+      landingHeroTitleHtml: 'Hi! I\'m Appu. <br><span class="landing-hero-highlight">What shall we learn today?</span>',
+      landingHeroSubtext: 'Ask anything from your school books. I explain it simply, step by step.',
       landingGradeBadge: 'Class 5 onwards',
       landingBtnTryFree: 'Try APPU free',
-      landingCtaSub: 'No sign-up needed to try',
+      landingCtaSub: 'Class 5–12 · Free to try, no sign-up',
       landingSpeechBubble: '"Let\'s learn your way."',
       landingMascotSpeech: "Hi! Let's learn 🚀",
       landingMascotEncourage: "Ready when you are! 🚀",
@@ -36,7 +36,7 @@
       landingValue3: 'Learn at your pace',
       landingQuestionTitle: 'Start with one question.',
       landingQuestionSubtitle: 'Ask anything from your school textbook or curiosity.',
-      landingQuestionPlaceholder: 'What would you like to understand?',
+      landingQuestionPlaceholder: 'Ask Appu anything…',
       landingQuestionHelper: 'Type or speak in English, Kannada or Hindi',
       landingPromptLabel: 'Try asking:',
       landingChip1Text: 'Why is the sky blue?',
@@ -50,13 +50,13 @@
       landingMicAria: 'Speak your question',
       landingSendAria: 'Ask Appu',
       landingAdvantageKicker: 'THE APPU ADVANTAGE',
-      landingAdvantageTitle: 'How Appu transforms your study hours',
-      landingFeature1Title: 'Visual Concept Trees & Mind Maps',
-      landingFeature1Desc: 'Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.',
-      landingFeature2Title: 'Multilingual AI Voice Companion',
-      landingFeature2Desc: 'Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.',
-      landingFeature3Title: 'Curriculum-Safe & Parent Verified',
-      landingFeature3Desc: '100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.',
+      landingAdvantageTitle: 'What Appu does',
+      landingFeature1Title: 'Explains it your way',
+      landingFeature1Desc: 'Step-by-step answers with mind maps, quizzes and flashcards.',
+      landingFeature2Title: 'Talks with you',
+      landingFeature2Desc: 'Speak or type in English, ಕನ್ನಡ or हिंदी, and hear Appu answer.',
+      landingFeature3Title: 'Parents stay in charge',
+      landingFeature3Desc: 'Progress reports, study-time limits and WhatsApp updates for parents.',
       landingFooterCopy: '© 2026 IGR Academy • All rights reserved',
       landingFooterPrivacy: 'Privacy Policy',
       landingFooterTerms: 'Terms & Conditions',
@@ -71,11 +71,11 @@
       landingBtnSignin: 'ಸೈನ್ ಇನ್',
       landingBtnOpenApp: 'ಆಪ್ ತೆರೆಯಿರಿ',
       landingKicker: 'ಅತ್ಯಂತ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ಕಲಿಕೆ',
-      landingHeroTitleHtml: 'ಪ್ರತಿಯೊಬ್ಬ ವಿದ್ಯಾರ್ಥಿಯೂ ವಿಭಿನ್ನ. <br><span class="landing-hero-highlight">ಕಲಿಕೆಯೂ ವಿಭಿನ್ನವಾಗಿರಬೇಕು.</span>',
-      landingHeroSubtext: 'ಶೈಕ್ಷಣಿಕ ಶ್ರೇಷ್ಠತೆಗಾಗಿ ನಿಮ್ಮ ಎಐ ಮಾರ್ಗದರ್ಶಕ ಅಪ್ಪುವನ್ನು ಭೇಟಿ ಮಾಡಿ.',
+      landingHeroTitleHtml: 'ನಮಸ್ಕಾರ! ನಾನು ಅಪ್ಪು. <br><span class="landing-hero-highlight">ಇಂದು ಏನು ಕಲಿಯೋಣ?</span>',
+      landingHeroSubtext: 'ನಿನ್ನ ಶಾಲಾ ಪುಸ್ತಕದ ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕೇಳು. ನಾನು ಸರಳವಾಗಿ, ಹಂತ ಹಂತವಾಗಿ ವಿವರಿಸುತ್ತೇನೆ.',
       landingGradeBadge: '5ನೇ ತರಗತಿಯಿಂದ ಮುಂದಕ್ಕೆ',
       landingBtnTryFree: 'ಅಪ್ಪುವನ್ನು ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ',
-      landingCtaSub: 'ಪ್ರಯತ್ನಿಸಲು ಸೈನ್-ಅಪ್ ಅಗತ್ಯವಿಲ್ಲ',
+      landingCtaSub: 'ತರಗತಿ 5–12 · ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ, ಸೈನ್-ಅಪ್ ಬೇಡ',
       landingSpeechBubble: '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."',
       landingMascotSpeech: 'ನಮಸ್ಕಾರ! ಕಲಿಯೋಣ 🚀',
       landingMascotEncourage: 'ನೀವು ಸಿದ್ಧರಿದ್ದಾಗ ಪ್ರಾರಂಭಿಸೋಣ! 🚀',
@@ -86,7 +86,7 @@
       landingValue3: 'ನಿಮ್ಮ ವೇಗದಲ್ಲಿ ಕಲಿಯಿರಿ',
       landingQuestionTitle: 'ಒಂದು ಪ್ರಶ್ನೆಯೊಂದಿಗೆ ಪ್ರಾರಂಭಿಸಿ.',
       landingQuestionSubtitle: 'ನಿಮ್ಮ ಶಾಲಾ ಪಠ್ಯಪುಸ್ತಕದಿಂದ ಅಥವಾ ನಿಮ್ಮ ಕುತೂಹಲದಿಂದ ಏನನ್ನಾದರೂ ಕೇಳಿ.',
-      landingQuestionPlaceholder: 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?',
+      landingQuestionPlaceholder: 'ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳು…',
       landingQuestionHelper: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ',
       landingPromptLabel: 'ಹೀಗೆ ಕೇಳಿ ನೋಡಿ:',
       landingChip1Text: 'ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿದೆ?',
@@ -100,13 +100,13 @@
       landingMicAria: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ',
       landingSendAria: 'ಅಪ್ಪುವನ್ನು ಕೇಳಿ',
       landingAdvantageKicker: 'ಅಪ್ಪು ವಿಶೇಷತೆ',
-      landingAdvantageTitle: 'ಅಪ್ಪು ನಿಮ್ಮ ಅಧ್ಯಯನದ ಸಮಯವನ್ನು ಹೇಗೆ ಪರಿವರ್ತಿಸುತ್ತದೆ',
-      landingFeature1Title: 'ದೃಶ್ಯ ಪರಿಕಲ್ಪನಾ ನಕ್ಷೆಗಳು & ಮೈಂಡ್ ಮ್ಯಾಪ್‌ಗಳು',
-      landingFeature1Desc: 'ಪ್ರತಿಯೊಂದು ಉತ್ತರವೂ ರಚನಾತ್ಮಕ ರೇಖಾಚಿತ್ರಗಳು ಮತ್ತು ಪರಿಕಲ್ಪನೆಗಳ ಕವಲುಗಳನ್ನು ನೀಡುತ್ತದೆ, ಇದರಿಂದ ನೀವು ಕಂಠಪಾಠ ಮಾಡುವ ಬದಲು ಮೂಲ ಪರಿಕಲ್ಪನೆಯನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತೀರಿ.',
-      landingFeature2Title: 'ಬಹುಭಾಷಾ ಎಐ ಧ್ವನಿ ಸಂಗಾತಿ',
-      landingFeature2Desc: 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಸಹಜವಾಗಿ ಮಾತನಾಡಿ. ಅಪ್ಪು ಸ್ಪಷ್ಟ ಆಡಿಯೋ ವಿವರಣೆಗಳು ಮತ್ತು ನೇರ ಉಪಶೀರ್ಷಿಕೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸುತ್ತಾನೆ.',
-      landingFeature3Title: 'ಪಠ್ಯಕ್ರಮಕ್ಕೆ ಸುರಕ್ಷಿತ & ಪೋಷಕರಿಂದ ಪರಿಶೀಲಿಸಲ್ಪಟ್ಟಿದೆ',
-      landingFeature3Desc: 'NCERT/CBSE ಮಾನದಂಡಗಳಿಗೆ ಅನುಗುಣವಾಗಿ 100% ಮಕ್ಕಳಿಗೆ ಸುರಕ್ಷಿತ. ಪೋಷಕರು ನೈಜ-ಸಮಯದ ಕಲಿಕಾ ಒಳನೋಟಗಳು ಮತ್ತು WhatsApp ಪ್ರಗತಿ ವರದಿಗಳನ್ನು ಪಡೆಯುತ್ತಾರೆ.',
+      landingAdvantageTitle: 'ಅಪ್ಪು ಏನು ಮಾಡುತ್ತಾನೆ',
+      landingFeature1Title: 'ನಿನ್ನ ರೀತಿಯಲ್ಲಿ ವಿವರಿಸುತ್ತಾನೆ',
+      landingFeature1Desc: 'ಮೈಂಡ್ ಮ್ಯಾಪ್, ರಸಪ್ರಶ್ನೆ ಮತ್ತು ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳೊಂದಿಗೆ ಹಂತ ಹಂತದ ಉತ್ತರಗಳು.',
+      landingFeature2Title: 'ನಿನ್ನೊಂದಿಗೆ ಮಾತನಾಡುತ್ತಾನೆ',
+      landingFeature2Desc: 'English, ಕನ್ನಡ ಅಥವಾ हिंदी ಯಲ್ಲಿ ಮಾತನಾಡು ಅಥವಾ ಟೈಪ್ ಮಾಡು, ಅಪ್ಪುವಿನ ಉತ್ತರ ಕೇಳು.',
+      landingFeature3Title: 'ಪೋಷಕರ ನಿಯಂತ್ರಣ',
+      landingFeature3Desc: 'ಪೋಷಕರಿಗೆ ಪ್ರಗತಿ ವರದಿಗಳು, ಓದುವ ಸಮಯದ ಮಿತಿ ಮತ್ತು WhatsApp ಅಪ್‌ಡೇಟ್‌ಗಳು.',
       landingFooterCopy: '© 2026 IGR Academy • ಎಲ್ಲ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ',
       landingFooterPrivacy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
       landingFooterTerms: 'ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು',
@@ -121,11 +121,11 @@
       landingBtnSignin: 'साइन इन',
       landingBtnOpenApp: 'ऐप खोलें',
       landingKicker: 'अति-व्यक्तिगत शिक्षण',
-      landingHeroTitleHtml: 'हर छात्र अलग होता है। <br><span class="landing-hero-highlight">सीखने का तरीका भी अलग होना चाहिए।</span>',
-      landingHeroSubtext: 'शैक्षणिक उत्कृष्टता के लिए अपने एआई मेंटर अप्पू से मिलें।',
+      landingHeroTitleHtml: 'नमस्ते! मैं अप्पू हूँ। <br><span class="landing-hero-highlight">आज हम क्या सीखें?</span>',
+      landingHeroSubtext: 'अपनी स्कूल की किताबों से कुछ भी पूछो। मैं आसान तरीके से, कदम-दर-कदम समझाऊँगा।',
       landingGradeBadge: 'कक्षा 5 से आगे',
       landingBtnTryFree: 'अप्पू को मुफ़्त आज़माएं',
-      landingCtaSub: 'आज़माने के लिए साइन-अप की ज़रूरत नहीं',
+      landingCtaSub: 'कक्षा 5–12 · मुफ़्त में आज़माएँ, साइन-अप की ज़रूरत नहीं',
       landingSpeechBubble: '"आइए आपके तरीके से सीखें।"',
       landingMascotSpeech: 'नमस्ते! चलिए सीखें 🚀',
       landingMascotEncourage: 'जब आप तैयार हों, तब शुरू करें! 🚀',
@@ -136,7 +136,7 @@
       landingValue3: 'अपनी गति से सीखें',
       landingQuestionTitle: 'एक प्रश्न से शुरुआत करें।',
       landingQuestionSubtitle: 'अपनी स्कूल की पाठ्यपुस्तक से या अपनी जिज्ञासा से कुछ भी पूछें।',
-      landingQuestionPlaceholder: 'आप क्या समझना चाहते हैं?',
+      landingQuestionPlaceholder: 'अप्पू से कुछ भी पूछो…',
       landingQuestionHelper: 'अंग्रेज़ी, कन्नड़ या हिंदी में टाइप करें या बोलें',
       landingPromptLabel: 'यह पूछकर देखें:',
       landingChip1Text: 'आसमान नीला क्यों है?',
@@ -150,13 +150,13 @@
       landingMicAria: 'अपना प्रश्न बोलें',
       landingSendAria: 'अप्पू से पूछें',
       landingAdvantageKicker: 'अप्पू की विशेषताएं',
-      landingAdvantageTitle: 'अप्पू आपकी पढ़ाई के समय को कैसे बेहतर बनाता है',
-      landingFeature1Title: 'दृश्य कॉन्सेप्ट ट्री और माइंड मैप',
-      landingFeature1Desc: 'प्रत्येक उत्तर संरचित रेखाचित्र और अवधारणा शाखाएं उत्पन्न करता है ताकि आप रटने के बजाय बुनियादी समझ विकसित कर सकें।',
-      landingFeature2Title: 'बहुभाषी एआई वॉइस साथी',
-      landingFeature2Desc: 'अंग्रेज़ी, ಕನ್ನಡ या हिंदी में स्वाभाविक रूप से बोलें। अप्पू स्पष्ट ऑडियो विवरण और लाइव सबटाइटल के साथ उत्तर देता है।',
-      landingFeature3Title: 'पाठ्यक्रम-सुरक्षित और अभिभावक-सत्यापित',
-      landingFeature3Desc: 'NCERT/CBSE मानकों के अनुरूप 100% बच्चों के लिए सुरक्षित। अभिभावकों को वास्तविक समय में सीखने की प्रगति और WhatsApp अपडेट मिलते हैं।',
+      landingAdvantageTitle: 'अप्पू क्या करता है',
+      landingFeature1Title: 'तुम्हारे तरीके से समझाता है',
+      landingFeature1Desc: 'माइंड मैप, क्विज़ और फ़्लैशकार्ड के साथ कदम-दर-कदम जवाब।',
+      landingFeature2Title: 'तुमसे बात करता है',
+      landingFeature2Desc: 'English, ಕನ್ನಡ या हिंदी में बोलो या लिखो, और अप्पू का जवाब सुनो।',
+      landingFeature3Title: 'माता-पिता का नियंत्रण',
+      landingFeature3Desc: 'माता-पिता के लिए प्रगति रिपोर्ट, पढ़ाई के समय की सीमा और WhatsApp अपडेट।',
       landingFooterCopy: '© 2026 IGR Academy • सर्वाधिकार सुरक्षित',
       landingFooterPrivacy: 'गोपनीयता नीति',
       landingFooterTerms: 'नियम और शर्तें',
@@ -1218,22 +1218,22 @@
         if (helper) helper.textContent = 'ಇಂಗ್ಲಿಷ್, ಕನ್ನಡ ಅಥವಾ ಹಿಂದಿಯಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮಾತನಾಡಿ';
         if (speech) speech.textContent = '"ನಿಮ್ಮ ರೀತಿಯಲ್ಲಿ ಕಲಿಯೋಣ."';
         if (input) {
-          input.placeholder = 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?';
-          input.setAttribute('aria-label', 'ನೀವು ಏನನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಬಯಸುತ್ತೀರಿ?');
+          input.placeholder = 'ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳು…';
+          input.setAttribute('aria-label', 'ಅಪ್ಪುವನ್ನು ಏನಾದರೂ ಕೇಳು…');
         }
       } else if (lang === 'hi') {
         if (helper) helper.textContent = 'अंग्रेज़ी, कन्नड़ या हिंदी में टाइप करें या बोलें';
         if (speech) speech.textContent = '"आइए आपके तरीके से सीखें।"';
         if (input) {
-          input.placeholder = 'आप क्या समझना चाहते हैं?';
-          input.setAttribute('aria-label', 'आप क्या समझना चाहते हैं?');
+          input.placeholder = 'अप्पू से कुछ भी पूछो…';
+          input.setAttribute('aria-label', 'अप्पू से कुछ भी पूछो…');
         }
       } else {
         if (helper) helper.textContent = 'Type or speak in English, Kannada or Hindi';
         if (speech) speech.textContent = '"Let\'s learn your way."';
         if (input) {
-          input.placeholder = 'What would you like to understand?';
-          input.setAttribute('aria-label', 'What would you like to understand?');
+          input.placeholder = 'Ask Appu anything…';
+          input.setAttribute('aria-label', 'Ask Appu anything…');
         }
       }
     },
@@ -1270,7 +1270,7 @@
       const input = document.getElementById('landing-question-input');
       const win = getWin();
       const t = (win.UI_TRANSLATIONS && win.UI_TRANSLATIONS[this.currentLang]) || this.translations[this.currentLang] || this.translations.en;
-      if (input && !input.disabled) input.placeholder = t.landingQuestionPlaceholder || 'What would you like to understand?';
+      if (input && !input.disabled) input.placeholder = t.landingQuestionPlaceholder || 'Ask Appu anything…';
     },
 
     // Listen for one question; on a pause it is sent. Silence just listens again.

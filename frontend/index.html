@@ -49,10 +49,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20261026-03">
-  <link rel="stylesheet" href="saved-lessons.css?v=20261026-03">
-  <link rel="stylesheet" href="landing-page.css?v=20261026-03">
-  <link rel="stylesheet" href="tour.css?v=20261026-03">
+  <link rel="stylesheet" href="style.css?v=20261026-04">
+  <link rel="stylesheet" href="saved-lessons.css?v=20261026-04">
+  <link rel="stylesheet" href="landing-page.css?v=20261026-04">
+  <link rel="stylesheet" href="tour.css?v=20261026-04">
 </head>
 <body>
   <div id="beta-banner" class="beta-banner" role="banner">
@@ -133,395 +133,32 @@
       </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="landing-hero" aria-label="Hyper-personalised learning with Appu">
-      <!-- School chalkboard working: authentic chalk formulas & labelled diagrams in the margins -->
-      <div class="landing-chalk" aria-hidden="true">
-        <div class="chalk-mark chalk-a">
-          <svg width="150" height="150" viewBox="0 0 150 150">
-            <path class="chalk-stroke" d="M16 86 L118 86 L16 18 Z"/>
-            <path class="chalk-stroke thin" d="M16 74 L28 74 L28 86"/>
-            <text class="chalk-text" x="2" y="56" font-size="19">a</text>
-            <text class="chalk-text" x="60" y="106" font-size="19">b</text>
-            <text class="chalk-text" x="74" y="46" font-size="19">c</text>
-            <text class="chalk-text" x="8" y="138" font-size="24">a<tspan dy="-7" font-size="15">2</tspan><tspan dy="7"> + b</tspan><tspan dy="-7" font-size="15">2</tspan><tspan dy="7"> = c</tspan><tspan dy="-7" font-size="15">2</tspan></text>
-          </svg>
-        </div>
-        <div class="chalk-mark chalk-b">
-          <svg width="332" height="48" viewBox="0 0 332 48">
-            <text class="chalk-text" x="0" y="31" font-size="22">6CO<tspan dy="6" font-size="14">2</tspan><tspan dy="-6"> + 6H</tspan><tspan dy="6" font-size="14">2</tspan><tspan dy="-6">O &#8594; C</tspan><tspan dy="6" font-size="14">6</tspan><tspan dy="-6">H</tspan><tspan dy="6" font-size="14">12</tspan><tspan dy="-6">O</tspan><tspan dy="6" font-size="14">6</tspan><tspan dy="-6"> + 6O</tspan><tspan dy="6" font-size="14">2</tspan></text>
-          </svg>
-        </div>
-        <div class="chalk-mark chalk-c chalk-dim">
-          <svg width="112" height="122" viewBox="0 0 112 122">
-            <path class="chalk-stroke thin" d="M10 78 L10 8"/>
-            <path class="chalk-stroke thin" d="M10 78 L96 78"/>
-            <path class="chalk-stroke" d="M14 72 L92 16"/>
-            <text class="chalk-text" x="16" y="108" font-size="22">y = mx + c</text>
-          </svg>
-        </div>
-        <div class="chalk-mark chalk-d chalk-dim">
-          <svg width="96" height="100" viewBox="0 0 96 100">
-            <circle class="chalk-stroke" cx="48" cy="32" r="14"/>
-            <circle class="chalk-stroke thin" cx="20" cy="52" r="9"/>
-            <circle class="chalk-stroke thin" cx="76" cy="52" r="9"/>
-            <path class="chalk-stroke thin" d="M36 40 L28 46"/>
-            <path class="chalk-stroke thin" d="M60 40 L68 46"/>
-            <text class="chalk-text" x="34" y="92" font-size="22">H<tspan dy="5" font-size="14">2</tspan><tspan dy="-5">O</tspan></text>
-          </svg>
-        </div>
-      </div>
-      <!-- High-Craft Ambient Aurora & Parallax Depth Field (No Emojis) -->
-      <div id="landing-depth-field" class="landing-playful-backdrop" aria-hidden="true">
-        <!-- Soft Ambient Color Glow Aurora Blooms -->
-        <div class="landing-aurora-glow aurora-amber"></div>
-        <div class="landing-aurora-glow aurora-cyan"></div>
-        <div class="landing-aurora-glow aurora-purple"></div>
-        <div class="landing-aurora-glow aurora-mint"></div>
-
-        <!-- 12 Soft Blurred Depth-Orbs (Cursor Parallax) -->
-        <div class="depth-orb orb-1" data-depth="0.03"></div>
-        <div class="depth-orb orb-2" data-depth="0.06"></div>
-        <div class="depth-orb orb-3" data-depth="0.04"></div>
-        <div class="depth-orb orb-4" data-depth="0.08"></div>
-        <div class="depth-orb orb-5" data-depth="0.05"></div>
-        <div class="depth-orb orb-6" data-depth="0.07"></div>
-        <div class="depth-orb orb-7" data-depth="0.03"></div>
-        <div class="depth-orb orb-8" data-depth="0.06"></div>
-        <div class="depth-orb orb-9" data-depth="0.04"></div>
-        <div class="depth-orb orb-10" data-depth="0.05"></div>
-        <div class="depth-orb orb-11" data-depth="0.08"></div>
-        <div class="depth-orb orb-12" data-depth="0.04"></div>
-
-        <!-- High-Craft Geometric & Science Objects (Motion.dev Physics & Parallax) -->
-        <!-- 1. Wireframe Cube (Isometric 3D) -->
-        <div class="sci-obj obj-cube" data-depth="0.06" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 64 64" width="50" height="50">
-              <!-- Top Face -->
-              <polygon points="32,10 52,21.5 32,33 12,21.5" fill="rgba(14, 165, 233, 0.08)" stroke="#0ea5e9" stroke-width="1.5" stroke-linejoin="round" />
-              <!-- Left Face -->
-              <polygon points="12,21.5 32,33 32,55 12,43.5" fill="rgba(99, 102, 241, 0.06)" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round" />
-              <!-- Right Face -->
-              <polygon points="32,33 52,21.5 52,43.5 32,55" fill="rgba(14, 165, 233, 0.04)" stroke="#0284c7" stroke-width="1.5" stroke-linejoin="round" />
-              <!-- Nodes -->
-              <circle cx="32" cy="10" r="1.5" fill="#38bdf8" />
-              <circle cx="52" cy="21.5" r="1.5" fill="#38bdf8" />
-              <circle cx="12" cy="21.5" r="1.5" fill="#38bdf8" />
-              <circle cx="32" cy="33" r="2" fill="#818cf8" />
-              <circle cx="32" cy="55" r="1.5" fill="#38bdf8" />
-              <line x1="32" y1="33" x2="32" y2="10" stroke="rgba(14, 165, 233, 0.3)" stroke-width="1" stroke-dasharray="2 2" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 2. Rutherford-Bohr Atom (Nucleus + 3 Rotating Electron Orbits) -->
-        <div class="sci-obj obj-atom" data-depth="0.08" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 72 72" width="58" height="58">
-              <!-- Nucleus Glow & Core -->
-              <circle cx="36" cy="36" r="6" fill="rgba(14, 165, 233, 0.22)" />
-              <circle cx="36" cy="36" r="3.5" fill="#0ea5e9" />
-              <!-- Orbit 1 (Horizontal / 0 deg) -->
-              <g class="atom-orbit-group orbit-1" transform-origin="36 36">
-                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#0ea5e9" stroke-width="1.3" opacity="0.85" />
-                <circle cx="66" cy="36" r="2.2" fill="#38bdf8" />
-              </g>
-              <!-- Orbit 2 (60 deg tilt) -->
-              <g class="atom-orbit-group orbit-2" transform-origin="36 36">
-                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#10b981" stroke-width="1.3" opacity="0.85" transform="rotate(60 36 36)" />
-                <circle cx="51" cy="62" r="2.2" fill="#34d399" />
-              </g>
-              <!-- Orbit 3 (120 deg tilt) -->
-              <g class="atom-orbit-group orbit-3" transform-origin="36 36">
-                <ellipse cx="36" cy="36" rx="30" ry="11" fill="none" stroke="#a855f7" stroke-width="1.3" opacity="0.85" transform="rotate(120 36 36)" />
-                <circle cx="21" cy="62" r="2.2" fill="#c084fc" />
-              </g>
-            </svg>
-          </div>
-        </div>
-
-        <!-- 3. Saturnian Planet with Ring + Orbiting Moon -->
-        <div class="sci-obj obj-planet motif-planet" data-depth="0.04" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 68 68" width="54" height="54">
-              <defs>
-                <radialGradient id="sci-planet-body" cx="40%" cy="35%" r="65%">
-                  <stop offset="0%" stop-color="#fef08a" />
-                  <stop offset="60%" stop-color="#f59e0b" />
-                  <stop offset="100%" stop-color="#d97706" />
-                </radialGradient>
-              </defs>
-              <!-- Moon Orbit & Moon -->
-              <g class="planet-moon-orbit" transform-origin="34 34">
-                <ellipse cx="34" cy="34" rx="27" ry="11" fill="none" stroke="rgba(245, 158, 11, 0.28)" stroke-width="1" stroke-dasharray="2 3" transform="rotate(-20 34 34)" />
-                <circle cx="59" cy="25" r="2.2" fill="#10b981" />
-              </g>
-              <!-- Back of Planetary Ring -->
-              <path d="M12 34 A24 8 0 0 1 56 34" fill="none" stroke="#fbbf24" stroke-width="1.6" opacity="0.6" transform="rotate(-15 34 34)" />
-              <!-- Planet Body -->
-              <circle cx="34" cy="34" r="13" fill="url(#sci-planet-body)" />
-              <!-- Front of Planetary Ring -->
-              <path d="M56 34 A24 8 0 0 1 12 34" fill="none" stroke="#fbbf24" stroke-width="1.8" transform="rotate(-15 34 34)" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 4. Benzene Molecular Lattice with Bonded Nodes -->
-        <div class="sci-obj obj-molecule" data-depth="0.04" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 64 64" width="48" height="48">
-              <!-- Central Hexagon -->
-              <polygon points="32,15 47,23.5 47,40.5 32,49 17,40.5 17,23.5" fill="rgba(16, 185, 129, 0.06)" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round" />
-              <!-- Inner Resonance Circle -->
-              <circle cx="32" cy="32" r="8" fill="none" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3 2" />
-              <!-- Outer Bonded Node Stems & Atoms -->
-              <line x1="32" y1="15" x2="32" y2="7" stroke="#10b981" stroke-width="1.4" />
-              <circle cx="32" cy="6" r="3" fill="#10b981" />
-              <line x1="47" y1="40.5" x2="55" y2="45" stroke="#0ea5e9" stroke-width="1.4" />
-              <circle cx="56" cy="45.5" r="2.5" fill="#0ea5e9" />
-              <line x1="17" y1="40.5" x2="9" y2="45" stroke="#a855f7" stroke-width="1.4" />
-              <circle cx="8" cy="45.5" r="2.5" fill="#a855f7" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 5. Faceted Polyhedron / Geodesic Tetrahedron -->
-        <div class="sci-obj obj-polyhedron" data-depth="0.06" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 64 64" width="50" height="50">
-              <!-- Facets -->
-              <polygon points="32,32 32,11 49,21" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
-              <polygon points="32,32 49,21 49,43" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
-              <polygon points="32,32 49,43 32,53" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
-              <polygon points="32,32 32,53 15,43" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
-              <polygon points="32,32 15,43 15,21" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
-              <polygon points="32,32 15,21 32,11" fill="rgba(129, 140, 248, 0.06)" stroke="#a855f7" stroke-width="1.4" stroke-linejoin="round" />
-              <!-- Nodes -->
-              <circle cx="32" cy="32" r="2.5" fill="#c084fc" />
-              <circle cx="32" cy="11" r="1.5" fill="#c084fc" />
-              <circle cx="49" cy="21" r="1.5" fill="#c084fc" />
-              <circle cx="49" cy="43" r="1.5" fill="#c084fc" />
-              <circle cx="32" cy="53" r="1.5" fill="#c084fc" />
-              <circle cx="15" cy="43" r="1.5" fill="#c084fc" />
-              <circle cx="15" cy="21" r="1.5" fill="#c084fc" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 6. DNA Double-Helix Curve -->
-        <div class="sci-obj obj-dna" data-depth="0.05" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 44 76" width="36" height="62">
-              <!-- Base Pair Rungs -->
-              <line x1="14" y1="12" x2="30" y2="12" stroke="#38bdf8" stroke-width="1.3" opacity="0.75" />
-              <circle cx="22" cy="12" r="1.4" fill="#0ea5e9" />
-              <line x1="10" y1="24" x2="34" y2="24" stroke="#fbbf24" stroke-width="1.3" opacity="0.75" />
-              <circle cx="22" cy="24" r="1.4" fill="#f59e0b" />
-              <line x1="14" y1="36" x2="30" y2="36" stroke="#34d399" stroke-width="1.3" opacity="0.75" />
-              <circle cx="22" cy="36" r="1.4" fill="#10b981" />
-              <line x1="10" y1="48" x2="34" y2="48" stroke="#38bdf8" stroke-width="1.3" opacity="0.75" />
-              <circle cx="22" cy="48" r="1.4" fill="#0ea5e9" />
-              <line x1="14" y1="60" x2="30" y2="60" stroke="#fbbf24" stroke-width="1.3" opacity="0.75" />
-              <circle cx="22" cy="60" r="1.4" fill="#f59e0b" />
-              <!-- Twin Sinusoidal Strands -->
-              <path d="M12,4 C34,16 34,20 12,32 C-10,44 -10,48 12,60 C34,72 34,76 12,88" fill="none" stroke="#0ea5e9" stroke-width="1.6" stroke-linecap="round" />
-              <path d="M32,4 C10,16 10,20 32,32 C54,44 54,48 32,60 C10,72 10,76 32,88" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 7. Torus / Nested Gyroscope Gimbal Rings -->
-        <div class="sci-obj obj-torus" data-depth="0.03" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 64 64" width="48" height="48">
-              <!-- Outer Ring -->
-              <circle cx="32" cy="32" r="26" fill="none" stroke="#f59e0b" stroke-width="1.4" opacity="0.8" />
-              <!-- Middle Ring -->
-              <g class="gyro-ring gyro-ring-mid" transform-origin="32 32">
-                <ellipse cx="32" cy="32" rx="25" ry="13" fill="none" stroke="#10b981" stroke-width="1.3" opacity="0.85" transform="rotate(35 32 32)" />
-              </g>
-              <!-- Inner Ring -->
-              <g class="gyro-ring gyro-ring-inner" transform-origin="32 32">
-                <ellipse cx="32" cy="32" rx="13" ry="24" fill="none" stroke="#0ea5e9" stroke-width="1.3" opacity="0.85" transform="rotate(-35 32 32)" />
-              </g>
-              <!-- Central Jewel Node -->
-              <circle cx="32" cy="32" r="2.8" fill="#fbbf24" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 8. Mathematical Precision Lemniscate & Calculus Glyph -->
-        <div class="sci-obj obj-math" data-depth="0.04" aria-hidden="true">
-          <div class="sci-obj-inner">
-            <svg class="sci-svg" viewBox="0 0 60 52" width="44" height="38">
-              <!-- Lemniscate (Infinity Loop) -->
-              <path d="M30,26 C22,14 10,14 10,26 C10,38 22,38 30,26 C38,14 50,14 50,26 C50,38 38,38 30,26 Z" fill="rgba(139, 92, 246, 0.07)" stroke="#8b5cf6" stroke-width="1.5" stroke-linejoin="round" />
-              <!-- Integral Symbol -->
-              <path d="M30,8 C33,8 33,14 31,21 L29,31 C27,38 27,44 30,44" fill="none" stroke="#06b6d4" stroke-width="1.4" stroke-linecap="round" />
-              <!-- Harmonic Node Points -->
-              <circle cx="10" cy="26" r="1.5" fill="#a855f7" />
-              <circle cx="50" cy="26" r="1.5" fill="#a855f7" />
-              <circle cx="30" cy="26" r="2" fill="#38bdf8" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="landing-hero-grid">
-        <!-- Left Column: Copy & Actions -->
-        <div class="landing-hero-content">
-          <div class="landing-kicker">
-            <span class="landing-kicker-sparkle" aria-hidden="true">✦</span>
-            <span data-i18n="landingKicker">HYPER-PERSONALISED LEARNING</span>
-          </div>
-          <h1 class="landing-hero-title" data-i18n-html="landingHeroTitleHtml">
-            Every student is different. <br><span class="landing-hero-highlight">Learning should be too.</span>
-          </h1>
-          <p class="landing-hero-subtext" data-i18n="landingHeroSubtext">
-            Meet APPU, your AI mentor for academic excellence.
-          </p>
-          <div class="landing-grade-badge">
-            <span aria-hidden="true">🎓</span>
-            <span data-i18n="landingGradeBadge">Class 5 onwards</span>
-          </div>
-          <div class="landing-cta-group">
-            <button id="landing-btn-try-free" class="landing-btn-primary" type="button">
-              <span data-i18n="landingBtnTryFree">Try APPU free</span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <span class="landing-cta-sub" data-i18n="landingCtaSub">No sign-up needed to try</span>
-          </div>
-        </div>
-
-        <!-- Right Column: APPU Mentor Card with Robot Companion -->
-        <div class="landing-hero-visual">
-          <!-- Playful Robot Mascot Companion (Cursor-aware & Responsive) -->
-          <div id="landing-mascot-companion" class="landing-mascot-companion" aria-label="Appu Mascot Companion">
-            <div id="landing-mascot-speech-bubble" class="landing-mascot-companion-speech" role="status">
-              <span id="landing-mascot-speech-text" data-i18n="landingMascotSpeech">Hi! Let's learn 🚀</span>
-            </div>
-            <div class="landing-mascot-companion-avatar" role="img" aria-label="Friendly Robot Appu">
-              <svg class="landing-mascot-svg" viewBox="0 0 120 120" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="landing-appu-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#38bdf8" />
-                    <stop offset="50%" stop-color="#0ea5c4" />
-                    <stop offset="100%" stop-color="#0284c7" />
-                  </linearGradient>
-                  <linearGradient id="landing-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#05162a" />
-                    <stop offset="100%" stop-color="#020a14" />
-                  </linearGradient>
-                  <linearGradient id="landing-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#fde047" />
-                    <stop offset="100%" stop-color="#f59e0b" />
-                  </linearGradient>
-                  <filter id="landing-mascot-glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="2.5" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                </defs>
-                <ellipse class="mascot-ground-shadow" cx="60" cy="112" rx="24" ry="4" fill="rgba(15, 23, 42, 0.12)" />
-                <g class="mascot-body-group">
-                  <!-- Antenna (Powers on during entrance) -->
-                  <line x1="60" y1="30" x2="60" y2="15" stroke="#0ea5c4" stroke-width="3.5" stroke-linecap="round" />
-                  <circle id="mascot-antenna-bulb" class="mascot-antenna-tip" cx="60" cy="14" r="5" fill="url(#landing-gold-grad)" filter="url(#landing-mascot-glow)" />
-                  <!-- Robot Head/Body -->
-                  <rect x="24" y="28" width="72" height="66" rx="28" fill="url(#landing-appu-grad)" stroke="rgba(255, 255, 255, 0.35)" stroke-width="1.5" />
-                  <!-- Ear Nubs -->
-                  <rect x="18" y="50" width="7" height="16" rx="3.5" fill="#0284c7" />
-                  <rect x="95" y="50" width="7" height="16" rx="3.5" fill="#0284c7" />
-                  <!-- Face Screen -->
-                  <rect class="mascot-face-screen" x="32" y="38" width="56" height="42" rx="14" fill="url(#landing-screen-grad)" stroke="rgba(34, 211, 238, 0.55)" stroke-width="1.5" />
-                  <rect class="mascot-screen-sheen" x="35" y="40" width="50" height="14" rx="7" fill="rgba(255, 255, 255, 0.08)" />
-                  <!-- Face Eyes (Pupils track cursor, blinks naturally) -->
-                  <g id="mascot-face-expr" class="mascot-face-expr" filter="url(#landing-mascot-glow)">
-                    <text id="mascot-eye-left" class="mascot-eye-l" x="44" y="66" fill="#22d3ee" font-family="'Space Grotesk', sans-serif" font-size="20" font-weight="900" text-anchor="middle">^</text>
-                    <text id="mascot-eye-right" class="mascot-eye-r" x="64" y="66" fill="#22d3ee" font-family="'Space Grotesk', sans-serif" font-size="20" font-weight="900" text-anchor="middle">^</text>
-                    <text id="mascot-eye-star" class="mascot-eye-star" x="77" y="64" fill="#ffd65c" font-family="'Space Grotesk', sans-serif" font-size="13" font-weight="900" text-anchor="middle">★</text>
-                  </g>
-                  <!-- Arms (Waves once on entrance or on CTA hover) -->
-                  <ellipse class="mascot-arm arm-left" cx="20" cy="74" rx="5" ry="9" fill="#0284c7" transform="rotate(-15 20 74)" />
-                  <g id="mascot-arm-right-group" class="mascot-arm-right-group">
-                    <ellipse class="mascot-arm arm-right-waving" cx="100" cy="74" rx="5" ry="9" fill="#0284c7" />
-                  </g>
-                </g>
-              </svg>
-            </div>
-          </div>
-
-          <!-- Mentor Card with 3D Tilt & Moving Glare Sheen -->
-          <div id="landing-mentor-card" class="landing-mentor-card">
-            <div id="landing-card-glare" class="landing-card-glare" aria-hidden="true"></div>
-            <div class="landing-speech-bubble" role="status">
-              <span data-i18n="landingSpeechBubble">"Let's learn your way."</span>
-              <div class="landing-bubble-tail" aria-hidden="true"></div>
-            </div>
-            <div class="landing-mentor-frame">
-              <img src="assets/appu-mentor-portrait.webp" alt="APPU — Your AI learning mentor" class="landing-mentor-img" width="460" height="460" data-i18n-alt="landingMentorAlt">
-            </div>
-            <div class="landing-mentor-nameplate">
+    <!-- Front door (Claude-style): greeting + one ask box; the guest trial chat grows above the box -->
+    <section class="landing-front" aria-labelledby="landing-front-title">
+      <div class="landing-front-inner landing-question-container">
+        <div class="landing-front-intro">
+          <figure id="landing-mentor-card" class="landing-front-avatar">
+            <img src="assets/appu-mentor-portrait.webp" alt="APPU — Your AI learning mentor" width="460" height="460" data-i18n-alt="landingMentorAlt">
+            <figcaption class="landing-mentor-nameplate">
               <span class="landing-status-dot" aria-hidden="true"></span>
-              <div class="landing-nameplate-text">
-                <strong>APPU</strong>
-                <span class="landing-nameplate-dot">•</span>
-                <span data-i18n="landingMentorRole">Your AI learning mentor</span>
-              </div>
-            </div>
-          </div>
+              <strong>APPU</strong>
+              <span class="landing-nameplate-dot" aria-hidden="true">·</span>
+              <span data-i18n="landingMentorRole">Your AI learning mentor</span>
+            </figcaption>
+          </figure>
+          <h1 id="landing-front-title" class="landing-hero-title" data-i18n-html="landingHeroTitleHtml">Hi! I'm Appu. <br><span class="landing-hero-highlight">What shall we learn today?</span></h1>
+          <p class="landing-hero-subtext" data-i18n="landingHeroSubtext">Ask anything from your school books. I explain it simply, step by step.</p>
         </div>
-      </div>
-    </section>
 
-    <!-- Value Proposition Band -->
-    <section class="landing-value-band landing-scroll-reveal" aria-label="Core learning principles">
-      <div class="landing-value-content">
-        <span class="landing-value-item"><i class="fa-regular fa-circle-check text-cyan" aria-hidden="true"></i> <span data-i18n="landingValue1">Understand clearly</span></span>
-        <span class="landing-value-sep" aria-hidden="true">•</span>
-        <span class="landing-value-item"><i class="fa-solid fa-bolt text-amber" aria-hidden="true"></i> <span data-i18n="landingValue2">Practise confidently</span></span>
-        <span class="landing-value-sep" aria-hidden="true">•</span>
-        <span class="landing-value-item"><i class="fa-solid fa-person-running text-green" aria-hidden="true"></i> <span data-i18n="landingValue3">Learn at your pace</span></span>
-      </div>
-    </section>
-
-    <!-- "Start with one question." Section -->
-    <section class="landing-question-section" aria-labelledby="landing-question-title">
-      <div class="landing-question-container">
-        <h2 id="landing-question-title" class="landing-question-title" data-i18n="landingQuestionTitle">Start with one question.</h2>
-        <p class="landing-question-subtitle" data-i18n="landingQuestionSubtitle">Ask anything from your school textbook or curiosity.</p>
-
-        <!-- Quick prompt starter chips -->
-        <div class="landing-prompt-chips" aria-label="Starter questions">
-          <span class="landing-prompt-label" data-i18n="landingPromptLabel">Try asking:</span>
-          <button type="button" class="landing-prompt-chip" data-question="Why is the sky blue?" data-i18n-question="landingChip1Prompt">
-            <i class="fa-solid fa-cloud-sun text-cyan" aria-hidden="true"></i>
-            <span data-i18n="landingChip1Text">Why is the sky blue?</span>
-          </button>
-          <button type="button" class="landing-prompt-chip" data-question="How does photosynthesis work?" data-i18n-question="landingChip2Prompt">
-            <i class="fa-solid fa-leaf text-green" aria-hidden="true"></i>
-            <span data-i18n="landingChip2Text">How does photosynthesis work?</span>
-          </button>
-          <button type="button" class="landing-prompt-chip" data-question="Explain Pythagoras theorem with an example" data-i18n-question="landingChip3Prompt">
-            <i class="fa-solid fa-shapes text-amber" aria-hidden="true"></i>
-            <span data-i18n="landingChip3Text">Explain Pythagoras theorem</span>
-          </button>
-          <button type="button" class="landing-prompt-chip" data-question="What causes seasons on Earth?" data-i18n-question="landingChip4Prompt">
-            <i class="fa-solid fa-earth-americas text-indigo" aria-hidden="true"></i>
-            <span data-i18n="landingChip4Text">What causes seasons?</span>
-          </button>
-        </div>
-        
         <form id="landing-question-form" class="landing-question-box" role="search">
           <div class="landing-input-wrap">
-            <i class="fa-solid fa-wand-magic-sparkles landing-input-icon" aria-hidden="true"></i>
             <input
               id="landing-question-input"
               type="text"
               class="landing-question-input"
-              placeholder="What would you like to understand?"
+              placeholder="Ask Appu anything…"
               autocomplete="off"
-              aria-label="What would you like to understand?"
+              aria-label="Ask Appu anything…"
               data-i18n-placeholder="landingQuestionPlaceholder"
               data-i18n-aria-label="landingQuestionPlaceholder"
             />
@@ -529,51 +166,42 @@
               <i class="fa-solid fa-microphone" aria-hidden="true"></i>
             </button>
             <button id="landing-btn-send" class="landing-input-btn landing-send-btn" type="submit" aria-label="Ask Appu" title="Ask Appu" data-i18n-aria-label="landingSendAria" data-i18n-title="landingSendAria">
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
             </button>
           </div>
-          <p class="landing-question-helper">
-            <i class="fa-solid fa-keyboard" aria-hidden="true"></i>
-            <span data-i18n="landingQuestionHelper">Type or speak in English, Kannada or Hindi</span>
-          </p>
+          <p class="landing-question-helper"><span data-i18n="landingQuestionHelper">Type or speak in English, Kannada or Hindi</span></p>
         </form>
+
+        <div class="landing-prompt-chips" aria-label="Starter questions">
+          <button type="button" class="landing-prompt-chip" data-question="Why is the sky blue?" data-i18n-question="landingChip1Prompt"><span data-i18n="landingChip1Text">Why is the sky blue?</span></button>
+          <button type="button" class="landing-prompt-chip" data-question="How does photosynthesis work?" data-i18n-question="landingChip2Prompt"><span data-i18n="landingChip2Text">How does photosynthesis work?</span></button>
+          <button type="button" class="landing-prompt-chip" data-question="Explain Pythagoras theorem with an example" data-i18n-question="landingChip3Prompt"><span data-i18n="landingChip3Text">Explain Pythagoras theorem</span></button>
+          <button type="button" class="landing-prompt-chip" data-question="What causes seasons on Earth?" data-i18n-question="landingChip4Prompt"><span data-i18n="landingChip4Text">What causes seasons?</span></button>
+        </div>
+        <p class="landing-cta-sub" data-i18n="landingCtaSub">Class 5–12 · Free to try, no sign-up</p>
       </div>
     </section>
 
-    <!-- Pre-login Trust & Feature Clarity Section -->
-    <section class="landing-features-section" aria-labelledby="landing-features-title">
-      <div class="landing-features-container">
-        <div class="landing-section-header">
-          <div class="landing-kicker">
-            <span class="landing-kicker-sparkle" aria-hidden="true">✦</span>
-            <span data-i18n="landingAdvantageKicker">THE APPU ADVANTAGE</span>
-          </div>
-          <h2 id="landing-features-title" class="landing-features-title" data-i18n="landingAdvantageTitle">How Appu transforms your study hours</h2>
-        </div>
-        <div class="landing-features-grid">
-          <div class="landing-feature-card landing-scroll-reveal">
-            <div class="landing-feature-icon-wrap icon-cyan">
-              <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
-            </div>
-            <h3 data-i18n="landingFeature1Title">Visual Concept Trees &amp; Mind Maps</h3>
-            <p data-i18n="landingFeature1Desc">Every answer generates structured diagrams and concept branches so you comprehend the foundation instead of rote-memorizing.</p>
-          </div>
-          <div class="landing-feature-card landing-scroll-reveal">
-            <div class="landing-feature-icon-wrap icon-indigo">
-              <i class="fa-solid fa-microphone-lines" aria-hidden="true"></i>
-            </div>
-            <h3 data-i18n="landingFeature2Title">Multilingual AI Voice Companion</h3>
-            <p data-i18n="landingFeature2Desc">Speak naturally in English, ಕನ್ನಡ, or हिंदी. Appu speaks back with clear audio explanations and live subtitle pacing.</p>
-          </div>
-          <div class="landing-feature-card landing-scroll-reveal">
-            <div class="landing-feature-icon-wrap icon-emerald">
-              <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
-            </div>
-            <h3 data-i18n="landingFeature3Title">Curriculum-Safe &amp; Parent Verified</h3>
-            <p data-i18n="landingFeature3Desc">100% kid-safe guardrails aligned with NCERT/CBSE standards. Parents get real-time learning insights and WhatsApp progress updates.</p>
-          </div>
-        </div>
-      </div>
+    <!-- What Appu does: three short facts, no cards -->
+    <section class="landing-facts" aria-labelledby="landing-facts-title">
+      <h2 id="landing-facts-title" class="landing-facts-title" data-i18n="landingAdvantageTitle">What Appu does</h2>
+      <ul class="landing-facts-list">
+        <li>
+          <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+          <h3 data-i18n="landingFeature1Title">Explains it your way</h3>
+          <p data-i18n="landingFeature1Desc">Step-by-step answers with mind maps, quizzes and flashcards.</p>
+        </li>
+        <li>
+          <i class="fa-solid fa-microphone-lines" aria-hidden="true"></i>
+          <h3 data-i18n="landingFeature2Title">Talks with you</h3>
+          <p data-i18n="landingFeature2Desc">Speak or type in English, ಕನ್ನಡ or हिंदी, and hear Appu answer.</p>
+        </li>
+        <li>
+          <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+          <h3 data-i18n="landingFeature3Title">Parents stay in charge</h3>
+          <p data-i18n="landingFeature3Desc">Progress reports, study-time limits and WhatsApp updates for parents.</p>
+        </li>
+      </ul>
     </section>
 
     <!-- Marketing Footer -->
@@ -700,7 +328,7 @@
         </div>
         <div id="voice-popup-content" class="voice-popup-body"></div>
       </div>
-    </main>
+    </section>
 
     <!-- Active Document Banner (Dock Mode) -->
     <div id="active-doc-banner-dock" class="active-doc-banner" hidden>
@@ -1516,28 +1144,28 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Appu Frontend Modules -->
-  <script src="voice-contract.js?v=20261026-03"></script>
-  <script src="appu-config.js?v=20261026-03"></script>
-  <script src="appu-session.js?v=20261026-03"></script>
-  <script src="appu-backend-client.js?v=20261026-03"></script>
-  <script src="parent-onboarding-shell.js?v=20261026-03"></script>
-  <script src="parent-setup-ui.js?v=20261026-03"></script>
-  <script src="prompt-library-ui.js?v=20261026-03"></script>
-  <script src="avatar-stage.js?v=20261026-03"></script>
-  <script src="mascot-avatar.js?v=20261026-03"></script>
-  <script src="lottie-catalog.js?v=20261026-03"></script>
-  <script src="curriculum-catalogue.js?v=20261026-03"></script>
-  <script src="lesson-card-renderer.js?v=20261026-03"></script>
-  <script src="voice-engine.js?v=20261026-03"></script>
-  <script src="chat-history.js?v=20261026-03"></script>
-  <script src="chat-agent.js?v=20261026-03"></script>
-  <script src="parent-reports-ui.js?v=20261026-03"></script>
-  <script src="parental-controls-ui.js?v=20261026-03"></script>
-  <script src="saved-lessons-ui.js?v=20261026-03"></script>
-  <script src="brain-break.js?v=20261026-03"></script>
-  <script src="app.js?v=20261026-03"></script>
-  <script src="landing-page.js?v=20261026-03"></script>
-  <script src="tour.js?v=20261026-03"></script>
+  <script src="voice-contract.js?v=20261026-04"></script>
+  <script src="appu-config.js?v=20261026-04"></script>
+  <script src="appu-session.js?v=20261026-04"></script>
+  <script src="appu-backend-client.js?v=20261026-04"></script>
+  <script src="parent-onboarding-shell.js?v=20261026-04"></script>
+  <script src="parent-setup-ui.js?v=20261026-04"></script>
+  <script src="prompt-library-ui.js?v=20261026-04"></script>
+  <script src="avatar-stage.js?v=20261026-04"></script>
+  <script src="mascot-avatar.js?v=20261026-04"></script>
+  <script src="lottie-catalog.js?v=20261026-04"></script>
+  <script src="curriculum-catalogue.js?v=20261026-04"></script>
+  <script src="lesson-card-renderer.js?v=20261026-04"></script>
+  <script src="voice-engine.js?v=20261026-04"></script>
+  <script src="chat-history.js?v=20261026-04"></script>
+  <script src="chat-agent.js?v=20261026-04"></script>
+  <script src="parent-reports-ui.js?v=20261026-04"></script>
+  <script src="parental-controls-ui.js?v=20261026-04"></script>
+  <script src="saved-lessons-ui.js?v=20261026-04"></script>
+  <script src="brain-break.js?v=20261026-04"></script>
+  <script src="app.js?v=20261026-04"></script>
+  <script src="landing-page.js?v=20261026-04"></script>
+  <script src="tour.js?v=20261026-04"></script>
 
   <!-- Motion (motion.dev) Pro-Grade Physics Engine for Marketing Landing (ESM, Lazy, Fail-Safe) -->
   <script type="module">

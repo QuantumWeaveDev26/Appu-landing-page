@@ -25,3 +25,9 @@ Pinned reference: the Claude.ai / Claude Code chat (manager, 2026-10-26). Second
 - **Motion:** the composer's send button fades from disabled to active, and the sidebar slides in on phones. Reduced-motion is respected.
 - **Languages:** en / kn / hi copy for every new string. Kannada and Hindi need native review.
 - **Adaptive to every screen:** under 1100 px the phone/tablet layout (☰ drawer, composer pinned to the bottom); from 1100 px a permanent 280 px sidebar, with the app filling the rest and the conversation column centred, `clamp(720px, 54vw, 1000px)` wide. 2K and 4K screens scale the whole page (app ×1.25/×1.6, landing ×1.35/×1.85 at 2200/3000 px) so text never looks tiny. Checked at 390, 768, 1024, 1280, 1440, 1920, 2560 and 3840 px wide.
+
+## Landing page (Phase 2, 2026-10-26)
+
+- **Front door, Claude-style:** a plain navy page (`#0b1322`; light `#f8fafc`) with no chalk marks, glows, science objects, robot mascot or tilt motion. The first screen holds Appu's photo (a 104–136 px rounded square) with its "APPU · Your AI learning mentor" nameplate, the greeting "Hi! I'm Appu. What shall we learn today?", one line of subtext, the ask box (type, mic, send), starter chips (4 on desktop, 2 on phones) and "Class 5–12 · Free to try, no sign-up".
+- **Guest trial:** the chat grows above the ask box, which sticks to the bottom. The greeting and chips step aside once a chat starts. Turns match the app: a navy user bubble on the right and an unboxed Appu turn.
+- **Below the fold:** "What Appu does" lists three short facts (explains your way; talks with you in en/kn/hi; parents stay in charge). The footer keeps the policy links.
