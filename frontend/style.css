@@ -13777,3 +13777,73 @@ html[data-theme="light"] .brain-break-tile, html[data-theme="light"] .brain-brea
 html[data-theme="light"] .brain-break-tile.is-picked, html[data-theme="light"] .brain-break-card.is-open { background: #e0f2fe; }
 html[data-theme="light"] .brain-break-tile.is-matched, html[data-theme="light"] .brain-break-card.is-matched { background: #dcfce7; }
 html[data-theme="light"] .brain-break-tile.is-wrong { background: #fee2e2; }
+
+/* ===== Sidebar profile row (Claude-style; shown instead of "Sign in" once signed in) ===== */
+.nav-drawer-profile { position: relative; width: 100%; }
+.nav-profile-btn {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #e2e8f0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-profile-btn:hover, .nav-profile-btn[aria-expanded="true"] { background: rgba(148, 163, 184, 0.12); }
+.nav-profile-btn:focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
+.nav-profile-avatar {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0ea5e9;
+  color: #04131f;
+  font: 800 16px/1 'Space Grotesk', Manrope, sans-serif;
+}
+.nav-profile-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nav-profile-name { font-size: 15px; font-weight: 700; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-profile-sub { font-size: 13px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-profile-chevron { color: #94a3b8; font-size: 12px; }
+.nav-profile-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  padding: 6px;
+  border-radius: 14px;
+  background: #13213a;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 32px rgba(2, 8, 23, 0.5);
+  z-index: 20;
+}
+.nav-profile-menu button {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #e2e8f0;
+  font: 600 14px/1.2 Manrope, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-profile-menu button:hover, .nav-profile-menu button:focus-visible { background: rgba(148, 163, 184, 0.14); outline: none; }
+.nav-profile-menu i { width: 16px; color: #94a3b8; }
+html[data-theme="light"] .nav-profile-btn { color: #0f172a; }
+html[data-theme="light"] .nav-profile-name { color: #0f172a; }
+html[data-theme="light"] .nav-profile-sub, html[data-theme="light"] .nav-profile-chevron { color: #475569; }
+html[data-theme="light"] .nav-profile-menu { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14); }
+html[data-theme="light"] .nav-profile-menu button { color: #0f172a; }

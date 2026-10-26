@@ -1094,6 +1094,66 @@
   }
 
   /**
+   * Claude-style profile row at the bottom of the sidebar (replaces "Sign in" once signed
+   * in): initial avatar, name, class, and a small menu with Parent Zone and Sign out.
+   * Pass null to hide it.
+   */
+  function renderSidebarProfile(profile) {
+    if (typeof document === 'undefined') return;
+    const slot = document.getElementById('nav-drawer-account-slot');
+    if (!slot) return;
+    let row = document.getElementById('nav-drawer-profile');
+    if (!profile) {
+      if (row) row.hidden = true;
+      return;
+    }
+    if (!row) {
+      row = document.createElement('div');
+      row.id = 'nav-drawer-profile';
+      row.className = 'nav-drawer-profile';
+      row.innerHTML =
+        '<div id="nav-profile-menu" class="nav-profile-menu" role="menu" hidden>' +
+          '<button type="button" role="menuitem" data-profile-action="parent"><i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Parent Zone &amp; Controls</span></button>' +
+          '<button type="button" role="menuitem" data-profile-action="signout"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span>Sign out</span></button>' +
+        '</div>' +
+        '<button type="button" id="btn-profile-menu" class="nav-profile-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="nav-profile-menu">' +
+          '<span class="nav-profile-avatar" aria-hidden="true"></span>' +
+          '<span class="nav-profile-text"><strong class="nav-profile-name"></strong><small class="nav-profile-sub"></small></span>' +
+          '<i class="fa-solid fa-chevron-up nav-profile-chevron" aria-hidden="true"></i>' +
+        '</button>';
+      slot.appendChild(row);
+      const toggle = row.querySelector('#btn-profile-menu');
+      const menu = row.querySelector('#nav-profile-menu');
+      const setOpen = (open) => {
+        menu.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+      };
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(menu.hidden);
+      });
+      document.addEventListener('click', () => setOpen(false));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+      menu.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-profile-action]');
+        if (!item) return;
+        setOpen(false);
+        if (item.dataset.profileAction === 'signout') {
+          signOut();
+        } else {
+          const parentZone = document.getElementById('btn-drawer-parent-zone');
+          if (parentZone) parentZone.click();
+        }
+      });
+    }
+    row.hidden = false;
+    row.querySelector('.nav-profile-avatar').textContent = (profile.name || '?').trim().charAt(0).toUpperCase();
+    row.querySelector('.nav-profile-name').textContent = profile.name;
+    row.querySelector('.nav-profile-sub').textContent = profile.sub;
+    row.querySelector('#btn-profile-menu').setAttribute('aria-label', `${profile.name}, ${profile.sub}. Account menu`);
+  }
+
+  /**
    * Updates UI header badge reflecting active authenticated session.
    */
   function updateHeaderSessionBadge() {
@@ -1133,6 +1193,7 @@
       if (statusLabel) {
         statusLabel.textContent = 'Restoring your Appu session…';
       }
+      renderSidebarProfile(null);
       return;
     }
 
@@ -1153,6 +1214,8 @@
       if (statusLabel) {
         statusLabel.textContent = `Appu ready for ${childName}`;
       }
+      const gradeMatch = String(state.selectedChild?.gradeBand || pContext.gradeBand || (typeof window.AppuSession.getGrade === 'function' ? window.AppuSession.getGrade() : '') || '').match(/\d{1,2}/);
+      renderSidebarProfile({ name: childName, sub: gradeMatch ? `Class ${gradeMatch[0]}` : 'Learner' });
     } else if (state.session && (state.authStatus === 'CHILD_SELECTION_REQUIRED' || (state.children && state.children.length > 1))) {
       if (mainAuthBtn) {
         mainAuthBtn.style.display = 'none';
@@ -1169,6 +1232,7 @@
       if (statusLabel) {
         statusLabel.textContent = 'Please select a learner';
       }
+      renderSidebarProfile({ name: displayName, sub: 'Parent · select a learner' });
     } else if (state.session && state.authStatus !== 'UNAUTHENTICATED') {
       if (mainAuthBtn) {
         mainAuthBtn.style.display = 'none';
@@ -1186,7 +1250,9 @@
       if (statusLabel) {
         statusLabel.textContent = 'Appu is ready';
       }
+      renderSidebarProfile({ name: displayName, sub: 'Parent' });
     } else {
+      renderSidebarProfile(null);
       if (badge) {
         badge.style.display = 'none';
         badge.innerHTML = '';
