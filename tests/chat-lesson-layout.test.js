@@ -20,3 +20,9 @@ test('mind map without a title never shows the sample photosynthesis wording', (
   const fn = renderer.slice(renderer.indexOf("container.className = 'appu-study-card study-mode-mindmap';"), renderer.indexOf('let central = mapData.central || title;'));
   assert.doesNotMatch(fn, /Photosynthesis Concept Map|Trace inputs, cellular/);
 });
+
+test('conversation column is a notebook page (grid paper + spiral rings) that beats the chat-first reset', () => {
+  const blk = css.slice(css.indexOf('/* ===== Notebook page behind the whole conversation'));
+  assert.match(blk, /body\.chat-first #chat-drawer \{[\s\S]*?position: relative !important;[\s\S]*?#0e192d !important;/);
+  assert.match(blk, /body\.chat-first #chat-drawer::before \{[\s\S]*?data:image\/svg\+xml/);
+});

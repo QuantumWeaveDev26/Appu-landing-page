@@ -13870,3 +13870,45 @@ body.chat-first #chat-messages .concept-tree-branches-grid {
 #chat-messages .msg-bubble > [class*="study-toolbar"] {
   white-space: normal;
 }
+
+/* ===== Notebook page behind the whole conversation (dark grid paper + spiral rings) ===== */
+body.chat-first #chat-drawer {
+  position: relative !important;
+  box-sizing: border-box;
+  margin: 30px auto 0;
+  min-height: calc(100dvh - 150px);
+  padding: 34px 20px 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px) -1px -1px / 28px 28px,
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px) -1px -1px / 28px 28px,
+    #0e192d !important;
+}
+/* Spiral binding: wire loops rising above the top edge, each through a punched hole. */
+body.chat-first #chat-drawer::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 20px;
+  right: 20px;
+  height: 32px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32' viewBox='0 0 40 32'%3E%3Ccircle cx='20' cy='22' r='5.5' fill='%230b1322' stroke='%23475569' stroke-width='1.5'/%3E%3Crect x='16.5' y='1' width='7' height='23' rx='3.5' fill='none' stroke='%23cbd5e1' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: space no-repeat;
+  background-size: 40px 32px;
+}
+html[data-theme="light"] body.chat-first #chat-drawer {
+  border-color: #cbd5e1 !important;
+  background:
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px) -1px -1px / 28px 28px,
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px) -1px -1px / 28px 28px,
+    #ffffff !important;
+}
+html[data-theme="light"] body.chat-first #chat-drawer::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32' viewBox='0 0 40 32'%3E%3Ccircle cx='20' cy='22' r='5.5' fill='%23f8fafc' stroke='%2394a3b8' stroke-width='1.5'/%3E%3Crect x='16.5' y='1' width='7' height='23' rx='3.5' fill='none' stroke='%23334155' stroke-width='2'/%3E%3C/svg%3E");
+}
+@media (max-width: 600px) {
+  body.chat-first #chat-drawer { padding: 30px 10px 14px; border-radius: 18px !important; min-height: calc(100dvh - 170px); margin-top: 24px; }
+  body.chat-first #chat-drawer::before { left: 10px; right: 10px; }
+}
