@@ -2162,6 +2162,44 @@ document.addEventListener('DOMContentLoaded', () => {
         showVoicePopup('Reading your notes and crafting your grounded lesson...', initialCard);
       }
 
+      // Visible status for a slow document lesson (QA F09): say when it is retrying, let the
+      // learner cancel, and offer Try again. The document and question are kept throughout.
+      const notesAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const showNotesStatus = (message, actions = {}) => {
+        const host = document.getElementById('voice-popup-content');
+        if (!host) return;
+        let bar = document.getElementById('notes-request-status');
+        if (!bar) {
+          bar = document.createElement('div');
+          bar.id = 'notes-request-status';
+          bar.className = 'notes-request-status';
+          bar.setAttribute('role', 'status');
+          host.prepend(bar);
+        }
+        bar.innerHTML = '';
+        const msg = document.createElement('span');
+        msg.textContent = message;
+        bar.appendChild(msg);
+        if (actions.cancel) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'notes-status-btn';
+          b.textContent = 'Cancel';
+          b.addEventListener('click', actions.cancel);
+          bar.appendChild(b);
+        }
+        if (actions.retry) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'notes-status-btn is-primary';
+          b.textContent = 'Try again';
+          b.addEventListener('click', actions.retry);
+          bar.appendChild(b);
+        }
+      };
+      const retryNotes = () => handleUserInteraction(rawQuestion);
+      showNotesStatus('Reading your notes...', { cancel: () => notesAbort && notesAbort.abort() });
+
       try {
         const notesResult = (typeof LessonCardRenderer !== 'undefined' && typeof LessonCardRenderer.fetchNotesTutor === 'function')
           ? await LessonCardRenderer.fetchNotesTutor({
@@ -2169,12 +2207,24 @@ document.addEventListener('DOMContentLoaded', () => {
               documentText: window.activeTutorDocument.text,
               grade: childGrade,
               language: currentLangCode,
-              timeoutMs: 22000
+              timeoutMs: 22000,
+              signal: notesAbort ? notesAbort.signal : null,
+              onRetry: (attempt, total) => {
+                if (interactionTurnId !== activeInteractionSeq) return;
+                showNotesStatus(`This is taking longer than usual, trying once more (attempt ${attempt} of ${total})...`, { cancel: () => notesAbort && notesAbort.abort() });
+              }
             })
           : null;
 
         if (interactionTurnId !== activeInteractionSeq) {
           console.log('[NotesTutor] Discarding stale response from previous turn');
+          return;
+        }
+
+        if (notesResult && notesResult.cancelled) {
+          avatarStage.setState('idle');
+          if (window.appMascot) window.appMascot.setMood('idle');
+          showNotesStatus('Stopped. Your notes are still loaded, so you can try again or ask something else.', { retry: retryNotes });
           return;
         }
 
@@ -2209,6 +2259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof showVoicePopup === 'function') {
           showVoicePopup(fallbackMsg, null);
         }
+        showNotesStatus('Your notes are still loaded.', { retry: retryNotes });
         if (chatAgent && typeof chatAgent.addMessage === 'function') {
           chatAgent.addMessage('appu', fallbackMsg);
         }

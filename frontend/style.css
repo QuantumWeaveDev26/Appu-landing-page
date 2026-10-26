@@ -9075,6 +9075,29 @@ svg[id^="dmermaid"] {
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
 }
+.notes-request-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+}
+.notes-status-btn {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.notes-status-btn.is-primary { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
 .notes-paste-error {
   margin: 6px 0 0;
   font-size: 13px;

@@ -4431,7 +4431,9 @@
    * Calls the live n8n Notes Tutor webhook and returns { answer, lessonCard, raw }.
    * Request JSON: { question, documentText, grade, language }
    */
-  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 22000, maxRetries = 1 } = {}) {
+  // onRetry(attempt, total) lets the UI say it is retrying; an aborted `signal` (learner
+  // pressed Cancel) stops immediately and resolves to { cancelled: true } (QA F09).
+  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 22000, maxRetries = 1, onRetry = null, signal = null } = {}) {
     if (!documentText || !documentText.trim()) {
       return null;
     }
@@ -4447,8 +4449,14 @@
     const targetUrl = resolveNotesTutorEndpoint();
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (signal && signal.aborted) return { cancelled: true };
+      if (attempt > 0 && typeof onRetry === 'function') {
+        try { onRetry(attempt + 1, maxRetries + 1); } catch (_) {}
+      }
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+      const onCancel = () => { if (controller) controller.abort(); };
+      if (signal && typeof signal.addEventListener === 'function') signal.addEventListener('abort', onCancel, { once: true });
 
       try {
         const response = await fetch(targetUrl, {
@@ -4502,9 +4510,12 @@
         };
       } catch (err) {
         if (timeoutId) clearTimeout(timeoutId);
+        if (signal && signal.aborted) return { cancelled: true };
         console.warn(`[NotesTutor] Request failed or timed out (attempt ${attempt + 1}):`, err?.name === 'AbortError' ? 'Timeout' : err);
         if (attempt < maxRetries) continue;
         return null;
+      } finally {
+        if (signal && typeof signal.removeEventListener === 'function') signal.removeEventListener('abort', onCancel);
       }
     }
 
