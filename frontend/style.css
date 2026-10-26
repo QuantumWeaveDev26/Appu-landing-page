@@ -6524,7 +6524,12 @@ body.view-app .landing-footer-strip { display: none; }
 }
 
 @media (max-width: 768px) {
+  /* QA F12: in the column popup layout the toolbar was flex-shrunk to 16px, clipping
+     the 44px tabs. Never shrink it; reserve the full touch-target height. */
   .study-modes-toolbar {
+    flex: 0 0 auto;
+    min-height: 60px;
+    overflow-y: hidden;
     flex-wrap: nowrap;
     overflow-x: auto;
     justify-content: flex-start;
@@ -6537,6 +6542,11 @@ body.view-app .landing-footer-strip { display: none; }
   }
   .study-modes-toolbar::-webkit-scrollbar {
     display: none;
+  }
+  /* Fade the right edge while more tabs are off-screen, so sideways scrolling is discoverable. */
+  .study-modes-toolbar.has-more-tabs {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
   }
   .study-tab-btn {
     flex-shrink: 0;

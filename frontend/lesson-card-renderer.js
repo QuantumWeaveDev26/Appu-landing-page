@@ -3705,6 +3705,29 @@
       toolbar.appendChild(shareBtn);
     }
 
+    // On narrow screens the tabs scroll sideways (QA F12): let a mouse wheel scroll them,
+    // keep the active tab in view, and flag overflow so CSS can hint at more tabs.
+    toolbar.addEventListener('wheel', (e) => {
+      if (toolbar.scrollWidth > toolbar.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        toolbar.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+    const syncOverflow = () => {
+      const more = toolbar.scrollWidth - toolbar.clientWidth - toolbar.scrollLeft > 4;
+      toolbar.classList.toggle('has-more-tabs', more);
+    };
+    toolbar.addEventListener('scroll', syncOverflow, { passive: true });
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        const active = toolbar.querySelector('.study-tab-btn.is-active');
+        if (active && typeof active.scrollIntoView === 'function' && toolbar.scrollWidth > toolbar.clientWidth) {
+          toolbar.scrollLeft = Math.max(0, active.offsetLeft - 12);
+        }
+        syncOverflow();
+      });
+    }
+
     return toolbar;
   }
 
