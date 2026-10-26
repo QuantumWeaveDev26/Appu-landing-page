@@ -13588,3 +13588,33 @@ html body.view-app.chat-first .ambient-orb { display: none !important; }
 html body.view-app.chat-first #app-shell { overflow-x: clip !important; overflow-y: visible !important; flex-shrink: 0 !important; }
 /* The native drawer rule pins the chat to one screen (100dvh); in chat-first it is the page. */
 html body.view-app.chat-first #chat-drawer { height: auto !important; max-height: none !important; min-height: 0 !important; }
+/* Compact composer: one row like Claude's (+ | text | mic send), ~56px tall. */
+html body.view-app .home-ask {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 28px;
+}
+html body.view-app .home-ask .home-ask-row { display: contents; }
+html body.view-app .home-ask .home-add-wrap { order: 0; }
+html body.view-app .home-ask .home-ask-input {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 6px;
+  font-size: 16px;
+  line-height: 22px;
+}
+html body.view-app .home-ask .home-ask-spacer { display: none; }
+html body.view-app .home-ask #btn-mic { order: 2; }
+html body.view-app .home-ask .home-ask-send { order: 3; }
+html body.view-app .home-ask .home-ask-icon,
+html body.view-app .home-ask .mic-button,
+html body.view-app .home-ask .home-ask-send {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px;
+  font-size: 15px;
+}
