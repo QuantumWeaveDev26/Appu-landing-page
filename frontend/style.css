@@ -13387,3 +13387,14 @@ body.is-authenticated #beta-banner {
 .nav-drawer .nav-drawer-section-title { margin: 14px 12px 4px; font-size: 12px; letter-spacing: 0.04em; }
 .beta-banner .beta-banner-track { flex: 1 1 auto; min-width: 0; justify-content: flex-start; overflow: hidden; }
 .beta-banner .beta-banner-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 !important; }
+/* Simple home, third pass: the marquee animation lives on the item, and the app shell
+   must shrink (not shift) beside the permanent sidebar. */
+.beta-banner .beta-banner-item { animation: none !important; transform: none !important; }
+@media (min-width: 1100px) {
+  body.view-app.has-sidebar .app-shell {
+    width: calc(100vw - 280px - 40px);
+    max-width: 1500px;
+    margin-left: calc(280px + 20px);
+    margin-right: auto;
+  }
+}
