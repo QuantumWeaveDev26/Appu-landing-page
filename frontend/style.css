@@ -13576,8 +13576,21 @@ html body.view-app.chat-first #app-shell { min-height: calc(100dvh - 40px); }
   html body.view-app.chat-first #chat-drawer { flex: 1 0 auto !important; }
 }
 /* chat-first: plain background, no glows (manager feedback 2026-10-26) */
-html:has(body.view-app.chat-first) { background: #0b1322 !important; }
-html body.view-app.chat-first { background: #0b1322 !important; background-image: none !important; }
+/* Notebook grid paper is pinned to the screen (background-attachment: fixed) on the page
+   canvas, so it covers every part of the response area and stays put while answers scroll. */
+html:has(body.view-app.chat-first) {
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px) -1px -1px / 28px 28px fixed,
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px) -1px -1px / 28px 28px fixed,
+    #0e192d !important;
+}
+html[data-theme="light"]:has(body.view-app.chat-first) {
+  background:
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px) -1px -1px / 28px 28px fixed,
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px) -1px -1px / 28px 28px fixed,
+    #ffffff !important;
+}
+html body.view-app.chat-first { background: transparent !important; background-image: none !important; }
 html body.view-app.chat-first::before,
 html body.view-app.chat-first::after { display: none !important; }
 html body.view-app.chat-first .ambient-orb { display: none !important; }
@@ -13871,13 +13884,6 @@ body.chat-first #chat-messages .concept-tree-branches-grid {
 
 /* ===== Notebook paper behind the whole response area (everything right of the menu) =====
    Dark grid paper with spiral wire rings along the top edge; light theme: white grid paper. */
-body.chat-first #app-shell {
-  min-height: 100dvh;
-  background:
-    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px) -1px -1px / 28px 28px,
-    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px) -1px -1px / 28px 28px,
-    #0e192d;
-}
 body.chat-first #app-shell::before {
   content: '';
   position: absolute;
@@ -13893,12 +13899,6 @@ body.chat-first #app-shell::before {
 }
 /* Leave room under the rings so the first line of the conversation is not covered. */
 body.chat-first #chat-drawer { margin-top: 34px !important; }
-html[data-theme="light"] body.chat-first #app-shell {
-  background:
-    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px) -1px -1px / 28px 28px,
-    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px) -1px -1px / 28px 28px,
-    #ffffff;
-}
 html[data-theme="light"] body.chat-first #app-shell::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32' viewBox='0 0 40 32'%3E%3Ccircle cx='20' cy='22' r='5.5' fill='%23f8fafc' stroke='%2394a3b8' stroke-width='1.5'/%3E%3Crect x='16.5' y='1' width='7' height='23' rx='3.5' fill='none' stroke='%23334155' stroke-width='2'/%3E%3C/svg%3E");
 }

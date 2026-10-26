@@ -23,8 +23,9 @@ test('mind map without a title never shows the sample photosynthesis wording', (
 
 test('whole response area right of the menu is notebook paper with spiral rings', () => {
   const blk = css.slice(css.indexOf('/* ===== Notebook paper behind the whole response area'));
-  assert.ok(blk.includes('body.chat-first #app-shell {'), 'grid paper on the app shell');
-  assert.ok(blk.includes('#0e192d;'), 'dark paper colour');
+  // Paper lives on the page canvas, pinned to the screen, so it never ends partway while scrolling.
+  assert.match(css, /html:has\(body\.view-app\.chat-first\) \{[\s\S]*?28px 28px fixed,[\s\S]*?#0e192d !important;/);
+  assert.ok(!blk.includes('body.chat-first #app-shell {'), 'the shell must not paint its own (scrolling) paper');
   assert.ok(blk.includes('body.chat-first #app-shell::before {') && blk.includes('data:image/svg+xml'), 'spiral rings');
   // The old chat-first reset must no longer hide the shell background or its ::before.
   assert.ok(!css.includes('body.chat-first .app-shell::before,'), 'rings are not hidden');
