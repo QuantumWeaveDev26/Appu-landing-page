@@ -2997,6 +2997,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (accountSlot && mainAuthBtn && !accountSlot.contains(mainAuthBtn)) accountSlot.appendChild(mainAuthBtn);
     const primaryNav = document.querySelector('.nav-drawer-primary');
     if (primaryNav && drawerProgress) primaryNav.after(drawerProgress);
+    // Compact sidebar: My Learning near the top, missions and settings in collapsible
+    // groups (closed by default) so the sidebar fits without scrolling.
+    const makeNavGroup = (id, label, icon, nodes) => {
+      const group = document.createElement('div');
+      group.className = 'nav-drawer-group';
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'nav-drawer-group-toggle';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-controls', id);
+      toggle.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span><i class="fa-solid fa-chevron-down nav-drawer-group-chevron" aria-hidden="true"></i>`;
+      const body = document.createElement('div');
+      body.id = id;
+      body.className = 'nav-drawer-group-body';
+      body.hidden = true;
+      nodes.forEach((n) => { if (n) body.appendChild(n); });
+      toggle.addEventListener('click', () => {
+        const open = body.hidden;
+        body.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+      });
+      group.append(toggle, body);
+      return group;
+    };
+    const savedLink = document.getElementById('btn-drawer-saved-lessons');
+    if (primaryNav && savedLink) primaryNav.appendChild(savedLink);
+    const missionsWrap = document.querySelector('.nav-drawer-missions');
+    if (missionsWrap) {
+      const missionTitle = missionsWrap.querySelector('.nav-drawer-section-title');
+      const missionButtons = Array.from(missionsWrap.querySelectorAll('button'));
+      const missionsGroup = makeNavGroup('nav-group-missions', missionTitle ? missionTitle.textContent.trim() : 'Learning Missions', 'fa-rocket', missionButtons);
+      missionsWrap.replaceWith(missionsGroup);
+    }
+    const reportLink = document.getElementById('btn-drawer-reports');
+    const settingsNodes = ['nav-drawer-lang-slot', 'btn-drawer-sound', 'btn-drawer-voice-settings', 'btn-drawer-theme-toggle', 'btn-drawer-tour', 'btn-drawer-home']
+      .map((id) => document.getElementById(id));
+    const settingsGroup = makeNavGroup('nav-group-settings', 'Settings', 'fa-gear', settingsNodes);
+    if (reportLink) reportLink.after(settingsGroup);
     const titleEl = document.getElementById('mission-title');
     if (titleEl) titleEl.removeAttribute('style');
     const intro = document.querySelector('.mission-intro');

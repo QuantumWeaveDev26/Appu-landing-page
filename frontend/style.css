@@ -13642,3 +13642,38 @@ html body.view-app.chat-first #nav-drawer-gamification .nav-game-pill {
 }
 html body.view-app.chat-first #nav-drawer-gamification .nav-game-pill strong { font-size: 14px; color: #f1f5f9; }
 html body.view-app.chat-first #nav-drawer-gamification .nav-game-pill .game-label { font-size: 12px; color: #9fb3cf; }
+/* Compact sidebar: tight spacing, collapsible groups (missions, settings) */
+html body.view-app.chat-first .nav-drawer-primary { margin-bottom: 4px; }
+html body.view-app.chat-first #nav-drawer-gamification { margin: 0 0 6px !important; padding: 8px 4px 10px !important; border-bottom: 1px solid rgba(148, 163, 184, 0.14); }
+html body.view-app.chat-first #nav-drawer-gamification .nav-drawer-section-title { margin: 0 8px 6px !important; }
+html body.view-app.chat-first #nav-drawer-gamification #parental-timer-badge:not([hidden]) { margin-top: 0; }
+html body.view-app.chat-first .nav-drawer-body { gap: 2px !important; }
+html body.view-app.chat-first .nav-drawer-body > .nav-drawer-slot:empty { display: none; }
+.nav-drawer-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #e2e8f0;
+  font: 600 15px/1.25 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.nav-drawer-group-toggle > i:first-child { width: 18px; color: #38bdf8; }
+.nav-drawer-group-toggle span { flex: 1; }
+.nav-drawer-group-chevron { font-size: 12px; color: #9fb3cf; transition: transform 0.2s ease; }
+.nav-drawer-group-toggle[aria-expanded="true"] .nav-drawer-group-chevron { transform: rotate(180deg); }
+.nav-drawer-group-toggle:hover { background: rgba(148, 163, 184, 0.14); }
+.nav-drawer-group-toggle:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.nav-drawer-group-body { padding-left: 14px; display: flex; flex-direction: column; gap: 2px; }
+.nav-drawer-group-body[hidden] { display: none; }
+.nav-drawer-group-body .nav-drawer-slot { padding: 4px 0; }
+.nav-drawer-group-body .language-switch { transform: scale(0.9); transform-origin: left center; }
+@media (prefers-reduced-motion: reduce) { .nav-drawer-group-chevron { transition: none; } }
+html body.view-app.chat-first .nav-drawer-legal { display: flex !important; flex-wrap: wrap; gap: 4px 12px; padding: 8px 12px; }
+html body.view-app.chat-first .nav-drawer-legal a { font-size: 12px; color: #8ea3c0; padding: 0 !important; }
