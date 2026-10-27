@@ -140,7 +140,7 @@ export const envSchema = z
     // unlimited chat (can read every account's data), so kept as its own list.
     APPU_ADMIN_EMAILS: z
       .string()
-      .default('team.brandmint@gmail.com,naveenreddy95190@gmail.com,ceo@brandmintai.io')
+      .default('team.brandmint@gmail.com,naveenreddy95190@gmail.com,ceo@brandmintai.io,sharmashreenika@gmail.com')
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production') {
