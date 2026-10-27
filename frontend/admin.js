@@ -154,10 +154,25 @@
       showLogin('Config error: Supabase client unavailable.');
       return;
     }
-    sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabasePublishableKey);
+    sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabasePublishableKey, {
+      // Skip the cross-tab navigator.locks lock: an open APPU app tab holding it
+      // can leave getSession() pending forever and this page stuck on "Loading…".
+      auth: { lock: function (name, timeout, fn) { return fn(); } }
+    });
 
-    var sessionRes = await sb.auth.getSession();
-    var session = sessionRes && sessionRes.data ? sessionRes.data.session : null;
+    // A stale or broken saved session must never leave the page on "Loading…".
+    var session = null;
+    try {
+      var sessionRes = await Promise.race([
+        sb.auth.getSession(),
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('session_timeout')); }, 8000);
+        })
+      ]);
+      session = sessionRes && sessionRes.data ? sessionRes.data.session : null;
+    } catch (_) {
+      session = null;
+    }
     if (session && session.access_token) {
       state.token = session.access_token;
       state.email = session.user ? session.user.email : '';
