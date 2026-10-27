@@ -4,7 +4,8 @@ export const DEFAULT_UNLIMITED_EMAILS: readonly string[] = [
   'ceo@brandmintai.io',
   'vishak.b7@gmail.com',
   'naveenreddy95190@gmail.com',
-  'kaaranji@brandmintai.io'
+  'kaaranji@brandmintai.io',
+  'sharmashreenika@gmail.com'
 ];
 
 /**
