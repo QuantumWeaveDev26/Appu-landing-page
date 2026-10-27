@@ -25,6 +25,9 @@ body {
   overflow-wrap: break-word;
 }
 
+/* The views below set display:grid, which would otherwise override [hidden]. */
+[hidden] { display: none !important; }
+
 .admin-loading {
   position: fixed; inset: 0; display: grid; place-items: center;
   color: var(--muted); font-size: 15px; background: var(--bg); z-index: 50;
