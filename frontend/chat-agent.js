@@ -59,6 +59,15 @@ class ChatAgent {
     const parsedCard = renderer ? renderer.parse(msg.lessonCard || msg.text) : null;
 
     if (parsedCard && parsedCard.isRich) {
+      // The text answer arrives first and the visual card a few seconds later; keep the
+      // text above the card instead of replacing it.
+      const answerText = msg.lessonCard && typeof msg.text === 'string' ? msg.text.trim() : '';
+      if (answerText && !answerText.startsWith('{')) {
+        const textEl = document.createElement('div');
+        textEl.className = 'msg-answer-text';
+        textEl.textContent = answerText;
+        bubble.appendChild(textEl);
+      }
       const celebrateCallback = () => {
         if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
           window.appMascot.celebrate(3200);

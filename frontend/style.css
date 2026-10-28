@@ -13925,3 +13925,5 @@ html body.chat-first #active-doc-banner-drawer { display: none !important; }
 .concept-branch-card:focus-visible { outline: 2px solid var(--cyan, #22d3ee); outline-offset: 3px; }
 .concept-tree-wrapper.has-branch-selected .concept-branch-card:not(.is-selected) { opacity: .45 !important; }
 .concept-tree-wrapper .concept-branch-card.is-selected { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--cyan, #22d3ee), 0 10px 24px rgba(34, 211, 238, .25) !important; }
+/* The first text answer stays in place above the visual lesson card. */
+.message-row.appu .msg-answer-text { white-space: pre-line; line-height: 1.6; margin: 0 0 14px; font-size: 15px; }
