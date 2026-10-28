@@ -998,6 +998,37 @@
    * Generates crisp, kid-friendly semantic HTML for the Concept Mind Map tree.
    * Solves the tiny/cramped Mermaid SVG issue by rendering real responsive text cards.
    */
+  // Mind map branches are tappable: the chosen branch stays highlighted, the rest dim.
+  // One delegated listener covers every map, including ones re-rendered later.
+  function selectConceptBranch(card) {
+    const wrapper = card.closest('.concept-tree-wrapper');
+    if (!wrapper) return;
+    const wasSelected = card.classList.contains('is-selected');
+    wrapper.querySelectorAll('.concept-branch-card.is-selected').forEach((c) => {
+      c.classList.remove('is-selected');
+      c.setAttribute('aria-pressed', 'false');
+    });
+    if (!wasSelected) {
+      card.classList.add('is-selected');
+      card.setAttribute('aria-pressed', 'true');
+    }
+    wrapper.classList.toggle('has-branch-selected', !wasSelected);
+  }
+  if (typeof document !== 'undefined' && !document.__appuConceptBranchWired) {
+    document.__appuConceptBranchWired = true;
+    document.addEventListener('click', (e) => {
+      const card = e.target && e.target.closest ? e.target.closest('.concept-branch-card') : null;
+      if (card) selectConceptBranch(card);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target && e.target.closest ? e.target.closest('.concept-branch-card') : null;
+      if (!card) return;
+      e.preventDefault();
+      selectConceptBranch(card);
+    });
+  }
+
   function buildConceptTreeHTML(central, branches, { isDedicatedTab = false } = {}) {
     if (!central && (!branches || branches.length === 0)) return '';
 
@@ -1025,7 +1056,7 @@
             const icon = themeIcons[idx % themeIcons.length];
             const children = Array.isArray(b.children) ? b.children : [];
             return `
-              <div class="concept-branch-card to-node branch-theme-${theme}" style="--node-index: ${idx};">
+              <div class="concept-branch-card to-node branch-theme-${theme}" style="--node-index: ${idx};" role="button" tabindex="0" aria-pressed="false">
                 <div class="branch-card-top">
                   <span class="branch-order-chip" aria-hidden="true">${idx + 1}</span>
                   <span class="branch-theme-icon"><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
@@ -2668,7 +2699,14 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
             utterance.rate = 1.0;
-            utterance.pitch = 1.05;
+            utterance.pitch = 1.0;
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+              const voices = window.speechSynthesis.getVoices() || [];
+              const isMale = (v) => /(ravi|david|guy|george|prabhat|madhur|daniel|alex|fred|male)/i.test(v.name) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name);
+              const preferred = voices.find(v => (v.lang.startsWith('en') || v.lang.startsWith('kn') || v.lang.startsWith('hi')) && isMale(v))
+                || voices.find(v => (v.lang.startsWith('en') || v.lang.startsWith('kn') || v.lang.startsWith('hi')) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name));
+              if (preferred) utterance.voice = preferred;
+            }
             utterance.onend = () => {
               stopPlayback(true);
               setProgress(100);

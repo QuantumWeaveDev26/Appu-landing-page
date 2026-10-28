@@ -484,7 +484,7 @@ class ChatAgent {
     if (!freshRow) return;
     lastRow.replaceWith(freshRow);
     try {
-      freshRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      freshRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (_) {}
   }
 

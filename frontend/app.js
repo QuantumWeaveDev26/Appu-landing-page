@@ -151,6 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chatHistoryController = new ChatHistoryController({
       backendClient: window.AppuBackendClient,
       chatAgent,
+      // A new chat starts clean: no photo left waiting from the previous one.
+      onNewConversation: () => clearPendingImage(),
       getSession: () => ({
         accessToken: (typeof window.AppuSession !== 'undefined' && window.AppuSession) ? window.AppuSession.accessToken : null,
         childId: (typeof window.AppuSession !== 'undefined' && window.AppuSession) ? window.AppuSession.childId : null
@@ -2493,6 +2495,20 @@ document.addEventListener('DOMContentLoaded', () => {
         soundIcon.className = 'fa-solid fa-volume-xmark text-muted';
       }
     }
+    // The sidebar row is what learners actually tap, so it shows the state too.
+    const drawerSound = document.getElementById('btn-drawer-sound');
+    if (drawerSound) {
+      const icon = drawerSound.querySelector('i');
+      if (icon) icon.className = voiceEngine.soundEnabled ? 'fa-solid fa-volume-high text-cyan' : 'fa-solid fa-volume-xmark text-muted';
+      let state = drawerSound.querySelector('.sound-state');
+      if (!state) {
+        state = document.createElement('small');
+        state.className = 'sound-state';
+        drawerSound.appendChild(state);
+      }
+      state.textContent = voiceEngine.soundEnabled ? 'On' : 'Off';
+      drawerSound.setAttribute('aria-pressed', voiceEngine.soundEnabled ? 'true' : 'false');
+    }
   }
   updateSoundUI();
 
@@ -2500,6 +2516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSoundToggle.addEventListener('click', () => {
       voiceEngine.toggleSound();
       updateSoundUI();
+      try { localStorage.setItem('appu_sound_sfx', voiceEngine.soundEnabled); } catch (_) {}
     });
   }
 
@@ -2701,10 +2718,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // A scanned PDF has no text layer, but Appu can read photos: send its first page as one.
+  async function renderPdfFirstPageAsImageFile(file) {
+    if (!window.pdfjsLib) return null;
+    if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const page = await pdf.getPage(1);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: Math.min(2, IMAGE_MAX_DIMENSION / Math.max(base.width, base.height)) });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    return blob ? new File([blob], file.name.replace(/\.pdf$/i, '') + '.jpg', { type: 'image/jpeg' }) : null;
+  }
+
+  // Photos and scanned pages picked in "Upload notes" go to Appu as a homework photo.
+  async function sendNotesAsPhoto(imageFile) {
+    pendingImage = await downscaleImageFile(imageFile);
+    if (chatImagePreviewThumb) chatImagePreviewThumb.src = pendingImage.dataUrl;
+    if (chatImagePreview) chatImagePreview.hidden = false;
+    document.dispatchEvent(new Event('appu:pending-image'));
+    if (chatForm && chatInput) {
+      chatInput.value = 'Please teach me from this page.';
+      chatForm.requestSubmit();
+    }
+  }
+
   function clearPendingImage() {
     pendingImage = null;
     if (chatImagePreview) chatImagePreview.hidden = true;
     if (chatImageInput) chatImageInput.value = '';
+    document.dispatchEvent(new Event('appu:pending-image'));
   }
 
   if (btnChatAttach && chatImageInput) {
@@ -2716,6 +2767,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingImage = await downscaleImageFile(file);
         if (chatImagePreviewThumb) chatImagePreviewThumb.src = pendingImage.dataUrl;
         if (chatImagePreview) chatImagePreview.hidden = false;
+        document.dispatchEvent(new Event('appu:pending-image'));
       } catch (err) {
         clearPendingImage();
         const subtitlesText = document.getElementById('subtitles-text');
@@ -2861,9 +2913,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncHomeAsk = () => {
       homeAskInput.style.height = 'auto';
       homeAskInput.style.height = `${Math.min(homeAskInput.scrollHeight, 160)}px`;
-      if (btnHomeSend) btnHomeSend.disabled = !homeAskInput.value.trim();
+      // A photo on its own is a question too ("help me with this homework").
+      if (btnHomeSend) btnHomeSend.disabled = !homeAskInput.value.trim() && !pendingImage;
     };
     homeAskInput.addEventListener('input', syncHomeAsk);
+    document.addEventListener('appu:pending-image', syncHomeAsk);
     homeAskInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
@@ -2875,10 +2929,12 @@ document.addEventListener('DOMContentLoaded', () => {
     homeAskForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = homeAskInput.value.trim();
-      if (!text) return;
+      if (!text && !pendingImage) return;
+      const hadImage = Boolean(pendingImage);
       chatInput.value = text;
       chatForm.requestSubmit();
-      if (!chatInput.value) {
+      // Accepted once the chat form has cleared its input (or, photo only, the photo).
+      if (text ? !chatInput.value : (hadImage && !pendingImage)) {
         homeAskInput.value = '';
         syncHomeAsk();
       }
@@ -3046,7 +3102,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (messagesEl && typeof MutationObserver !== 'undefined') {
       new MutationObserver(() => {
         const last = messagesEl.lastElementChild;
-        if (last && typeof last.scrollIntoView === 'function') last.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        if (!last || typeof last.scrollIntoView !== 'function') return;
+        // An answer is read from its first line: scrolling to its end skipped the
+        // explanation and left the learner at the bottom of the lesson card.
+        const isAnswer = last.classList.contains('appu');
+        last.scrollIntoView({ block: isAnswer ? 'start' : 'end', behavior: 'smooth' });
       }).observe(messagesEl, { childList: true });
     }
   }
@@ -3403,6 +3463,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('appu_voice_rate', voiceEngine.rate);
       localStorage.setItem('appu_auto_speak', voiceEngine.autoSpeak);
       localStorage.setItem('appu_sound_sfx', voiceEngine.soundEnabled);
+      updateSoundUI();
 
       voiceEngine.playSuccess();
       closeSettingsModal();
@@ -3567,9 +3628,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPdf = file.type === 'application/pdf' || lowerName.endsWith('.pdf');
     const isText = /.(txt|md|markdown)$/.test(lowerName) || file.type === 'text/plain' || file.type === 'text/markdown';
     const fail = (msg) => { if (seq === notesFileSeq && notesFileStats) notesFileStats.textContent = msg; };
+    const isImage = IMAGE_ALLOWED_TYPES.includes(file.type);
+    const teachFromPhoto = async (imageFile) => {
+      closeNotesUploadModal();
+      try {
+        await sendNotesAsPhoto(imageFile);
+      } catch (err) {
+        clearPendingImage();
+        const subtitlesText = document.getElementById('subtitles-text');
+        if (subtitlesText) subtitlesText.textContent = err.message || 'Could not read that page.';
+      }
+    };
 
+    if (isImage) {
+      await teachFromPhoto(file);
+      return;
+    }
     if (!isPdf && !isText) {
-      fail('This file type is not supported. Please upload a PDF, TXT or Markdown file, or paste the text.');
+      fail('This file type is not supported. Please upload a PDF, photo, TXT or Markdown file, or paste the text.');
       return;
     }
     if (file.size > NOTES_MAX_BYTES) {
@@ -3586,6 +3662,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const capped = Array.from(String(extracted || '')).slice(0, 16000).join('').trim();
+      if (!capped && isPdf) {
+        if (notesFileStats) notesFileStats.textContent = 'Scanned page found. Appu will read it as a photo...';
+        const pageImage = await renderPdfFirstPageAsImageFile(file).catch(() => null);
+        if (seq !== notesFileSeq) return;
+        if (pageImage) {
+          await teachFromPhoto(pageImage);
+          return;
+        }
+      }
       if (!capped) {
         fail(isPdf
           ? 'No readable text found. This PDF may be a scan or photo; please paste the text instead.'
@@ -3698,6 +3783,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnSubmitNotes) {
     btnSubmitNotes.addEventListener('click', () => {
+      // A quick double tap sent the notes lesson twice; opening the modal re-enables it.
+      if (btnSubmitNotes.disabled) return;
       let docToActivate = null;
       const isPasteActive = tabNotesPaste && tabNotesPaste.classList.contains('is-active');
 
@@ -3713,6 +3800,7 @@ document.addEventListener('DOMContentLoaded', () => {
         docToActivate = pendingExtractedDoc;
       }
 
+      btnSubmitNotes.disabled = true;
       setActiveTutorDocument(docToActivate);
       closeNotesUploadModal();
 

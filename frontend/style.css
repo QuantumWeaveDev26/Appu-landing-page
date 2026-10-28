@@ -13909,3 +13909,19 @@ html[data-theme="light"] body.chat-first #app-shell::before {
   body.chat-first .topbar { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; }
   body.chat-first #chat-drawer { margin-top: 8px !important; }
 }
+
+/* Recent chats: pinned to the viewport. As position:absolute inside the chat it opened
+   thousands of pixels above the screen once a long conversation was scrolled. */
+html body.chat-first .chat-history-panel { position: fixed !important; }
+html body.view-app.chat-first.has-sidebar .chat-history-panel { left: 280px !important; top: 24px !important; bottom: 24px !important; }
+/* Sound effects row: show On / Off so a tap visibly does something. */
+#btn-drawer-sound .sound-state { margin-left: auto; font-size: 11px; font-weight: 700; opacity: .75; }
+/* Keep the top of a scrolled-to answer clear of the edge (and the phone top bar). */
+body.chat-first #chat-messages .message-row.appu { scroll-margin-top: 72px; }
+/* One "Teaching from this" chip, beside the composer; the drawer copy duplicated it. */
+html body.chat-first #active-doc-banner-drawer { display: none !important; }
+/* Mind map: a tapped branch is selected; the others step back. */
+.concept-branch-card { cursor: pointer; transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease; }
+.concept-branch-card:focus-visible { outline: 2px solid var(--cyan, #22d3ee); outline-offset: 3px; }
+.concept-tree-wrapper.has-branch-selected .concept-branch-card:not(.is-selected) { opacity: .45 !important; }
+.concept-tree-wrapper .concept-branch-card.is-selected { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--cyan, #22d3ee), 0 10px 24px rgba(34, 211, 238, .25) !important; }

@@ -56,6 +56,7 @@
       this.backendClient = options.backendClient || null;
       this.chatAgent = options.chatAgent || null;
       this.getSession = typeof options.getSession === 'function' ? options.getSession : (() => null);
+      this.onNewConversation = typeof options.onNewConversation === 'function' ? options.onNewConversation : null;
       this.elements = options.elements || {};
 
       this.activeConversationId = null;
@@ -218,6 +219,17 @@
         } else {
           this.chatAgent.messages = [];
         }
+      }
+      if (typeof window !== 'undefined') {
+        if (typeof window.app?.clearActiveTutorDocument === 'function') {
+          window.app.clearActiveTutorDocument();
+        } else {
+          window.activeTutorDocument = null;
+          window.__APPU_ACTIVE_DOCUMENT__ = null;
+        }
+      }
+      if (typeof this.onNewConversation === 'function') {
+        try { this.onNewConversation(); } catch (_) {}
       }
       this.renderList();
       if (this.elements.panel && typeof window !== 'undefined' && typeof window.innerWidth === 'number' && window.innerWidth <= 640) {

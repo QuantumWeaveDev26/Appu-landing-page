@@ -22,7 +22,7 @@ export class ElevenLabsStreamService {
       throw new Error('ElevenLabsStreamService requires a valid server-side apiKey');
     }
     this.apiKey = options.apiKey.trim();
-    this.voiceId = options.voiceId || '2vNb4zVImeugpHCemE1R';
+    this.voiceId = options.voiceId || 'TX3LPaxmHKxFdv7VOQHJ';
     this.modelId = options.modelId || 'eleven_v4';
     this.stability = options.stability ?? 0.75;
     this.similarityBoost = options.similarityBoost ?? 0.8;

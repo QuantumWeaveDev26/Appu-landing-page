@@ -760,7 +760,10 @@ class VoiceEngine {
 
             const voices = window.speechSynthesis.getVoices();
             if (voices && voices.length > 0) {
-                const preferred = voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('India') || v.name.includes('Heera') || v.name.includes('Ravi')));
+                const isMale = (v) => /(ravi|david|guy|george|prabhat|madhur|daniel|alex|fred|male)/i.test(v.name) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name);
+                const preferred = voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && isMale(v))
+                    || voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name))
+                    || voices.find(v => v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en'));
                 if (preferred) utterance.voice = preferred;
             }
 
