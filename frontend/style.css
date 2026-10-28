@@ -13927,3 +13927,18 @@ html body.chat-first #active-doc-banner-drawer { display: none !important; }
 .concept-tree-wrapper .concept-branch-card.is-selected { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--cyan, #22d3ee), 0 10px 24px rgba(34, 211, 238, .25) !important; }
 /* The first text answer stays in place above the visual lesson card. */
 .message-row.appu .msg-answer-text { white-space: pre-line; line-height: 1.6; margin: 0 0 14px; font-size: 15px; }
+/* Message bar stays fixed to the bottom of the screen while answers scroll
+   (sticky drifted on desktop); the chat gets room underneath so nothing hides behind it. */
+html body.view-app.chat-first:has(#chat-messages .message-row:not(.is-welcome)) .app-shell .response-dock {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0;
+  right: 0;
+  z-index: 30;
+}
+html body.view-app.chat-first:has(#chat-messages .message-row:not(.is-welcome)) #chat-drawer {
+  padding-bottom: calc(var(--appu-dock-h, 120px) + 16px) !important;
+}
+@media (min-width: 1100px) {
+  html body.view-app.chat-first.has-sidebar:has(#chat-messages .message-row:not(.is-welcome)) .app-shell .response-dock { left: 280px; }
+}
