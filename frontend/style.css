@@ -13942,3 +13942,7 @@ html body.view-app.chat-first:has(#chat-messages .message-row:not(.is-welcome)) 
 @media (min-width: 1100px) {
   html body.view-app.chat-first.has-sidebar:has(#chat-messages .message-row:not(.is-welcome)) .app-shell .response-dock { left: 280px; }
 }
+/* The conversation (a flex item with z-index 90) painted over the fixed message bar.
+   In chat-first it is the page, not an overlay: no stacking level of its own. */
+html body.view-app.chat-first #chat-drawer { z-index: auto !important; }
+html body.view-app.chat-first .chat-history-panel { z-index: 40 !important; }
