@@ -2254,3 +2254,32 @@ body.view-landing[data-theme="light"] { background: #f8fafc !important; }
 /* The app's off-canvas sidebar casts a shadow onto the landing page edge. */
 body.view-landing #nav-drawer { visibility: hidden; box-shadow: none; }
 [data-theme="light"] .landing-brand-title { color: #0f172a; -webkit-text-fill-color: currentColor; background: none; }
+
+/* IGr Academy band: a short "who made Appu" note with a link out. */
+.landing-igr { max-width: 960px; margin: 0 auto; padding: 0 16px 56px; }
+.landing-igr-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: 28px;
+  padding: 26px 28px; border-radius: 18px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  background: linear-gradient(135deg, rgba(14, 43, 74, 0.55), rgba(10, 22, 40, 0.55));
+}
+.landing-igr-kicker { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #38bdf8; }
+.landing-igr-title { margin: 0 0 8px; font: 700 22px/1.2 'Space Grotesk', Manrope, sans-serif; color: #f1f5f9; }
+.landing-igr-desc { margin: 0; max-width: 560px; font-size: 15px; line-height: 1.55; color: #94a3b8; }
+.landing-igr-cta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 20px; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none;
+  color: #04111f; background: #38bdf8; transition: background .2s ease, transform .2s ease;
+}
+.landing-igr-cta:hover { background: #7dd3fc; transform: translateY(-1px); }
+.landing-igr-cta:focus-visible { outline: 2px solid #f1f5f9; outline-offset: 3px; }
+.landing-igr-cta i { font-size: 13px; }
+@media (max-width: 720px) {
+  .landing-igr-inner { flex-direction: column; align-items: flex-start; gap: 18px; padding: 22px 20px; }
+}
+[data-theme="light"] .landing-igr-inner { background: #ffffff; border-color: #cbd5e1; }
+[data-theme="light"] .landing-igr-title { color: #0f172a; }
+[data-theme="light"] .landing-igr-desc { color: #475569; }
+[data-theme="light"] .landing-igr-kicker { color: #0284c7; }
+[data-theme="light"] .landing-igr-cta { background: #0284c7; color: #ffffff; }
+[data-theme="light"] .landing-igr-cta:hover { background: #0369a1; }
