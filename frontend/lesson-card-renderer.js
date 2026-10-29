@@ -4487,7 +4487,8 @@
    */
   // onRetry(attempt, total) lets the UI say it is retrying; an aborted `signal` (learner
   // pressed Cancel) stops immediately and resolves to { cancelled: true } (QA F09).
-  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 22000, maxRetries = 1, onRetry = null, signal = null } = {}) {
+  // A full notes lesson (study JSON + voice) takes 25-35s; 22s timed out every attempt.
+  async function fetchNotesTutor({ question = '', documentText, grade = '6', language = 'en', timeoutMs = 60000, maxRetries = 1, onRetry = null, signal = null } = {}) {
     if (!documentText || !documentText.trim()) {
       return null;
     }
@@ -4540,6 +4541,10 @@
         }
 
         const answer = typeof resultObj.answer === 'string' ? resultObj.answer.trim() : '';
+        // The safety filter refused the document: show its message only, never a lesson.
+        if (resultObj.blocked === true) {
+          return { answer, lessonCard: null, audio_base64: null, blocked: true, raw: resultObj };
+        }
         let lessonCard = fromVisualizerPayload(resultObj, answer, grade);
 
         // Topic Guard check

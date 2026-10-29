@@ -1582,7 +1582,7 @@ document.addEventListener('DOMContentLoaded', () => {
             documentText: docText,
             grade: childGrade,
             language: targetLang,
-            timeoutMs: 25000
+            timeoutMs: 60000
           });
           if (notesRes && notesRes.lessonCard) {
             generatedCard = notesRes.lessonCard;
@@ -2243,7 +2243,7 @@ document.addEventListener('DOMContentLoaded', () => {
               documentText: window.activeTutorDocument.text,
               grade: childGrade,
               language: currentLangCode,
-              timeoutMs: 22000,
+              timeoutMs: 60000,
               signal: notesAbort ? notesAbort.signal : null,
               onRetry: (attempt, total) => {
                 if (interactionTurnId !== activeInteractionSeq) return;
@@ -2267,6 +2267,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (notesResult && notesResult.answer) {
           const reply = notesResult.answer;
           const lessonCard = notesResult.lessonCard;
+          // Unsuitable upload: Appu explains why, and the document is not kept for later turns.
+          if (notesResult.blocked) clearActiveTutorDocument();
 
           avatarStage.setState('speaking');
           if (window.appMascot) window.appMascot.setMood('explaining');
@@ -3621,6 +3623,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
+  // Word notes: mammoth (~640KB) is fetched only the first time a .docx is picked.
+  let mammothLoading = null;
+  async function extractTextFromDocxFile(file) {
+    if (!window.mammoth) {
+      mammothLoading = mammothLoading || new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js';
+        s.onload = resolve;
+        s.onerror = () => { mammothLoading = null; reject(new Error('mammoth failed to load')); };
+        document.head.appendChild(s);
+      });
+      try { await mammothLoading; } catch (err) { console.warn('[NotesTutor]', err.message); return null; }
+    }
+    try {
+      const result = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+      return String((result && result.value) || '').replace(/\n{3,}/g, '\n\n');
+    } catch (err) {
+      console.warn('[NotesTutor] Word extraction failed:', err);
+      return null;
+    }
+  }
+
   const NOTES_MAX_BYTES = 10 * 1024 * 1024;
   let notesFileSeq = 0;
 
@@ -3653,8 +3677,9 @@ document.addEventListener('DOMContentLoaded', () => {
       await teachFromPhoto(file);
       return;
     }
-    if (!isPdf && !isText) {
-      fail('This file type is not supported. Please upload a PDF, photo, TXT or Markdown file, or paste the text.');
+    const isDocx = lowerName.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (!isPdf && !isText && !isDocx) {
+      fail('This file type is not supported. Please upload a PDF, Word (.docx), photo, TXT or Markdown file, or paste the text.');
       return;
     }
     if (file.size > NOTES_MAX_BYTES) {
@@ -3663,7 +3688,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const extracted = isPdf ? await extractTextFromPdfFile(file) : await file.text();
+      const extracted = isPdf ? await extractTextFromPdfFile(file)
+        : (isDocx ? await extractTextFromDocxFile(file) : await file.text());
       if (seq !== notesFileSeq) return; // a newer file was picked meanwhile
 
       if (isPdf && extracted === null) {
