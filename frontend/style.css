@@ -13946,3 +13946,5 @@ html body.view-app.chat-first:has(#chat-messages .message-row:not(.is-welcome)) 
    In chat-first it is the page, not an overlay: no stacking level of its own. */
 html body.view-app.chat-first #chat-drawer { z-index: auto !important; }
 html body.view-app.chat-first .chat-history-panel { z-index: 40 !important; }
+/* Quick Check: the answer stays hidden until "Reveal Answer" (display:flex overrode [hidden]). */
+.check-answer-box[hidden] { display: none !important; }
