@@ -484,6 +484,7 @@
       audioDurationMs: data.audioDurationMs || null,
       childId: data.childId || payload.childId,
       conversationId: data.conversationId || null,
+      quickReplies: Array.isArray(data.quickReplies) ? data.quickReplies.filter((o) => typeof o === 'string' && o.trim()).slice(0, 4) : [],
       guest: guestInfo,
       guestSession: guestInfo
     };

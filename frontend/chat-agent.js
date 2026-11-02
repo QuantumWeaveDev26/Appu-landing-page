@@ -26,9 +26,35 @@ class ChatAgent {
   addMessage(sender, text, actionCard = null, imageDataUrl = null, options = {}) {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const msgObj = { sender, text, time: timeStr, actionCard, imageDataUrl, ...options };
+    // Options only answer the latest question: drop older ones once anything new arrives.
+    if (this.messagesContainer && typeof this.messagesContainer.querySelectorAll === 'function') {
+      this.messagesContainer.querySelectorAll('.msg-quick-replies').forEach((el) => el.remove());
+    }
+    this.messages.forEach((m) => { if (m.quickReplies) m.quickReplies = null; });
     this.messages.push(msgObj);
     this.renderMessage(msgObj);
     return msgObj;
+  }
+
+  // Tappable choices Appu offered (e.g. "Maths / Science / English"); a tap sends that choice.
+  renderQuickReplies(msg, bubble) {
+    if (msg.sender !== 'appu' || !Array.isArray(msg.quickReplies) || msg.quickReplies.length < 2) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-quick-replies';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'Choose an answer');
+    msg.quickReplies.forEach((option) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quick-reply-chip';
+      btn.textContent = option;
+      btn.addEventListener('click', () => {
+        wrap.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        document.dispatchEvent(new CustomEvent('appu:quick-reply', { detail: { text: option } }));
+      });
+      wrap.appendChild(btn);
+    });
+    bubble.appendChild(wrap);
   }
 
   renderMessage(msg) {
@@ -83,9 +109,36 @@ class ChatAgent {
         studyBody.appendChild(cardEl);
         const toolbar = renderer.renderStudyToolbar('lesson', (mode) => {
           studyBody.innerHTML = '';
-          studyBody.appendChild(mode === 'lesson'
-            ? renderer.render(parsedCard, { onCelebrate: celebrateCallback })
-            : renderer.renderStudyMode(mode, parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
+          // The podcast is generated on demand in Appu's ElevenLabs voice; without this
+          // fetch the tab only had the browser's built-in speech voice to play.
+          if (mode === 'podcast' && !(parsedCard.podcastScript && parsedCard.podcastScript.isLiveFetched) &&
+              typeof renderer.fetchPodcast === 'function') {
+            const topic = (parsedCard.mindMap && parsedCard.mindMap.central) || parsedCard.topic || parsedCard.title || 'Lesson';
+            if (typeof renderer.createPodcastLoadingCard === 'function') studyBody.appendChild(renderer.createPodcastLoadingCard(topic));
+            const doc = typeof window !== 'undefined' ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+            const grade = (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.getGrade === 'function' && window.AppuSession.getGrade()) || parsedCard.grade || '6';
+            renderer.fetchPodcast({
+              topic,
+              question: parsedCard.question || topic,
+              answer: parsedCard.plainText || msg.text || '',
+              grade: String(grade).replace(/[^0-9]/g, '') || '6',
+              language: lang,
+              documentText: doc && doc.text ? doc.text : undefined,
+              timeoutMs: 60000
+            }).catch(() => null).then((result) => {
+              if (result && (result.script || (Array.isArray(result.segments) && result.segments.length))) {
+                parsedCard.podcastScript = { ...result, isLiveFetched: true, citation: parsedCard.citation };
+              }
+              const activeBtn = toolbar.querySelector('.study-tab-btn.is-active');
+              if (!activeBtn || activeBtn.getAttribute('data-mode') !== 'podcast') return;
+              studyBody.innerHTML = '';
+              studyBody.appendChild(renderer.renderStudyMode('podcast', parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
+            });
+          } else {
+            studyBody.appendChild(mode === 'lesson'
+              ? renderer.render(parsedCard, { onCelebrate: celebrateCallback })
+              : renderer.renderStudyMode(mode, parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
+          }
           toolbar.querySelectorAll('.study-tab-btn[data-mode]').forEach((b) => {
             const on = b.getAttribute('data-mode') === mode;
             b.classList.toggle('is-active', on);
@@ -121,6 +174,8 @@ class ChatAgent {
 
       bubble.appendChild(card);
     }
+
+    this.renderQuickReplies(msg, bubble);
 
     // In-chat affordance: Share study note to WhatsApp companion number (opens user's WhatsApp to send note)
     if (msg.sender === 'appu' && !msg.isWelcome && !msg.isSystem && msg.text && msg.text.trim()) {
@@ -401,7 +456,8 @@ class ChatAgent {
         lessonCard: result.lessonCard || null,
         mood: result.mood || null,
         requestId: result.requestId || null,
-        conversationId: result.conversationId || null
+        conversationId: result.conversationId || null,
+        quickReplies: isSystemNotice ? null : (result.quickReplies || null)
       });
       if (appuMsg.lessonCard) this.persistLessonCard(appuMsg);
       return appuMsg;

@@ -13948,3 +13948,44 @@ html body.view-app.chat-first #chat-drawer { z-index: auto !important; }
 html body.view-app.chat-first .chat-history-panel { z-index: 40 !important; }
 /* Quick Check: the answer stays hidden until "Reveal Answer" (display:flex overrode [hidden]). */
 .check-answer-box[hidden] { display: none !important; }
+/* Tappable answer options under Appu's question. */
+.msg-quick-replies { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 2px; }
+.quick-reply-chip {
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  font: 600 14px/1.2 inherit; color: #e0f2fe;
+  background: rgba(56, 189, 248, 0.12); border: 1.5px solid rgba(56, 189, 248, 0.55);
+  transition: background .15s ease, transform .15s ease;
+}
+.quick-reply-chip:hover:not(:disabled) { background: rgba(56, 189, 248, 0.24); transform: translateY(-1px); }
+.quick-reply-chip:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.quick-reply-chip:disabled { opacity: .5; cursor: default; }
+[data-theme="light"] .quick-reply-chip, body.theme-light .quick-reply-chip { color: #075985; background: #e0f2fe; border-color: #7dd3fc; }
+
+/* ===== Light mode readability (QA 2026-11-02): these kept their dark-theme colours and were
+   near-white on white, or white on a pale blue. ===== */
+html[data-theme="light"] #nav-drawer .nav-drawer-primary-btn span,
+html[data-theme="light"] #nav-drawer .nav-drawer-group-toggle span,
+html[data-theme="light"] #nav-drawer #btn-drawer-saved-lessons span,
+html[data-theme="light"] #nav-drawer #btn-drawer-parent-zone span,
+html[data-theme="light"] #nav-drawer #btn-drawer-reports span,
+html[data-theme="light"] #nav-drawer .nav-drawer-group-toggle,
+html[data-theme="light"] #nav-drawer .nav-drawer-theme-link { color: #0f172a !important; }
+html[data-theme="light"] #nav-drawer .nav-game-pill,
+html[data-theme="light"] #nav-drawer .nav-game-pill strong { color: #0f172a !important; }
+html[data-theme="light"] #nav-drawer #nav-drawer-title small,
+html[data-theme="light"] #nav-drawer #nav-drawer-title em { color: #0369a1 !important; }
+html[data-theme="light"] .message-row.appu .msg-answer-text { color: #0f172a; }
+html[data-theme="light"] .study-tab-btn.is-active,
+html[data-theme="light"] .check-reveal-btn,
+html[data-theme="light"] #btn-main-auth { background: #0369a1 !important; border-color: #0369a1 !important; color: #ffffff !important; }
+html[data-theme="light"] .study-tab-btn.is-active span,
+html[data-theme="light"] .check-reveal-btn span,
+html[data-theme="light"] #btn-main-auth span { color: #ffffff !important; }
+html[data-theme="light"] .diagram-live-badge { background: #0369a1 !important; color: #ffffff !important; }
+html[data-theme="light"] .study-tab-btn:not(.is-active),
+html[data-theme="light"] .study-tab-btn:not(.is-active) span { color: #075985 !important; }
+/* Light mode: the fixed message bar keeps a light backdrop instead of the dark-theme navy. */
+html[data-theme="light"] body.view-app.chat-first .app-shell .response-dock, html[data-theme="light"] body.chat-first .response-dock { background: linear-gradient(to top, #f8fafc 78%, rgba(248, 250, 252, 0)) !important; }
+html[data-theme="light"] body.view-app.chat-first #home-ask-form, html[data-theme="light"] body.chat-first .home-ask-form { background: #ffffff !important; border-color: #cbd5e1 !important; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08) !important; }
+html[data-theme="light"] body.chat-first .home-ask-form textarea,
+html[data-theme="light"] body.chat-first .home-ask-form input { color: #0f172a !important; }

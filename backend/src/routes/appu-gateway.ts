@@ -16,6 +16,7 @@ import { PersonalisationRepository } from '../domain/personalisation/repository.
 import { buildGuestMentorContext } from '../domain/personalisation/guest-context.js';
 import { ConversationQuizService, extractQuizItem, type QuizTurnOutcome, type QuizTurnPlan } from '../domain/quiz/index.js';
 import { AdaptiveLearningService } from '../domain/adaptive-learning/service.js';
+import { extractQuickReplies } from '../domain/conversation/quick-replies.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
@@ -532,6 +533,10 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         response.text = extractQuizItem(response.text).text;
       }
 
+      // Tappable answer options: strip the tag before the text is saved or voiced.
+      const quickReplyResult = extractQuickReplies(response.text);
+      response.text = quickReplyResult.text;
+
       if (conversation) {
         try {
           await ConversationService.appendSuccessfulExchange(opts.db, {
@@ -656,6 +661,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         audioStreamUrl,
         audioDurationMs: audioStreamUrl ? null : finalAudioDurationMs,
         quiz: quizResult,
+        quickReplies: quickReplyResult.quickReplies,
         guestSession: null
       });
     }
@@ -801,6 +807,8 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     const tN8nEnd = performance.now();
     // Guests have no stored quiz state; never show or voice a quiz machine tag.
     if (response && typeof response.text === 'string') response.text = extractQuizItem(response.text).text;
+    const guestQuickReplies = extractQuickReplies(response?.text ?? '');
+    if (response && typeof response.text === 'string') response.text = guestQuickReplies.text;
 
     // 6. Generate signed token reflecting the successfully completed turn count
     const guestTokenResult = GuestSessionService.signGuestToken({
@@ -858,6 +866,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       audioSource: guestAudioStreamUrl ? null : (response.audioSource || null),
       audioStreamUrl: guestAudioStreamUrl,
       audioDurationMs: guestAudioStreamUrl ? null : (response.audioDurationMs || null),
+      quickReplies: guestQuickReplies.quickReplies,
       guest: {
         token: guestTokenResult,
         limit: GuestSessionService.DEFAULT_MAX_TURNS,

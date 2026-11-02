@@ -3265,6 +3265,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // A tapped answer option is sent exactly like a typed reply (same limits, history, voice).
+  document.addEventListener('appu:quick-reply', (e) => {
+    const text = e && e.detail && typeof e.detail.text === 'string' ? e.detail.text.trim() : '';
+    if (!text || !chatForm || !chatInput) return;
+    chatInput.value = text;
+    chatForm.requestSubmit();
+  });
+
   if (chatForm && chatInput) {
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
