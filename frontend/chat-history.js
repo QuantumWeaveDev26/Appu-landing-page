@@ -274,6 +274,49 @@
       }
     }
 
+    async renameConversation(conversationId, newTitle) {
+      const cleanTitle = (typeof newTitle === 'string' ? newTitle : '').trim().slice(0, 80);
+      if (!cleanTitle || !conversationId) return { error: 'invalid_title' };
+
+      const session = this.getSession();
+      const accessToken = session?.accessToken || this.accessToken;
+      const childId = session?.childId || this.activeChildId;
+
+      if (!accessToken || !childId) {
+        return { error: 'unauthenticated' };
+      }
+
+      if (this.backendClient && typeof this.backendClient.renameConversation === 'function') {
+        try {
+          const res = await this.backendClient.renameConversation({
+            accessToken,
+            childId,
+            conversationId,
+            title: cleanTitle
+          });
+          if (res && res.error) {
+            if (this.elements.error) this.elements.error.hidden = false;
+            return res;
+          }
+          const item = this.conversations.find((x) => x.id === conversationId);
+          if (item) {
+            item.title = cleanTitle;
+          }
+          this.renderList();
+          return { success: true, title: cleanTitle };
+        } catch (err) {
+          if (this.elements.error) this.elements.error.hidden = false;
+          return { error: 'request_failed', message: err?.message || 'Failed to rename conversation' };
+        }
+      }
+      const item = this.conversations.find((x) => x.id === conversationId);
+      if (item) {
+        item.title = cleanTitle;
+      }
+      this.renderList();
+      return { success: true, title: cleanTitle };
+    }
+
     async deleteConversation(conversationId) {
       const session = this.getSession();
       const accessToken = session?.accessToken || this.accessToken;
@@ -364,6 +407,66 @@
           this.openConversation(c.id).catch(() => {});
         });
 
+        const renameBtn = createElement('button', 'chat-history-item-rename');
+        if (renameBtn.setAttribute) {
+          renameBtn.setAttribute('type', 'button');
+          renameBtn.setAttribute('aria-label', `Rename conversation: ${c.title || 'Untitled'}`);
+          renameBtn.setAttribute('title', 'Rename conversation');
+        }
+        if (typeof document !== 'undefined' && document.createElement) {
+          renameBtn.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>';
+        }
+
+        renameBtn.addEventListener('click', (e) => {
+          if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+          if (typeof document === 'undefined' || !document.createElement) return;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'chat-history-rename-input';
+          input.value = c.title || '';
+          input.maxLength = 80;
+          input.setAttribute('aria-label', 'Edit conversation title');
+
+          let finished = false;
+          const finishRename = (save) => {
+            if (finished) return;
+            finished = true;
+            if (save) {
+              const val = input.value.trim().slice(0, 80);
+              if (val && val !== c.title) {
+                this.renameConversation(c.id, val).catch(() => {});
+                return;
+              }
+            }
+            this.renderList();
+          };
+
+          input.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') {
+              ev.preventDefault();
+              finishRename(true);
+            } else if (ev.key === 'Escape') {
+              ev.preventDefault();
+              finishRename(false);
+            }
+          });
+          input.addEventListener('blur', () => {
+            finishRename(true);
+          });
+          input.addEventListener('click', (ev) => {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+          });
+
+          if (titleSpan.replaceWith) {
+            titleSpan.replaceWith(input);
+          } else if (itemBtn.replaceChild) {
+            itemBtn.replaceChild(input, titleSpan);
+          }
+          if (renameBtn.style) renameBtn.style.display = 'none';
+          if (typeof input.focus === 'function') input.focus();
+          if (typeof input.select === 'function') input.select();
+        });
+
         const deleteBtn = createElement('button', 'chat-history-item-delete');
         if (deleteBtn.setAttribute) {
           deleteBtn.setAttribute('type', 'button');
@@ -385,6 +488,7 @@
         });
 
         itemEl.appendChild(itemBtn);
+        itemEl.appendChild(renameBtn);
         itemEl.appendChild(deleteBtn);
         this.elements.list.appendChild(itemEl);
       }

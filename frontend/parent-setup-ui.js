@@ -68,6 +68,7 @@
       childAddErrorDefault: 'Failed to add learner profile.',
       childLoadErrorDefault: 'Failed to load learners',
       loadingLearners: 'Loading learners...',
+      btnRetry: 'Retry',
       persIntroText: 'Personalize Appu for',
       persLangLabel: 'Primary Language',
       persStyleLabel: 'Learning Style',
@@ -166,6 +167,7 @@
       childAddErrorDefault: 'ಕಲಿಕಾರ್ಥಿ ಪ್ರೊಫೈಲ್ ಸೇರಿಸಲು ವಿಫಲವಾಗಿದೆ.',
       childLoadErrorDefault: 'ಕಲಿಕಾರ್ಥಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ',
       loadingLearners: 'ಕಲಿಕಾರ್ಥಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...',
+      btnRetry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
       persIntroText: 'ಇವರಿಗಾಗಿ ಅಪ್ಪುವನ್ನು ವೈಯಕ್ತೀಕರಿಸಿ',
       persLangLabel: 'ಪ್ರಾಥಮಿಕ ಭಾಷೆ',
       persStyleLabel: 'ಕಲಿಕಾ ಶೈಲಿ',
@@ -264,6 +266,7 @@
       childAddErrorDefault: 'शिक्षार्थी प्रोफ़ाइल जोड़ने में विफल।',
       childLoadErrorDefault: 'शिक्षार्थी लोड करने में विफल',
       loadingLearners: 'शिक्षार्थी लोड हो रहे हैं...',
+      btnRetry: 'पुनः प्रयास करें',
       persIntroText: 'इनके लिए अप्पू को व्यक्तिगत बनाएं',
       persLangLabel: 'मुख्य भाषा',
       persStyleLabel: 'सीखने की शैली',
@@ -602,6 +605,7 @@
     }
 
     let lastFocusedElement = null;
+    let activePersonalisationChild = null;
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -1583,13 +1587,22 @@
         `;
         childListContainer.appendChild(summaryBar);
 
-        if (vm.children.length > 0) {
+        // Deduplicate learners in UI list:
+        const seen = new Set();
+        const uniqueChildren = (vm.children || []).filter((c) => {
+          const key = `${(c.preferredName || '').trim().toLowerCase()}_${c.gradeBand}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        if (uniqueChildren.length > 0) {
           const listTitle = document.createElement('h4');
           listTitle.className = 'pos-subtitle';
           listTitle.textContent = t('learnerProfileHeading');
           childListContainer.appendChild(listTitle);
 
-          vm.children.forEach((c) => {
+          uniqueChildren.forEach((c) => {
             const item = document.createElement('div');
             item.className = 'pos-child-card';
             item.innerHTML = `
@@ -1610,14 +1623,20 @@
 
             const btnSelect = item.querySelector('.pos-child-select-btn');
             btnSelect.addEventListener('click', () => {
-              window.ParentOnboardingShell.state.selectedChild = c;
+              activePersonalisationChild = c;
+              if (window.ParentOnboardingShell && window.ParentOnboardingShell.state) {
+                window.ParentOnboardingShell.state.selectedChild = c;
+              }
               renderPersonalisationStep(c);
             });
 
             const btnEdit = item.querySelector('.pos-btn-edit-pers');
             if (btnEdit) {
               btnEdit.addEventListener('click', () => {
-                window.ParentOnboardingShell.state.selectedChild = c;
+                activePersonalisationChild = c;
+                if (window.ParentOnboardingShell && window.ParentOnboardingShell.state) {
+                  window.ParentOnboardingShell.state.selectedChild = c;
+                }
                 renderPersonalisationStep(c);
               });
             }
@@ -1664,12 +1683,32 @@
 
       } catch (err) {
         showAlert(err.message || t('childLoadErrorDefault'));
+        if (childListContainer) {
+          childListContainer.innerHTML = `
+            <div class="pos-error-box" style="text-align: center; padding: 24px 16px;">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; color: var(--danger, #ef4444); margin-bottom: 10px;"></i>
+              <p style="margin: 0 0 14px; font-weight: 600; color: var(--text, #e2e8f0);">${escapeHtml(err.message || t('childLoadErrorDefault'))}</p>
+              <button id="pos-btn-retry-children" class="pos-primary-btn" type="button" style="margin: 0 auto; min-height: 38px; padding: 0 20px;">
+                <i class="fa-solid fa-rotate-right" style="margin-right: 6px;"></i> ${t('btnRetry') || 'Retry'}
+              </button>
+            </div>
+          `;
+          const btnRetry = childListContainer.querySelector('#pos-btn-retry-children');
+          if (btnRetry) {
+            btnRetry.addEventListener('click', () => {
+              clearAlert();
+              renderChildStep();
+            });
+          }
+        }
       }
     }
 
+    let isCreatingChild = false;
     if (childNewForm) {
       childNewForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isCreatingChild) return;
         clearAlert();
 
         const preferredName = childNameInput.value.trim();
@@ -1680,12 +1719,20 @@
           return;
         }
 
+        isCreatingChild = true;
+        const submitBtn = childNewForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
         try {
           const child = await window.ParentOnboardingShell.createChild({ preferredName, gradeBand });
           childNameInput.value = '';
+          activePersonalisationChild = child;
           renderPersonalisationStep(child);
         } catch (err) {
           showAlert(err.message || t('childAddErrorDefault'));
+        } finally {
+          isCreatingChild = false;
+          if (submitBtn) submitBtn.disabled = false;
         }
       });
     }
@@ -1719,10 +1766,17 @@
     // Step 4: Personalisation Questionnaire Step
     // -------------------------------------------------------------
     async function renderPersonalisationStep(child) {
+      if (!child) {
+        child = activePersonalisationChild || (window.ParentOnboardingShell && window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.selectedChild);
+      }
+      activePersonalisationChild = child;
+      if (child && window.ParentOnboardingShell && window.ParentOnboardingShell.state) {
+        window.ParentOnboardingShell.state.selectedChild = child;
+      }
       setStep(4);
       switchPersTab('basic');
       const title = document.getElementById('pos-pers-child-name');
-      if (title) title.textContent = child.preferredName;
+      if (title && child) title.textContent = child.preferredName;
 
       // Only the first learner inherits the landing-page answers.
       const learners = (window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.children) || [];
@@ -1766,10 +1820,13 @@
         e.preventDefault();
         clearAlert();
 
-        const child = window.ParentOnboardingShell.state.selectedChild;
+        const child = activePersonalisationChild || (window.ParentOnboardingShell && window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.selectedChild);
         if (!child) {
           showAlert(t('alertNoChildSelected'));
           return;
+        }
+        if (window.ParentOnboardingShell && window.ParentOnboardingShell.state) {
+          window.ParentOnboardingShell.state.selectedChild = child;
         }
 
         // Validate optional learner nickname, gender & DOB
@@ -1901,7 +1958,10 @@
     // -------------------------------------------------------------
     if (btnLaunchAppu) {
       btnLaunchAppu.addEventListener('click', () => {
-        const child = window.ParentOnboardingShell.state.selectedChild;
+        const child = activePersonalisationChild || (window.ParentOnboardingShell && window.ParentOnboardingShell.state && window.ParentOnboardingShell.state.selectedChild);
+        if (child && window.ParentOnboardingShell && window.ParentOnboardingShell.state) {
+          window.ParentOnboardingShell.state.selectedChild = child;
+        }
         window.ParentOnboardingShell.launchAppuSession(child);
         closeModal();
 

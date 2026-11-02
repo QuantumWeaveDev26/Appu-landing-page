@@ -2232,8 +2232,21 @@ body.view-landing[data-theme="light"] { background: #f8fafc !important; }
 [data-theme="light"] .landing-front .landing-question-helper { color: #64748b; }
 [data-theme="light"] .landing-facts,
 [data-theme="light"] .landing-marketing-footer { border-top-color: rgba(15, 23, 42, 0.08); background: transparent; }
+.landing-profile-options .landing-profile-chip {
+  display: inline-flex !important;
+}
+
 @media (max-width: 600px) {
-  .landing-front .landing-prompt-chip:nth-child(n+3) { display: none; }
+  .landing-front .landing-prompt-chips .landing-prompt-chip:nth-child(n+3) { display: none; }
+  .landing-profile-options .landing-profile-chip {
+    display: inline-flex !important;
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .landing-profile-options {
+    gap: 6px;
+  }
 }
 
 /* Trial chat in the front door: same look as the app conversation. */

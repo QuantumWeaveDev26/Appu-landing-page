@@ -38,6 +38,11 @@ const createConversationSchema = z.object({
   firstMessage: z.string().trim().max(2000).optional()
 });
 
+const renameConversationSchema = z.object({
+  childId: z.string().uuid(),
+  title: z.string().trim().min(1, 'Title must not be empty').max(80, 'Title must not exceed 80 characters')
+});
+
 export const conversationRoutes: FastifyPluginAsync<ConversationRouteOptions> = async (
   fastify,
   opts
@@ -237,6 +242,66 @@ export const conversationRoutes: FastifyPluginAsync<ConversationRouteOptions> = 
       }
 
       return reply.status(204).send();
+    }
+  );
+
+  /**
+   * PATCH /api/appu/conversations/:conversationId
+   * Body: { childId, title } -> 200 { conversation: {...} }
+   * Renames one owned conversation.
+   */
+  fastify.patch(
+    '/api/appu/conversations/:conversationId',
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const paramsResult = conversationParamsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        throw new BadRequestError('Invalid conversationId parameter', {
+          errors: paramsResult.error.flatten().fieldErrors
+        });
+      }
+
+      const bodyResult = renameConversationSchema.safeParse(request.body);
+      if (!bodyResult.success) {
+        throw new BadRequestError('Invalid rename conversation request body', {
+          errors: bodyResult.error.flatten().fieldErrors
+        });
+      }
+
+      const principal = request.principal!;
+      const { household } = await HouseholdAuthorizationService.requireHouseholdMembership(
+        opts.db,
+        principal.userId
+      );
+
+      const child = await TenancyRepository.getChildProfile(
+        opts.db,
+        household.id,
+        bodyResult.data.childId
+      );
+      if (!child) {
+        throw new NotFoundError('Child profile not found');
+      }
+
+      const renamed = await ConversationRepository.renameOwned(
+        opts.db,
+        household.id,
+        child.id,
+        paramsResult.data.conversationId,
+        bodyResult.data.title
+      );
+      if (!renamed) {
+        throw new NotFoundError('Conversation not found');
+      }
+
+      const conversation = await ConversationRepository.getOwned(
+        opts.db,
+        household.id,
+        child.id,
+        paramsResult.data.conversationId
+      );
+
+      return reply.status(200).send({ conversation });
     }
   );
 

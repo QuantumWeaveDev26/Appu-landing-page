@@ -625,6 +625,27 @@
     });
   }
 
+  async function renameConversation(params = {}) {
+    const { accessToken, childId, conversationId, title, baseUrl } = params;
+    if (!childId || typeof childId !== 'string' || !childId.trim()) {
+      return { error: 'invalid_request', message: 'Missing childId' };
+    }
+    if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      return { error: 'invalid_request', message: 'Missing conversationId' };
+    }
+    const cleanTitle = (typeof title === 'string' ? title : '').trim().slice(0, 80);
+    if (!cleanTitle) {
+      return { error: 'invalid_request', message: 'Missing or empty title' };
+    }
+    return authenticatedConversationRequest({
+      accessToken,
+      path: `/api/appu/conversations/${encodeURIComponent(conversationId.trim())}`,
+      method: 'PATCH',
+      body: { childId: childId.trim(), title: cleanTitle },
+      baseUrl
+    });
+  }
+
   async function deleteConversation(params = {}) {
     const { accessToken, childId, conversationId, baseUrl } = params;
     if (!childId || typeof childId !== 'string' || !childId.trim()) {
@@ -951,6 +972,7 @@
     listConversations,
     getConversationMessages,
     saveLessonCard,
+    renameConversation,
     deleteConversation,
     clearConversations,
     formatWhatsAppStudyNote,

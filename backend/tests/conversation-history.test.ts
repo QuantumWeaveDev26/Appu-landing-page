@@ -264,6 +264,17 @@ describe('APPU Conversation History Domain & Repository Suite', () => {
     assert.ok(await ConversationRepository.getOwned(db, householdA, siblingChild, siblingConversationId));
   });
 
+  test('renameOwned updates title for owned conversation and rejects foreign', async () => {
+    const session = await ConversationRepository.create(db, householdA, childA, 'Original Title');
+    const renamed = await ConversationRepository.renameOwned(db, householdA, childA, session.id, 'Renamed Title');
+    assert.equal(renamed, true);
+    const updated = await ConversationRepository.getOwned(db, householdA, childA, session.id);
+    assert.equal(updated?.title, 'Renamed Title');
+
+    const foreignRename = await ConversationRepository.renameOwned(db, householdA, siblingChild, session.id, 'Hacked');
+    assert.equal(foreignRename, false);
+  });
+
   test('deleteExpired removes only expired conversations in bounded batches', async () => {
     const activeSession = await ConversationRepository.create(db, householdA, childA, 'Active conversation');
 
@@ -500,6 +511,22 @@ describe('APPU Conversation REST API Suite', () => {
     assert.equal(opened.statusCode, 200);
     assert.deepEqual(opened.json().messages, []);
 
+    const renamed = await app.inject({
+      method: 'PATCH',
+      url: `/api/appu/conversations/${id}`,
+      headers: authA,
+      payload: { childId: childA, title: 'Gravity and Orbits in Space' }
+    });
+    assert.equal(renamed.statusCode, 200);
+    assert.equal(renamed.json().conversation.title, 'Gravity and Orbits in Space');
+
+    const listedAfterRename = await app.inject({
+      method: 'GET',
+      url: `/api/appu/conversations?childId=${childA}`,
+      headers: authA
+    });
+    assert.equal(listedAfterRename.json().conversations[0].title, 'Gravity and Orbits in Space');
+
     assert.equal(
       (
         await app.inject({
@@ -615,6 +642,31 @@ describe('APPU Conversation REST API Suite', () => {
       headers: authA
     });
     assert.equal(response2.statusCode, 404);
+
+    // PATCH /api/appu/conversations/:id ownership and validation checks
+    const patchForeign = await app.inject({
+      method: 'PATCH',
+      url: `/api/appu/conversations/${foreignConversationId}`,
+      headers: authA,
+      payload: { childId: childA, title: 'Hijacked' }
+    });
+    assert.equal(patchForeign.statusCode, 404);
+
+    const patchEmpty = await app.inject({
+      method: 'PATCH',
+      url: `/api/appu/conversations/${foreignConversationId}`,
+      headers: authB,
+      payload: { childId: childB, title: '   ' }
+    });
+    assert.equal(patchEmpty.statusCode, 400);
+
+    const patchTooLong = await app.inject({
+      method: 'PATCH',
+      url: `/api/appu/conversations/${foreignConversationId}`,
+      headers: authB,
+      payload: { childId: childB, title: 'a'.repeat(81) }
+    });
+    assert.equal(patchTooLong.statusCode, 400);
   });
 });
 

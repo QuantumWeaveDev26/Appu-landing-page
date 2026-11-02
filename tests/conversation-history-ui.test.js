@@ -72,6 +72,12 @@ function makeController(options = {}) {
     async deleteConversation({ accessToken, childId, conversationId }) {
       return { success: true };
     },
+    async renameConversation(params) {
+      if (typeof options.renameConversation === 'function') {
+        return options.renameConversation(params);
+      }
+      return { success: true };
+    },
     async clearConversations({ accessToken, childId }) {
       return { success: true };
     }
@@ -319,8 +325,19 @@ describe('ChatHistoryController Unit & Integration Tests', () => {
   });
 
   test('ChatAgent sends newConversation: true only when forceNewConversation is true and no activeConversationId', async () => {
+    const originalDoc = global.document;
+    const originalWin = global.window;
     const elements = new Map();
-    const mockEl = (id) => ({ id, className: '', children: [], appendChild() {}, style: {}, setAttribute() {} });
+    const mockEl = (id) => ({
+      id,
+      className: '',
+      children: [],
+      appendChild() {},
+      style: {},
+      setAttribute() {},
+      addEventListener() {},
+      querySelectorAll: () => []
+    });
     elements.set('chat-messages', mockEl('chat-messages'));
     elements.set('chat-typing', mockEl('chat-typing'));
     global.document = {
@@ -343,39 +360,44 @@ describe('ChatHistoryController Unit & Integration Tests', () => {
       }
     };
 
-    const { ChatAgent } = require('../frontend/chat-agent.js');
-    const { controller } = makeController();
+    try {
+      const { ChatAgent } = require('../frontend/chat-agent.js');
+      const { controller } = makeController();
 
-    const agent = new ChatAgent({
-      getConversationId: () => controller.getActiveConversationId(),
-      getForceNewConversation: () => controller.getForceNewConversation(),
-      onConversationAssigned: (id) => controller.adoptConversationId(id)
-    });
+      const agent = new ChatAgent({
+        getConversationId: () => controller.getActiveConversationId(),
+        getForceNewConversation: () => controller.getForceNewConversation(),
+        onConversationAssigned: (id) => controller.adoptConversationId(id)
+      });
 
-    // 1. Initial state: forceNewConversation is false, activeConversationId is null
-    assert.equal(controller.getForceNewConversation(), false);
-    assert.equal(controller.getActiveConversationId(), null);
+      // 1. Initial state: forceNewConversation is false, activeConversationId is null
+      assert.equal(controller.getForceNewConversation(), false);
+      assert.equal(controller.getActiveConversationId(), null);
 
-    // 2. User clicks New Chat:
-    controller.startNewConversation();
-    assert.equal(controller.getForceNewConversation(), true);
+      // 2. User clicks New Chat:
+      controller.startNewConversation();
+      assert.equal(controller.getForceNewConversation(), true);
 
-    // 3. User sends first message after New Chat:
-    await agent.sendMessage('Explain photosynthesis');
-    assert.ok(sentPayload, 'Payload should have been sent');
-    assert.equal(sentPayload.newConversation, true, 'newConversation: true must be included in payload');
-    assert.equal(sentPayload.conversationId, undefined, 'conversationId must NOT be included');
+      // 3. User sends first message after New Chat:
+      await agent.sendMessage('Explain photosynthesis');
+      assert.ok(sentPayload, 'Payload should have been sent');
+      assert.equal(sentPayload.newConversation, true, 'newConversation: true must be included in payload');
+      assert.equal(sentPayload.conversationId, undefined, 'conversationId must NOT be included');
 
-    // 4. On response, conversationId was assigned and adopted:
-    assert.equal(controller.getActiveConversationId(), 'conv-assigned-456');
-    assert.equal(controller.getForceNewConversation(), false, 'forceNewConversation should be cleared after adopting id');
+      // 4. On response, conversationId was assigned and adopted:
+      assert.equal(controller.getActiveConversationId(), 'conv-assigned-456');
+      assert.equal(controller.getForceNewConversation(), false, 'forceNewConversation should be cleared after adopting id');
 
-    // 5. Subsequent message sends conversationId and omits newConversation:
-    sentPayload = null;
-    await agent.sendMessage('Tell me more');
-    assert.ok(sentPayload);
-    assert.equal(sentPayload.conversationId, 'conv-assigned-456', 'conversationId must match active conversation');
-    assert.equal(sentPayload.newConversation, undefined, 'newConversation must be undefined/omitted');
+      // 5. Subsequent message sends conversationId and omits newConversation:
+      sentPayload = null;
+      await agent.sendMessage('Tell me more');
+      assert.ok(sentPayload);
+      assert.equal(sentPayload.conversationId, 'conv-assigned-456', 'conversationId must match active conversation');
+      assert.equal(sentPayload.newConversation, undefined, 'newConversation must be undefined/omitted');
+    } finally {
+      global.document = originalDoc;
+      global.window = originalWin;
+    }
   });
 
   test('AppuBackendClient forwards newConversation: true for authenticated payload', async () => {
@@ -401,6 +423,62 @@ describe('ChatHistoryController Unit & Integration Tests', () => {
 
       assert.ok(capturedBody);
       assert.equal(capturedBody.newConversation, true, 'AppuBackendClient must forward newConversation flag in body');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('ChatHistoryController.renameConversation updates local item and calls backendClient.renameConversation', async () => {
+    let capturedRename = null;
+    const { controller, mockClient } = makeController({
+      renameConversation: async (params) => {
+        capturedRename = params;
+        return { conversation: { id: params.conversationId, title: params.title } };
+      }
+    });
+
+    controller.conversations = [
+      { id: 'conv-rename-1', title: 'Old Title', createdAt: new Date().toISOString() }
+    ];
+    controller.renderList();
+
+    const res = await controller.renameConversation('conv-rename-1', 'New Renamed Title');
+    assert.equal(res.success, true);
+    assert.equal(res.title, 'New Renamed Title');
+    assert.equal(controller.conversations[0].title, 'New Renamed Title');
+    assert.ok(capturedRename);
+    assert.equal(capturedRename.conversationId, 'conv-rename-1');
+    assert.equal(capturedRename.title, 'New Renamed Title');
+  });
+
+  test('AppuBackendClient.renameConversation issues PATCH request with childId and trimmed title', async () => {
+    let capturedUrl = null;
+    let capturedOpts = null;
+    const originalFetch = global.fetch;
+    global.fetch = async (url, opts) => {
+      capturedUrl = url;
+      capturedOpts = opts;
+      return {
+        ok: true,
+        headers: new Map(),
+        json: async () => ({ conversation: { id: 'c-rename-99', title: 'Trimmed Title' } })
+      };
+    };
+
+    const AppuBackendClient = require('../frontend/appu-backend-client.js');
+    try {
+      const res = await AppuBackendClient.renameConversation({
+        accessToken: 'tok-rename',
+        childId: 'c1234567-0000-0000-0000-000000000001',
+        conversationId: 'c-rename-99',
+        title: '   Trimmed Title   '
+      });
+
+      assert.ok(capturedUrl.includes('/api/appu/conversations/c-rename-99'));
+      assert.equal(capturedOpts.method, 'PATCH');
+      const body = JSON.parse(capturedOpts.body);
+      assert.equal(body.title, 'Trimmed Title');
+      assert.equal(body.childId, 'c1234567-0000-0000-0000-000000000001');
     } finally {
       global.fetch = originalFetch;
     }

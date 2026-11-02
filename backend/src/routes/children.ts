@@ -184,12 +184,38 @@ export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (f
       await ensureBetaSubscription(opts.db, household.id, opts.betaChatLimit ?? 30);
     }
 
-    // 2. Enforce active subscription and max_children limit (bypassed for unlimited admin accounts)
+    // 2. Idempotency / Duplicate Guard: If an identical child already exists in this household, return it
+    const existingChildren = await TenancyRepository.listChildProfilesByHousehold(opts.db, household.id);
+    const normalizedName = parseResult.data.preferredName.trim().toLowerCase();
+    const existingChild = existingChildren.find(
+      (c) => c.status === 'ACTIVE' &&
+             c.preferredName.trim().toLowerCase() === normalizedName &&
+             c.gradeBand === parseResult.data.gradeBand
+    );
+    if (existingChild) {
+      return reply.status(200).send({
+        child: {
+          id: existingChild.id,
+          householdId: existingChild.householdId,
+          preferredName: existingChild.preferredName,
+          nickname: existingChild.nickname,
+          dob: existingChild.dob,
+          gender: existingChild.gender,
+          gradeBand: existingChild.gradeBand,
+          status: existingChild.status,
+          createdAt: existingChild.createdAt,
+          updatedAt: existingChild.updatedAt
+        },
+        deduplicated: true
+      });
+    }
+
+    // 3. Enforce active subscription and max_children limit (bypassed for unlimited admin accounts)
     if (!isUnlimited) {
       await EntitlementEnforcementService.enforceChildCreationLimit(opts.db, household.id);
     }
 
-    // 3. Create child profile bound strictly to the derived household ID
+    // 4. Create child profile bound strictly to the derived household ID
     const child = await TenancyRepository.createChildProfile(opts.db, {
       householdId: household.id,
       preferredName: parseResult.data.preferredName,

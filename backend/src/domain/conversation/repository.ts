@@ -295,6 +295,22 @@ export class ConversationRepository {
     }));
   }
 
+  static async renameOwned(
+    db: Queryable,
+    householdId: string,
+    childId: string,
+    conversationId: string,
+    title: string
+  ): Promise<boolean> {
+    const res = await db.query(
+      `UPDATE conversation_sessions
+       SET title = $1, updated_at = NOW()
+       WHERE id = $2 AND household_id = $3 AND child_id = $4`,
+      [title, conversationId, householdId, childId]
+    );
+    return (res.rowCount ?? 0) > 0;
+  }
+
   static async deleteOwned(
     db: Queryable,
     householdId: string,

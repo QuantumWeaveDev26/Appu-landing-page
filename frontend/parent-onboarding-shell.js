@@ -767,10 +767,35 @@
    * Step 3: Fetches child profiles.
    */
   async function fetchChildren() {
-    if (!state.session?.access_token) return [];
-    const res = await fetch(`${getApiBaseUrl()}/api/children`, {
-      headers: { Authorization: `Bearer ${state.session.access_token}` }
+    let token = state.session?.access_token;
+    if (!token && state.supabaseClient?.auth && typeof state.supabaseClient.auth.getSession === 'function') {
+      try {
+        const { data } = await state.supabaseClient.auth.getSession();
+        if (data?.session?.access_token) {
+          state.session = data.session;
+          token = data.session.access_token;
+        }
+      } catch {}
+    }
+    if (!token) return [];
+
+    let res = await fetch(`${getApiBaseUrl()}/api/children`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
+
+    if (res.status === 401 && state.supabaseClient?.auth && typeof state.supabaseClient.auth.refreshSession === 'function') {
+      try {
+        const { data } = await state.supabaseClient.auth.refreshSession();
+        if (data?.session?.access_token) {
+          state.session = data.session;
+          token = data.session.access_token;
+          res = await fetch(`${getApiBaseUrl()}/api/children`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      } catch {}
+    }
+
     if (!res.ok) {
       throw new Error('Failed to load child profiles');
     }
@@ -783,14 +808,24 @@
    * Step 3: Creates a new child profile.
    */
   async function createChild({ preferredName, gradeBand }) {
-    if (!state.session?.access_token) {
+    let token = state.session?.access_token;
+    if (!token && state.supabaseClient?.auth && typeof state.supabaseClient.auth.getSession === 'function') {
+      try {
+        const { data } = await state.supabaseClient.auth.getSession();
+        if (data?.session?.access_token) {
+          state.session = data.session;
+          token = data.session.access_token;
+        }
+      } catch {}
+    }
+    if (!token) {
       throw new Error('Parent session required');
     }
 
     const res = await fetch(`${getApiBaseUrl()}/api/children`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${state.session.access_token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ preferredName, gradeBand })
@@ -804,7 +839,11 @@
     const data = await res.json();
     state.selectedChild = data.child;
     await fetchChildren();
-    return data.child;
+    if (data.child) {
+      const found = state.children.find((c) => c.id === data.child.id);
+      state.selectedChild = found || data.child;
+    }
+    return state.selectedChild;
   }
 
   /**
@@ -1018,8 +1057,12 @@
 
       const children = await fetchChildren().catch(() => []);
       if (isSuperseded()) return supersededResult();
-      if (children.length === 1) {
-        state.selectedChild = children[0];
+      const activeChild = state.selectedChild && children.find((c) => c.id === state.selectedChild.id)
+        ? state.selectedChild
+        : (children.length === 1 ? children[0] : null);
+
+      if (activeChild) {
+        state.selectedChild = activeChild;
         const pers = await fetchPersonalisation(state.selectedChild.id).catch(() => null);
         if (isSuperseded()) return supersededResult();
         if (pers && (pers.favoriteSubjects?.length || pers.learningStyle || pers.interests?.length || pers.preferredLanguage)) {

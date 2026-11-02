@@ -322,6 +322,20 @@ describe('Milestone 2B: Parent Authentication, Household Authorization & Child P
     assert.equal(child1.gradeBand, 'Grade 6');
     assert.equal(child1.status, 'ACTIVE');
 
+    // Duplicate child creation retry: must return existing child without duplicate row (idempotency)
+    const postRes1Retry = await app.inject({
+      method: 'POST',
+      url: '/api/children',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        preferredName: '  aarav  ',
+        gradeBand: 'Grade 6'
+      }
+    });
+    assert.equal(postRes1Retry.statusCode, 200);
+    const child1Retry = JSON.parse(postRes1Retry.payload).child;
+    assert.equal(child1Retry.id, child1.id);
+
     // 3. Create Child 2
     const postRes2 = await app.inject({
       method: 'POST',

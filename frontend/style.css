@@ -13989,3 +13989,8 @@ html[data-theme="light"] body.view-app.chat-first .app-shell .response-dock, htm
 html[data-theme="light"] body.view-app.chat-first #home-ask-form, html[data-theme="light"] body.chat-first .home-ask-form { background: #ffffff !important; border-color: #cbd5e1 !important; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08) !important; }
 html[data-theme="light"] body.chat-first .home-ask-form textarea,
 html[data-theme="light"] body.chat-first .home-ask-form input { color: #0f172a !important; }
+/* Recent chats: rename (pencil) matches the delete button; inline title field while editing. */
+.chat-history-item-rename { display: grid; place-items: center; width: 40px; height: 44px; min-width: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--muted, #94a3b8); font-size: 13px; cursor: pointer; transition: color .15s, background .15s; }
+.chat-history-item-rename:hover { color: #38bdf8; background: rgba(56, 189, 248, 0.12); }
+.chat-history-item-rename:focus-visible { outline: 2px solid var(--cyan, #22d3ee); outline-offset: 2px; }
+.chat-history-rename-input { flex: 1; min-width: 0; height: 36px; margin: 4px 0 4px 8px; padding: 0 10px; border-radius: 8px; border: 1.5px solid #38bdf8; background: transparent; color: inherit; font: inherit; }
