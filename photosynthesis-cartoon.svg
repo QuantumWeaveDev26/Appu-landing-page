@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+  <defs>
+    <!-- Sky Background Gradient -->
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="45%" stop-color="#38bdf8" />
+      <stop offset="78%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#fef9c3" />
+    </linearGradient>
+
+    <!-- Soil Gradient -->
+    <linearGradient id="soilGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#854d0e" />
+      <stop offset="35%" stop-color="#713f12" />
+      <stop offset="100%" stop-color="#3f2305" />
+    </linearGradient>
+
+    <!-- Sun Glow -->
+    <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbeb" />
+      <stop offset="40%" stop-color="#fde047" />
+      <stop offset="75%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </radialGradient>
+
+    <!-- Leaf Character Gradient -->
+    <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4ade80" />
+      <stop offset="40%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+
+    <!-- Sugar Jar Glow -->
+    <radialGradient id="sugarGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </radialGradient>
+
+    <!-- Filter for soft cartoon drop shadows -->
+    <filter id="softShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.25" />
+    </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Sky & Landscape -->
+  <rect width="800" height="360" fill="url(#skyGrad)" />
+  <rect y="360" width="800" height="90" fill="url(#soilGrad)" />
+
+  <!-- Grass blades trim on ground -->
+  <path d="M0,360 Q20,348 40,360 Q60,348 80,360 Q100,348 120,360 Q140,348 160,360 Q180,348 200,360 Q220,348 240,360 Q260,348 280,360 Q300,348 320,360 Q340,348 360,360 Q380,348 400,360 Q420,348 440,360 Q460,348 480,360 Q500,348 520,360 Q540,348 560,360 Q580,348 600,360 Q620,348 640,360 Q660,348 680,360 Q700,348 720,360 Q740,348 760,360 Q780,348 800,360 L800,365 L0,365 Z" fill="#22c55e" />
+
+  <!-- Top Ribbon Banner -->
+  <g filter="url(#softShadow)">
+    <rect x="140" y="14" width="520" height="38" rx="19" fill="#0f172a" fill-opacity="0.88" stroke="#38bdf8" stroke-width="1.8" />
+    <text x="400" y="38" font-family="'Space Grotesk', -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="0.4">
+      <tspan fill="#facc15">☀️ Sunlight</tspan> + <tspan fill="#38bdf8">💧 Water</tspan> + <tspan fill="#c084fc">💨 CO₂</tspan>  ➔  <tspan fill="#4ade80">🍬 Glucose Sugar</tspan> + <tspan fill="#67e8f9">🍃 Oxygen</tspan>
+    </text>
+  </g>
+
+  <!-- 1. Smiling Cartoon Sun (Top-Left) -->
+  <g transform="translate(105, 115)" filter="url(#softShadow)">
+    <!-- Sun Rays -->
+    <g stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round" opacity="0.9">
+      <line x1="0" y1="-64" x2="0" y2="-48" />
+      <line x1="45" y1="-45" x2="34" y2="-34" />
+      <line x1="64" y1="0" x2="48" y2="0" />
+      <line x1="45" y1="45" x2="34" y2="34" />
+      <line x1="0" y1="64" x2="0" y2="48" />
+      <line x1="-45" y1="45" x2="-34" y2="34" />
+      <line x1="-64" y1="0" x2="-48" y2="0" />
+      <line x1="-45" y1="-45" x2="-34" y2="-34" />
+    </g>
+    <!-- Sun Body -->
+    <circle r="40" fill="url(#sunGrad)" />
+    <!-- Cheerful Sunglasses -->
+    <rect x="-30" y="-12" width="26" height="18" rx="6" fill="#0f172a" />
+    <rect x="4" y="-12" width="26" height="18" rx="6" fill="#0f172a" />
+    <line x1="-4" y1="-4" x2="4" y2="-4" stroke="#0f172a" stroke-width="3" />
+    <line x1="-24" y1="-8" x2="-14" y2="-2" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    <line x1="10" y1="-8" x2="20" y2="-2" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    <!-- Rosy Cheeks -->
+    <circle cx="-24" cy="14" r="6" fill="#f43f5e" opacity="0.6" />
+    <circle cx="24" cy="14" r="6" fill="#f43f5e" opacity="0.6" />
+    <!-- Smiling Mouth -->
+    <path d="M-12,12 Q0,24 12,12" stroke="#b45309" stroke-width="3.2" fill="#ef4444" stroke-linecap="round" />
+
+    <!-- Label Badge: Sunlight -->
+    <g transform="translate(0, 58)">
+      <rect x="-62" y="0" width="124" height="24" rx="12" fill="#0f172a" fill-opacity="0.85" stroke="#f59e0b" stroke-width="1.5" />
+      <text x="0" y="16" font-family="'Space Grotesk', sans-serif" font-size="11.5" font-weight="700" fill="#fef08a" text-anchor="middle">
+        ☀️ Sunlight Energy
+      </text>
+    </g>
+  </g>
+
+  <!-- Sun Golden Light Beams flowing to center leaf -->
+  <path d="M145,135 Q220,175 320,205" stroke="#fde047" stroke-width="3.5" stroke-dasharray="7,5" opacity="0.75" />
+  <path d="M150,150 Q230,195 330,225" stroke="#facc15" stroke-width="3" stroke-dasharray="6,6" opacity="0.7" />
+  <polygon points="325,200 338,206 328,212" fill="#f59e0b" />
+  <polygon points="335,220 348,226 338,232" fill="#f59e0b" />
+
+  <!-- 2. Plant Stem & Roots -->
+  <!-- Plant Stem -->
+  <path d="M400,240 Q400,300 400,370" stroke="#16a34a" stroke-width="18" stroke-linecap="round" fill="none" />
+  <!-- Internal water conduit inside stem -->
+  <path d="M400,365 L400,245" stroke="#38bdf8" stroke-width="5" stroke-dasharray="6,4" fill="none" opacity="0.85" />
+
+  <!-- Roots in Soil -->
+  <g stroke="#d97706" stroke-width="4.5" stroke-linecap="round" fill="none">
+    <path d="M400,370 Q370,395 340,425" />
+    <path d="M400,370 Q430,395 460,425" />
+    <path d="M400,380 Q390,410 385,438" />
+    <path d="M400,380 Q415,410 420,438" />
+    <path d="M360,405 Q335,412 320,425" stroke-width="3" />
+    <path d="M440,405 Q465,412 480,425" stroke-width="3" />
+  </g>
+
+  <!-- Water Droplets in Soil & Stem -->
+  <g fill="#38bdf8" filter="url(#glow)">
+    <circle cx="330" cy="415" r="7" />
+    <circle cx="470" cy="415" r="7" />
+    <circle cx="390" cy="425" r="6" />
+    <circle cx="400" cy="330" r="5" fill="#e0f2fe" />
+    <circle cx="400" cy="280" r="5" fill="#e0f2fe" />
+  </g>
+  <!-- Water upward arrows -->
+  <polygon points="396,305 400,296 404,305" fill="#0284c7" />
+  <polygon points="396,345 400,336 404,345" fill="#0284c7" />
+
+  <!-- Label Badge: Water from Soil -->
+  <g transform="translate(400, 424)" filter="url(#softShadow)">
+    <rect x="-65" y="0" width="130" height="23" rx="11.5" fill="#0f172a" fill-opacity="0.88" stroke="#0284c7" stroke-width="1.5" />
+    <text x="0" y="15.5" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="700" fill="#7dd3fc" text-anchor="middle">
+      💧 Water (from Roots)
+    </text>
+  </g>
+
+  <!-- 3. Chef Leaf Character (Center) -->
+  <g transform="translate(390, 210)" filter="url(#softShadow)">
+    <!-- Big Leaf Body -->
+    <path d="M-80,-20 C-60,-90 60,-90 85,-20 C105,40 30,85 0,95 C-30,85 -105,40 -80,-20 Z" fill="url(#leafGrad)" stroke="#166534" stroke-width="3.5" />
+    <!-- Leaf Veins -->
+    <path d="M0,90 L0,-40" stroke="#86efac" stroke-width="3.5" stroke-linecap="round" opacity="0.8" fill="none" />
+    <path d="M0,50 Q-25,35 -50,30" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" opacity="0.7" fill="none" />
+    <path d="M0,50 Q25,35 50,30" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" opacity="0.7" fill="none" />
+    <path d="M0,10 Q-28,-5 -52,-15" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" opacity="0.7" fill="none" />
+    <path d="M0,10 Q28,-5 52,-15" stroke="#86efac" stroke-width="2.5" stroke-linecap="round" opacity="0.7" fill="none" />
+
+    <!-- Cute Big Cartoon Eyes -->
+    <circle cx="-22" cy="5" r="14" fill="#ffffff" />
+    <circle cx="22" cy="5" r="14" fill="#ffffff" />
+    <circle cx="-19" cy="6" r="8" fill="#0f172a" />
+    <circle cx="25" cy="6" r="8" fill="#0f172a" />
+    <!-- Eye highlights -->
+    <circle cx="-22" cy="3" r="3.5" fill="#ffffff" />
+    <circle cx="22" cy="3" r="3.5" fill="#ffffff" />
+    <!-- Rosy Cheeks -->
+    <circle cx="-38" cy="22" r="7" fill="#f43f5e" opacity="0.55" />
+    <circle cx="38" cy="22" r="7" fill="#f43f5e" opacity="0.55" />
+    <!-- Happy Smile -->
+    <path d="M-14,24 Q0,38 14,24" stroke="#14532d" stroke-width="3.5" stroke-linecap="round" fill="#ef4444" />
+    <!-- Little tongue -->
+    <path d="M-6,30 Q0,37 6,30 Z" fill="#fca5a5" />
+
+    <!-- Chef's Hat on Leaf -->
+    <g transform="translate(0, -68)">
+      <rect x="-35" y="14" width="70" height="15" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+      <path d="M-36,15 C-48,-15 -20,-28 0,-26 C20,-28 48,-15 36,15 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+      <!-- Hat folds -->
+      <line x1="-12" y1="-20" x2="-10" y2="12" stroke="#e2e8f0" stroke-width="2" />
+      <line x1="12" y1="-20" x2="10" y2="12" stroke="#e2e8f0" stroke-width="2" />
+      <text x="0" y="8" font-family="'Space Grotesk', sans-serif" font-size="8" font-weight="800" fill="#0284c7" text-anchor="middle">CHEF LEAF</text>
+    </g>
+
+    <!-- Mixing Spoon held by Leaf -->
+    <g transform="translate(68, 30) rotate(-25)">
+      <rect x="-4" y="-35" width="8" height="50" rx="3" fill="#b45309" />
+      <ellipse cx="0" cy="-35" rx="10" ry="14" fill="#d97706" />
+    </g>
+
+    <!-- Label Badge: Chlorophyll Kitchen -->
+    <g transform="translate(0, 108)">
+      <rect x="-80" y="0" width="160" height="25" rx="12.5" fill="#0f172a" fill-opacity="0.88" stroke="#22c55e" stroke-width="1.8" />
+      <text x="0" y="16.5" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="700" fill="#4ade80" text-anchor="middle">
+        🍃 Leaf Kitchen (Chlorophyll)
+      </text>
+    </g>
+  </g>
+
+  <!-- 4. Carbon Dioxide Bubbles (Inflow from Left) -->
+  <g transform="translate(235, 235)" filter="url(#softShadow)">
+    <!-- Swirl arrow -->
+    <path d="M-40,-15 Q-10,0 20,-10" stroke="#c084fc" stroke-width="3" stroke-dasharray="5,4" fill="none" />
+    <polygon points="18,-15 28,-10 18,-5" fill="#a855f7" />
+
+    <!-- CO2 Bubble 1 -->
+    <circle cx="-35" cy="-25" r="22" fill="#7e22ce" fill-opacity="0.85" stroke="#c084fc" stroke-width="2" />
+    <text x="-35" y="-20" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">CO₂</text>
+
+    <!-- CO2 Bubble 2 -->
+    <circle cx="-15" cy="22" r="17" fill="#6b21a8" fill-opacity="0.8" stroke="#d8b4fe" stroke-width="1.8" />
+    <text x="-15" y="26" font-family="'Space Grotesk', sans-serif" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">CO₂</text>
+
+    <!-- Label Badge: Carbon Dioxide -->
+    <g transform="translate(-25, 52)">
+      <rect x="-62" y="0" width="124" height="23" rx="11.5" fill="#0f172a" fill-opacity="0.88" stroke="#a855f7" stroke-width="1.5" />
+      <text x="0" y="15.5" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="700" fill="#e9d5ff" text-anchor="middle">
+        💨 Carbon Dioxide (in)
+      </text>
+    </g>
+  </g>
+
+  <!-- 5. Output 1: Glucose Sugar Energy (Outflow to Right) -->
+  <g transform="translate(585, 175)" filter="url(#softShadow)">
+    <!-- Outflow arrow -->
+    <path d="M-60,35 Q-20,15 15,25" stroke="#facc15" stroke-width="3" stroke-dasharray="5,4" fill="none" />
+    <polygon points="12,20 23,26 14,32" fill="#eab308" />
+
+    <!-- Honey/Sugar Honeycomb Jar -->
+    <g transform="translate(45, 15)">
+      <!-- Sweet honey pot -->
+      <path d="M-28,15 C-32,-15 32,-15 28,15 C26,38 -26,38 -28,15 Z" fill="url(#sugarGlow)" stroke="#a16207" stroke-width="2.5" />
+      <!-- Jar rim -->
+      <rect x="-24" y="-18" width="48" height="10" rx="5" fill="#fde047" stroke="#ca8a04" stroke-width="2" />
+      <!-- Sparkles -->
+      <text x="0" y="15" font-size="18" text-anchor="middle">🍬</text>
+      <!-- Label on pot -->
+      <text x="0" y="32" font-family="'Space Grotesk', sans-serif" font-size="8.5" font-weight="800" fill="#713f12" text-anchor="middle">GLUCOSE</text>
+    </g>
+
+    <!-- Label Badge: Sugar Food -->
+    <g transform="translate(45, 62)">
+      <rect x="-68" y="0" width="136" height="24" rx="12" fill="#0f172a" fill-opacity="0.88" stroke="#eab308" stroke-width="1.8" />
+      <text x="0" y="16" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="700" fill="#fef08a" text-anchor="middle">
+        🍬 Glucose (Plant Food)
+      </text>
+    </g>
+  </g>
+
+  <!-- 6. Output 2: Fresh Oxygen Released (Top-Right Sky) -->
+  <g transform="translate(600, 85)" filter="url(#softShadow)">
+    <!-- Oxygen Bubble 1 -->
+    <circle cx="15" cy="0" r="26" fill="#0284c7" fill-opacity="0.85" stroke="#38bdf8" stroke-width="2.5" />
+    <text x="15" y="7" font-family="'Space Grotesk', sans-serif" font-size="16" font-weight="800" fill="#ffffff" text-anchor="middle">O₂</text>
+    <!-- Little shine -->
+    <ellipse cx="8" cy="-10" rx="6" ry="3" fill="#ffffff" opacity="0.6" transform="rotate(-30 8 -10)" />
+
+    <!-- Oxygen Bubble 2 -->
+    <circle cx="58" cy="-12" r="18" fill="#0369a1" fill-opacity="0.8" stroke="#7dd3fc" stroke-width="2" />
+    <text x="58" y="-7" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="800" fill="#ffffff" text-anchor="middle">O₂</text>
+
+    <!-- Oxygen Bubble 3 -->
+    <circle cx="-25" cy="18" r="14" fill="#0284c7" fill-opacity="0.75" stroke="#38bdf8" stroke-width="1.8" />
+    <text x="-25" y="23" font-family="'Space Grotesk', sans-serif" font-size="9" font-weight="800" fill="#ffffff" text-anchor="middle">O₂</text>
+
+    <!-- Sparkles -->
+    <text x="42" y="24" font-size="14" fill="#67e8f9">✨</text>
+    <text x="-5" y="-20" font-size="12" fill="#67e8f9">✨</text>
+
+    <!-- Label Badge: Oxygen -->
+    <g transform="translate(25, 38)">
+      <rect x="-65" y="0" width="130" height="24" rx="12" fill="#0f172a" fill-opacity="0.88" stroke="#38bdf8" stroke-width="1.8" />
+      <text x="0" y="16" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="700" fill="#7dd3fc" text-anchor="middle">
+        🍃 Clean Oxygen (for Us!)
+      </text>
+    </g>
+  </g>
+</svg>

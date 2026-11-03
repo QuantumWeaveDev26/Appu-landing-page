@@ -1,0 +1,837 @@
+/**
+ * ChatAgent: Secure Gateway Connector & AI Mentor Engine
+ *
+ * All interactions (authenticated and guest) route strictly through the backend
+ * gateway (POST /api/appu/message) via AppuBackendClient.
+ */
+
+class ChatAgent {
+  constructor(options = {}) {
+    this.mockMode = false;
+    this.voiceEngine = options.voiceEngine || null;
+    this.getConversationId = options.getConversationId || (() => null);
+    this.getForceNewConversation = options.getForceNewConversation || (() => false);
+    this.onConversationAssigned = options.onConversationAssigned || (() => {});
+    this.messages = [];
+    this.messagesContainer = document.getElementById('chat-messages');
+    this.typingIndicator = document.getElementById('chat-typing');
+
+    this.initDefaultWelcome();
+  }
+
+  initDefaultWelcome() {
+    this.addMessage('appu', 'Namaskara! 🙏 I am Appu, your learning companion. Tell me your class and what you want to understand today!', null, null, { isWelcome: true });
+  }
+
+  addMessage(sender, text, actionCard = null, imageDataUrl = null, options = {}) {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const msgObj = { sender, text, time: timeStr, actionCard, imageDataUrl, ...options };
+    if (
+      sender === 'appu' &&
+      !msgObj.isWelcome &&
+      !msgObj.isSystem &&
+      options.quickReplies !== null &&
+      (!Array.isArray(msgObj.quickReplies) || msgObj.quickReplies.length < 2) &&
+      typeof text === 'string' &&
+      text.includes('?')
+    ) {
+      msgObj.quickReplies = ChatAgent.ensureQuickReplies(text, msgObj.quickReplies);
+    }
+    // Options only answer the latest question: drop older ones once anything new arrives.
+    if (this.messagesContainer && typeof this.messagesContainer.querySelectorAll === 'function') {
+      this.messagesContainer.querySelectorAll('.msg-quick-replies').forEach((el) => el.remove());
+    }
+    this.messages.forEach((m) => { if (m.quickReplies) m.quickReplies = null; });
+    this.messages.push(msgObj);
+    this.renderMessage(msgObj);
+    return msgObj;
+  }
+
+  static ensureQuickReplies(rawText, existing = []) {
+    if (Array.isArray(existing)) {
+      const valid = existing
+        .filter((o) => typeof o === 'string' && o.trim())
+        .map((o) => o.trim())
+        .slice(0, 4);
+      if (valid.length >= 2) return valid;
+    }
+    const text = typeof rawText === 'string' ? rawText.trim() : '';
+    if (!text) return [];
+
+    // 1. Explicit [[OPTIONS: a | b | c]] tag if still present
+    const tagMatch = [...text.matchAll(/\[\[\s*OPTIONS\s*:([^\]]*)\]\]/gi)];
+    if (tagMatch.length > 0) {
+      const last = tagMatch[tagMatch.length - 1][1];
+      const parts = last
+        .split('|')
+        .map((p) => p.replace(/\s+/g, ' ').trim())
+        .filter((p) => p && p.length <= 60)
+        .slice(0, 4);
+      if (parts.length >= 2) return parts;
+    }
+
+    // 2. Inline A) ... B) ... choices
+    const inlineMcq = [...text.matchAll(/(?:^|\n)\s*([A-D])[).:]\s+([^\n]+)/g)];
+    if (inlineMcq.length >= 2) {
+      return inlineMcq.slice(0, 4).map((m) => `${m[1].toUpperCase()}) ${m[2].trim().slice(0, 36)}`);
+    }
+
+    // 3. Choice list in any "?" sentence ("A, B, or C?" / "X — A, B, or C?" / "X, or Y?")
+    const qSentences = text.match(/[^.!?\n]*\?/g) || [];
+    const prefixRe = /^(?:(?:or|and|either|maybe|perhaps|like|is\s+it|are\s+they|was\s+it|is\s+there(?:\s+(?:a|an|any|some))?|do\s+you\s+want(?:\s+me)?\s+to|would\s+you\s+like(?:\s+me)?\s+to|want(?:\s+me)?\s+to|do\s+you\s+want|would\s+you\s+like|do\s+you\s+prefer|should\s+we|shall\s+we|can\s+we|let'?s|should\s+i|shall\s+i|can\s+i|ready\s+for(?:\s+(?:some|a|an))?|up\s+for(?:\s+(?:some|a|an))?|how\s+about|what\s+about)\s+)/i;
+    const stemRe = /^(?:(?:(?:do\s+you\s+want|would\s+you\s+like|want)\s+to\s+(?:start\s+with|begin\s+with|practice|practise|revise|study|learn|focus\s+on|work\s+on|go\s+with|pick|choose|tackle|explore|cover)\s+)|(?:(?:should|shall|can)\s+we\s+(?:start\s+with|begin\s+with|practice|practise|revise|study|learn|focus\s+on|work\s+on|go\s+with|pick|choose|tackle|explore|cover|do)\s+)|(?:(?:is|was)\s+it|are\s+they|do\s+you\s+prefer|would\s+you\s+prefer|would\s+you\s+like|do\s+you\s+want|how\s+about|what\s+about|ready\s+for|up\s+for|start\s+with|begin\s+with|go\s+with|pick|choose|either)\s+)/i;
+    const pronouns = new Set(['it', 'this', 'that', 'these', 'those', 'them', 'they', 'one', 'ones', 'which', 'what', 'who']);
+
+    const cleanOpt = (raw) => {
+      let s = String(raw || '').replace(/\s+/g, ' ').trim();
+      s = s.replace(/^[\s"“'‘()+*\-—–]+/, '').replace(/[\s"”'’().!?]+$/, '').trim();
+      for (let k = 0; k < 4; k++) {
+        const next = s.replace(prefixRe, '').trim();
+        if (next === s) break;
+        s = next;
+      }
+      s = s.replace(/^[\s"“'‘()+*\-—–]+/, '').replace(/[\s"”'’.,;:!?—–\-]+$/, '').trim();
+      if (!s) return null;
+      if (/^something\s+else$/i.test(s)) return 'Something else';
+      s = s.replace(/\b(show|give|tell|teach|ask|help|walk)\s+you\b/gi, '$1 me');
+      if (s.split(/\s+/).length >= 4) {
+        s = s
+          .replace(/\s+from\s+(?:class|grade)\s+\d+(?:\s+that(?:'s|\s+is)\s+[\w\s]+)?$/i, '')
+          .replace(/\s+that(?:'s|\s+is)\s+(?:bugging|troubling|bothering|confusing|tricking)\s+you$/i, '')
+          .replace(/\s+for\s+(?:this|that|it|now|today)$/i, '')
+          .replace(/\s+(?:right\s+now|today|instead)$/i, '')
+          .trim();
+      }
+      if (!s || pronouns.has(s.toLowerCase())) return null;
+      if (/^(?:which|what|who|where|when|why|how|the\s+one\s+that|whether|if)\b/i.test(s)) return false;
+      const words = s.split(/\s+/).filter(Boolean);
+      if (words.length < 1 || words.length > 6 || s.length > 40) return false;
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
+    for (let i = qSentences.length - 1; i >= 0; i--) {
+      let q = qSentences[i].replace(/\s+/g, ' ').trim();
+      if (!/\bor\b/i.test(q)) continue;
+      q = q.replace(/^[\s"“'‘(]+/, '').replace(/[?!.\s"”'’)]+$/, '').trim();
+      q = q.replace(/^(?:so|now|first|next|okay|alright|hey|well|tell\s+me)[,\s]+/i, '').trim();
+      if (/^(?:why\b|how\s+(?:do|does|did|can|could|is|are)|what\s+(?:happens|happened|makes|do\s+you\s+think)|can\s+you\s+(?:guess|explain|tell)|do\s+you\s+(?:know|remember|think))\b/i.test(q)) continue;
+
+      let sliced = false;
+      const sepMatches = [...q.matchAll(/[:—–](?!\s*or\b)|\s+-\s+(?!or\b)/gi)];
+      if (sepMatches.length > 0) {
+        const lastSep = sepMatches[sepMatches.length - 1];
+        const afterSep = q.slice((lastSep.index || 0) + lastSep[0].length).trim();
+        if (/\S\s+or\s+\S/i.test(afterSep)) {
+          q = afterSep;
+          sliced = true;
+        }
+      }
+      if (!sliced) {
+        const whMatch = q.match(/^(?:which|what)\b[^,]*,\s*(?!or\b)(.+)$/i);
+        if (whMatch && whMatch[1]) q = whMatch[1].trim();
+      }
+
+      const hasCommaList = q.replace(/,\s+or\s+/gi, '__OX__').includes(',');
+      let rawParts = [];
+      if (hasCommaList) {
+        q = q.replace(stemRe, '').trim();
+        const segs = q.replace(/\s*,\s+or\s+/gi, ', ').split(/\s*,\s*/).filter(Boolean);
+        segs.forEach((seg, idx) => {
+          if (idx === segs.length - 1 && /\s+or\s+/i.test(seg)) rawParts.push(...seg.split(/\s+or\s+/i));
+          else rawParts.push(seg);
+        });
+      } else {
+        const isTwoClause = /(?:,\s+|[—–]\s*|\s+-\s+)or\s+/i.test(q) || /\s+or\s+(?:should|shall|can|would|do|want|let'?s)\b/i.test(q);
+        if (!isTwoClause) q = q.replace(stemRe, '').trim();
+        rawParts = q.split(/\s*(?:,\s*|[—–]\s*|\s+-\s*|\s+)or\s+/i).filter(Boolean);
+      }
+      if (rawParts.length >= 2) {
+        const opts = [];
+        let invalid = false;
+        for (const p of rawParts) {
+          const c = cleanOpt(p);
+          if (c === false) { invalid = true; break; }
+          if (c && !opts.some((x) => x.toLowerCase() === c.toLowerCase())) opts.push(c);
+        }
+        if (!invalid && opts.length >= 2 && opts.length <= 4) return opts;
+      }
+    }
+
+    // 4. Contextual fallback so every question turn has tappable choices
+    if (/\b(?:which|what)\s+(?:chapter|topic|unit|lesson|part)\b/i.test(text)) {
+      if (/\b(?:science|physics|chemistry|biology)\b/i.test(text)) {
+        return ['Photosynthesis', 'Force & Pressure', 'Cells', 'Pick a topic for me'];
+      }
+      if (/\b(?:math|maths|mathematics|algebra|geometry)\b/i.test(text)) {
+        return ['Fractions & Decimals', 'Linear Equations', 'Geometry', 'Pick a topic for me'];
+      }
+      if (/\b(?:social|history|geography|civics)\b/i.test(text)) {
+        return ['History', 'Geography', 'Civics', 'Pick a topic for me'];
+      }
+      if (/\b(?:english|grammar)\b/i.test(text)) {
+        return ['Grammar', 'Reading & Writing', 'Vocabulary', 'Pick a topic for me'];
+      }
+      return ['First chapter', 'Pick a topic for me', 'Quick quiz'];
+    }
+
+    if (
+      /\b(?:which|what)\s+subject\b/i.test(text) ||
+      (/\b(?:what'?s\s+on\s+your\s+mind|what\s+would\s+you\s+like\s+to\s+(?:study|learn|tackle|start|practice|practise)|what\s+do\s+you\s+want\s+to\s+(?:understand|learn|study))\b/i.test(text) &&
+        text.length < 240)
+    ) {
+      if (/\bscience\b/i.test(text) && !/\bmath/i.test(text)) {
+        return ['Photosynthesis', 'Force & Pressure', 'Cells', 'Switch to Maths'];
+      }
+      if (/\bmath/i.test(text) && !/\bscience\b/i.test(text)) {
+        return ['Fractions', 'Linear Equations', 'Geometry', 'Switch to Science'];
+      }
+      return ['Maths', 'Science', 'English', 'Social Science'];
+    }
+
+    if (/\b(?:does\s+that\s+make\s+sense|do\s+you\s+get\s+it|ready\s+to\s+try|shall\s+we\s+try|want\s+to\s+try|would\s+you\s+like\s+to\s+try)\b/i.test(text)) {
+      return ['Yes, let’s try!', 'Give me an example', 'Explain once more', 'Quiz me'];
+    }
+
+    if (/\?/.test(text)) {
+      return ['Give me a hint', 'Show an example', 'Explain simply', 'Quiz me on this'];
+    }
+
+    return ['Try an example', 'Quiz me on this', 'Explain more', 'New topic'];
+  }
+
+  static pickQuickReplyQuestion(text, quickReplies = []) {
+    if (typeof text !== 'string' || !text.trim()) return '';
+    const matches = text.match(/[^.!?\n]+\?/g);
+    if (!matches || matches.length === 0) return '';
+    const sentences = matches.map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (sentences.length === 0) return '';
+
+    const stopWords = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'you', 'your', 'from', 'into', 'out']);
+    const optWords = new Set();
+    if (Array.isArray(quickReplies)) {
+      quickReplies.forEach((opt) => {
+        String(opt || '')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length >= 2 && !stopWords.has(w))
+          .forEach((w) => optWords.add(w));
+      });
+    }
+
+    const scoreSentence = (sent) => {
+      if (optWords.size === 0) return 0;
+      const words = new Set(
+        sent
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .split(/\s+/)
+          .filter(Boolean)
+      );
+      let hits = 0;
+      optWords.forEach((w) => {
+        if (words.has(w)) hits++;
+      });
+      return hits;
+    };
+
+    let chosen = sentences[sentences.length - 1];
+    let bestScore = scoreSentence(chosen);
+    for (let i = 0; i < sentences.length - 1; i++) {
+      const s = scoreSentence(sentences[i]);
+      if (s > bestScore) {
+        bestScore = s;
+        chosen = sentences[i];
+      }
+    }
+
+    if (chosen.length > 160) {
+      const cut = chosen.slice(0, 160);
+      const lastSpace = cut.lastIndexOf(' ');
+      const trimmed = (lastSpace > 80 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:—–\-\s]+$/, '');
+      return `${trimmed}…?`;
+    }
+    return chosen;
+  }
+
+  pickQuickReplyQuestion(text, quickReplies = []) {
+    return ChatAgent.pickQuickReplyQuestion(text, quickReplies);
+  }
+
+  // Tappable choices Appu offered (e.g. "Maths / Science / English"); a tap sends that choice.
+  renderQuickReplies(msg, bubble) {
+    if (msg.sender !== 'appu' || !Array.isArray(msg.quickReplies) || msg.quickReplies.length < 2) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-quick-replies';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'Choose an answer');
+
+    const question = ChatAgent.pickQuickReplyQuestion(msg.text || '', msg.quickReplies);
+    if (question) {
+      const lang = String(
+        (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) ||
+        this.language ||
+        'en'
+      ).slice(0, 2);
+      const askLabel = {
+        en: 'Appu asks:',
+        kn: 'ಅಪ್ಪು ಕೇಳುತ್ತದೆ:',
+        hi: 'अप्पू पूछ रहा है:'
+      }[lang] || 'Appu asks:';
+      const qDiv = document.createElement('div');
+      qDiv.className = 'msg-quick-question';
+      const labelSpan = document.createElement('span');
+      labelSpan.setAttribute('aria-hidden', 'true');
+      labelSpan.textContent = `🐘 ${askLabel}`;
+      const qSpan = document.createElement('span');
+      qSpan.textContent = question;
+      qDiv.appendChild(labelSpan);
+      qDiv.appendChild(document.createTextNode(' '));
+      qDiv.appendChild(qSpan);
+      wrap.appendChild(qDiv);
+    }
+
+    msg.quickReplies.forEach((option) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quick-reply-chip';
+      btn.textContent = option;
+      btn.addEventListener('click', () => {
+        wrap.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        document.dispatchEvent(new CustomEvent('appu:quick-reply', { detail: { text: option } }));
+      });
+      wrap.appendChild(btn);
+    });
+    bubble.appendChild(wrap);
+  }
+
+  renderMessage(msg) {
+    if (!this.messagesContainer) return;
+
+    const row = document.createElement('div');
+    row.className = `message-row ${msg.sender}`;
+    if (msg.isWelcome) row.className += ' is-welcome';
+    row._appuMsg = msg;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+
+    if (msg.imageDataUrl) {
+      const img = document.createElement('img');
+      img.className = 'msg-image-thumb';
+      img.src = msg.imageDataUrl;
+      img.alt = 'Attached photo';
+      bubble.appendChild(img);
+    } else if (msg.attachmentLabel) {
+      const label = document.createElement('div');
+      label.className = 'msg-attachment-label';
+      label.innerHTML = `<i class="fa-solid fa-paperclip" aria-hidden="true"></i> <span>${msg.attachmentLabel}</span>`;
+      bubble.appendChild(label);
+    }
+
+    const renderer = (typeof window !== 'undefined' && window.LessonCardRenderer) || (typeof LessonCardRenderer !== 'undefined' ? LessonCardRenderer : null);
+    const parsedCard = renderer ? renderer.parse(msg.lessonCard || msg.text) : null;
+
+    if (parsedCard && parsedCard.isRich) {
+      // The text answer arrives first and the visual card a few seconds later; keep the
+      // text above the card instead of replacing it.
+      const answerText = msg.lessonCard && typeof msg.text === 'string' ? msg.text.trim() : '';
+      if (answerText && !answerText.startsWith('{')) {
+        const textEl = document.createElement('div');
+        textEl.className = 'msg-answer-text';
+        textEl.textContent = answerText;
+        bubble.appendChild(textEl);
+      }
+      const celebrateCallback = () => {
+        if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
+          window.appMascot.celebrate(3200);
+        }
+      };
+      const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback, focused: msg.sender === 'appu' });
+      // Study modes (quiz, flashcards, mind map...) live on the answer itself, so the
+      // conversation can be the whole page without a separate lesson popup.
+      if (msg.sender === 'appu' && typeof renderer.renderStudyToolbar === 'function' && typeof renderer.renderStudyMode === 'function') {
+        const lang = (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) || 'en';
+        const studyBody = document.createElement('div');
+        studyBody.className = 'msg-study-body';
+        studyBody.appendChild(cardEl);
+        const toolbar = renderer.renderStudyToolbar('lesson', (mode) => {
+          studyBody.innerHTML = '';
+          // The podcast is generated on demand in Appu's ElevenLabs voice; without this
+          // fetch the tab only had the browser's built-in speech voice to play.
+          if (mode === 'podcast' && !(parsedCard.podcastScript && parsedCard.podcastScript.isLiveFetched) &&
+              typeof renderer.fetchPodcast === 'function') {
+            const topic = (parsedCard.mindMap && parsedCard.mindMap.central) || parsedCard.topic || parsedCard.title || 'Lesson';
+            if (typeof renderer.createPodcastLoadingCard === 'function') studyBody.appendChild(renderer.createPodcastLoadingCard(topic));
+            const doc = typeof window !== 'undefined' ? (window.__APPU_ACTIVE_DOCUMENT__ || window.activeTutorDocument) : null;
+            const grade = (typeof window !== 'undefined' && window.AppuSession && typeof window.AppuSession.getGrade === 'function' && window.AppuSession.getGrade()) || parsedCard.grade || '6';
+            renderer.fetchPodcast({
+              topic,
+              question: parsedCard.question || topic,
+              answer: parsedCard.plainText || msg.text || '',
+              grade: String(grade).replace(/[^0-9]/g, '') || '6',
+              language: lang,
+              documentText: doc && doc.text ? doc.text : undefined,
+              timeoutMs: 60000
+            }).catch(() => null).then((result) => {
+              if (result && (result.script || (Array.isArray(result.segments) && result.segments.length))) {
+                parsedCard.podcastScript = { ...result, isLiveFetched: true, citation: parsedCard.citation };
+              }
+              const activeBtn = toolbar.querySelector('.study-tab-btn.is-active');
+              if (!activeBtn || activeBtn.getAttribute('data-mode') !== 'podcast') return;
+              studyBody.innerHTML = '';
+              studyBody.appendChild(renderer.renderStudyMode('podcast', parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
+            });
+          } else {
+            studyBody.appendChild(mode === 'lesson'
+              ? renderer.render(parsedCard, { onCelebrate: celebrateCallback, focused: msg.sender === 'appu' })
+              : renderer.renderStudyMode(mode, parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
+          }
+          toolbar.querySelectorAll('.study-tab-btn[data-mode]').forEach((b) => {
+            const on = b.getAttribute('data-mode') === mode;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-selected', String(on));
+          });
+        }, lang, { card: parsedCard });
+        bubble.appendChild(toolbar);
+        bubble.appendChild(studyBody);
+      } else {
+        bubble.appendChild(cardEl);
+      }
+      msg.plainText = parsedCard.plainText || msg.text;
+    } else {
+      const textSpan = document.createElement('span');
+      textSpan.textContent = msg.text;
+      bubble.appendChild(textSpan);
+    }
+
+    // Optional interactive card inside bubble
+    if (msg.actionCard) {
+      const card = document.createElement('div');
+      card.className = 'chat-action-card';
+
+      const title = document.createElement('h5');
+      title.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${msg.actionCard.title}`;
+      card.appendChild(title);
+
+      const btn = document.createElement('button');
+      btn.className = 'chat-action-card-btn';
+      btn.innerHTML = `<span>${msg.actionCard.buttonText}</span> <i class="fa-solid fa-arrow-right"></i>`;
+      btn.onclick = msg.actionCard.onClick;
+      card.appendChild(btn);
+
+      bubble.appendChild(card);
+    }
+
+    this.renderQuickReplies(msg, bubble);
+
+    // In-chat affordance: Share study note to WhatsApp companion number (opens user's WhatsApp to send note)
+    if (msg.sender === 'appu' && !msg.isWelcome && !msg.isSystem && msg.text && msg.text.trim()) {
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'msg-actions-bar';
+
+      const shareBtn = document.createElement('button');
+      shareBtn.className = 'btn-share-whatsapp';
+      shareBtn.type = 'button';
+      shareBtn.setAttribute('title', "Send study note to APPU on WhatsApp");
+      shareBtn.setAttribute('aria-label', "Send study note to APPU on WhatsApp");
+      shareBtn.innerHTML = '<i class="fa-brands fa-whatsapp" aria-hidden="true"></i> <span>Send note to WhatsApp</span>';
+
+      shareBtn.onclick = async (e) => {
+        if (e && typeof e.stopPropagation === 'function') {
+          e.stopPropagation();
+        }
+
+        const session = (typeof window !== 'undefined' && window.AppuSession) ? window.AppuSession : null;
+        const parentContext = session ? session.parentContext : null;
+        const childName = parentContext?.childName
+          || (typeof window !== 'undefined' && (window.ParentOnboardingShell?.state?.personalisation?.child_name || window.ParentOnboardingShell?.state?.personalization?.child_name))
+          || '';
+
+        const client = (typeof window !== 'undefined' && window.AppuBackendClient) || (typeof AppuBackendClient !== 'undefined' ? AppuBackendClient : null);
+        if (!client) return;
+
+        // If authenticated parent session exists: SERVER-SEND note to parent's OWN WhatsApp number
+        if (session && typeof session.isAuthenticated === 'function' && session.isAuthenticated()) {
+          const originalHTML = shareBtn.innerHTML;
+          shareBtn.disabled = true;
+          shareBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> <span>Sending note...</span>';
+
+          try {
+            const result = await client.sendStudyNoteToWhatsApp({
+              childId: session.childId,
+              note: msg.text,
+              accessToken: session.accessToken
+            });
+
+            if (result && result.sent) {
+              shareBtn.classList.add('is-sent');
+              shareBtn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> <span>Sent to WhatsApp!</span>';
+              setTimeout(() => {
+                shareBtn.classList.remove('is-sent');
+                shareBtn.innerHTML = originalHTML;
+                shareBtn.disabled = false;
+              }, 4000);
+              return;
+            }
+
+            if (result && result.needsPhone) {
+              shareBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <span>Add WhatsApp in Parent Zone</span>';
+              setTimeout(() => {
+                shareBtn.innerHTML = originalHTML;
+                shareBtn.disabled = false;
+              }, 4000);
+
+              if (typeof window !== 'undefined' && window.ParentSetupUI && typeof window.ParentSetupUI.open === 'function') {
+                window.ParentSetupUI.open();
+              }
+              return;
+            }
+
+            // Fallback if server returned other error
+            if (typeof client.buildWhatsAppShareUrl === 'function') {
+              const url = client.buildWhatsAppShareUrl('919740595677', msg.text, childName);
+              if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
+                window.open(url, '_blank');
+              }
+            }
+          } catch (err) {
+            if (typeof client.buildWhatsAppShareUrl === 'function') {
+              const url = client.buildWhatsAppShareUrl('919740595677', msg.text, childName);
+              if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
+                window.open(url, '_blank');
+              }
+            }
+          } finally {
+            if (!shareBtn.classList.contains('is-sent')) {
+              shareBtn.disabled = false;
+              shareBtn.innerHTML = originalHTML;
+            }
+          }
+          return;
+        }
+
+        // Guest fallback: open companion number deep link
+        if (typeof client.buildWhatsAppShareUrl === 'function') {
+          const url = client.buildWhatsAppShareUrl('919740595677', msg.text, childName);
+          if (url && typeof window !== 'undefined' && typeof window.open === 'function') {
+            window.open(url, '_blank');
+          }
+        }
+      };
+
+      actionsDiv.appendChild(shareBtn);
+      bubble.appendChild(actionsDiv);
+    }
+
+    const time = document.createElement('span');
+    time.className = 'msg-time';
+    time.textContent = msg.time;
+
+    row.appendChild(bubble);
+    row.appendChild(time);
+    this.messagesContainer.appendChild(row);
+
+    // Auto-scroll to bottom
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  /**
+   * Sends user message to backend gateway and returns response
+   */
+  async sendMessage(userText, onStartThinking, onFinishThinking, image = null) {
+    if ((!userText || !userText.trim()) && !image) return null;
+
+    const cleanInput = (userText && userText.trim()) || (image ? 'Please help me understand this.' : '');
+    // Render User Message in Chat Drawer
+    this.addMessage('user', cleanInput, null, image ? image.dataUrl : null);
+
+    if (onStartThinking) onStartThinking();
+    if (this.typingIndicator) this.typingIndicator.style.display = 'flex';
+
+    try {
+      let responseText = '';
+      let actionCard = null;
+      let audioSource = null;
+
+      // Ensure startup auth restoration has completed before dispatching
+      if (
+        typeof window !== 'undefined' &&
+        window.ParentOnboardingShell &&
+        typeof window.ParentOnboardingShell.whenReady === 'function'
+      ) {
+        await window.ParentOnboardingShell.whenReady().catch(() => {});
+      }
+
+      const hasSecureSession =
+        typeof window !== 'undefined' &&
+        window.AppuSession &&
+        typeof window.AppuSession.isAuthenticated === 'function' &&
+        window.AppuSession.isAuthenticated();
+
+      const backendClient = typeof window !== 'undefined' ? window.AppuBackendClient : null;
+
+      const hasAuthenticatedParentSession =
+        typeof window !== 'undefined' &&
+        window.ParentOnboardingShell &&
+        Boolean(window.ParentOnboardingShell.state?.session?.access_token);
+
+      // Gated chat: If parent is authenticated, require active learner profile & personalization before chatting.
+      if (hasAuthenticatedParentSession && !hasSecureSession) {
+        responseText = 'Please open Parent Zone to set up your learner profile and preferences before chatting with Appu.';
+        actionCard = {
+          title: 'Parent Zone',
+          buttonText: 'Personalize Appu',
+          onClick: () => {
+            if (window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+              window.ParentSetupUI.openModal(4);
+            }
+          }
+        };
+        if (this.typingIndicator) this.typingIndicator.style.display = 'none';
+        if (onFinishThinking) onFinishThinking(responseText, null);
+        return this.addMessage('appu', responseText, actionCard, null, { isSystem: true });
+      }
+
+      if (!backendClient || typeof backendClient.sendAppuMessage !== 'function') {
+        throw new Error('AppuBackendClient unavailable');
+      }
+
+      // Output preference (does the user want to hear the reply), not input modality --
+      // a mic-triggered message gets the same treatment as a typed one.
+      const includeAudio = this.voiceEngine
+        ? Boolean(this.voiceEngine.autoSpeak || this.voiceEngine.liveSessionActive)
+        : true;
+
+      const activeConvId = (hasSecureSession && typeof this.getConversationId === 'function')
+        ? this.getConversationId()
+        : null;
+
+      const forceNew = !activeConvId && typeof this.getForceNewConversation === 'function' && Boolean(this.getForceNewConversation());
+
+      const isExperimentalLearning = Boolean(
+        typeof window !== 'undefined' &&
+        window.APPU_CONFIG &&
+        window.APPU_CONFIG.experimentalLearning
+      );
+
+      const guestHistory = !hasSecureSession
+        ? this.messages
+            .slice(0, -1)
+            .filter((m) => !m.isWelcome && !m.isSystem && typeof m.text === 'string' && m.text.trim())
+            .slice(-12)
+            .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.text.trim().slice(0, 2000) }))
+        : [];
+
+      const requestPayload = hasSecureSession
+        ? {
+            accessToken: window.AppuSession.accessToken,
+            childId: window.AppuSession.childId,
+            ...(activeConvId ? { conversationId: activeConvId } : {}),
+            ...(forceNew ? { newConversation: true } : {}),
+            message: cleanInput,
+            language: this.language || 'en',
+            includeAudio,
+            ...(isExperimentalLearning ? { experimentalLearning: true } : {})
+          }
+        : {
+            message: cleanInput,
+            language: this.language || 'en',
+            includeAudio,
+            ...(guestHistory.length > 0 ? { conversationHistory: guestHistory } : {}),
+            ...(isExperimentalLearning ? { experimentalLearning: true } : {})
+          };
+
+      if (image && image.dataUrl) {
+        requestPayload.imageBase64 = image.dataUrl;
+      }
+
+      const result = await backendClient.sendAppuMessage(requestPayload);
+
+      if (result && result.conversationId && typeof this.onConversationAssigned === 'function') {
+        this.onConversationAssigned(result.conversationId);
+      }
+
+      responseText = result.text;
+      audioSource = result.audioSource || null;
+
+      // Handle guest limit reached
+      if (result.error === 'guest_limit_reached' || result.code === 'GUEST_LIMIT_REACHED') {
+        actionCard = {
+          title: 'Parent Zone',
+          buttonText: 'Sign in to save progress & continue',
+          onClick: () => {
+            if (typeof window !== 'undefined' && window.app && typeof window.app.showGuestGateModal === 'function') {
+              window.app.showGuestGateModal();
+            } else if (typeof window !== 'undefined' && window.ParentSetupUI && typeof window.ParentSetupUI.openModal === 'function') {
+              window.ParentSetupUI.openModal(1);
+            }
+          }
+        };
+
+        if (typeof window !== 'undefined' && window.app && typeof window.app.onGuestLimitReached === 'function') {
+          window.app.onGuestLimitReached(result);
+        }
+      } else if ((result.guest || result.guestSession) && typeof window !== 'undefined' && window.app && typeof window.app.updateGuestBadge === 'function') {
+        window.app.updateGuestBadge(result.guest || result.guestSession);
+      }
+
+      // Clean formatted \n characters so line breaks render properly
+      if (typeof responseText === 'string') {
+        responseText = responseText.replace(/\\n/g, '\n');
+      }
+
+      if (!responseText || !responseText.trim()) {
+        responseText = "I received your message, but the answer service returned an empty output. Please try asking again!";
+      }
+
+      // Detect if response invites scheduling a discovery call
+      if (!actionCard && (
+          responseText.toLowerCase().includes('discovery call') ||
+          responseText.toLowerCase().includes('google meet') ||
+          responseText.toLowerCase().includes('parent zone') ||
+          cleanInput.toLowerCase().includes('schedule') ||
+          cleanInput.toLowerCase().includes('parent zone')
+      )) {
+        actionCard = {
+          title: 'Parent Zone',
+          buttonText: 'Plan a learning support call',
+          onClick: () => {
+            if (window.app && typeof window.app.openDiscoveryModal === 'function') {
+              window.app.openDiscoveryModal();
+            }
+          }
+        };
+      }
+
+      if (this.typingIndicator) this.typingIndicator.style.display = 'none';
+      if (onFinishThinking) onFinishThinking(responseText, audioSource, result.audioStreamUrl || null, requestPayload.accessToken || null, result);
+
+      const isSystemNotice = Boolean(result.error || result.code);
+      const ensuredQuickReplies = isSystemNotice
+        ? null
+        : ChatAgent.ensureQuickReplies(responseText, result.quickReplies);
+      const appuMsg = this.addMessage('appu', responseText, actionCard, null, {
+        isSystem: isSystemNotice,
+        lessonCard: result.lessonCard || null,
+        mood: result.mood || null,
+        requestId: result.requestId || null,
+        conversationId: result.conversationId || null,
+        quickReplies: ensuredQuickReplies
+      });
+      if (appuMsg.lessonCard) this.persistLessonCard(appuMsg);
+      return appuMsg;
+
+    } catch (error) {
+      console.error('Appu message request failed:', error);
+      if (this.typingIndicator) this.typingIndicator.style.display = 'none';
+
+      const errorDisplay = 'I could not reach my answer service just now. Please check your connection and try again.';
+      if (onFinishThinking) onFinishThinking(errorDisplay, null);
+      return this.addMessage('appu', errorDisplay, null, null, { isSystem: true });
+    }
+  }
+
+  replaceMessages(messages = []) {
+    this.messages = [];
+    if (this.messagesContainer) {
+      this.messagesContainer.innerHTML = '';
+    }
+    if (!messages || messages.length === 0) {
+      this.initDefaultWelcome();
+      return;
+    }
+    for (let idx = 0; idx < messages.length; idx++) {
+      const m = messages[idx];
+      const sender = m.role === 'user' ? 'user' : 'appu';
+      const isLast = idx === messages.length - 1;
+      const timeStr = m.createdAt
+        ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const msgObj = {
+        id: m.id,
+        sender,
+        text: m.text,
+        time: timeStr,
+        hasImageAttachment: Boolean(m.hasImageAttachment),
+        attachmentLabel: m.hasImageAttachment ? 'Photo attached' : null,
+        imageDataUrl: null,
+        actionCard: null,
+        lessonCard: m.lessonCard || null,
+        quickReplies: isLast && sender === 'appu' ? ChatAgent.ensureQuickReplies(m.text, m.quickReplies) : null
+      };
+      this.messages.push(msgObj);
+      this.renderMessage(msgObj);
+    }
+  }
+
+  // Saves an answer's lesson card with the stored chat (signed-in learners only), so the
+  // visuals come back after a reload or when the chat is reopened. Best effort: a failure
+  // only means the card is not restored later.
+  persistLessonCard(msg) {
+    if (!msg || !msg.lessonCard || !msg.requestId || !msg.conversationId) return;
+    const session = (typeof window !== 'undefined' && window.AppuSession) || null;
+    const client = (typeof window !== 'undefined' && window.AppuBackendClient) || null;
+    if (!session || !session.accessToken || !session.childId || !client || typeof client.saveLessonCard !== 'function') return;
+    let card;
+    try {
+      // Drop oversized strings (e.g. inline data: images) so the rest of the card still fits.
+      card = JSON.parse(JSON.stringify(msg.lessonCard, (k, v) => (typeof v === 'string' && v.length > 50000 ? undefined : v)));
+    } catch (_) {
+      return;
+    }
+    Promise.resolve(client.saveLessonCard({
+      accessToken: session.accessToken,
+      childId: session.childId,
+      conversationId: msg.conversationId,
+      requestId: msg.requestId,
+      lessonCard: card
+    })).catch(() => {});
+  }
+
+  updateLastAppuMessageCard(lessonCard) {
+    if (!lessonCard || !this.messages || this.messages.length === 0) return;
+    const lastAppu = [...this.messages].reverse().find(m => m.sender === 'appu');
+    if (!lastAppu) return;
+    lastAppu.lessonCard = lessonCard;
+    this.persistLessonCard(lastAppu);
+    if (!this.messagesContainer) return;
+    // Re-render that answer in place with the same renderer as new messages, so the lesson
+    // card and its study-mode tabs (mind map, quiz, flashcards...) appear on the answer.
+    const lastRow = Array.from(this.messagesContainer.children).find(r => r._appuMsg === lastAppu);
+    if (!lastRow) return;
+    const realContainer = this.messagesContainer;
+    const scratch = document.createElement('div');
+    this.messagesContainer = scratch;
+    try {
+      this.renderMessage(lastAppu);
+    } finally {
+      this.messagesContainer = realContainer;
+    }
+    const freshRow = scratch.firstElementChild;
+    if (!freshRow) return;
+    lastRow.replaceWith(freshRow);
+    try {
+      freshRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (_) {}
+  }
+
+  clearHistory() {
+    this.messages = [];
+    if (this.messagesContainer) {
+      this.messagesContainer.innerHTML = '';
+    }
+    this.initDefaultWelcome();
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.ChatAgent = ChatAgent;
+}
+if (typeof module === 'object' && module.exports) {
+  module.exports = {
+    ChatAgent,
+    pickQuickReplyQuestion: ChatAgent.pickQuickReplyQuestion,
+    ensureQuickReplies: ChatAgent.ensureQuickReplies
+  };
+}
