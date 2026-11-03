@@ -27,4 +27,71 @@ describe('extractQuickReplies', () => {
     assert.equal(r.text, 'Ready?');
     assert.deepEqual(r.quickReplies, []);
   });
+
+  test('extracts ["Math", "Science", "Something else"] from n8n run 49841 when last "?" sentence is rhetorical', () => {
+    const input =
+      "Hey! Let's kick off your exam prep with the subject you feel needs the most power-up right now. " +
+      'Is it Math, Science, or maybe something else? ' +
+      "Which one gets your adrenaline going—or the one that's making you blink twice?";
+    const r = extractQuickReplies(input);
+    assert.equal(r.text, input);
+    assert.deepEqual(r.quickReplies, ['Math', 'Science', 'Something else']);
+  });
+
+  test('extracts two-clause action options from "X, or Y?" style questions', () => {
+    const input = 'Want to try an example together, or should I show you the secret trick for this?';
+    const r = extractQuickReplies(input);
+    assert.deepEqual(r.quickReplies, ['Try an example together', 'Show me the secret trick']);
+  });
+
+  test('extracts options from colon-separated and non-Oxford-comma choice questions', () => {
+    assert.deepEqual(
+      extractQuickReplies('Which one: Maths or English?').quickReplies,
+      ['Maths', 'English']
+    );
+    assert.deepEqual(
+      extractQuickReplies('Should we start with Physics, Chemistry or Biology?').quickReplies,
+      ['Physics', 'Chemistry', 'Biology']
+    );
+  });
+
+  test('does not trigger on open or rhetorical questions', () => {
+    assert.deepEqual(extractQuickReplies('Can you guess what gas plants release?').quickReplies, []);
+    assert.deepEqual(extractQuickReplies('What do you think happens next?').quickReplies, []);
+    assert.deepEqual(extractQuickReplies('Why do objects float or sink in water?').quickReplies, []);
+    assert.deepEqual(extractQuickReplies('Can you explain whether light is a wave or a particle?').quickReplies, []);
+  });
+
+  test('returns no options when a list has too many (>4) or too-long (>6 words / >40 chars) items or only 1 valid item after dropping pronouns', () => {
+    assert.deepEqual(
+      extractQuickReplies('Is it Math, Science, English, Hindi, or Social Studies?').quickReplies,
+      []
+    );
+    assert.deepEqual(
+      extractQuickReplies('Do you want a quick recap, or should we go back and read the entire first chapter from start to finish?').quickReplies,
+      []
+    );
+    assert.deepEqual(
+      extractQuickReplies('Is it Maths or that?').quickReplies,
+      []
+    );
+    assert.deepEqual(
+      extractQuickReplies('Is it Maths, Science, or that?').quickReplies,
+      ['Maths', 'Science']
+    );
+  });
+
+  test('skips heuristic extraction when reply contains a QUIZ_ITEM-style quiz and lets explicit tag win over heuristic', () => {
+    const quizReply =
+      'Question 1 of 3: Which gas do plants release during photosynthesis?\nA) Carbon dioxide\nB) Oxygen\nC) Nitrogen\nIs it A, B, or C?';
+    assert.deepEqual(extractQuickReplies(quizReply).quickReplies, []);
+
+    const taggedQuiz =
+      'Is it Oxygen or Carbon dioxide?\n[[QUIZ_ITEM {"n":1,"of":3,"question":"Gas?","options":{"A":"Oxygen","B":"Carbon dioxide"},"answer":"A"}]]';
+    assert.deepEqual(extractQuickReplies(taggedQuiz).quickReplies, []);
+
+    const tagWins = extractQuickReplies('Is it Math, Science, or maybe something else?\n[[OPTIONS: Algebra | Geometry]]');
+    assert.equal(tagWins.text, 'Is it Math, Science, or maybe something else?');
+    assert.deepEqual(tagWins.quickReplies, ['Algebra', 'Geometry']);
+  });
 });

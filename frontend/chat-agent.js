@@ -36,6 +36,65 @@ class ChatAgent {
     return msgObj;
   }
 
+  static pickQuickReplyQuestion(text, quickReplies = []) {
+    if (typeof text !== 'string' || !text.trim()) return '';
+    const matches = text.match(/[^.!?\n]+\?/g);
+    if (!matches || matches.length === 0) return '';
+    const sentences = matches.map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (sentences.length === 0) return '';
+
+    const stopWords = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'you', 'your', 'from', 'into', 'out']);
+    const optWords = new Set();
+    if (Array.isArray(quickReplies)) {
+      quickReplies.forEach((opt) => {
+        String(opt || '')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length >= 2 && !stopWords.has(w))
+          .forEach((w) => optWords.add(w));
+      });
+    }
+
+    const scoreSentence = (sent) => {
+      if (optWords.size === 0) return 0;
+      const words = new Set(
+        sent
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .split(/\s+/)
+          .filter(Boolean)
+      );
+      let hits = 0;
+      optWords.forEach((w) => {
+        if (words.has(w)) hits++;
+      });
+      return hits;
+    };
+
+    let chosen = sentences[sentences.length - 1];
+    let bestScore = scoreSentence(chosen);
+    for (let i = 0; i < sentences.length - 1; i++) {
+      const s = scoreSentence(sentences[i]);
+      if (s > bestScore) {
+        bestScore = s;
+        chosen = sentences[i];
+      }
+    }
+
+    if (chosen.length > 160) {
+      const cut = chosen.slice(0, 160);
+      const lastSpace = cut.lastIndexOf(' ');
+      const trimmed = (lastSpace > 80 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:—–\-\s]+$/, '');
+      return `${trimmed}…?`;
+    }
+    return chosen;
+  }
+
+  pickQuickReplyQuestion(text, quickReplies = []) {
+    return ChatAgent.pickQuickReplyQuestion(text, quickReplies);
+  }
+
   // Tappable choices Appu offered (e.g. "Maths / Science / English"); a tap sends that choice.
   renderQuickReplies(msg, bubble) {
     if (msg.sender !== 'appu' || !Array.isArray(msg.quickReplies) || msg.quickReplies.length < 2) return;
@@ -43,6 +102,32 @@ class ChatAgent {
     wrap.className = 'msg-quick-replies';
     wrap.setAttribute('role', 'group');
     wrap.setAttribute('aria-label', 'Choose an answer');
+
+    const question = ChatAgent.pickQuickReplyQuestion(msg.text || '', msg.quickReplies);
+    if (question) {
+      const lang = String(
+        (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) ||
+        this.language ||
+        'en'
+      ).slice(0, 2);
+      const askLabel = {
+        en: 'Appu asks:',
+        kn: 'ಅಪ್ಪು ಕೇಳುತ್ತದೆ:',
+        hi: 'अप्पू पूछ रहा है:'
+      }[lang] || 'Appu asks:';
+      const qDiv = document.createElement('div');
+      qDiv.className = 'msg-quick-question';
+      const labelSpan = document.createElement('span');
+      labelSpan.setAttribute('aria-hidden', 'true');
+      labelSpan.textContent = `🐘 ${askLabel}`;
+      const qSpan = document.createElement('span');
+      qSpan.textContent = question;
+      qDiv.appendChild(labelSpan);
+      qDiv.appendChild(document.createTextNode(' '));
+      qDiv.appendChild(qSpan);
+      wrap.appendChild(qDiv);
+    }
+
     msg.quickReplies.forEach((option) => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -566,5 +651,5 @@ if (typeof window !== 'undefined') {
   window.ChatAgent = ChatAgent;
 }
 if (typeof module === 'object' && module.exports) {
-  module.exports = { ChatAgent };
+  module.exports = { ChatAgent, pickQuickReplyQuestion: ChatAgent.pickQuickReplyQuestion };
 }

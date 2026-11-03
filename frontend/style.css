@@ -13949,7 +13949,18 @@ html body.view-app.chat-first .chat-history-panel { z-index: 40 !important; }
 /* Quick Check: the answer stays hidden until "Reveal Answer" (display:flex overrode [hidden]). */
 .check-answer-box[hidden] { display: none !important; }
 /* Tappable answer options under Appu's question. */
-.msg-quick-replies { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 2px; }
+.msg-quick-replies { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
+.msg-quick-question {
+  flex: 0 0 100%; width: 100%; margin: 4px 0 2px;
+  font: 700 15px/1.4 inherit; color: #f8fafc;
+}
+.msg-quick-question > span[aria-hidden="true"] { color: #38bdf8; margin-right: 4px; }
+html[data-theme="light"] .msg-quick-question,
+[data-theme="light"] .msg-quick-question,
+body.theme-light .msg-quick-question { color: #0f172a; }
+html[data-theme="light"] .msg-quick-question > span[aria-hidden="true"],
+[data-theme="light"] .msg-quick-question > span[aria-hidden="true"],
+body.theme-light .msg-quick-question > span[aria-hidden="true"] { color: #0369a1; }
 .quick-reply-chip {
   padding: 8px 16px; border-radius: 999px; cursor: pointer;
   font: 600 14px/1.2 inherit; color: #e0f2fe;
