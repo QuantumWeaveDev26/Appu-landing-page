@@ -2703,7 +2703,8 @@
         elapsedSeconds = startFromSecond;
       }
 
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window && textToSpeak) {
+      // Podcasts play only Appu's ElevenLabs audio, never the device's built-in voice.
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && textToSpeak && window.APPU_ELEVENLABS_ONLY === false) {
         try {
           if (window.speechSynthesis.paused && isPaused) {
             window.speechSynthesis.resume();

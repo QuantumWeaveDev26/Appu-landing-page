@@ -745,7 +745,9 @@ class VoiceEngine {
      * Drives subtitles, audio state, and avatar lip sync.
      */
     speakSynthesis(text, lang = '') {
-        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+        // Appu only ever speaks in its own ElevenLabs voice; without that audio the text is
+        // shown as subtitles instead of being read by the device's built-in voice.
+        if (typeof window === 'undefined' || !('speechSynthesis' in window) || window.APPU_ELEVENLABS_ONLY !== false) {
             if (text) this.streamSubtitles(text);
             this.handleSpeechFinish();
             return false;
