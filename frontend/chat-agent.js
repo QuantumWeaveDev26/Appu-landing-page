@@ -99,7 +99,7 @@ class ChatAgent {
           window.appMascot.celebrate(3200);
         }
       };
-      const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback });
+      const cardEl = renderer.render(parsedCard, { onCelebrate: celebrateCallback, focused: msg.sender === 'appu' });
       // Study modes (quiz, flashcards, mind map...) live on the answer itself, so the
       // conversation can be the whole page without a separate lesson popup.
       if (msg.sender === 'appu' && typeof renderer.renderStudyToolbar === 'function' && typeof renderer.renderStudyMode === 'function') {
@@ -136,7 +136,7 @@ class ChatAgent {
             });
           } else {
             studyBody.appendChild(mode === 'lesson'
-              ? renderer.render(parsedCard, { onCelebrate: celebrateCallback })
+              ? renderer.render(parsedCard, { onCelebrate: celebrateCallback, focused: msg.sender === 'appu' })
               : renderer.renderStudyMode(mode, parsedCard, { language: lang, card: parsedCard, onCelebrate: celebrateCallback }));
           }
           toolbar.querySelectorAll('.study-tab-btn[data-mode]').forEach((b) => {

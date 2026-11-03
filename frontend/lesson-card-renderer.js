@@ -1292,9 +1292,21 @@
       container.appendChild(topCitation);
     }
 
+    // Focused lesson (chat answers): only the visual explanation and the mind map. The answer
+    // text is already shown above the card, and steps, quick checks and extras live in the
+    // study tabs, so showing them all at once crowded the answer.
+    const VISUAL_TYPES = ['diagram', 'mindMap', 'mindmap'];
+    const focused = options.focused === true &&
+      (data.blocks.some(b => b && VISUAL_TYPES.includes(b.type)) || Boolean(data.mindMap));
+    let visualShown = false;
+
     // 2. Render blocks top-to-bottom
     data.blocks.forEach((block, index) => {
       if (!block || typeof block !== 'object') return;
+      if (focused) {
+        if (!VISUAL_TYPES.includes(block.type) || visualShown) return;
+        visualShown = true;
+      }
 
       switch (block.type) {
         case 'hook': {
