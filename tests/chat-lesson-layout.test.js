@@ -30,3 +30,11 @@ test('whole response area right of the menu is notebook paper with spiral rings'
   // The old chat-first reset must no longer hide the shell background or its ::before.
   assert.ok(!css.includes('body.chat-first .app-shell::before,'), 'rings are not hidden');
 });
+
+test('phone and tablet chat-first topbar stays fixed at the top with safe-area padding and top conversation clearance', () => {
+  const blk = css.slice(css.indexOf('/* ===== Notebook paper behind the whole response area'));
+  assert.match(blk, /@media \(max-width: 1099px\) \{[\s\S]*?body\.chat-first \.topbar \{[\s\S]*?position: fixed !important;[\s\S]*?top: 0 !important;[\s\S]*?z-index: 30 !important;/);
+  assert.match(blk, /env\(safe-area-inset-top/);
+  assert.match(blk, /html\[data-theme="light"\] body\.chat-first \.topbar[\s\S]*?rgba\(248, 250, 252, 0\.92\)/);
+  assert.match(blk, /body\.chat-first #chat-drawer \{[\s\S]*?padding-top: calc\(56px \+ env\(safe-area-inset-top, 0px\)\) !important;/);
+});

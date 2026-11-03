@@ -13903,11 +13903,46 @@ html[data-theme="light"] body.chat-first #app-shell::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32' viewBox='0 0 40 32'%3E%3Ccircle cx='20' cy='22' r='5.5' fill='%23f8fafc' stroke='%2394a3b8' stroke-width='1.5'/%3E%3Crect x='16.5' y='1' width='7' height='23' rx='3.5' fill='none' stroke='%23334155' stroke-width='2'/%3E%3C/svg%3E");
 }
 @media (max-width: 1099px) {
+  body.chat-first #beta-banner { display: none !important; }
   /* Phone/tablet: the menu button sits at the top-left, so start the rings after it. */
   body.chat-first #app-shell::before { left: 64px; right: 10px; }
-  /* Let the notebook paper and rings show through the slim phone top bar. */
-  body.chat-first .topbar { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; }
-  body.chat-first #chat-drawer { margin-top: 8px !important; }
+  /* Keep the phone/tablet top bar fixed at the top while answers scroll, with a light
+     translucent backdrop so the menu button stays clearly visible and tappable. */
+  html body.view-app.chat-first .topbar,
+  body.chat-first .topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 30 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: linear-gradient(to bottom, rgba(14, 25, 45, 0.9) 65%, rgba(14, 25, 45, 0)) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  html[data-theme="light"] body.view-app.chat-first .topbar,
+  html[data-theme="light"] body.chat-first .topbar,
+  body.theme-light.chat-first .topbar {
+    background: linear-gradient(to bottom, rgba(248, 250, 252, 0.92) 65%, rgba(248, 250, 252, 0)) !important;
+  }
+  body.chat-first .topbar .topbar-hamburger {
+    background: rgba(14, 25, 45, 0.88);
+  }
+  html[data-theme="light"] body.chat-first .topbar .topbar-hamburger,
+  body.theme-light.chat-first .topbar .topbar-hamburger {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: #cbd5e1 !important;
+    color: #0284c7 !important;
+  }
+  body.chat-first #chat-drawer {
+    margin-top: 0 !important;
+    padding-top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+  }
 }
 
 /* Recent chats: pinned to the viewport. As position:absolute inside the chat it opened
