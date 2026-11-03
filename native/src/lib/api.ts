@@ -53,6 +53,7 @@ export interface MessageResponse {
   audioSource?: string | null;
   audioStreamUrl?: string | null;
   audioDurationMs?: number | null;
+  quickReplies?: string[];
   idempotentReplay?: boolean;
   guest?: GuestQuotaInfo | null;
   guestSession?: GuestQuotaInfo | null;

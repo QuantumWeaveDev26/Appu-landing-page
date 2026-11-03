@@ -26,6 +26,17 @@ class ChatAgent {
   addMessage(sender, text, actionCard = null, imageDataUrl = null, options = {}) {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const msgObj = { sender, text, time: timeStr, actionCard, imageDataUrl, ...options };
+    if (
+      sender === 'appu' &&
+      !msgObj.isWelcome &&
+      !msgObj.isSystem &&
+      options.quickReplies !== null &&
+      (!Array.isArray(msgObj.quickReplies) || msgObj.quickReplies.length < 2) &&
+      typeof text === 'string' &&
+      text.includes('?')
+    ) {
+      msgObj.quickReplies = ChatAgent.ensureQuickReplies(text, msgObj.quickReplies);
+    }
     // Options only answer the latest question: drop older ones once anything new arrives.
     if (this.messagesContainer && typeof this.messagesContainer.querySelectorAll === 'function') {
       this.messagesContainer.querySelectorAll('.msg-quick-replies').forEach((el) => el.remove());
@@ -34,6 +45,158 @@ class ChatAgent {
     this.messages.push(msgObj);
     this.renderMessage(msgObj);
     return msgObj;
+  }
+
+  static ensureQuickReplies(rawText, existing = []) {
+    if (Array.isArray(existing)) {
+      const valid = existing
+        .filter((o) => typeof o === 'string' && o.trim())
+        .map((o) => o.trim())
+        .slice(0, 4);
+      if (valid.length >= 2) return valid;
+    }
+    const text = typeof rawText === 'string' ? rawText.trim() : '';
+    if (!text) return [];
+
+    // 1. Explicit [[OPTIONS: a | b | c]] tag if still present
+    const tagMatch = [...text.matchAll(/\[\[\s*OPTIONS\s*:([^\]]*)\]\]/gi)];
+    if (tagMatch.length > 0) {
+      const last = tagMatch[tagMatch.length - 1][1];
+      const parts = last
+        .split('|')
+        .map((p) => p.replace(/\s+/g, ' ').trim())
+        .filter((p) => p && p.length <= 60)
+        .slice(0, 4);
+      if (parts.length >= 2) return parts;
+    }
+
+    // 2. Inline A) ... B) ... choices
+    const inlineMcq = [...text.matchAll(/(?:^|\n)\s*([A-D])[).:]\s+([^\n]+)/g)];
+    if (inlineMcq.length >= 2) {
+      return inlineMcq.slice(0, 4).map((m) => `${m[1].toUpperCase()}) ${m[2].trim().slice(0, 36)}`);
+    }
+
+    // 3. Choice list in any "?" sentence ("A, B, or C?" / "X — A, B, or C?" / "X, or Y?")
+    const qSentences = text.match(/[^.!?\n]*\?/g) || [];
+    const prefixRe = /^(?:(?:or|and|either|maybe|perhaps|like|is\s+it|are\s+they|was\s+it|is\s+there(?:\s+(?:a|an|any|some))?|do\s+you\s+want(?:\s+me)?\s+to|would\s+you\s+like(?:\s+me)?\s+to|want(?:\s+me)?\s+to|do\s+you\s+want|would\s+you\s+like|do\s+you\s+prefer|should\s+we|shall\s+we|can\s+we|let'?s|should\s+i|shall\s+i|can\s+i|ready\s+for(?:\s+(?:some|a|an))?|up\s+for(?:\s+(?:some|a|an))?|how\s+about|what\s+about)\s+)/i;
+    const stemRe = /^(?:(?:(?:do\s+you\s+want|would\s+you\s+like|want)\s+to\s+(?:start\s+with|begin\s+with|practice|practise|revise|study|learn|focus\s+on|work\s+on|go\s+with|pick|choose|tackle|explore|cover)\s+)|(?:(?:should|shall|can)\s+we\s+(?:start\s+with|begin\s+with|practice|practise|revise|study|learn|focus\s+on|work\s+on|go\s+with|pick|choose|tackle|explore|cover|do)\s+)|(?:(?:is|was)\s+it|are\s+they|do\s+you\s+prefer|would\s+you\s+prefer|would\s+you\s+like|do\s+you\s+want|how\s+about|what\s+about|ready\s+for|up\s+for|start\s+with|begin\s+with|go\s+with|pick|choose|either)\s+)/i;
+    const pronouns = new Set(['it', 'this', 'that', 'these', 'those', 'them', 'they', 'one', 'ones', 'which', 'what', 'who']);
+
+    const cleanOpt = (raw) => {
+      let s = String(raw || '').replace(/\s+/g, ' ').trim();
+      s = s.replace(/^[\s"“'‘()+*\-—–]+/, '').replace(/[\s"”'’().!?]+$/, '').trim();
+      for (let k = 0; k < 4; k++) {
+        const next = s.replace(prefixRe, '').trim();
+        if (next === s) break;
+        s = next;
+      }
+      s = s.replace(/^[\s"“'‘()+*\-—–]+/, '').replace(/[\s"”'’.,;:!?—–\-]+$/, '').trim();
+      if (!s) return null;
+      if (/^something\s+else$/i.test(s)) return 'Something else';
+      s = s.replace(/\b(show|give|tell|teach|ask|help|walk)\s+you\b/gi, '$1 me');
+      if (s.split(/\s+/).length >= 4) {
+        s = s
+          .replace(/\s+from\s+(?:class|grade)\s+\d+(?:\s+that(?:'s|\s+is)\s+[\w\s]+)?$/i, '')
+          .replace(/\s+that(?:'s|\s+is)\s+(?:bugging|troubling|bothering|confusing|tricking)\s+you$/i, '')
+          .replace(/\s+for\s+(?:this|that|it|now|today)$/i, '')
+          .replace(/\s+(?:right\s+now|today|instead)$/i, '')
+          .trim();
+      }
+      if (!s || pronouns.has(s.toLowerCase())) return null;
+      if (/^(?:which|what|who|where|when|why|how|the\s+one\s+that|whether|if)\b/i.test(s)) return false;
+      const words = s.split(/\s+/).filter(Boolean);
+      if (words.length < 1 || words.length > 6 || s.length > 40) return false;
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
+    for (let i = qSentences.length - 1; i >= 0; i--) {
+      let q = qSentences[i].replace(/\s+/g, ' ').trim();
+      if (!/\bor\b/i.test(q)) continue;
+      q = q.replace(/^[\s"“'‘(]+/, '').replace(/[?!.\s"”'’)]+$/, '').trim();
+      q = q.replace(/^(?:so|now|first|next|okay|alright|hey|well|tell\s+me)[,\s]+/i, '').trim();
+      if (/^(?:why\b|how\s+(?:do|does|did|can|could|is|are)|what\s+(?:happens|happened|makes|do\s+you\s+think)|can\s+you\s+(?:guess|explain|tell)|do\s+you\s+(?:know|remember|think))\b/i.test(q)) continue;
+
+      let sliced = false;
+      const sepMatches = [...q.matchAll(/[:—–](?!\s*or\b)|\s+-\s+(?!or\b)/gi)];
+      if (sepMatches.length > 0) {
+        const lastSep = sepMatches[sepMatches.length - 1];
+        const afterSep = q.slice((lastSep.index || 0) + lastSep[0].length).trim();
+        if (/\S\s+or\s+\S/i.test(afterSep)) {
+          q = afterSep;
+          sliced = true;
+        }
+      }
+      if (!sliced) {
+        const whMatch = q.match(/^(?:which|what)\b[^,]*,\s*(?!or\b)(.+)$/i);
+        if (whMatch && whMatch[1]) q = whMatch[1].trim();
+      }
+
+      const hasCommaList = q.replace(/,\s+or\s+/gi, '__OX__').includes(',');
+      let rawParts = [];
+      if (hasCommaList) {
+        q = q.replace(stemRe, '').trim();
+        const segs = q.replace(/\s*,\s+or\s+/gi, ', ').split(/\s*,\s*/).filter(Boolean);
+        segs.forEach((seg, idx) => {
+          if (idx === segs.length - 1 && /\s+or\s+/i.test(seg)) rawParts.push(...seg.split(/\s+or\s+/i));
+          else rawParts.push(seg);
+        });
+      } else {
+        const isTwoClause = /(?:,\s+|[—–]\s*|\s+-\s+)or\s+/i.test(q) || /\s+or\s+(?:should|shall|can|would|do|want|let'?s)\b/i.test(q);
+        if (!isTwoClause) q = q.replace(stemRe, '').trim();
+        rawParts = q.split(/\s*(?:,\s*|[—–]\s*|\s+-\s*|\s+)or\s+/i).filter(Boolean);
+      }
+      if (rawParts.length >= 2) {
+        const opts = [];
+        let invalid = false;
+        for (const p of rawParts) {
+          const c = cleanOpt(p);
+          if (c === false) { invalid = true; break; }
+          if (c && !opts.some((x) => x.toLowerCase() === c.toLowerCase())) opts.push(c);
+        }
+        if (!invalid && opts.length >= 2 && opts.length <= 4) return opts;
+      }
+    }
+
+    // 4. Contextual fallback so every question turn has tappable choices
+    if (/\b(?:which|what)\s+(?:chapter|topic|unit|lesson|part)\b/i.test(text)) {
+      if (/\b(?:science|physics|chemistry|biology)\b/i.test(text)) {
+        return ['Photosynthesis', 'Force & Pressure', 'Cells', 'Pick a topic for me'];
+      }
+      if (/\b(?:math|maths|mathematics|algebra|geometry)\b/i.test(text)) {
+        return ['Fractions & Decimals', 'Linear Equations', 'Geometry', 'Pick a topic for me'];
+      }
+      if (/\b(?:social|history|geography|civics)\b/i.test(text)) {
+        return ['History', 'Geography', 'Civics', 'Pick a topic for me'];
+      }
+      if (/\b(?:english|grammar)\b/i.test(text)) {
+        return ['Grammar', 'Reading & Writing', 'Vocabulary', 'Pick a topic for me'];
+      }
+      return ['First chapter', 'Pick a topic for me', 'Quick quiz'];
+    }
+
+    if (
+      /\b(?:which|what)\s+subject\b/i.test(text) ||
+      (/\b(?:what'?s\s+on\s+your\s+mind|what\s+would\s+you\s+like\s+to\s+(?:study|learn|tackle|start|practice|practise)|what\s+do\s+you\s+want\s+to\s+(?:understand|learn|study))\b/i.test(text) &&
+        text.length < 240)
+    ) {
+      if (/\bscience\b/i.test(text) && !/\bmath/i.test(text)) {
+        return ['Photosynthesis', 'Force & Pressure', 'Cells', 'Switch to Maths'];
+      }
+      if (/\bmath/i.test(text) && !/\bscience\b/i.test(text)) {
+        return ['Fractions', 'Linear Equations', 'Geometry', 'Switch to Science'];
+      }
+      return ['Maths', 'Science', 'English', 'Social Science'];
+    }
+
+    if (/\b(?:does\s+that\s+make\s+sense|do\s+you\s+get\s+it|ready\s+to\s+try|shall\s+we\s+try|want\s+to\s+try|would\s+you\s+like\s+to\s+try)\b/i.test(text)) {
+      return ['Yes, let’s try!', 'Give me an example', 'Explain once more', 'Quiz me'];
+    }
+
+    if (/\?/.test(text)) {
+      return ['Give me a hint', 'Show an example', 'Explain simply', 'Quiz me on this'];
+    }
+
+    return ['Try an example', 'Quiz me on this', 'Explain more', 'New topic'];
   }
 
   static pickQuickReplyQuestion(text, quickReplies = []) {
@@ -452,6 +615,14 @@ class ChatAgent {
         window.APPU_CONFIG.experimentalLearning
       );
 
+      const guestHistory = !hasSecureSession
+        ? this.messages
+            .slice(0, -1)
+            .filter((m) => !m.isWelcome && !m.isSystem && typeof m.text === 'string' && m.text.trim())
+            .slice(-12)
+            .map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.text.trim().slice(0, 2000) }))
+        : [];
+
       const requestPayload = hasSecureSession
         ? {
             accessToken: window.AppuSession.accessToken,
@@ -467,6 +638,7 @@ class ChatAgent {
             message: cleanInput,
             language: this.language || 'en',
             includeAudio,
+            ...(guestHistory.length > 0 ? { conversationHistory: guestHistory } : {}),
             ...(isExperimentalLearning ? { experimentalLearning: true } : {})
           };
 
@@ -536,13 +708,16 @@ class ChatAgent {
       if (onFinishThinking) onFinishThinking(responseText, audioSource, result.audioStreamUrl || null, requestPayload.accessToken || null, result);
 
       const isSystemNotice = Boolean(result.error || result.code);
+      const ensuredQuickReplies = isSystemNotice
+        ? null
+        : ChatAgent.ensureQuickReplies(responseText, result.quickReplies);
       const appuMsg = this.addMessage('appu', responseText, actionCard, null, {
         isSystem: isSystemNotice,
         lessonCard: result.lessonCard || null,
         mood: result.mood || null,
         requestId: result.requestId || null,
         conversationId: result.conversationId || null,
-        quickReplies: isSystemNotice ? null : (result.quickReplies || null)
+        quickReplies: ensuredQuickReplies
       });
       if (appuMsg.lessonCard) this.persistLessonCard(appuMsg);
       return appuMsg;
@@ -566,8 +741,10 @@ class ChatAgent {
       this.initDefaultWelcome();
       return;
     }
-    for (const m of messages) {
+    for (let idx = 0; idx < messages.length; idx++) {
+      const m = messages[idx];
       const sender = m.role === 'user' ? 'user' : 'appu';
+      const isLast = idx === messages.length - 1;
       const timeStr = m.createdAt
         ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : '';
@@ -580,7 +757,8 @@ class ChatAgent {
         attachmentLabel: m.hasImageAttachment ? 'Photo attached' : null,
         imageDataUrl: null,
         actionCard: null,
-        lessonCard: m.lessonCard || null
+        lessonCard: m.lessonCard || null,
+        quickReplies: isLast && sender === 'appu' ? ChatAgent.ensureQuickReplies(m.text, m.quickReplies) : null
       };
       this.messages.push(msgObj);
       this.renderMessage(msgObj);
@@ -651,5 +829,9 @@ if (typeof window !== 'undefined') {
   window.ChatAgent = ChatAgent;
 }
 if (typeof module === 'object' && module.exports) {
-  module.exports = { ChatAgent, pickQuickReplyQuestion: ChatAgent.pickQuickReplyQuestion };
+  module.exports = {
+    ChatAgent,
+    pickQuickReplyQuestion: ChatAgent.pickQuickReplyQuestion,
+    ensureQuickReplies: ChatAgent.ensureQuickReplies
+  };
 }

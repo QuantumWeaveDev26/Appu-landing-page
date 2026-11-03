@@ -47,10 +47,10 @@ const SHARED_STEM_PREFIX_RE = new RegExp(
 const OPTION_LEADING_PREFIX_RE = new RegExp(
   '^(?:' +
     '(?:or|and|either|maybe|perhaps|like)\\s+|' +
-    '(?:is\\s+it|are\\s+they|was\\s+it|could\\s+it\\s+be|would\\s+it\\s+be|is\\s+this)\\s+|' +
-    '(?:do\\s+you\\s+want(?:\\s+me)?\\s+to|would\\s+you\\s+like(?:\\s+me)?\\s+to|want(?:\\s+me)?\\s+to|do\\s+you\\s+want|would\\s+you\\s+like|do\\s+you\\s+prefer\\s+to|do\\s+you\\s+prefer|would\\s+you\\s+prefer|would\\s+you\\s+rather)\\s+|' +
+    '(?:is\\s+it|are\\s+they|was\\s+it|could\\s+it\\s+be|would\\s+it\\s+be|is\\s+this|is\\s+there(?:\\s+(?:a|an|any|some))?)\\s+|' +
+    '(?:do\\s+you\\s+want(?:\\s+me)?\\s+to|would\\s+you\\s+like(?:\\s+me)?\\s+to|want(?:\\s+me)?\\s+to|do\\s+you\\s+want|would\\s+you\\s+like|do\\s+you\\s+prefer\\s+to|do\\s+you\\s+prefer|would\\s+you\\s+prefer|would\\s+you\\s+rather|do\\s+you\\s+have(?:\\s+(?:a|an|any|some))?|got(?:\\s+(?:a|an|any|some))?)\\s+|' +
     '(?:should\\s+we|shall\\s+we|can\\s+we|let\'?s|how\\s+about\\s+we|what\\s+if\\s+we|should\\s+i|shall\\s+i|can\\s+i)\\s+|' +
-    '(?:how\\s+about|what\\s+about)\\s+' +
+    '(?:ready\\s+for(?:\\s+(?:some|a|an))?|up\\s+for(?:\\s+(?:some|a|an))?|how\\s+about|what\\s+about)\\s+' +
   ')',
   'i'
 );
@@ -96,9 +96,14 @@ function cleanCandidateOption(raw: string): CleanedOption {
   s = s.replace(/\b(show|give|tell|teach|ask|help|walk)\s+you\b/gi, '$1 me');
   s = s.replace(/\bexplain\s+to\s+you\b/gi, 'explain to me');
 
-  // Trim trailing deictic filler on multi-word action clauses (e.g. "for this", "right now").
+  // Trim trailing deictic filler on multi-word action clauses (e.g. "for this", "right now", "from class 8 that's bugging you").
   if (s.split(/\s+/).length >= 4) {
-    s = s.replace(/\s+for\s+(?:this|that|it|now)$/i, '').replace(/\s+(?:right\s+now|instead)$/i, '').trim();
+    s = s
+      .replace(/\s+from\s+(?:class|grade)\s+\d+(?:\s+that(?:'s|\s+is)\s+[\w\s]+)?$/i, '')
+      .replace(/\s+that(?:'s|\s+is)\s+(?:bugging|troubling|bothering|confusing|tricking)\s+you$/i, '')
+      .replace(/\s+for\s+(?:this|that|it|now|today)$/i, '')
+      .replace(/\s+(?:right\s+now|today|instead)$/i, '')
+      .trim();
   }
 
   s = s.replace(/[\s"”'’.,;:!?—–\-]+$/, '').trim();
@@ -219,15 +224,88 @@ function extractHeuristicQuickReplies(text: string): string[] {
   const matches = text.match(/[^.!?\n]*\?/g);
   if (!matches || matches.length === 0) return [];
 
-  // Check the LAST "?" sentence first, then the previous one.
-  const startIdx = Math.max(0, matches.length - 2);
-  for (let i = matches.length - 1; i >= startIdx; i--) {
+  // Check from the LAST "?" sentence backwards through earlier "?" sentences.
+  for (let i = matches.length - 1; i >= 0; i--) {
     const extracted = extractFromQuestionSentence(matches[i]);
     if (extracted.length >= 2 && extracted.length <= MAX_OPTIONS) {
       return extracted;
     }
   }
   return [];
+}
+
+/**
+ * Guarantees 2 to 4 tappable answer options for every turn in a live conversation
+ * even when the model omits `[[OPTIONS: ...]]` and phrases its question as an open question.
+ */
+export function ensureTurnQuickReplies(
+  rawText: string,
+  existingQuickReplies: string[] = [],
+  quizOptions?: string[] | null
+): string[] {
+  if (Array.isArray(existingQuickReplies) && existingQuickReplies.length >= 2) {
+    return existingQuickReplies.slice(0, MAX_OPTIONS);
+  }
+  if (Array.isArray(quizOptions) && quizOptions.length >= 2) {
+    return quizOptions.slice(0, MAX_OPTIONS);
+  }
+  const text = String(rawText || '').trim();
+  if (!text) return [];
+
+  const extracted = extractQuickReplies(text).quickReplies;
+  if (extracted.length >= 2) return extracted;
+
+  // Inline lettered multiple-choice options ("A) ... B) ...") when not tagged with QUIZ_ITEM
+  const inlineMcq = [...text.matchAll(/(?:^|\n)\s*([A-D])[).:]\s+([^\n]+)/g)];
+  if (inlineMcq.length >= 2) {
+    return inlineMcq
+      .slice(0, MAX_OPTIONS)
+      .map((m) => `${m[1].toUpperCase()}) ${m[2].trim().slice(0, 36)}`);
+  }
+
+  // Contextual topic / chapter choice question
+  if (/\b(?:which|what)\s+(?:chapter|topic|unit|lesson|part)\b/i.test(text)) {
+    if (/\b(?:science|physics|chemistry|biology)\b/i.test(text)) {
+      return ['Photosynthesis', 'Force & Pressure', 'Cells', 'Pick a topic for me'];
+    }
+    if (/\b(?:math|maths|mathematics|algebra|geometry)\b/i.test(text)) {
+      return ['Fractions & Decimals', 'Linear Equations', 'Geometry', 'Pick a topic for me'];
+    }
+    if (/\b(?:social|history|geography|civics)\b/i.test(text)) {
+      return ['History', 'Geography', 'Civics', 'Pick a topic for me'];
+    }
+    if (/\b(?:english|grammar)\b/i.test(text)) {
+      return ['Grammar', 'Reading & Writing', 'Vocabulary', 'Pick a topic for me'];
+    }
+    return ['First chapter', 'Pick a topic for me', 'Quick quiz'];
+  }
+
+  // Subject choice / greeting question
+  if (
+    /\b(?:which|what)\s+subject\b/i.test(text) ||
+    (/\b(?:what'?s\s+on\s+your\s+mind|what\s+would\s+you\s+like\s+to\s+(?:study|learn|tackle|start|practice|practise)|what\s+do\s+you\s+want\s+to\s+(?:understand|learn|study))\b/i.test(text) &&
+      text.length < 240)
+  ) {
+    if (/\bscience\b/i.test(text) && !/\bmath/i.test(text)) {
+      return ['Photosynthesis', 'Force & Pressure', 'Cells', 'Switch to Maths'];
+    }
+    if (/\bmath/i.test(text) && !/\bscience\b/i.test(text)) {
+      return ['Fractions', 'Linear Equations', 'Geometry', 'Switch to Science'];
+    }
+    return ['Maths', 'Science', 'English', 'Social Science'];
+  }
+
+  // Confirmation / ready-to-try check
+  if (/\b(?:does\s+that\s+make\s+sense|do\s+you\s+get\s+it|ready\s+to\s+try|shall\s+we\s+try|want\s+to\s+try|would\s+you\s+like\s+to\s+try)\b/i.test(text)) {
+    return ['Yes, let’s try!', 'Give me an example', 'Explain once more', 'Quiz me'];
+  }
+
+  // Concept check / open question ("Can you tell me...", "Why do you think...", "What happens...")
+  if (/\?/.test(text)) {
+    return ['Give me a hint', 'Show an example', 'Explain simply', 'Quiz me on this'];
+  }
+
+  return ['Try an example', 'Quiz me on this', 'Explain more', 'New topic'];
 }
 
 export function extractQuickReplies(rawText: string): QuickReplyExtraction {

@@ -44,6 +44,7 @@ interface ChatMessage {
   isGateCard?: boolean;
   audioStreamUrl?: string | null;
   audioSource?: string | null;
+  quickReplies?: string[];
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
@@ -344,8 +345,14 @@ export function ChatScreen({ navigation, route }: Props) {
             status: 'sent',
             audioStreamUrl: response.audioStreamUrl,
             audioSource: response.audioSource,
+            quickReplies: Array.isArray(response.quickReplies) && response.quickReplies.length >= 2
+              ? response.quickReplies
+              : ['Give me a hint', 'Show an example', 'Quiz me on this'],
           };
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => [
+            ...prev.map((m) => (m.quickReplies ? { ...m, quickReplies: undefined } : m)),
+            newMsg,
+          ]);
 
           // Auto-speak if enabled in settings
           const autoSpeak = useSettingsStore.getState().autoSpeak;
@@ -494,6 +501,32 @@ export function ChatScreen({ navigation, route }: Props) {
           <Text style={[styles.messageText, isUser && styles.messageTextUser]}>
             {item.text}
           </Text>
+          {!isUser && Array.isArray(item.quickReplies) && item.quickReplies.length >= 2 && (
+            <View style={{ marginTop: 10, gap: 6 }}>
+              {(() => {
+                const qMatches = item.text.match(/[^.!?\n]+\?/g);
+                const qText = qMatches && qMatches.length > 0 ? qMatches[qMatches.length - 1].trim() : '';
+                return qText ? (
+                  <Text style={{ color: '#f8fafc', fontSize: 14, fontWeight: '700', marginBottom: 2 }}>
+                    🐘 Appu asks: {qText}
+                  </Text>
+                ) : null;
+              })()}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {item.quickReplies.map((opt) => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={styles.quickPromptChip}
+                    disabled={isLoading}
+                    onPress={() => handleSend(opt)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.quickPromptChipText}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
           {item.status === 'error' && (
             <TouchableOpacity
               style={styles.retryBtn}

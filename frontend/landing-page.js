@@ -2224,6 +2224,58 @@
             p.textContent = reply;
             answerSlot.appendChild(p);
           }
+
+          // Render the question and tappable answer options right below the visual on every turn.
+          try {
+            if (convo && typeof convo.querySelectorAll === 'function') {
+              convo.querySelectorAll('.msg-quick-replies').forEach(el => el.remove());
+            }
+            const CA = win.ChatAgent || (typeof ChatAgent !== 'undefined' ? ChatAgent : null);
+            const rawOpts = result && Array.isArray(result.quickReplies) ? result.quickReplies : [];
+            const quickOpts = (CA && typeof CA.ensureQuickReplies === 'function')
+              ? CA.ensureQuickReplies(reply, rawOpts)
+              : rawOpts;
+            if (Array.isArray(quickOpts) && quickOpts.length >= 2) {
+              const wrap = document.createElement('div');
+              wrap.className = 'msg-quick-replies';
+              wrap.setAttribute('role', 'group');
+              wrap.setAttribute('aria-label', 'Choose an answer');
+              const question = (CA && typeof CA.pickQuickReplyQuestion === 'function')
+                ? CA.pickQuickReplyQuestion(reply, quickOpts)
+                : '';
+              if (question) {
+                const langCode = String(lang || 'en').slice(0, 2);
+                const askLabel = {
+                  en: 'Appu asks:',
+                  kn: 'ಅಪ್ಪು ಕೇಳುತ್ತದೆ:',
+                  hi: 'अप्पू पूछ रहा है:'
+                }[langCode] || 'Appu asks:';
+                const qDiv = document.createElement('div');
+                qDiv.className = 'msg-quick-question';
+                const labelSpan = document.createElement('span');
+                labelSpan.setAttribute('aria-hidden', 'true');
+                labelSpan.textContent = '🐘 ' + askLabel;
+                const qSpan = document.createElement('span');
+                qSpan.textContent = question;
+                qDiv.appendChild(labelSpan);
+                qDiv.appendChild(document.createTextNode(' '));
+                qDiv.appendChild(qSpan);
+                wrap.appendChild(qDiv);
+              }
+              quickOpts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'quick-reply-chip';
+                btn.textContent = opt;
+                btn.addEventListener('click', () => {
+                  wrap.querySelectorAll('button').forEach(b => { b.disabled = true; });
+                  self.answerInline(opt);
+                });
+                wrap.appendChild(btn);
+              });
+              answerSlot.appendChild(wrap);
+            }
+          } catch (_) {}
           // Settle the view so the mind map and the question bar fill one screen.
           try { turn.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
           try {

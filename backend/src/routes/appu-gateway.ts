@@ -14,9 +14,9 @@ import { GuestSessionService } from '../domain/guest/service.js';
 import { MentorContextBuilder } from '../domain/personalisation/mentor-context-builder.js';
 import { PersonalisationRepository } from '../domain/personalisation/repository.js';
 import { buildGuestMentorContext } from '../domain/personalisation/guest-context.js';
-import { ConversationQuizService, extractQuizItem, type QuizTurnOutcome, type QuizTurnPlan } from '../domain/quiz/index.js';
+import { ConversationQuizService, buildQuizProtocol, extractQuizItem, type QuizTurnOutcome, type QuizTurnPlan } from '../domain/quiz/index.js';
 import { AdaptiveLearningService } from '../domain/adaptive-learning/service.js';
-import { extractQuickReplies } from '../domain/conversation/quick-replies.js';
+import { extractQuickReplies, ensureTurnQuickReplies } from '../domain/conversation/quick-replies.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
 import { AppuAudioAuthorizationRepository } from '../domain/voice/index.js';
@@ -104,7 +104,11 @@ const guestMessageSchema = z.object({
     nickname: z.string().trim().min(1).max(30).regex(/^[^<>`$]*$/, 'Invalid nickname').optional(),
     grade: z.string().regex(/^(5|6|7|8|9|10|11|12)$/, 'Invalid class').optional(),
     favoriteSubject: z.string().trim().min(1).max(40).regex(/^[^<>`$]*$/, 'Invalid subject').optional()
-  }).optional()
+  }).optional(),
+  conversationHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    text: z.string().max(2000)
+  })).max(20).optional()
 });
 
 /**
@@ -469,7 +473,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         parentPhone,
         whatsappConsent,
         ...(experimentalLearning ? { experimentalLearning: true } : {}),
-        ...(quizPlan ? { quizProtocol: quizPlan.protocol } : {})
+        quizProtocol: quizPlan ? quizPlan.protocol : buildQuizProtocol(null)
       };
 
       // 6. Forward to n8n via secure client with reservation rollback on failure.
@@ -513,6 +517,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
 
       // Record the graded quiz answer once, store any new question, strip the machine tag
       // and pin a final score to the stored records before the text is saved or voiced.
+      const parsedQuizItem = extractQuizItem(response.text).item;
       let quizResult: QuizTurnOutcome['quiz'] = null;
       if (conversation && quizPlan) {
         try {
@@ -536,6 +541,11 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       // Tappable answer options: strip the tag before the text is saved or voiced.
       const quickReplyResult = extractQuickReplies(response.text);
       response.text = quickReplyResult.text;
+      const authQuickReplies = ensureTurnQuickReplies(
+        response.text,
+        quickReplyResult.quickReplies,
+        parsedQuizItem ? Object.entries(parsedQuizItem.options).map(([k, v]) => `${k}) ${v}`) : null
+      );
 
       if (conversation) {
         try {
@@ -661,7 +671,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         audioStreamUrl,
         audioDurationMs: audioStreamUrl ? null : finalAudioDurationMs,
         quiz: quizResult,
-        quickReplies: quickReplyResult.quickReplies,
+        quickReplies: authQuickReplies,
         guestSession: null
       });
     }
@@ -676,7 +686,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       });
     }
 
-    const { message, language, guestToken, includeAudio, imageBase64, guestProfile } = parseResult.data;
+    const { message, language, guestToken, includeAudio, imageBase64, guestProfile, conversationHistory: guestHistory } = parseResult.data;
 
     let imagePayload: { mimeType: string; base64: string } | null = null;
     if (imageBase64) {
@@ -772,10 +782,12 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       message,
       language: effectiveLanguage,
       includeAudio: n8nIncludeAudio,
+      ...(guestHistory && guestHistory.length > 0 ? { conversationHistory: guestHistory } : {}),
       ...(imagePayload ? { imageBase64: imagePayload.base64, imageMimeType: imagePayload.mimeType } : {}),
       mentorContext,
       parentPhone: null,
-      whatsappConsent: false
+      whatsappConsent: false,
+      quizProtocol: buildQuizProtocol(null)
     };
 
     // 5. Forward to n8n AI workflow with failsafe rollback on error
@@ -806,9 +818,15 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
     }
     const tN8nEnd = performance.now();
     // Guests have no stored quiz state; never show or voice a quiz machine tag.
-    if (response && typeof response.text === 'string') response.text = extractQuizItem(response.text).text;
+    const guestQuizExtracted = extractQuizItem(response?.text ?? '');
+    if (response && typeof response.text === 'string') response.text = guestQuizExtracted.text;
     const guestQuickReplies = extractQuickReplies(response?.text ?? '');
     if (response && typeof response.text === 'string') response.text = guestQuickReplies.text;
+    const finalGuestQuickReplies = ensureTurnQuickReplies(
+      response?.text ?? '',
+      guestQuickReplies.quickReplies,
+      guestQuizExtracted.item ? Object.entries(guestQuizExtracted.item.options).map(([k, v]) => `${k}) ${v}`) : null
+    );
 
     // 6. Generate signed token reflecting the successfully completed turn count
     const guestTokenResult = GuestSessionService.signGuestToken({
@@ -866,7 +884,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
       audioSource: guestAudioStreamUrl ? null : (response.audioSource || null),
       audioStreamUrl: guestAudioStreamUrl,
       audioDurationMs: guestAudioStreamUrl ? null : (response.audioDurationMs || null),
-      quickReplies: guestQuickReplies.quickReplies,
+      quickReplies: finalGuestQuickReplies,
       guest: {
         token: guestTokenResult,
         limit: GuestSessionService.DEFAULT_MAX_TURNS,

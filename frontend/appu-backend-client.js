@@ -272,6 +272,9 @@
       if (guestProfile) {
         payload.guestProfile = guestProfile;
       }
+      if (Array.isArray(params.conversationHistory) && params.conversationHistory.length > 0) {
+        payload.conversationHistory = params.conversationHistory;
+      }
     }
 
     // Generate unique idempotency key for this logical message

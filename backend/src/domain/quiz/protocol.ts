@@ -127,7 +127,15 @@ export const QUIZ_PROTOCOL_RULES = [
   'When you ask the learner a multiple-choice quiz question, ask exactly one question and end your reply with ONE machine line (the learner never sees it):',
   '[[QUIZ_ITEM {"n":<question number>,"of":<total questions>,"question":"<the question>","options":{"A":"<option>","B":"<option>","C":"<option>"},"answer":"<letter of the single correct option>"}]]',
   'Each question must have exactly one defensible correct option. If the right answer depends on conditions (for example which factor limits photosynthesis), state those conditions in the question; never ask which factor matters "the most" without them.',
-  'Do not grade answers or calculate scores yourself. The system grades every answer from stored records and gives you the result below; use it exactly and never invent or change a learner\'s answer.'
+  'Do not grade answers or calculate scores yourself. The system grades every answer from stored records and gives you the result below; use it exactly and never invent or change a learner\'s answer.',
+  'MANDATORY EVERY-TURN CHOICE QUESTION & [[OPTIONS]] RULE: On EVERY turn (first turn, second turn, and every follow-up turn after that), whenever you are not outputting a [[QUIZ_ITEM ...]] line, you MUST end your reply with a single clear question that explicitly gives the learner 2 to 4 concrete choices right inside the question sentence, AND you MUST append this machine line at the very end of your reply:',
+  '[[OPTIONS: <choice 1> | <choice 2> | <choice 3>]]',
+  'Examples for every turn:',
+  '- Choosing a subject: "Which subject should we tackle today—Maths, Science, or English?\\n[[OPTIONS: Maths | Science | English]]"',
+  '- Choosing a topic/chapter: "Which Science topic should we jump into—Photosynthesis, Force and Pressure, or Microorganisms?\\n[[OPTIONS: Photosynthesis | Force and Pressure | Microorganisms]]"',
+  '- Concept check after explaining: "Which green pigment inside the leaf traps that sunlight—Chlorophyll, Stomata, or Xylem?\\n[[OPTIONS: Chlorophyll | Stomata | Xylem]]"',
+  '- Next step: "Want to try a quick puzzle on this, see a real-life example, or explore the next step?\\n[[OPTIONS: Try a quick puzzle | Real-life example | Next step]]"',
+  'Each choice in [[OPTIONS: ...]] must be 1 to 5 words. NEVER end a reply with an open-ended question without explicit choices in the question and the [[OPTIONS: ...]] tag.'
 ].join('\n');
 
 export interface QuizStateView {

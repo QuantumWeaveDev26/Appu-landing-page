@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractQuickReplies } from '../src/domain/conversation/quick-replies.js';
+import { extractQuickReplies, ensureTurnQuickReplies } from '../src/domain/conversation/quick-replies.js';
 
 describe('extractQuickReplies', () => {
   test('returns the options and removes the tag from the text', () => {
@@ -116,5 +116,32 @@ describe('extractQuickReplies', () => {
     const tagWins = extractQuickReplies('Is it Math, Science, or maybe something else?\n[[OPTIONS: Algebra | Geometry]]');
     assert.equal(tagWins.text, 'Is it Math, Science, or maybe something else?');
     assert.deepEqual(tagWins.quickReplies, ['Algebra', 'Geometry']);
+  });
+
+  test('ensureTurnQuickReplies guarantees contextual options for every follow-up turn even when the question is open-ended', () => {
+    // Turn 1 greeting with trailing open question
+    const turn1 =
+      "Hey Aarav! Ready for some cool Science magic today, or is there a tricky question from class 8 that's bugging you? What’s on your mind?";
+    assert.deepEqual(ensureTurnQuickReplies(turn1), ['Cool Science magic', 'Tricky question']);
+
+    // Turn 2 chapter/topic question
+    const turn2 =
+      'Nice! Science is full of exciting discoveries. What chapter or topic in Science are you working on right now?';
+    assert.deepEqual(ensureTurnQuickReplies(turn2), [
+      'Photosynthesis',
+      'Force & Pressure',
+      'Cells',
+      'Pick a topic for me'
+    ]);
+
+    // Turn 3 open concept-check question
+    const turn3 =
+      'Photosynthesis is like the plant’s own kitchen, where sunlight, water, and carbon dioxide join forces to cook food and release oxygen. Can you tell me what ingredient plants need from sunlight to start this kitchen magic?';
+    assert.deepEqual(ensureTurnQuickReplies(turn3), [
+      'Give me a hint',
+      'Show an example',
+      'Explain simply',
+      'Quiz me on this'
+    ]);
   });
 });
