@@ -138,11 +138,20 @@ function extractFromQuestionSentence(rawSentence: string): string[] {
 
   let rawParts: string[] = [];
 
-  if (q.includes(':')) {
-    const afterColon = q.slice(q.lastIndexOf(':') + 1).trim();
-    if (!afterColon || !/\bor\b/i.test(afterColon)) return [];
-    q = afterColon;
-  } else {
+  let slicedAfterSeparator = false;
+  const listIntroMatches = [...q.matchAll(/[:—–](?!\s*or\b)|\s+-\s+(?!or\b)/gi)];
+  if (listIntroMatches.length > 0) {
+    const lastMatch = listIntroMatches[listIntroMatches.length - 1];
+    const afterSep = q.slice((lastMatch.index ?? 0) + lastMatch[0].length).trim();
+    if (/\S\s+or\s+\S/i.test(afterSep)) {
+      q = afterSep;
+      slicedAfterSeparator = true;
+    } else if (lastMatch[0] === ':') {
+      return [];
+    }
+  }
+
+  if (!slicedAfterSeparator) {
     // Strip "Which/What <noun> ..., A or B" intro when the comma is not the ", or" separator itself.
     const whCommaMatch = q.match(/^(?:which|what)\b[^,]*,\s*(?!or\b)(.+)$/i);
     if (whCommaMatch && whCommaMatch[1]) {
@@ -168,13 +177,13 @@ function extractFromQuestionSentence(rawSentence: string): string[] {
       }
     }
   } else {
-    // Binary or two-clause question ("X, or Y?" / "A or B?").
-    const isTwoClause = /,\s+or\s+|\s+[—–-]\s*or\s+/i.test(q) ||
+    // Binary or two-clause question ("X, or Y?" / "X — or Y?" / "A or B?").
+    const isTwoClause = /(?:,\s+|[—–]\s*|\s+-\s+)or\s+/i.test(q) ||
       /\s+or\s+(?:should|shall|can|would|do|want|let'?s)\b/i.test(q);
     if (!isTwoClause) {
       q = q.replace(SHARED_STEM_PREFIX_RE, '').trim();
     }
-    rawParts = q.split(/\s*(?:,\s*|\s+[—–-]\s*|\s+)or\s+/i).filter(Boolean);
+    rawParts = q.split(/\s*(?:,\s*|[—–]\s*|\s+-\s*|\s+)or\s+/i).filter(Boolean);
   }
 
   if (rawParts.length < 2) return [];

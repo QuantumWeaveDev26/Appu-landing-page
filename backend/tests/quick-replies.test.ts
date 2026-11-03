@@ -38,10 +38,33 @@ describe('extractQuickReplies', () => {
     assert.deepEqual(r.quickReplies, ['Math', 'Science', 'Something else']);
   });
 
-  test('extracts two-clause action options from "X, or Y?" style questions', () => {
+  test('extracts two-clause action options from "X, or Y?" and "X — or Y?" style questions', () => {
     const input = 'Want to try an example together, or should I show you the secret trick for this?';
-    const r = extractQuickReplies(input);
-    assert.deepEqual(r.quickReplies, ['Try an example together', 'Show me the secret trick']);
+    assert.deepEqual(extractQuickReplies(input).quickReplies, ['Try an example together', 'Show me the secret trick']);
+
+    const emDashTwoClause = 'Want to try an example together — or should I show you the secret trick for this?';
+    assert.deepEqual(extractQuickReplies(emDashTwoClause).quickReplies, ['Try an example together', 'Show me the secret trick']);
+  });
+
+  test('extracts full choice list after em dash, en dash, and spaced hyphen before the list', () => {
+    assert.deepEqual(
+      extractQuickReplies(
+        'Hey! Ready for a quick brain workout? Which subject should we tackle today—Math, Science, or something else?'
+      ).quickReplies,
+      ['Math', 'Science', 'Something else']
+    );
+    assert.deepEqual(
+      extractQuickReplies(
+        'Hey! Ready for a quick brain workout? Which subject should we tackle today – Math, Science, or something else?'
+      ).quickReplies,
+      ['Math', 'Science', 'Something else']
+    );
+    assert.deepEqual(
+      extractQuickReplies(
+        'Hey! Ready for a quick brain workout? Which subject should we tackle today - Math, Science, or something else?'
+      ).quickReplies,
+      ['Math', 'Science', 'Something else']
+    );
   });
 
   test('extracts options from colon-separated and non-Oxford-comma choice questions', () => {
