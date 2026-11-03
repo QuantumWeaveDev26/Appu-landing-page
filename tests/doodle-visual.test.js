@@ -1,4 +1,4 @@
-const { describe, it, beforeEach } = require('node:test');
+const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 function createMockElement(tag) {
@@ -111,7 +111,8 @@ describe('DoodleVisual (comic-strip story & hand-drawn mind map)', () => {
   beforeEach(() => {
     global.document = {
       createElement: (tag) => createMockElement(tag),
-      createElementNS: (_ns, tag) => createMockElement(tag)
+      createElementNS: (_ns, tag) => createMockElement(tag),
+      addEventListener: () => {}
     };
     global.requestAnimationFrame = (cb) => cb();
     delete require.cache[require.resolve('../frontend/doodle-visual.js')];
@@ -160,5 +161,117 @@ describe('DoodleVisual (comic-strip story & hand-drawn mind map)', () => {
     assert.ok(valid, 'Expected mind map section element for valid input');
     assert.equal(valid.className, 'doodle-mindmap');
     assert.equal(valid.querySelectorAll('.doodle-branch').length, 2);
+  });
+
+  describe('LessonCardRenderer focused doodle integration', () => {
+    let LessonCardRenderer;
+    let prevWindow;
+
+    beforeEach(() => {
+      prevWindow = global.window;
+      global.window = { DoodleVisual };
+      LessonCardRenderer = require('../frontend/lesson-card-renderer.js');
+    });
+
+    afterEach(() => {
+      if (prevWindow === undefined) delete global.window;
+      else global.window = prevWindow;
+    });
+
+    it('renders .is-doodle with .doodle-story and .doodle-mindmap (no .lesson-block-diagram) for fromVisualizerPayload shape (block.diagram.parts + mermaid mindMap)', () => {
+      const payloadCard = {
+        isRich: true,
+        topic: 'Water Cycle',
+        plainText: 'Water evaporates, condenses into clouds, and falls as rain.',
+        blocks: [
+          {
+            type: 'diagram',
+            kind: 'mindmap',
+            title: 'The Water Cycle',
+            spec: 'flowchart TD\n  ROOT["Water Cycle"]\n  ROOT --> B1["Evaporation"]\n  B1 --> C1["Sun heats water"]\n  ROOT --> B2["Condensation"]\n  B2 --> C2["Forms clouds"]\n  ROOT --> B3["Precipitation"]',
+            diagram: {
+              title: 'How Rain Works',
+              layout: 'flow',
+              parts: [
+                { id: 'p1', label: 'Evaporation', explanation: 'Sunlight warms water into vapour.' },
+                { id: 'p2', label: 'Condensation', explanation: 'Vapour cools into tiny cloud droplets.' },
+                { id: 'p3', label: 'Rain!', explanation: 'Heavy droplets fall back to Earth.' }
+              ]
+            }
+          }
+        ],
+        mindMap: {
+          central: 'Water Cycle',
+          branches: [],
+          spec: 'flowchart TD\n  ROOT["Water Cycle"]\n  ROOT --> B1["Evaporation"]\n  ROOT --> B2["Condensation"]\n  ROOT --> B3["Precipitation"]'
+        }
+      };
+
+      const parsed = LessonCardRenderer.parse(payloadCard);
+      const container = LessonCardRenderer.render(parsed, { focused: true });
+
+      assert.ok(container.classList.contains('is-doodle'), 'Container should have .is-doodle');
+      const childClasses = container.children.map((c) => c.className);
+      assert.ok(childClasses.includes('doodle-story'), 'Should render .doodle-story from block.diagram.parts');
+      assert.ok(childClasses.includes('doodle-mindmap'), 'Should render .doodle-mindmap from Mermaid spec');
+      assert.ok(!childClasses.some((cls) => cls.includes('lesson-block-diagram')), 'Must NOT render .lesson-block-diagram');
+    });
+
+    it('allows a 1-step story when mindMap exists, and never falls back to .lesson-block-diagram in focused mode when nothing is usable', () => {
+      const oneStepWithMap = {
+        isRich: true,
+        topic: 'Gravity',
+        blocks: [
+          { type: 'steps', items: ['Gravity pulls objects toward Earth.'] }
+        ],
+        mindMap: {
+          central: 'Gravity',
+          branches: [
+            { label: 'Pulls down', children: ['Keeps feet on ground'] },
+            { label: 'Orbits', children: ['Holds Moon around Earth'] }
+          ]
+        }
+      };
+      const el1 = LessonCardRenderer.render(LessonCardRenderer.parse(oneStepWithMap), { focused: true });
+      assert.ok(el1.classList.contains('is-doodle'));
+      assert.ok(el1.children.some((c) => c.className === 'doodle-story'), '1-step story allowed when mindMap exists');
+      assert.ok(el1.children.some((c) => c.className === 'doodle-mindmap'));
+
+      const unusableCard = {
+        isRich: true,
+        topic: 'Short',
+        blocks: [
+          { type: 'diagram', kind: 'mindmap', title: 'Short', central: 'Short', branches: [{ label: 'Only one' }] },
+          { type: 'steps', items: ['Only one step without valid mind map.'] }
+        ],
+        mindMap: { central: 'Short', branches: [{ label: 'Only one' }] }
+      };
+      const elEmpty = LessonCardRenderer.render(LessonCardRenderer.parse(unusableCard), { focused: true });
+      assert.ok(!elEmpty.children.some((c) => String(c.className).includes('lesson-block-diagram')), 'Must never fall back to .lesson-block-diagram in focused mode');
+    });
+
+    it('renderStudyMode dispatches mindmap and diagram tabs to DoodleVisual when available', () => {
+      const card = {
+        topic: 'Magnetism',
+        diagram: {
+          title: 'Magnetic Poles',
+          parts: [
+            { id: 'p1', label: 'North Pole', explanation: 'Points north.' },
+            { id: 'p2', label: 'South Pole', explanation: 'Attracts north pole.' }
+          ]
+        },
+        mindMap: {
+          central: 'Magnets',
+          branches: [
+            { label: 'Attract', children: ['Opposite poles N + S'] },
+            { label: 'Repel', children: ['Same poles N + N'] }
+          ]
+        }
+      };
+      const mmEl = LessonCardRenderer.renderStudyMode('mindmap', card, { card });
+      assert.equal(mmEl.className, 'doodle-mindmap');
+      const diagEl = LessonCardRenderer.renderStudyMode('diagram', card, { card });
+      assert.equal(diagEl.className, 'doodle-story');
+    });
   });
 });

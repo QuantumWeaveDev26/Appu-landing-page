@@ -726,8 +726,9 @@
         : (typeof input.text === 'string' ? input.text : '');
       const rawMindMap = input.mindMap || (hasBlocks ? input.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
       const rawCitation = normalizeCitation(input.citation || (hasBlocks ? input.blocks.find(b => b && b.citation)?.citation : null) || (rawMindMap && rawMindMap.citation));
+      const diagBlock = hasBlocks ? input.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && (Array.isArray(b.parts) || (b.diagram && Array.isArray(b.diagram.parts)))))) : null;
       const rawDiagram = normalizeDiagram(
-        input.diagram || (hasBlocks ? input.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && Array.isArray(b.parts)))) : null) || null,
+        input.diagram || (diagBlock && (diagBlock.diagram || diagBlock)) || null,
         rawCitation
       );
 
@@ -779,8 +780,9 @@
 
           const rawMindMap = obj.mindMap || (hasBlocks ? obj.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'diagram')) : null) || null;
           const rawCitation = normalizeCitation(obj.citation || (hasBlocks ? obj.blocks.find(b => b && b.citation)?.citation : null) || (rawMindMap && rawMindMap.citation));
+          const diagBlock = hasBlocks ? obj.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && (Array.isArray(b.parts) || (b.diagram && Array.isArray(b.diagram.parts)))))) : null;
           const rawDiagram = normalizeDiagram(
-            obj.diagram || (hasBlocks ? obj.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && Array.isArray(b.parts)))) : null) || null,
+            obj.diagram || (diagBlock && (diagBlock.diagram || diagBlock)) || null,
             rawCitation
           );
 
@@ -973,6 +975,34 @@
           if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
           childrenMap.get(parentId).push(childId);
           parents.add(childId);
+        }
+      }
+    }
+
+    if (allNodes.length === 0 && /^mindmap\b/i.test(spec.trim())) {
+      const rawLines = spec.split(/\r?\n/).filter(l => l.trim() && !/^mindmap\b/i.test(l.trim()));
+      const cleanLabel = s => s.trim()
+        .replace(/^[A-Za-z0-9_]*\s*(?:\(\(|\(\[|\[\[|\(\(|\(|\[|\{)+/, '')
+        .replace(/(?:\)\)|\]\)|\]\]|\)\)|\)|\]|\})+$/, '')
+        .replace(/^["']|["']$/g, '')
+        .trim();
+      if (rawLines.length >= 2) {
+        const centralLabel = cleanLabel(rawLines[0]);
+        const branchList = [];
+        let baseIndent = null;
+        for (let i = 1; i < rawLines.length; i++) {
+          const indent = (rawLines[i].match(/^\s*/) || [''])[0].length;
+          const lbl = cleanLabel(rawLines[i]);
+          if (!lbl) continue;
+          if (baseIndent === null || indent <= baseIndent) {
+            baseIndent = indent;
+            branchList.push({ label: lbl, children: [] });
+          } else if (branchList.length > 0) {
+            branchList[branchList.length - 1].children.push(lbl);
+          }
+        }
+        if (centralLabel && branchList.length > 0) {
+          return { central: centralLabel, branches: branchList, isSingleRoot: true };
         }
       }
     }
@@ -1304,26 +1334,22 @@
     // map, the friendlier pair for children. Falls back to the classic blocks below.
     const Doodle = typeof window !== 'undefined' ? window.DoodleVisual : null;
     if (options.focused === true && Doodle) {
-      const lang = String(options.language || (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) || 'en').slice(0, 2);
-      const words = {
-        en: { steps: 'See it in steps', map: 'Mind map', replay: 'Play again' },
-        kn: { steps: 'ಹಂತ ಹಂತವಾಗಿ ನೋಡಿ', map: 'ಮನಸ್ಸಿನ ನಕ್ಷೆ', replay: 'ಮತ್ತೆ ನೋಡಿ' },
-        hi: { steps: 'कदम दर कदम देखें', map: 'माइंड मैप', replay: 'फिर से देखें' }
-      }[lang] || { steps: 'See it in steps', map: 'Mind map', replay: 'Play again' };
-      const diagram = data.diagram && Array.isArray(data.diagram.parts) ? data.diagram : null;
-      const stepsBlock = data.blocks.find(b => b && b.type === 'steps' && Array.isArray(b.items));
-      const story = diagram
-        ? diagram.parts.map(p => ({ label: p.label, text: p.explanation || p.description || '' }))
-        : (stepsBlock ? stepsBlock.items.map(t => ({ text: String(t) })) : []);
-      const mapBlock = data.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'mindmap'));
-      const storyEl = Doodle.renderStory(story, { kicker: words.steps, replayLabel: words.replay, title: (diagram && diagram.title) || '' });
-      const mapEl = Doodle.renderMindMap(data.mindMap || (mapBlock && (mapBlock.mindMap || mapBlock)), { kicker: words.map });
+      const words = getDoodleWords(options, data);
+      const { story, title: storyTitle } = extractDoodleStory(data);
+      const mindMapData = extractDoodleMindMap(data);
+      const mapEl = Doodle.renderMindMap(mindMapData, { kicker: words.map });
+      const storyEl = Doodle.renderStory(story, {
+        kicker: words.steps,
+        replayLabel: words.replay,
+        title: storyTitle,
+        minSteps: mapEl ? 1 : 2
+      });
       if (storyEl || mapEl) {
         container.classList.add('is-doodle');
         if (storyEl) container.appendChild(storyEl);
         if (mapEl) container.appendChild(mapEl);
-        return container;
       }
+      return container;
     }
 
     // 2. Render blocks top-to-bottom
@@ -3838,12 +3864,92 @@
     return toolbar;
   }
 
+  function getDoodleWords(options = {}, data = {}) {
+    const lang = String(
+      (options && options.language) ||
+      (data && data.language) ||
+      (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) ||
+      'en'
+    ).slice(0, 2);
+    return {
+      en: { steps: 'See it in steps', map: 'Mind map', replay: 'Play again' },
+      kn: { steps: 'ಹಂತ ಹಂತವಾಗಿ ನೋಡಿ', map: 'ಮನಸ್ಸಿನ ನಕ್ಷೆ', replay: 'ಮತ್ತೆ ನೋಡಿ' },
+      hi: { steps: 'कदम दर कदम देखें', map: 'माइंड मैप', replay: 'फिर से देखें' }
+    }[lang] || { steps: 'See it in steps', map: 'Mind map', replay: 'Play again' };
+  }
+
+  function extractDoodleStory(data = {}) {
+    if (!data || typeof data !== 'object') return { story: [], title: '' };
+    const blocks = Array.isArray(data.blocks) ? data.blocks : [];
+    const diagBlock = blocks.find(b => b && (b.type === 'diagram' || b.type === 'interactiveDiagram' || b.type === 'topicDiagram'));
+    const diagram = (data.diagram && Array.isArray(data.diagram.parts) && data.diagram.parts.length > 0)
+      ? data.diagram
+      : (Array.isArray(data.parts) && data.parts.length > 0
+          ? data
+          : (diagBlock && diagBlock.diagram && Array.isArray(diagBlock.diagram.parts) && diagBlock.diagram.parts.length > 0
+              ? diagBlock.diagram
+              : (diagBlock && Array.isArray(diagBlock.parts) && diagBlock.parts.length > 0 ? diagBlock : null)));
+    const stepsBlock = blocks.find(b => b && b.type === 'steps' && Array.isArray(b.items));
+    const story = diagram
+      ? diagram.parts.map(p => ({ label: p.label, text: p.explanation || p.description || '' }))
+      : (stepsBlock
+          ? stepsBlock.items.map(t => (typeof t === 'string' ? { text: t } : { label: t.title || t.label || '', text: String(t.text || t.desc || '') }))
+          : []);
+    const title = (diagram && diagram.title) || (diagBlock && diagBlock.title) || '';
+    return { story, title };
+  }
+
+  function extractDoodleMindMap(data = {}) {
+    if (!data || typeof data !== 'object') return null;
+    const blocks = Array.isArray(data.blocks) ? data.blocks : [];
+    const diagBlock = blocks.find(b => b && b.type === 'diagram');
+    const mapBlock = blocks.find(b => b && (b.type === 'mindMap' || b.type === 'mindmap'));
+    const rawMap = (mapBlock && (mapBlock.mindMap || mapBlock)) || null;
+    const mm = (data.mindMap && typeof data.mindMap === 'object')
+      ? data.mindMap
+      : (Array.isArray(data.branches) || data.spec || data.mermaid ? data : null);
+
+    let branches = [];
+    if (mm && Array.isArray(mm.branches) && mm.branches.length > 0) {
+      branches = mm.branches;
+    } else if (diagBlock && Array.isArray(diagBlock.branches) && diagBlock.branches.length > 0) {
+      branches = diagBlock.branches;
+    } else if (rawMap && Array.isArray(rawMap.branches) && rawMap.branches.length > 0) {
+      branches = rawMap.branches;
+    }
+
+    let parsedSpec = null;
+    if (branches.length < 2) {
+      const spec = (mm && (mm.spec || mm.mermaid)) ||
+        (diagBlock && (diagBlock.spec || diagBlock.mermaid)) ||
+        (rawMap && (rawMap.spec || rawMap.mermaid)) || '';
+      if (spec) {
+        parsedSpec = parseMermaidToBranches(spec);
+        if (parsedSpec && Array.isArray(parsedSpec.branches) && parsedSpec.branches.length > branches.length) {
+          branches = parsedSpec.branches;
+        }
+      }
+    }
+
+    const central = (mm && (mm.central || mm.title)) ||
+      (parsedSpec && parsedSpec.central) ||
+      (diagBlock && (diagBlock.central || diagBlock.title)) ||
+      (rawMap && (rawMap.central || rawMap.title)) ||
+      data.topic ||
+      data.title ||
+      '';
+
+    if (!central && branches.length === 0) return null;
+    return { central: central || 'Core Concept', branches };
+  }
+
   /**
    * Unified dispatcher: renders any study mode or standard lesson card
    */
   function renderStudyMode(modeName, data = {}, options = {}) {
     const cardCitation = (data && data.citation) || (options && options.citation);
     const enhancedOptions = cardCitation ? { ...options, citation: cardCitation } : options;
+    const Doodle = typeof window !== 'undefined' ? window.DoodleVisual : null;
     switch (modeName) {
       case 'quiz':
         return renderQuiz(data.quizItems || (Array.isArray(data) ? data : SAMPLE_QUIZ_ITEMS), enhancedOptions);
@@ -3853,19 +3959,37 @@
       case 'studyGuide':
         return renderStudyGuide(data.studyGuide || data, enhancedOptions);
       case 'mindmap':
-      case 'mindMap':
+      case 'mindMap': {
+        if (Doodle && typeof Doodle.renderMindMap === 'function') {
+          const source = (enhancedOptions && enhancedOptions.card) || data;
+          const words = getDoodleWords(enhancedOptions, source);
+          const mindMapData = extractDoodleMindMap(source) || extractDoodleMindMap(data);
+          const mapEl = Doodle.renderMindMap(mindMapData, { kicker: words.map });
+          if (mapEl) return mapEl;
+        }
         return renderMindMap(data.mindMap || data, enhancedOptions);
+      }
       case 'podcast':
       case 'podcastScript':
         return renderPodcast(data.podcastScript || data, enhancedOptions);
       case 'diagram':
       case 'interactiveDiagram':
-      case 'topicDiagram':
+      case 'topicDiagram': {
+        if (Doodle && typeof Doodle.renderStory === 'function') {
+          const source = (enhancedOptions && enhancedOptions.card && (enhancedOptions.card.diagram || enhancedOptions.card.blocks))
+            ? enhancedOptions.card
+            : data;
+          const words = getDoodleWords(enhancedOptions, source);
+          const { story, title: storyTitle } = extractDoodleStory(source);
+          const storyEl = Doodle.renderStory(story, { kicker: words.steps, replayLabel: words.replay, title: storyTitle });
+          if (storyEl) return storyEl;
+        }
         return renderInteractiveDiagram(data.diagram || data, {
           ...enhancedOptions,
           language: enhancedOptions.language || (data && data.language) || (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))),
           card: enhancedOptions.card || (data && (data.diagram || data.blocks || data.plainText) ? data : null)
         });
+      }
       case 'lesson':
       default:
         return render(data, enhancedOptions);
@@ -4076,8 +4200,11 @@
     }
 
     // Interactive Topic Diagram
+    const diagBlock = Array.isArray(data.blocks)
+      ? data.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && (Array.isArray(b.parts) || (b.diagram && Array.isArray(b.diagram.parts))))))
+      : null;
     const diagram = normalizeDiagram(
-      data.diagram || (Array.isArray(data.blocks) ? data.blocks.find(b => b && (b.type === 'interactiveDiagram' || b.type === 'topicDiagram' || (b.type === 'diagram' && Array.isArray(b.parts)))) : null),
+      data.diagram || (diagBlock && (diagBlock.diagram || diagBlock)) || null,
       citation
     );
 

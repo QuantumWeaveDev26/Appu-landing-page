@@ -97,7 +97,8 @@
     const items = (Array.isArray(steps) ? steps : []).filter((s) => s && (s.label || s.text)).slice(0, 5);
     const wrap = document.createElement('section');
     wrap.className = 'doodle-story';
-    if (items.length < 2) return null;
+    const minSteps = typeof options.minSteps === 'number' ? options.minSteps : 2;
+    if (items.length < minSteps) return null;
     wrap.innerHTML = `
       <header class="doodle-head"><span class="doodle-kicker">🎬 ${esc(options.kicker || 'See it in steps')}</span>${options.title ? `<h4 class="doodle-title">${esc(options.title)}</h4>` : ''}</header>
       <ol class="doodle-panels"></ol>

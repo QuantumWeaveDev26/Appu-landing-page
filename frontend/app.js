@@ -2342,6 +2342,10 @@ document.addEventListener('DOMContentLoaded', () => {
                   ? LessonCardRenderer.createLoadingCard(text, reply, childGrade)
                   : (fullResult ? fullResult.lessonCard : null)));
 
+        if (fullResult && !fullResult.error && !fullResult.code && !fullResult.lessonCard && initialCard) {
+          fullResult.lessonCard = initialCard;
+        }
+
         // 2) Close typing drawer if open and render stage presentation for EVERY real answer
         const chatDrawer = document.getElementById('chat-drawer');
         if (chatDrawer && chatDrawer.classList.contains('is-open')) {

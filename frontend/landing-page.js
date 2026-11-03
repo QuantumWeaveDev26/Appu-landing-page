@@ -2206,7 +2206,7 @@
             const card = (typeof Renderer.buildVisualResponseCard === 'function')
               ? Renderer.buildVisualResponseCard(q, reply, grade, { language: lang })
               : null;
-            cardEl = card ? Renderer.render(card, { language: lang }) : null;
+            cardEl = card ? Renderer.render(card, { language: lang, focused: true }) : null;
           } catch (e) { cardEl = null; }
           answerSlot.classList.remove('is-thinking');
           answerSlot.innerHTML = '';
@@ -2214,10 +2214,11 @@
           who.className = 'landing-trial-who';
           who.innerHTML = '<span class="landing-trial-dot" aria-hidden="true"></span> APPU';
           answerSlot.appendChild(who);
-          // Landing shows ONLY the concept mind map, sized to fit one screen (no long card).
-          const mindMap = cardEl ? cardEl.querySelector('.concept-tree-wrapper') : null;
-          if (mindMap) { answerSlot.appendChild(mindMap); }
-          else {
+          // Landing shows ONLY the doodle visuals, sized to fit one screen (no long card).
+          const doodles = cardEl ? Array.from(cardEl.querySelectorAll('.doodle-story, .doodle-mindmap')) : [];
+          if (doodles.length > 0) {
+            doodles.forEach(d => answerSlot.appendChild(d));
+          } else {
             const p = document.createElement('p');
             p.className = 'landing-trial-text';
             p.textContent = reply;
