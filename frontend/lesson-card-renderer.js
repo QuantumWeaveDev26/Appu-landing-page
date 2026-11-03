@@ -1300,6 +1300,32 @@
       (data.blocks.some(b => b && VISUAL_TYPES.includes(b.type)) || Boolean(data.mindMap));
     let visualShown = false;
 
+    // Doodle visuals (doodle-visual.js): a comic-strip "see it in steps" and a hand-drawn mind
+    // map, the friendlier pair for children. Falls back to the classic blocks below.
+    const Doodle = typeof window !== 'undefined' ? window.DoodleVisual : null;
+    if (options.focused === true && Doodle) {
+      const lang = String(options.language || (typeof window !== 'undefined' && (window.currentLang || (window.app && window.app.currentLang))) || 'en').slice(0, 2);
+      const words = {
+        en: { steps: 'See it in steps', map: 'Mind map', replay: 'Play again' },
+        kn: { steps: 'ಹಂತ ಹಂತವಾಗಿ ನೋಡಿ', map: 'ಮನಸ್ಸಿನ ನಕ್ಷೆ', replay: 'ಮತ್ತೆ ನೋಡಿ' },
+        hi: { steps: 'कदम दर कदम देखें', map: 'माइंड मैप', replay: 'फिर से देखें' }
+      }[lang] || { steps: 'See it in steps', map: 'Mind map', replay: 'Play again' };
+      const diagram = data.diagram && Array.isArray(data.diagram.parts) ? data.diagram : null;
+      const stepsBlock = data.blocks.find(b => b && b.type === 'steps' && Array.isArray(b.items));
+      const story = diagram
+        ? diagram.parts.map(p => ({ label: p.label, text: p.explanation || p.description || '' }))
+        : (stepsBlock ? stepsBlock.items.map(t => ({ text: String(t) })) : []);
+      const mapBlock = data.blocks.find(b => b && (b.type === 'mindMap' || b.type === 'mindmap'));
+      const storyEl = Doodle.renderStory(story, { kicker: words.steps, replayLabel: words.replay, title: (diagram && diagram.title) || '' });
+      const mapEl = Doodle.renderMindMap(data.mindMap || (mapBlock && (mapBlock.mindMap || mapBlock)), { kicker: words.map });
+      if (storyEl || mapEl) {
+        container.classList.add('is-doodle');
+        if (storyEl) container.appendChild(storyEl);
+        if (mapEl) container.appendChild(mapEl);
+        return container;
+      }
+    }
+
     // 2. Render blocks top-to-bottom
     data.blocks.forEach((block, index) => {
       if (!block || typeof block !== 'object') return;

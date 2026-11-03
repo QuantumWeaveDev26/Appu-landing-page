@@ -13994,3 +13994,74 @@ html[data-theme="light"] body.chat-first .home-ask-form input { color: #0f172a !
 .chat-history-item-rename:hover { color: #38bdf8; background: rgba(56, 189, 248, 0.12); }
 .chat-history-item-rename:focus-visible { outline: 2px solid var(--cyan, #22d3ee); outline-offset: 2px; }
 .chat-history-rename-input { flex: 1; min-width: 0; height: 36px; margin: 4px 0 4px 8px; padding: 0 10px; border-radius: 8px; border: 1.5px solid #38bdf8; background: transparent; color: inherit; font: inherit; }
+
+/* ===== Doodle visuals: comic-strip steps + hand-drawn mind map (doodle-visual.js) ===== */
+.appu-lesson-card.is-doodle { align-items: stretch !important; pointer-events: auto !important; width: 100%; }
+.doodle-story, .doodle-mindmap { margin: 14px 0 6px; width: 100%; max-width: 100%; box-sizing: border-box; pointer-events: auto; }
+.doodle-head { display: flex; flex-direction: column; gap: 2px; margin: 0 0 10px; }
+.doodle-kicker { font: 800 12px/1.2 inherit; letter-spacing: .06em; text-transform: uppercase; color: #38bdf8; }
+html[data-theme="light"] .doodle-kicker { color: #0369a1; }
+.doodle-title { margin: 0; font-size: 17px; color: #f8fafc; }
+html[data-theme="light"] .doodle-title { color: #0f172a; }
+.doodle-panels { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: nowrap; align-items: stretch; gap: 8px; width: 100%; box-sizing: border-box; }
+.doodle-panel {
+  position: relative; flex: 1 1 0; min-width: 0; max-width: 240px; min-height: 148px; padding: 24px 12px 14px;
+  border-radius: 16px; border: 2.5px solid var(--doodle-stroke); background: var(--doodle-fill);
+  color: #0f172a; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; box-sizing: border-box;
+}
+.doodle-panel.has-rough { border-color: transparent; background: var(--doodle-fill); }
+.doodle-panel > svg.doodle-frame { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.doodle-panel > *:not(svg) { position: relative; z-index: 1; }
+.doodle-step-no {
+  position: absolute !important; top: -10px; left: 10px; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font: 800 13.5px/1 inherit; color: #ffffff; background: #0f172a;
+  border: 2.5px solid var(--doodle-stroke); box-shadow: 0 2px 0 rgba(15, 23, 42, .25); box-sizing: border-box;
+}
+.doodle-emoji { font-size: 38px; line-height: 1.1; }
+.doodle-panel-title { font-size: 14.5px; line-height: 1.25; color: #0f172a; overflow-wrap: break-word; }
+.doodle-panel-text { margin: 0; font-size: 13px; line-height: 1.38; color: #1e293b; overflow-wrap: break-word; }
+.doodle-arrow { align-self: center; font-size: 20px; color: #94a3b8; flex: 0 0 auto; }
+html[data-theme="light"] .doodle-arrow { color: #475569; }
+@media (max-width: 680px) {
+  .doodle-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .doodle-panel { max-width: none; min-height: 136px; padding: 22px 10px 12px; }
+  .doodle-panel:last-child:nth-child(5), .doodle-panel:last-child:nth-child(9) { grid-column: 1 / -1; max-width: 68%; justify-self: center; width: 100%; }
+  .doodle-arrow { display: none; }
+}
+.doodle-replay {
+  margin-top: 10px; padding: 6px 14px; border-radius: 999px; cursor: pointer; font: 700 13px/1 inherit;
+  color: #38bdf8; background: transparent; border: 1.5px dashed rgba(56, 189, 248, .6);
+}
+html[data-theme="light"] .doodle-replay { color: #0369a1; border-color: #0284c7; }
+.doodle-story.is-playing .doodle-panel, .doodle-story.is-playing .doodle-arrow {
+  animation: doodle-pop .5s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: calc(var(--doodle-i) * .45s);
+}
+@keyframes doodle-pop { from { opacity: 0; transform: translateY(14px) scale(.85) rotate(-2deg); } to { opacity: 1; transform: none; } }
+
+.doodle-map-stage { position: relative; width: 100%; box-sizing: border-box; }
+.doodle-map-stage > svg.doodle-lines { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: visible; }
+.doodle-center {
+  position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px;
+  border-radius: 999px; background: #0369a1; color: #ffffff; font-size: 16px; box-shadow: 0 4px 0 rgba(3, 105, 161, .35);
+  max-width: 200px; text-align: center; box-sizing: border-box;
+}
+.doodle-center .doodle-emoji { font-size: 24px; flex-shrink: 0; }
+.doodle-branches { list-style: none; margin: 0; padding: 0; }
+.doodle-branch {
+  position: relative; z-index: 1; padding: 10px 12px; border-radius: 14px; color: #0f172a;
+  background: var(--doodle-fill); border: 2.5px solid var(--doodle-stroke); box-sizing: border-box;
+  animation: doodle-pop .5s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: calc(.2s + var(--doodle-i) * .15s);
+}
+.doodle-branch-label { display: block; font-size: 14px; line-height: 1.25; color: #0f172a; }
+.doodle-leaves { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.doodle-leaves li { font-size: 12px; font-weight: 600; line-height: 1.3; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .88); color: #1e293b; border: 1px solid rgba(15, 23, 42, .1); }
+/* Wide screens: branches spread around the centre. */
+.doodle-map-stage.is-radial .doodle-center, .doodle-map-stage.is-radial .doodle-branch { position: absolute; }
+/* Phones: a doodle tree, centre on top and branches hanging off one line. */
+.doodle-map-stage.is-stacked { padding-left: 0; }
+.doodle-map-stage.is-stacked .doodle-branches { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 0 28px; }
+html[data-theme="light"] #nav-drawer .nav-drawer-section-title,
+html[data-theme="light"] #nav-drawer .nav-game-pill span,
+html[data-theme="light"] .concept-tree-header span { color: #0369a1 !important; }
+html[data-theme="light"] .central-node-pill { background: #0369a1 !important; color: #ffffff !important; }
+@media (prefers-reduced-motion: reduce) { .doodle-panel, .doodle-arrow, .doodle-branch { animation: none !important; } }
