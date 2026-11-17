@@ -4738,6 +4738,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.getLangVariants = (card) => (card || activePopupLessonCard)?.__langVariants || null;
     window.app.avatarStage = avatarStage;
     window.app.voiceEngine = voiceEngine;
+    if (window.VoiceCall && typeof window.VoiceCall.attach === 'function') window.VoiceCall.attach(voiceEngine);
     window.app.setActiveTutorDocument = setActiveTutorDocument;
     window.app.getActiveLessonCard = () => activePopupLessonCard;
 

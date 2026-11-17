@@ -835,6 +835,18 @@ class VoiceEngine {
         }
     }
 
+    // Barge-in: the learner talks (or taps) while Appu is answering. Stop the answer and listen.
+    interrupt() {
+        if (!this.isSpeaking) return false;
+        this.stopSpeaking();
+        this.awaitingResponse = false;
+        this.onSpeechEnd();
+        if (this.liveSessionActive) {
+            window.setTimeout(() => this.startListening(), 150);
+        }
+        return true;
+    }
+
     streamSubtitles(text) {
         if (!this.subtitleElement || !text) return;
         window.clearInterval(this.subtitleTimer);

@@ -14111,3 +14111,98 @@ html[data-theme="light"] #nav-drawer .nav-game-pill span,
 html[data-theme="light"] .concept-tree-header span { color: #0369a1 !important; }
 html[data-theme="light"] .central-node-pill { background: #0369a1 !important; color: #ffffff !important; }
 @media (prefers-reduced-motion: reduce) { .doodle-panel, .doodle-arrow, .doodle-branch { animation: none !important; } }
+
+/* ==========================================
+   VOICE CALL (hands-free, interruptible)
+   ========================================== */
+.voice-call {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: radial-gradient(circle at 50% 38%, #22467a, #080e1c 70%);
+  color: #f1f6ff;
+  animation: voice-call-in 0.25s ease-out;
+}
+html[data-theme="light"] .voice-call {
+  background: radial-gradient(circle at 50% 38%, #e2eeff, #f4f8ff 70%);
+  color: #0e192d;
+}
+.voice-call-inner {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.voice-call-title { margin: 0; font-size: 0.95rem; opacity: 0.75; letter-spacing: 0.02em; }
+.voice-call-orb {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin: 18px 0 8px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  font-size: 2.6rem;
+  background: radial-gradient(circle at 35% 30%, #5fd4ff, #2563eb 60%, #1e3a8a);
+  box-shadow: 0 0 0 0 rgba(95, 212, 255, 0.45), 0 18px 50px rgba(37, 99, 235, 0.45);
+  transition: transform 0.2s ease, background 0.3s ease;
+}
+.voice-call-orb:focus-visible { outline: 3px solid #fbbf24; outline-offset: 6px; }
+.voice-call-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(95, 212, 255, 0.55);
+  opacity: 0;
+  pointer-events: none;
+}
+.voice-call[data-state="listening"] .voice-call-ring { animation: voice-call-ring 1.8s ease-out infinite; }
+.voice-call[data-state="listening"] .voice-call-ring + .voice-call-ring { animation-delay: 0.9s; }
+.voice-call[data-state="thinking"] .voice-call-orb {
+  background: radial-gradient(circle at 35% 30%, #c4b5fd, #7c3aed 60%, #4c1d95);
+  animation: voice-call-think 1.2s ease-in-out infinite;
+}
+.voice-call[data-state="speaking"] .voice-call-orb {
+  background: radial-gradient(circle at 35% 30%, #86efac, #16a34a 60%, #14532d);
+  animation: voice-call-speak 0.6s ease-in-out infinite alternate;
+}
+.voice-call-state { margin: 0; font-size: 1.35rem; font-weight: 700; }
+.voice-call-heard { margin: 0; min-height: 2.6em; font-size: 1rem; opacity: 0.85; overflow-wrap: anywhere; }
+.voice-call-hint { margin: 0; font-size: 0.85rem; opacity: 0.65; }
+.voice-call[data-state="listening"] .voice-call-hint,
+.voice-call[data-state="waiting"] .voice-call-hint { visibility: hidden; }
+.voice-call-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.voice-call-end:hover { background: #b91c1c; }
+.voice-call-end:focus-visible { outline: 3px solid #fbbf24; outline-offset: 3px; }
+body.voice-call-open { overflow: hidden; }
+@keyframes voice-call-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes voice-call-ring { from { transform: scale(0.95); opacity: 0.8; } to { transform: scale(1.45); opacity: 0; } }
+@keyframes voice-call-think { 50% { transform: scale(0.94); } }
+@keyframes voice-call-speak { from { transform: scale(1); } to { transform: scale(1.07); } }
+@media (max-width: 480px) {
+  .voice-call-orb { width: 140px; height: 140px; font-size: 2.2rem; }
+  .voice-call-state { font-size: 1.2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-call, .voice-call-orb, .voice-call-ring { animation: none !important; }
+}

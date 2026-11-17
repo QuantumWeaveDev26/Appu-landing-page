@@ -89,6 +89,10 @@
 "Appu तैयार है",
 "Appu ಸಿದ್ಧವಾಗಿದೆ"
 ],
+"Appu is speaking": [
+"Appu बोल रहा है",
+"Appu ಮಾತನಾಡುತ್ತಿದೆ"
+],
 "Appu is thinking": [
 "Appu सोच रहा है",
 "Appu ಯೋಚಿಸುತ್ತಿದೆ"
@@ -413,6 +417,10 @@
 "मीटिंग के लिए ईमेल",
 "ಸಭೆಗಾಗಿ ಇಮೇಲ್"
 ],
+"End call": [
+"कॉल समाप्त करें",
+"ಕರೆ ಕೊನೆಗೊಳಿಸಿ"
+],
 "English": [
 "अंग्रेज़ी",
 "ಇಂಗ್ಲಿಷ್"
@@ -520,6 +528,10 @@
 "Get hints and learn each step": [
 "संकेत पाएँ और हर कदम सीखें",
 "ಸುಳಿವು ಪಡೆಯಿರಿ, ಪ್ರತಿ ಹಂತ ಕಲಿಯಿರಿ"
+],
+"Getting ready…": [
+"तैयार हो रहा है…",
+"ಸಿದ್ಧವಾಗುತ್ತಿದೆ…"
 ],
 "Girl": [
 "लड़की",
@@ -712,6 +724,10 @@
 "Light theme": [
 "लाइट थीम",
 "ಲೈಟ್ ಥೀಮ್"
+],
+"Listening…": [
+"सुन रहा है…",
+"ಆಲಿಸುತ್ತಿದೆ…"
 ],
 "Log in or sign up": [
 "लॉग इन या साइन अप करें",
@@ -1241,6 +1257,14 @@
 "आपसे बात करता है",
 "ನಿಮ್ಮೊಂದಿಗೆ ಮಾತನಾಡುತ್ತದೆ"
 ],
+"Tap Appu or just talk to interrupt": [
+"रोकने के लिए Appu को टैप करें या बस बोलें",
+"ತಡೆಯಲು Appu ಟ್ಯಾಪ್ ಮಾಡಿ ಅಥವಾ ಸುಮ್ಮನೆ ಮಾತನಾಡಿ"
+],
+"Tap to interrupt Appu": [
+"Appu को रोकने के लिए टैप करें",
+"Appu ಅನ್ನು ತಡೆಯಲು ಟ್ಯಾಪ್ ಮಾಡಿ"
+],
 "Tap to speak to Appu": [
 "Appu से बोलने के लिए टैप करें",
 "Appu ಜೊತೆ ಮಾತನಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ"
@@ -1284,6 +1308,10 @@
 "The voice and interactive features are great": [
 "आवाज़ और इंटरैक्टिव सुविधाएँ बढ़िया हैं",
 "ಧ್ವನಿ ಮತ್ತು ಸಂವಾದಾತ್ಮಕ ವೈಶಿಷ್ಟ್ಯಗಳು ಅದ್ಭುತ"
+],
+"Thinking…": [
+"सोच रहा है…",
+"ಯೋಚಿಸುತ್ತಿದೆ…"
 ],
 "Today, {n}:{n}": [
 "आज, {n}:{n}",
@@ -1376,6 +1404,10 @@
 "Visual (examples & diagrams)": [
 "दृश्य (उदाहरण और चित्र)",
 "ದೃಶ್ಯ (ಉದಾಹರಣೆಗಳು ಮತ್ತು ರೇಖಾಚಿತ್ರಗಳು)"
+],
+"Voice call with Appu": [
+"Appu के साथ वॉइस कॉल",
+"Appu ಜೊತೆ ಧ್ವನಿ ಕರೆ"
 ],
 "Voice practice in English, Kannada and Hindi": [
 "अंग्रेज़ी, कन्नड़ और हिंदी में आवाज़ अभ्यास",
@@ -1588,7 +1620,7 @@
 
   function translate(en) {
     const trimmed = en.trim();
-    if (!trimmed) return null;
+    if (!trimmed || (lang !== 'hi' && lang !== 'kn')) return null;
     const entry = DICT[trimmed.replace(NUM, '{n}')];
     const target = entry && entry[lang === 'hi' ? 0 : 1];
     if (!target) return null;
