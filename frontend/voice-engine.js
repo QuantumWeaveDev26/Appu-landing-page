@@ -406,6 +406,26 @@ class VoiceEngine {
         else this.startLiveSession();
     }
 
+    // Voice typing: listen for ONE question, hand it over as text, then stop (no call loop).
+    toggleDictation() {
+        this.initWebAudio();
+        if (!this.isVoiceSupported || !this.recognition) {
+            const notice = this.getLocalizedVoiceNotice('unsupported');
+            this.streamSubtitles(notice);
+            this.onVoiceUnavailable(notice);
+            return false;
+        }
+        if (this.liveSessionActive) this.stopLiveSession();
+        if (this.isListening) {
+            this.stopListening();
+            return false;
+        }
+        this.stopSpeaking();
+        this.awaitingResponse = false;
+        this.startListening();
+        return true;
+    }
+
     startLiveSession() {
         if (!this.isVoiceSupported || !this.recognition) {
             const notice = this.getLocalizedVoiceNotice('unsupported');
@@ -744,53 +764,12 @@ class VoiceEngine {
      * Synthesizes speech locally using Web Speech API as resilient zero-latency fallback.
      * Drives subtitles, audio state, and avatar lip sync.
      */
-    speakSynthesis(text, lang = '') {
-        // Appu only ever speaks in its own ElevenLabs voice; without that audio the text is
-        // shown as subtitles instead of being read by the device's built-in voice.
-        if (typeof window === 'undefined' || !('speechSynthesis' in window) || window.APPU_ELEVENLABS_ONLY !== false) {
-            if (text) this.streamSubtitles(text);
-            this.handleSpeechFinish();
-            return false;
-        }
-        try {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            const targetLang = lang || (this.currentLanguage === 'kn' ? 'kn-IN' : (this.currentLanguage === 'hi' ? 'hi-IN' : 'en-IN'));
-            utterance.lang = targetLang;
-            utterance.rate = this.rate || 1.0;
-            utterance.pitch = 1.05;
-
-            const voices = window.speechSynthesis.getVoices();
-            if (voices && voices.length > 0) {
-                const isMale = (v) => /(ravi|david|guy|george|prabhat|madhur|daniel|alex|fred|male)/i.test(v.name) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name);
-                const preferred = voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && isMale(v))
-                    || voices.find(v => (v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en')) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name))
-                    || voices.find(v => v.lang.startsWith(targetLang.slice(0, 2)) || v.lang.startsWith('en'));
-                if (preferred) utterance.voice = preferred;
-            }
-
-            utterance.onstart = () => {
-                this.isSpeaking = true;
-                this.updateSpeakingUI(true);
-                this.onSpeechStart();
-            };
-            utterance.onend = () => {
-                this.handleSpeechFinish();
-            };
-            utterance.onerror = (e) => {
-                console.warn('[VoiceEngine] SpeechSynthesis error:', e);
-                this.handleSpeechFinish();
-            };
-
-            this.streamSubtitles(text);
-            window.speechSynthesis.speak(utterance);
-            return true;
-        } catch (e) {
-            console.warn('[VoiceEngine] SpeechSynthesis exception:', e);
-            if (text) this.streamSubtitles(text);
-            this.handleSpeechFinish();
-            return false;
-        }
+    speakSynthesis(text) {
+        // Appu only ever speaks in its own ElevenLabs voice. Without that audio the text is shown
+        // as subtitles; the device's built-in voice is never used, on any page or setting.
+        if (text) this.streamSubtitles(text);
+        this.handleSpeechFinish();
+        return false;
     }
 
     async speak(text, audioSource, audioStreamUrl = null, accessToken = '') {

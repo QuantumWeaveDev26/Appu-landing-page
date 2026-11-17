@@ -79,6 +79,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.appMascot = appMascot;
   }
 
+  // While voice typing, the words appear in the input box as the learner speaks.
+  function showVoiceTypedText(text) {
+    ['home-ask-input', 'chat-input'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = text;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
   const voiceEngine = new VoiceEngine({
     onSpeechStart: () => {
       avatarStage.setState('speaking');
@@ -102,12 +113,17 @@ document.addEventListener('DOMContentLoaded', () => {
         window.appMascot.setMood('idle');
       }
     },
-    onTranscript: (transcript) => handleUserInteraction(transcript),
+    onTranscript: (transcript) => {
+      // Voice typing (not a call): the words were shown in the input box; send them like typed text.
+      if (!voiceEngine.liveSessionActive) showVoiceTypedText('');
+      handleUserInteraction(transcript);
+    },
     onInterimTranscript: (transcript) => {
       const subtitlesText = document.getElementById('subtitles-text');
       if (subtitlesText) {
         subtitlesText.textContent = `"${transcript}"`;
       }
+      if (!voiceEngine.liveSessionActive) showVoiceTypedText(transcript);
     },
     onVoiceUnavailable: (notice) => {
       const subtitlesText = document.getElementById('subtitles-text');
@@ -2470,7 +2486,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!ensureChatSessionReady()) return;
-      voiceEngine.toggleLiveSession();
+      voiceEngine.toggleDictation();
+    });
+  }
+
+  // Call button: the full-screen, hands-free voice call (separate from voice typing).
+  const btnCall = document.getElementById('btn-call');
+  if (btnCall) {
+    btnCall.addEventListener('click', () => {
+      if (voiceEngine && !voiceEngine.isVoiceSupported) {
+        const t = UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en;
+        voiceEngine.streamSubtitles(t.voiceUnavailableNotice || "Voice isn't available on this screen — tap 'Type instead' to chat");
+        return;
+      }
+      if (!ensureChatSessionReady()) return;
+      if (!voiceEngine.liveSessionActive) voiceEngine.startLiveSession();
     });
   }
 
@@ -3316,7 +3346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!ensureChatSessionReady()) return;
-      voiceEngine.toggleLiveSession();
+      voiceEngine.toggleDictation();
     });
   }
 
@@ -4738,7 +4768,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.getLangVariants = (card) => (card || activePopupLessonCard)?.__langVariants || null;
     window.app.avatarStage = avatarStage;
     window.app.voiceEngine = voiceEngine;
-    if (window.VoiceCall && typeof window.VoiceCall.attach === 'function') window.VoiceCall.attach(voiceEngine);
+    if (window.VoiceCall && typeof window.VoiceCall.attach === 'function') {
+      // Call turns go through the normal chat pipeline, so they are saved in the conversation
+      // history like typed and voice-typed turns; these markers show where a call began and ended.
+      const tr = (text) => (window.AppuI18n ? window.AppuI18n.translate(text, currentLang) : text);
+      window.VoiceCall.attach(voiceEngine, document, {
+        onCallStart: () => {
+          if (chatAgent) chatAgent.addMessage('appu', `📞 ${tr('Voice call started')}`, null, null, { isSystem: true, quickReplies: null, isCallMarker: true });
+        },
+        onCallEnd: ({ seconds }) => {
+          const mm = Math.floor(seconds / 60);
+          const ss = String(seconds % 60).padStart(2, '0');
+          if (chatAgent) chatAgent.addMessage('appu', `📞 ${tr('Voice call ended')} · ${mm}:${ss}`, null, null, { isSystem: true, quickReplies: null, isCallMarker: true });
+        }
+      });
+    }
     window.app.setActiveTutorDocument = setActiveTutorDocument;
     window.app.getActiveLessonCard = () => activePopupLessonCard;
 

@@ -1,7 +1,8 @@
 /**
  * VoiceCall: hands-free "call" screen on top of VoiceEngine's live session (character.ai style).
  *
- * - Opens whenever a live voice session starts (any mic button) and closes when it ends.
+ * - Opens when a call starts (the phone button) and closes when it ends. The mic buttons are
+ *   voice typing instead (VoiceEngine.toggleDictation) and never open this screen.
  * - Shows what Appu is doing: listening, thinking or speaking, plus the words heard so far.
  * - Barge-in: while Appu speaks, talking (or tapping Appu) stops the answer and Appu listens again.
  *   The mic level is read with echo cancellation on, and only a sustained, loud voice counts,
@@ -15,7 +16,7 @@
   const BARGE_IN_HOLD_MS = 320;   // it must last this long (ignores clicks, coughs, speaker bleed)
   const BARGE_IN_GRACE_MS = 700;  // ignore the first moments of Appu's answer
 
-  function createCall(engine, doc) {
+  function createCall(engine, doc, hooks = {}) {
     let overlay = null;
     let stateLabel = null;
     let heardLine = null;
@@ -26,6 +27,7 @@
     let loudSince = 0;
     let speakingSince = 0;
     let lastState = '';
+    let startedAt = 0;
 
     function t(text) {
       const i18n = root.AppuI18n;
@@ -145,6 +147,8 @@
     function open() {
       if (overlay) return;
       build();
+      startedAt = Date.now();
+      if (typeof hooks.onCallStart === 'function') hooks.onCallStart();
       lastState = '';
       doc.body.classList.add('voice-call-open');
       render();
@@ -160,6 +164,7 @@
       overlay.remove();
       overlay = null;
       doc.body.classList.remove('voice-call-open');
+      if (typeof hooks.onCallEnd === 'function') hooks.onCallEnd({ seconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)) });
     }
 
     function showHeard(text) {
@@ -170,9 +175,9 @@
   }
 
   /** Hooks the call screen onto a VoiceEngine instance. */
-  function attach(engine, doc = root.document) {
+  function attach(engine, doc = root.document, hooks = {}) {
     if (!engine || engine.__voiceCall) return engine && engine.__voiceCall;
-    const call = createCall(engine, doc);
+    const call = createCall(engine, doc, hooks);
     engine.__voiceCall = call;
 
     const start = engine.startLiveSession.bind(engine);

@@ -2749,43 +2749,13 @@
         return;
       }
 
-      // 2. Fallback SpeechSynthesis path
-      const textToSpeak = customText || data.script || segments.map(s => s.text).join(' ');
+      // 2. No Appu audio: run the timer and captions silently (never the device voice)
       if (startFromSecond !== null) {
         elapsedSeconds = startFromSecond;
       }
 
       // Podcasts play only Appu's ElevenLabs audio, never the device's built-in voice.
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window && textToSpeak && window.APPU_ELEVENLABS_ONLY === false) {
-        try {
-          if (window.speechSynthesis.paused && isPaused) {
-            window.speechSynthesis.resume();
-          } else {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-              const voices = window.speechSynthesis.getVoices() || [];
-              const isMale = (v) => /(ravi|david|guy|george|prabhat|madhur|daniel|alex|fred|male)/i.test(v.name) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name);
-              const preferred = voices.find(v => (v.lang.startsWith('en') || v.lang.startsWith('kn') || v.lang.startsWith('hi')) && isMale(v))
-                || voices.find(v => (v.lang.startsWith('en') || v.lang.startsWith('kn') || v.lang.startsWith('hi')) && !/(female|heera|zira|jenny|neerja|swara|kalpana|aria)/i.test(v.name));
-              if (preferred) utterance.voice = preferred;
-            }
-            utterance.onend = () => {
-              stopPlayback(true);
-              setProgress(100);
-              if (timeElapsed) timeElapsed.textContent = formattedDuration;
-            };
-            utterance.onerror = () => {
-              // Keep timer running visually
-            };
-            window.speechSynthesis.speak(utterance);
-          }
-        } catch (e) {
-          console.warn('[LessonCard] SpeechSynthesis notice:', e);
-        }
-      }
+      // (No device-voice fallback: podcasts play only Appu's ElevenLabs audio.)
 
       if (progressInterval) clearInterval(progressInterval);
       progressInterval = setInterval(() => {
