@@ -1990,6 +1990,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     applyUiTranslations(lang);
+    // Everything else on screen (panels, modals, labels, placeholders) follows too.
+    if (typeof window !== 'undefined' && window.AppuI18n) window.AppuI18n.apply(lang);
 
     if (typeof window !== 'undefined' && window.ParentalControlsUI && typeof window.ParentalControlsUI.applyTranslations === 'function') {
       window.ParentalControlsUI.applyTranslations(lang);
