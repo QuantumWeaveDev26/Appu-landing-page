@@ -7,7 +7,7 @@ const VoiceCall = require('../frontend/voice-call.js');
 function fakeEngine() {
   return {
     liveSessionActive: false, isSpeaking: false, isListening: false, awaitingResponse: false,
-    startLiveSession() { this.liveSessionActive = true; },
+    startLiveSession(mode = 'call') { this.liveSessionActive = true; this.liveMode = mode; },
     stopLiveSession() { this.liveSessionActive = false; },
     onTranscript() {}, onInterimTranscript() {}
   };
@@ -36,22 +36,20 @@ test('heard words still reach the app after the call screen shows them', () => {
 });
 
 test('barge-in needs a loud, sustained voice and the engine can be interrupted', () => {
-  assert.ok(VoiceCall.BARGE_IN_RMS >= 0.05);
-  assert.ok(VoiceCall.BARGE_IN_HOLD_MS >= 250);
   const engine = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'voice-engine.js'), 'utf8');
   assert.match(engine, /interrupt\(\) \{\s*if \(!this\.isSpeaking\) return false;\s*this\.stopSpeaking\(\);/);
   const app = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'app.js'), 'utf8');
   assert.match(app, /window\.VoiceCall\.attach\(voiceEngine, document, \{/);
 });
 
-test('mic buttons are voice typing; only the phone button starts a call', () => {
+test('mic buttons are always-on voice typing; only the phone button starts a call', () => {
   const app = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'app.js'), 'utf8');
   const micBlock = app.slice(app.indexOf("  if (btnMic) {"), app.indexOf("  // Call button:"));
-  assert.match(micBlock, /voiceEngine\.toggleDictation\(\)/);
+  assert.match(micBlock, /voiceEngine\.toggleMic\(\)/);
   assert.doesNotMatch(micBlock, /toggleLiveSession/);
   const chatMic = app.slice(app.indexOf("  if (btnChatMic) {"), app.indexOf("  if (btnChatMic) {") + 700);
-  assert.match(chatMic, /voiceEngine\.toggleDictation\(\)/);
-  assert.match(app, /btnCall\.addEventListener[\s\S]{0,500}voiceEngine\.startLiveSession\(\)/);
+  assert.match(chatMic, /voiceEngine\.toggleMic\(\)/);
+  assert.match(app, /btnCall\.addEventListener[\s\S]{0,500}voiceEngine\.startCall\(\)/);
   assert.match(app, /onCallStart[\s\S]{0,300}Voice call started/);
   const html = fs.readFileSync(path.join(__dirname, '..', 'frontend', 'index.html'), 'utf8');
   assert.match(html, /id="btn-call"/);

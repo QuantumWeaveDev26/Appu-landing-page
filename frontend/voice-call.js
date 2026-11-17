@@ -1,31 +1,20 @@
 /**
  * VoiceCall: hands-free "call" screen on top of VoiceEngine's live session (character.ai style).
  *
- * - Opens when a call starts (the phone button) and closes when it ends. The mic buttons are
- *   voice typing instead (VoiceEngine.toggleDictation) and never open this screen.
+ * - Opens when a call starts (the phone button, VoiceEngine.startCall) and closes when it ends.
+ *   The mic buttons use the same always-on listening without this screen (VoiceEngine.toggleMic).
  * - Shows what Appu is doing: listening, thinking or speaking, plus the words heard so far.
- * - Barge-in: while Appu speaks, talking (or tapping Appu) stops the answer and Appu listens again.
- *   The mic level is read with echo cancellation on, and only a sustained, loud voice counts,
- *   so Appu's own audio from the speaker does not interrupt itself.
- * - Answers already stream as audio and Appu listens again after each answer (VoiceEngine).
+ * - Barge-in lives in VoiceEngine: the mic stays open while Appu speaks, and words Appu is not
+ *   saying itself stop the answer. Tapping the orb also interrupts.
  */
 (function (root) {
   'use strict';
-
-  const BARGE_IN_RMS = 0.075;     // voice level that counts as the learner talking
-  const BARGE_IN_HOLD_MS = 320;   // it must last this long (ignores clicks, coughs, speaker bleed)
-  const BARGE_IN_GRACE_MS = 700;  // ignore the first moments of Appu's answer
 
   function createCall(engine, doc, hooks = {}) {
     let overlay = null;
     let stateLabel = null;
     let heardLine = null;
     let pollTimer = null;
-    let micStream = null;
-    let audioCtx = null;
-    let analyser = null;
-    let loudSince = 0;
-    let speakingSince = 0;
     let lastState = '';
     let startedAt = 0;
 
@@ -67,15 +56,13 @@
     function currentState() {
       if (engine.isSpeaking) return 'speaking';
       if (engine.awaitingResponse) return 'thinking';
-      if (engine.isListening) return 'listening';
-      return 'waiting';
+      return 'listening'; // the mic is always on during a call
     }
 
     const LABELS = {
       listening: 'Listening…',
       thinking: 'Thinking…',
-      speaking: 'Appu is speaking',
-      waiting: 'Getting ready…'
+      speaking: 'Appu is speaking'
     };
 
     function render() {
@@ -84,64 +71,14 @@
       if (state !== lastState) {
         overlay.dataset.state = state;
         stateLabel.textContent = t(LABELS[state]);
-        if (state === 'speaking') speakingSince = Date.now();
-        if (state === 'listening') heardLine.textContent = '';
+        if (state === 'listening' && lastState === 'speaking') heardLine.textContent = '';
         lastState = state;
       }
-      if (state === 'speaking') checkBargeIn();
-      else loudSince = 0;
     }
 
     function interrupt() {
-      loudSince = 0;
       if (typeof engine.interrupt === 'function') engine.interrupt();
       render();
-    }
-
-    function micLevel() {
-      if (!analyser) return 0;
-      const data = new Float32Array(analyser.fftSize);
-      analyser.getFloatTimeDomainData(data);
-      let sum = 0;
-      for (let i = 0; i < data.length; i += 1) sum += data[i] * data[i];
-      return Math.sqrt(sum / data.length);
-    }
-
-    function checkBargeIn() {
-      if (!analyser || Date.now() - speakingSince < BARGE_IN_GRACE_MS) return;
-      if (micLevel() >= BARGE_IN_RMS) {
-        if (!loudSince) loudSince = Date.now();
-        else if (Date.now() - loudSince >= BARGE_IN_HOLD_MS) interrupt();
-      } else {
-        loudSince = 0;
-      }
-    }
-
-    async function startMicMonitor() {
-      const nav = root.navigator;
-      const Ctx = root.AudioContext || root.webkitAudioContext;
-      if (!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia || !Ctx) return;
-      try {
-        micStream = await nav.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
-        if (!overlay) { stopMicMonitor(); return; }
-        audioCtx = new Ctx();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 1024;
-        audioCtx.createMediaStreamSource(micStream).connect(analyser);
-      } catch (_) {
-        // No mic level available: tapping Appu still interrupts.
-        stopMicMonitor();
-      }
-    }
-
-    function stopMicMonitor() {
-      if (micStream) micStream.getTracks().forEach((track) => track.stop());
-      if (audioCtx) { try { audioCtx.close(); } catch (_) {} }
-      micStream = null;
-      audioCtx = null;
-      analyser = null;
     }
 
     function open() {
@@ -153,14 +90,12 @@
       doc.body.classList.add('voice-call-open');
       render();
       pollTimer = root.setInterval(render, 100);
-      startMicMonitor();
     }
 
     function close() {
       if (!overlay) return;
       root.clearInterval(pollTimer);
       pollTimer = null;
-      stopMicMonitor();
       overlay.remove();
       overlay = null;
       doc.body.classList.remove('voice-call-open');
@@ -181,9 +116,9 @@
     engine.__voiceCall = call;
 
     const start = engine.startLiveSession.bind(engine);
-    engine.startLiveSession = function () {
-      start();
-      if (engine.liveSessionActive) call.open();
+    engine.startLiveSession = function (mode) {
+      start(mode);
+      if (engine.liveSessionActive && engine.liveMode === 'call') call.open();
     };
     const stop = engine.stopLiveSession.bind(engine);
     engine.stopLiveSession = function () {
@@ -204,7 +139,7 @@
     return call;
   }
 
-  const VoiceCall = { attach, BARGE_IN_RMS, BARGE_IN_HOLD_MS };
+  const VoiceCall = { attach };
   root.VoiceCall = VoiceCall;
   if (typeof module !== 'undefined' && module.exports) module.exports = VoiceCall;
 })(typeof window !== 'undefined' ? window : globalThis);

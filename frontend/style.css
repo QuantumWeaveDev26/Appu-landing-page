@@ -14235,3 +14235,21 @@ html body.view-app .home-ask .home-ask-input::placeholder { white-space: nowrap;
   html body.view-app .home-ask #btn-call,
   html body.view-app .home-ask .home-ask-send { width: 36px !important; height: 36px !important; min-width: 36px; font-size: 14px; }
 }
+
+/* Mic is ON (always-on voice typing): unmistakable red, pulsing until tapped off. */
+html body .mic-button.is-live,
+html body .composer-mic.is-live {
+  color: #ffffff !important;
+  background: linear-gradient(145deg, #f87171, #dc2626) !important;
+  border-color: #fecaca !important;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55) !important;
+  animation: mic-live-pulse 1.4s ease-out infinite;
+}
+@keyframes mic-live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
+  70% { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .mic-button.is-live, html body .composer-mic.is-live { animation: none; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.45) !important; }
+}

@@ -62,6 +62,9 @@ class VoiceEngine {
         this.isSpeaking = false;
         this.awaitingResponse = false;
         this.liveSessionActive = false;
+        this.liveMode = null;            // 'mic' (voice typing, stays on) or 'call' (full-screen call)
+        this.currentSpeechText = '';     // what Appu is saying now: used to ignore its own echo
+        this.responseWatchdog = null;
         this.silenceTimeoutMs = 60000;
         this.silenceTimer = null;
         this._isReconnecting = false;
@@ -91,8 +94,9 @@ class VoiceEngine {
     initAudioPlayerEvents() {
         this.audioPlayer.addEventListener('play', () => {
             this.isSpeaking = true;
+            this.clearResponseWatchdog();
             this.initAudioAnalyser();
-            if (this.recognition) {
+            if (this.recognition && !this.liveSessionActive) {
                 try { this.recognition.abort(); } catch {}
             }
             this.updateSpeakingUI(true);
@@ -159,6 +163,7 @@ class VoiceEngine {
     }
 
     handleSpeechFinish() {
+        this.clearResponseWatchdog();
         this.awaitingResponse = false;
         this.isSpeaking = false;
         this.updateSpeakingUI(false);
@@ -272,6 +277,14 @@ class VoiceEngine {
                 if (event.results[index].isFinal) finalText += text;
                 else interimText += text;
             }
+            // While Appu is talking the mic stays open. Words that Appu itself is saying (its
+            // voice coming back through the speaker) are ignored; anything else is the learner
+            // interrupting, so Appu stops and listens.
+            if (this.isSpeaking) {
+                const heard = (finalText || interimText).trim();
+                if (!heard || this.isLikelyEcho(heard)) return;
+                this.interrupt();
+            }
             if (interimText || finalText) {
                 this._cycleGotSpeech = true;
                 this.resetSilenceTimer();
@@ -280,6 +293,7 @@ class VoiceEngine {
             if (finalText) {
                 this.clearSilenceTimer();
                 this.awaitingResponse = true;
+                this.startResponseWatchdog();
                 if (this.recognition) {
                     try { this.recognition.abort(); } catch {}
                 }
@@ -298,6 +312,11 @@ class VoiceEngine {
                 return;
             }
 
+            const blocked = event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture';
+            if (this.liveSessionActive && !blocked) {
+                // e.g. 'network': keep the mic on; onend restarts recognition.
+                return;
+            }
             this.isListening = false;
             this.clearSilenceTimer();
             this.lastErrorFatal = true;
@@ -323,7 +342,7 @@ class VoiceEngine {
 
         this.recognition.onend = () => {
             // If session was ended intentionally, or awaiting response, or Appu is speaking, or fatal error:
-            if (!this.liveSessionActive || this.awaitingResponse || this.isSpeaking || this.lastErrorFatal) {
+            if (!this.liveSessionActive || this.awaitingResponse || this.lastErrorFatal) {
                 this.isListening = false;
                 this.clearSilenceTimer();
                 this.updateLiveSessionUI();
@@ -338,7 +357,7 @@ class VoiceEngine {
                 this.recognition.start();
             } catch (err) {
                 window.setTimeout(() => {
-                    if (this.liveSessionActive && !this.isSpeaking && !this.awaitingResponse && !this.lastErrorFatal) {
+                    if (this.liveSessionActive && !this.awaitingResponse && !this.lastErrorFatal) {
                         try {
                             this.recognition.start();
                         } catch (_) {}
@@ -394,7 +413,7 @@ class VoiceEngine {
         }
     }
 
-    toggleLiveSession() {
+    toggleLiveSession(mode = 'call') {
         this.initWebAudio();
         if (!this.isVoiceSupported || !this.recognition) {
             const notice = this.getLocalizedVoiceNotice('unsupported');
@@ -402,39 +421,68 @@ class VoiceEngine {
             this.onVoiceUnavailable(notice);
             return;
         }
-        if (this.liveSessionActive) this.stopLiveSession();
-        else this.startLiveSession();
+        if (this.liveSessionActive && this.liveMode === mode) this.stopLiveSession();
+        else this.startLiveSession(mode);
     }
 
-    // Voice typing: listen for ONE question, hand it over as text, then stop (no call loop).
-    toggleDictation() {
-        this.initWebAudio();
+    // Mic button: stays on (voice typing) until tapped again. Each thing the learner says is
+    // sent like typed text; talking over Appu interrupts it.
+    toggleMic() {
+        this.toggleLiveSession('mic');
+    }
+
+    // Phone button: the full-screen hands-free call (VoiceCall shows the screen).
+    startCall() {
+        if (this.liveSessionActive && this.liveMode === 'call') return;
+        if (this.liveSessionActive) this.stopLiveSession();
+        this.startLiveSession('call');
+    }
+
+    startLiveSession(mode = 'call') {
         if (!this.isVoiceSupported || !this.recognition) {
             const notice = this.getLocalizedVoiceNotice('unsupported');
             this.streamSubtitles(notice);
             this.onVoiceUnavailable(notice);
-            return false;
+            return;
         }
-        if (this.liveSessionActive) this.stopLiveSession();
-        if (this.isListening) {
-            this.stopListening();
-            return false;
-        }
-        this.stopSpeaking();
+        this.liveMode = mode === 'mic' ? 'mic' : 'call';
+        this.liveSessionActive = true;
+        this.lastErrorFatal = false;
         this.awaitingResponse = false;
         this.startListening();
-        return true;
+        this.updateLiveSessionUI();
     }
 
-    startLiveSession() {
-        if (!this.isVoiceSupported || !this.recognition) {
-            const notice = this.getLocalizedVoiceNotice('unsupported');
-            this.streamSubtitles(notice);
-            this.onVoiceUnavailable(notice);
-            return;
+    // If an answer never arrives (network error, no audio), do not leave the mic silently off.
+    startResponseWatchdog() {
+        this.clearResponseWatchdog();
+        if (!this.liveSessionActive) return;
+        this.responseWatchdog = window.setTimeout(() => {
+            this.responseWatchdog = null;
+            if (this.liveSessionActive && this.awaitingResponse && !this.isSpeaking) {
+                this.awaitingResponse = false;
+                this.startListening();
+                this.updateLiveSessionUI();
+            }
+        }, 45000);
+    }
+
+    clearResponseWatchdog() {
+        if (this.responseWatchdog) {
+            window.clearTimeout(this.responseWatchdog);
+            this.responseWatchdog = null;
         }
-        this.liveSessionActive = true;
-        this.startListening();
+    }
+
+    // True when the heard words are (mostly) what Appu is saying right now.
+    isLikelyEcho(heard) {
+        const norm = (value) => String(value || '').toLowerCase().normalize('NFKC')
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+        const words = norm(heard).split(' ').filter(Boolean);
+        if (words.length === 0) return true;
+        const spoken = new Set(norm(this.currentSpeechText).split(' ').filter(Boolean));
+        const novel = words.filter((word) => !spoken.has(word));
+        return novel.length < Math.max(2, Math.ceil(words.length / 2));
     }
 
     startSilenceTimer() {
@@ -459,12 +507,18 @@ class VoiceEngine {
     handleSilenceTimeout() {
         this.clearSilenceTimer();
         if (!this.liveSessionActive && !this.isListening) return;
-        this.stopLiveSession();
-        this.streamSubtitles("Listening stopped after 60s of silence. Tap the mic to speak again.");
+        // The learner decides when listening ends (mic / End call); silence just keeps listening.
+        if (this.liveSessionActive) {
+            this.startSilenceTimer();
+            return;
+        }
+        this.stopListening();
     }
 
     stopLiveSession() {
         this.liveSessionActive = false;
+        this.liveMode = null;
+        this.clearResponseWatchdog();
         this.awaitingResponse = false;
         this._isReconnecting = false;
         this.clearSilenceTimer();
@@ -474,7 +528,8 @@ class VoiceEngine {
     }
 
     startListening() {
-        if (!this.recognition || this.isListening || this.isSpeaking || this.awaitingResponse) return;
+        if (!this.recognition || this.isListening || this.awaitingResponse) return;
+        if (this.isSpeaking && !this.liveSessionActive) return;
         try {
             this.recognition.start();
         } catch (error) {
@@ -491,13 +546,23 @@ class VoiceEngine {
     }
 
     updateLiveSessionUI() {
+        const micOn = this.liveSessionActive && this.liveMode === 'mic';
+        if (typeof document !== 'undefined') {
+            document.body.classList.toggle('mic-live', micOn);
+            const chatMic = document.getElementById('btn-chat-mic');
+            if (chatMic) {
+                chatMic.classList.toggle('is-live', micOn);
+                chatMic.setAttribute('aria-pressed', String(micOn));
+            }
+        }
         if (!this.micButton) return;
-        this.micButton.classList.toggle('active', this.liveSessionActive || this.isListening);
-        this.micButton.setAttribute('aria-pressed', String(this.liveSessionActive));
-        this.micButton.setAttribute('aria-label', this.liveSessionActive ? 'Stop listening' : 'Tap to speak to Appu');
+        this.micButton.classList.toggle('active', micOn);
+        this.micButton.classList.toggle('is-live', micOn);
+        this.micButton.setAttribute('aria-pressed', String(micOn));
+        this.micButton.setAttribute('aria-label', micOn ? 'Stop listening' : 'Tap to speak to Appu');
         if (this.micLabel) {
             const idleLabel = this.micLabel.dataset.idleLabel || 'Tap to speak';
-            this.micLabel.textContent = this.liveSessionActive ? 'Listening now' : idleLabel;
+            this.micLabel.textContent = micOn ? 'Listening now' : idleLabel;
         }
     }
 
@@ -774,6 +839,7 @@ class VoiceEngine {
 
     async speak(text, audioSource, audioStreamUrl = null, accessToken = '') {
         this.initWebAudio();
+        this.currentSpeechText = text || '';
         if (audioStreamUrl) {
             const played = await this.playStream(audioStreamUrl, text, accessToken);
             if (played) return true;

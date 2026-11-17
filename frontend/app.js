@@ -114,8 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     },
     onTranscript: (transcript) => {
-      // Voice typing (not a call): the words were shown in the input box; send them like typed text.
-      if (!voiceEngine.liveSessionActive) showVoiceTypedText('');
+      // Mic mode (not a call): the words were shown in the input box; send them like typed text.
+      if (voiceEngine.liveMode !== 'call') showVoiceTypedText('');
       handleUserInteraction(transcript);
     },
     onInterimTranscript: (transcript) => {
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (subtitlesText) {
         subtitlesText.textContent = `"${transcript}"`;
       }
-      if (!voiceEngine.liveSessionActive) showVoiceTypedText(transcript);
+      if (voiceEngine.liveMode !== 'call') showVoiceTypedText(transcript);
     },
     onVoiceUnavailable: (notice) => {
       const subtitlesText = document.getElementById('subtitles-text');
@@ -2486,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!ensureChatSessionReady()) return;
-      voiceEngine.toggleDictation();
+      voiceEngine.toggleMic();
     });
   }
 
@@ -2500,7 +2500,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!ensureChatSessionReady()) return;
-      if (!voiceEngine.liveSessionActive) voiceEngine.startLiveSession();
+      voiceEngine.startCall();
     });
   }
 
@@ -3346,7 +3346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!ensureChatSessionReady()) return;
-      voiceEngine.toggleDictation();
+      voiceEngine.toggleMic();
     });
   }
 
