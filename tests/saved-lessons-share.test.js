@@ -242,6 +242,17 @@ describe('Appu 2.0: Saved Lessons & WhatsApp Share Controller', () => {
     assert.equal(openedMode, 'lesson');
   });
 
+  test('REVISIT: Study Lesson uses the chat-aware window.showVoicePopup before the old stage popup', () => {
+    const calls = [];
+    global.window = {
+      showVoicePopup: (text, card) => calls.push(['chat', card.id]),
+      app: { showVoicePopup: (text, card) => calls.push(['stage', card.id]) }
+    };
+    const saved = SavedLessonsUI.saveLesson({ id: 'saved-chat-1', topic: 'Light', plainText: 'Light travels in straight lines.' });
+    assert.equal(SavedLessonsUI.reopenLesson(saved.id), true);
+    assert.deepEqual(calls, [['chat', 'saved-chat-1']]);
+  });
+
   test('SAVE TOGGLE: isLessonSaved, findSavedLesson, and toggleSaveLesson save and unsave cleanly', () => {
     const card = {
       id: 'card-forces-202',

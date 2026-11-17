@@ -4344,29 +4344,101 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(frame);
   }
 
+  // Real progress only: everything starts at 0 and grows from what the learner actually does.
+  // v1 state started every learner at 120 XP / 3-day streak / 3 badges they never earned.
+  const LEGACY_SEED_XP = 120;
+  const BADGE_RULES = [
+    { id: 'curious-mind', icon: '🚀', name: 'Curious Mind', rule: 'Ask Appu your first question', earned: s => s.stats.questions >= 1 },
+    { id: 'space-cadet', icon: '🪐', name: 'Space Cadet', rule: 'Ask Appu 10 questions', earned: s => s.stats.questions >= 10 },
+    { id: 'quick-thinker', icon: '⚡', name: 'Quick Thinker', rule: 'Answer 3 quiz questions correctly', earned: s => s.stats.quizCorrect >= 3 },
+    { id: 'diagram-detective', icon: '🔍', name: 'Diagram Detective', rule: 'Master your first diagram', earned: s => s.stats.diagrams >= 1 },
+    { id: 'flashcard-pro', icon: '🗂️', name: 'Flashcard Pro', rule: 'Master 10 flashcards', earned: s => s.stats.flashcards >= 10 },
+    { id: 'on-fire', icon: '🔥', name: 'On Fire', rule: 'Learn 3 days in a row', earned: s => s.bestStreak >= 3 },
+    { id: 'week-warrior', icon: '🏅', name: 'Week Warrior', rule: 'Learn 7 days in a row', earned: s => s.bestStreak >= 7 }
+  ];
+
+  function localDayKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function dayDiff(fromKey, toKey) {
+    if (!fromKey || !toKey) return Infinity;
+    const [a, b] = [fromKey, toKey].map(k => { const [y, m, d] = k.split('-').map(Number); return Date.UTC(y, m - 1, d); });
+    return Math.round((b - a) / 86400000);
+  }
+
+  function emptyGamificationState() {
+    return { version: 2, xp: 0, streak: 0, bestStreak: 0, lastActiveDay: null, badges: [], stats: { questions: 0, quizCorrect: 0, flashcards: 0, diagrams: 0 } };
+  }
+
+  function normalizeGamificationState(parsed) {
+    const state = emptyGamificationState();
+    if (!parsed || typeof parsed !== 'object') return state;
+    const num = v => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+    if (parsed.version === 2) {
+      state.xp = num(parsed.xp);
+      state.streak = num(parsed.streak);
+      state.bestStreak = Math.max(num(parsed.bestStreak), state.streak);
+      state.lastActiveDay = typeof parsed.lastActiveDay === 'string' ? parsed.lastActiveDay : null;
+      const st = parsed.stats || {};
+      state.stats = { questions: num(st.questions), quizCorrect: num(st.quizCorrect), flashcards: num(st.flashcards), diagrams: num(st.diagrams) };
+    } else {
+      // v1: keep only the XP really earned on top of the fake 120 seed; its streak and badges were never real.
+      state.xp = Math.max(0, num(parsed.xp) - LEGACY_SEED_XP);
+    }
+    state.badges = BADGE_RULES.filter(b => b.earned(state)).map(b => b.id);
+    return state;
+  }
+
   function getGamificationState() {
+    let state;
     try {
-      const raw = localStorage.getItem(GAMIFICATION_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return {
-          xp: typeof parsed.xp === 'number' ? parsed.xp : 120,
-          streak: typeof parsed.streak === 'number' ? parsed.streak : 3,
-          badges: Array.isArray(parsed.badges) ? parsed.badges : ['plant-detective', 'quick-thinker', 'curious-mind']
-        };
-      }
-    } catch (_) {}
-    return {
-      xp: 120,
-      streak: 3,
-      badges: ['plant-detective', 'quick-thinker', 'curious-mind']
-    };
+      state = normalizeGamificationState(JSON.parse(localStorage.getItem(GAMIFICATION_STORAGE_KEY) || 'null'));
+    } catch (_) {
+      state = emptyGamificationState();
+    }
+    // A streak is only alive while the learner was active today or yesterday.
+    if (dayDiff(state.lastActiveDay, localDayKey()) > 1) state.streak = 0;
+    return state;
   }
 
   function saveGamificationState(state) {
     try {
       localStorage.setItem(GAMIFICATION_STORAGE_KEY, JSON.stringify(state));
     } catch (_) {}
+  }
+
+  // Counts a real learning action: keeps the daily streak and the badge counters.
+  function recordLearningActivity(kind) {
+    const state = getGamificationState();
+    const today = localDayKey();
+    const gap = dayDiff(state.lastActiveDay, today);
+    if (gap !== 0) {
+      state.streak = gap === 1 ? state.streak + 1 : 1;
+      state.lastActiveDay = today;
+    }
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    if (kind && Object.prototype.hasOwnProperty.call(state.stats, kind)) state.stats[kind] += 1;
+    const before = new Set(state.badges);
+    state.badges = BADGE_RULES.filter(b => b.earned(state)).map(b => b.id);
+    saveGamificationState(state);
+    updateGamificationUI();
+    return BADGE_RULES.filter(b => state.badges.includes(b.id) && !before.has(b.id));
+  }
+
+  function renderBadgesGrid(state) {
+    const grid = document.querySelector('#gamification-modal .badges-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    BADGE_RULES.forEach(b => {
+      const unlocked = state.badges.includes(b.id);
+      const el = document.createElement('div');
+      el.className = `badge-item ${unlocked ? 'is-unlocked' : 'is-locked'}`;
+      el.title = unlocked ? `Unlocked: ${b.rule}` : `${b.rule} to unlock`;
+      el.innerHTML = `<span class="badge-icon">${b.icon}</span><span class="badge-name"></span>`;
+      el.querySelector('.badge-name').textContent = b.name;
+      grid.appendChild(el);
+    });
   }
 
   function calculateLevel(xp) {
@@ -4452,22 +4524,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalProgressText = document.getElementById('game-progress-text');
     const modalXpFill = document.getElementById('modal-xp-fill');
 
-    if (modalStreakEl) modalStreakEl.textContent = `${state.streak} Days`;
+    if (modalStreakEl) modalStreakEl.textContent = `${state.streak} ${state.streak === 1 ? 'Day' : 'Days'}`;
     if (modalXpEl) modalXpEl.textContent = `${state.xp} XP`;
-    if (modalBadgesEl) modalBadgesEl.textContent = `${state.badges.length} Badges`;
+    if (modalBadgesEl) modalBadgesEl.textContent = `${state.badges.length} ${state.badges.length === 1 ? 'Badge' : 'Badges'}`;
+    renderBadgesGrid(state);
     if (modalLevelSubtitle) modalLevelSubtitle.textContent = `Level ${currentLvlInfo.level}: ${currentLvlInfo.title}`;
     if (modalProgressText) modalProgressText.textContent = `${progressInLvl} / ${span} XP`;
     if (modalXpFill) modalXpFill.style.width = `${pct}%`;
   }
 
   const AppuGamification = {
-    awardXP(amount, reason) {
+    awardXP(amount, reason, kind) {
       const state = getGamificationState();
       const prevLvl = calculateLevel(state.xp);
-      state.xp += amount;
+      state.xp += Math.max(0, Math.floor(Number(amount) || 0));
       const nextLvl = calculateLevel(state.xp);
       saveGamificationState(state);
-      updateGamificationUI();
+      recordLearningActivity(kind);
 
       showXpToast(amount, reason);
       launchGameConfetti();
@@ -4482,6 +4555,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     },
     getState: getGamificationState,
+    recordActivity: recordLearningActivity,
+    badgeRules: BADGE_RULES,
     updateUI: updateGamificationUI,
     launchConfetti: launchGameConfetti
   };

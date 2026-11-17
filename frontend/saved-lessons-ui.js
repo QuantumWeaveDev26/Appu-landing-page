@@ -493,11 +493,13 @@
     closePanel();
     closeNavDrawer();
 
-    if (typeof window !== 'undefined' && window.app && typeof window.app.showVoicePopup === 'function') {
-      window.app.showVoicePopup(item.card.plainText || '', item.card, 'lesson');
-      return true;
-    } else if (typeof window !== 'undefined' && typeof window.showVoicePopup === 'function') {
+    // window.showVoicePopup knows the chat-first layout (adds the lesson to the chat);
+    // window.app.showVoicePopup is the old stage popup, which does nothing in that layout.
+    if (typeof window !== 'undefined' && typeof window.showVoicePopup === 'function') {
       window.showVoicePopup(item.card.plainText || '', item.card, 'lesson');
+      return true;
+    } else if (typeof window !== 'undefined' && window.app && typeof window.app.showVoicePopup === 'function') {
+      window.app.showVoicePopup(item.card.plainText || '', item.card, 'lesson');
       return true;
     }
     return false;

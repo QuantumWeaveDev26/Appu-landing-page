@@ -1837,7 +1837,7 @@
                 revealBtn.innerHTML = '<i class="fa-solid fa-check text-green" aria-hidden="true"></i> <span>Answer Shown</span>';
                 const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
                 if (g && g.AppuGamification && typeof g.AppuGamification.awardXP === 'function') {
-                  g.AppuGamification.awardXP(20, 'Quiz Solved! 🎉');
+                  g.AppuGamification.awardXP(20, 'Quiz Solved! 🎉', 'quizCorrect');
                 }
                 if (typeof options.onCelebrate === 'function') {
                   options.onCelebrate();
@@ -2003,7 +2003,7 @@
             if (isCorrect) {
               const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
               if (g && g.AppuGamification && typeof g.AppuGamification.awardXP === 'function') {
-                g.AppuGamification.awardXP(20, 'Quiz Answer Correct! ⭐');
+                g.AppuGamification.awardXP(20, 'Quiz Answer Correct! ⭐', 'quizCorrect');
               }
               if (typeof options.onCelebrate === 'function') {
                 options.onCelebrate();
@@ -2201,7 +2201,7 @@
             ratings[currentIndex] = 'got';
             const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
             if (g && g.AppuGamification && typeof g.AppuGamification.awardXP === 'function') {
-              g.AppuGamification.awardXP(5, 'Flashcard Mastered! 🗂️');
+              g.AppuGamification.awardXP(5, 'Flashcard Mastered! 🗂️', 'flashcards');
             }
           }
           if (currentIndex < cards.length - 1) {
@@ -3379,7 +3379,7 @@
         if (typeof options.onCelebrate === 'function') {
           options.onCelebrate();
         } else if (typeof window !== 'undefined' && window.AppuGamification && typeof window.AppuGamification.awardXP === 'function') {
-          window.AppuGamification.awardXP(20, 'Diagram Mastered! 🎯');
+          window.AppuGamification.awardXP(20, 'Diagram Mastered! 🎯', 'diagrams');
         } else if (typeof window !== 'undefined' && window.appMascot && typeof window.appMascot.celebrate === 'function') {
           window.appMascot.celebrate(3000);
         }

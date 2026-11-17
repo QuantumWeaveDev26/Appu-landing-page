@@ -545,6 +545,8 @@ class ChatAgent {
     const cleanInput = (userText && userText.trim()) || (image ? 'Please help me understand this.' : '');
     // Render User Message in Chat Drawer
     this.addMessage('user', cleanInput, null, image ? image.dataUrl : null);
+    const gamification = typeof window !== 'undefined' ? window.AppuGamification : null;
+    if (gamification && typeof gamification.recordActivity === 'function') gamification.recordActivity('questions');
 
     if (onStartThinking) onStartThinking();
     if (this.typingIndicator) this.typingIndicator.style.display = 'flex';

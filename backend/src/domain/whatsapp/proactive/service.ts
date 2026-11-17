@@ -12,6 +12,23 @@ import {
   type SessionAlertTargetPayload
 } from './types.js';
 
+/**
+ * A parent with several child profiles (or several households on the same number) must still get
+ * ONE daily tip / weekly report. Keeps the first target per normalised phone number, in query order
+ * (oldest child first).
+ */
+export function onePerPhone<T extends { parentPhone: string }>(targets: T[]): T[] {
+  const seen = new Set<string>();
+  return targets.filter((target) => {
+    let digits = String(target.parentPhone ?? '').replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.length === 10) digits = `91${digits}`;
+    if (!digits || seen.has(digits)) return false;
+    seen.add(digits);
+    return true;
+  });
+}
+
 export interface ProactiveGenerateOptions {
   dryRun?: boolean;
   limit?: number;
@@ -31,7 +48,7 @@ export class ProactiveWhatsAppService {
     const sevenDaysAgo = new Date(referenceDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     const limit = options?.limit ?? 200;
 
-    const households = await ProactiveWhatsAppRepository.findEligibleHouseholds(db);
+    const households = onePerPhone(await ProactiveWhatsAppRepository.findEligibleHouseholds(db));
     const targetsToProcess = households.slice(0, limit);
 
     const payloads: ProactiveTargetPayload[] = [];
@@ -70,7 +87,7 @@ export class ProactiveWhatsAppService {
     const referenceDate = options?.referenceDate || new Date();
     const limit = options?.limit ?? 200;
 
-    const households = await ProactiveWhatsAppRepository.findEligibleHouseholds(db);
+    const households = onePerPhone(await ProactiveWhatsAppRepository.findEligibleHouseholds(db));
     const targetsToProcess = households.slice(0, limit);
 
     const payloads: ProactiveTargetPayload[] = [];
