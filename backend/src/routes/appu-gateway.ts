@@ -16,6 +16,7 @@ import { PersonalisationRepository } from '../domain/personalisation/repository.
 import { buildGuestMentorContext } from '../domain/personalisation/guest-context.js';
 import { ConversationQuizService, buildQuizProtocol, extractQuizItem, type QuizTurnOutcome, type QuizTurnPlan } from '../domain/quiz/index.js';
 import { AdaptiveLearningService } from '../domain/adaptive-learning/service.js';
+import { LearnerModelService } from '../domain/learner-model/index.js';
 import { extractQuickReplies, ensureTurnQuickReplies } from '../domain/conversation/quick-replies.js';
 import type { N8nClient, N8nMessageEnvelope } from '../domain/gateway/index.js';
 import { AppuRequestRepository, AppuRequestService, AppuRequestStates } from '../domain/appu-request/index.js';
@@ -445,6 +446,19 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         }
       }
 
+      // Measured learner model (parent-consented children only): a short note the brain reads
+      // with the message so it teaches this child differently. Never blocks the answer.
+      let learnerNote = '';
+      let learningConsented = false;
+      try {
+        learningConsented = Boolean(await LearnerModelService.getConsent(opts.db, household.id, child.id));
+        if (learningConsented) {
+          learnerNote = LearnerModelService.promptNote(await LearnerModelService.buildModel(opts.db, household.id, child.id));
+        }
+      } catch (err) {
+        request.log.warn({ err, requestId: lifecycle.id }, 'Learner model unavailable; answering without it');
+      }
+
       // 5. Construct structured server-generated envelope for n8n
       // n8n never generates audio itself for the website channel: every language is served via
       // the decoupled Eleven v3 streaming path below (was Kannada/Hindi-only; English previously
@@ -473,7 +487,7 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
         parentPhone,
         whatsappConsent,
         ...(experimentalLearning ? { experimentalLearning: true } : {}),
-        quizProtocol: quizPlan ? quizPlan.protocol : buildQuizProtocol(null)
+        quizProtocol: [quizPlan ? quizPlan.protocol : buildQuizProtocol(null), learnerNote].filter(Boolean).join('\n\n')
       };
 
       // 6. Forward to n8n via secure client with reservation rollback on failure.
@@ -530,6 +544,15 @@ export const appuGatewayRoutes: FastifyPluginAsync<AppuGatewayRouteOptions> = as
           );
           response.text = outcome.text;
           quizResult = outcome.quiz;
+          const graded = quizPlan.grade;
+          if (learningConsented && quizPlan.pending && graded?.kind === 'answered') {
+            await LearnerModelService.recordEvents(opts.db, household.id, child.id, [{
+              source: 'chat_quiz',
+              topic: conversation.title || 'General',
+              isCorrect: graded.isCorrect,
+              question: quizPlan.pending.question
+            }]);
+          }
         } catch (err) {
           request.log.warn({ err, requestId: lifecycle.id }, 'Failed to record quiz turn');
           response.text = extractQuizItem(response.text).text;

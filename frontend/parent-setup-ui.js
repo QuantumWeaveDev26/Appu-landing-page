@@ -1810,6 +1810,14 @@
           if (posParentPhone && notif.parentPhone) posParentPhone.value = notif.parentPhone;
           if (posWhatsappConsent) posWhatsappConsent.checked = Boolean(notif.whatsappConsent);
         }
+
+        const learningConsentEl = document.getElementById('pos-learning-consent');
+        if (learningConsentEl && window.AppuLearning && child && child.id) {
+          const learning = await window.AppuLearning.getProfile(child.id);
+          // Ticked until the parent has made a choice; their saved "no" is kept.
+          const c = learning && learning.consent;
+          learningConsentEl.checked = !c || Boolean(c.granted) || !c.decided;
+        }
       } catch {
         // Safe default fallback
       }
@@ -1941,6 +1949,10 @@
 
         try {
           await window.ParentOnboardingShell.savePersonalisation(child.id, personalisationData);
+          const learningConsentEl = document.getElementById('pos-learning-consent');
+          if (learningConsentEl && window.AppuLearning) {
+            await window.AppuLearning.setConsent(learningConsentEl.checked, child.id);
+          }
           if (child) {
             child.nickname = rawNickname || null;
             child.gender = rawGender || null;

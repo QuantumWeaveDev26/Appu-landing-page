@@ -1999,6 +1999,7 @@
             const isCorrect = idx === q.correctIndex;
             if (isCorrect) score += 1;
             answeredStates[currentIndex] = { selected: idx, correct: isCorrect };
+            emitLearning({ source: 'lesson_quiz', topic: options.learningTopic, isCorrect, question: q.question });
 
             if (isCorrect) {
               const g = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
@@ -3916,9 +3917,24 @@
   /**
    * Unified dispatcher: renders any study mode or standard lesson card
    */
+  // Learner model: graded answers and the lesson modes a child opens (see learning-sync.js).
+  const LEARNING_MODES = { quiz: 'quiz', flashcards: 'cards', guide: 'notes', studyGuide: 'notes', mindmap: 'see', diagram: 'diagram', podcast: 'audio' };
+  function emitLearning(detail) {
+    if (!detail || !detail.topic || typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+    try {
+      window.dispatchEvent(new CustomEvent('appu:learning', { detail }));
+    } catch (e) { /* never break the lesson */ }
+  }
+  function learningTopicOf(data, options) {
+    const card = (options && options.card) || data || {};
+    return String((card.mindMap && card.mindMap.central) || card.topic || card.title || (data && data.topic) || '').trim();
+  }
+
   function renderStudyMode(modeName, data = {}, options = {}) {
     const cardCitation = (data && data.citation) || (options && options.citation);
-    const enhancedOptions = cardCitation ? { ...options, citation: cardCitation } : options;
+    const learningTopic = learningTopicOf(data, options);
+    const enhancedOptions = { ...options, learningTopic, ...(cardCitation ? { citation: cardCitation } : {}) };
+    if (LEARNING_MODES[modeName]) emitLearning({ source: 'mode_open', topic: learningTopic, mode: LEARNING_MODES[modeName] });
     const Doodle = typeof window !== 'undefined' ? window.DoodleVisual : null;
     switch (modeName) {
       case 'quiz':

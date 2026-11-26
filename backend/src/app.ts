@@ -23,6 +23,7 @@ import {
   appuVoiceLineRoutes,
   usageRoutes,
   conversationRoutes,
+  learningRoutes,
   whatsappContextRoutes,
   whatsappOnboardingRoutes,
   whatsappProactiveRoutes,
@@ -336,6 +337,11 @@ export function buildApp(config: AppConfig, options: BuildAppOptions = {}): Fast
     });
 
     app.register(conversationRoutes, {
+      db: options.database,
+      authVerifier
+    });
+
+    app.register(learningRoutes, {
       db: options.database,
       authVerifier
     });
