@@ -21,6 +21,9 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_VARIANT": "production"
       }
     }
   },

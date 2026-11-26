@@ -1,5 +1,10 @@
 ﻿import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, Image } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Image,
+} from 'react-native';
+import { Text } from './AppText';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,7 +14,7 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 
 interface DotProps {
   delay: number;
@@ -76,9 +81,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0a1d37',
+    backgroundColor: tc('#0a1d37', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: tc('rgba(56, 189, 248, 0.3)', 'b'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -91,13 +96,13 @@ const styles = StyleSheet.create({
   bubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0a1a2f',
+    backgroundColor: tc('#0a1a2f', 'b'),
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
+    borderColor: tc('rgba(56, 189, 248, 0.2)', 'b'),
   },
   dotsRow: {
     flexDirection: 'row',

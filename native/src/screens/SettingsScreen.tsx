@@ -1,60 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
   ScrollView,
   Switch,
   Linking,
 } from 'react-native';
+import { Text } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useSettingsStore } from '../stores/settingsStore';
-import { voiceService } from '../lib/voiceService';
 import { buildAppuAppShareUrl } from '../lib/studySchedule';
-import { OnboardingModal } from '../components/OnboardingModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
-
-const RATE_PRESETS = [0.80, 0.95, 1.10, 1.25];
-const PITCH_PRESETS = [
-  { label: 'Calm', value: 0.92 },
-  { label: 'Friendly', value: 1.05 },
-  { label: 'Cheerful', value: 1.18 },
-];
 
 export function SettingsScreen({ navigation }: Props) {
   const { t, currentLanguage, setLanguage, languages } = useLanguage();
   const {
-    voiceRate,
-    voicePitch,
     autoSpeak,
     soundEffects,
-    setVoiceRate,
-    setVoicePitch,
     setAutoSpeak,
     setSoundEffects,
     initialize,
   } = useSettingsStore();
 
-  const [isOnboardingVisible, setIsOnboardingVisible] = useState(false);
 
   useEffect(() => {
     initialize();
   }, []);
-
-  const handleTestVoice = (rate?: number, pitch?: number) => {
-    voiceService.testVoice(currentLanguage, rate ?? voiceRate, pitch ?? voicePitch);
-  };
-
-  const handleAdjustRate = (delta: number) => {
-    const next = Math.max(0.75, Math.min(1.35, Math.round((voiceRate + delta) * 100) / 100));
-    setVoiceRate(next);
-  };
 
   const handleShareApp = () => {
     const url = buildAppuAppShareUrl();
@@ -122,8 +99,8 @@ export function SettingsScreen({ navigation }: Props) {
             <Switch
               value={autoSpeak}
               onValueChange={setAutoSpeak}
-              thumbColor={autoSpeak ? theme.colors.cyan : '#666'}
-              trackColor={{ false: '#333', true: 'rgba(34, 211, 238, 0.4)' }}
+              thumbColor={autoSpeak ? theme.colors.cyan : tc('#666', 'b')}
+              trackColor={{ false: tc('#333', 'b'), true: tc('rgba(14, 165, 233, 0.4)', 'b') }}
             />
           </View>
 
@@ -136,106 +113,11 @@ export function SettingsScreen({ navigation }: Props) {
             <Switch
               value={soundEffects}
               onValueChange={setSoundEffects}
-              thumbColor={soundEffects ? theme.colors.cyan : '#666'}
-              trackColor={{ false: '#333', true: 'rgba(34, 211, 238, 0.4)' }}
+              thumbColor={soundEffects ? theme.colors.cyan : tc('#666', 'b')}
+              trackColor={{ false: tc('#333', 'b'), true: tc('rgba(14, 165, 233, 0.4)', 'b') }}
             />
           </View>
 
-          {/* Speaking Speed (Voice Rate) */}
-          <View style={styles.controlBlock}>
-            <View style={styles.controlHeader}>
-              <View>
-                <Text style={styles.prefTitle}>{t('settings.speakingSpeed')}</Text>
-                <Text style={styles.prefDesc}>{t('settings.speakingSpeedDesc')}</Text>
-              </View>
-              <Text style={styles.statusBadge}>{voiceRate.toFixed(2)}x</Text>
-            </View>
-
-            {/* Stepper + Presets */}
-            <View style={styles.stepperRow}>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjustRate(-0.05)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.stepBtnText}>−</Text>
-              </TouchableOpacity>
-
-              <View style={styles.presetPills}>
-                {RATE_PRESETS.map((r) => {
-                  const isActive = Math.abs(voiceRate - r) < 0.03;
-                  return (
-                    <TouchableOpacity
-                      key={r}
-                      style={[styles.pillBtn, isActive && styles.pillBtnActive]}
-                      onPress={() => setVoiceRate(r)}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[
-                          styles.pillBtnText,
-                          isActive && styles.pillBtnTextActive,
-                        ]}
-                      >
-                        {r.toFixed(2)}x
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjustRate(0.05)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.stepBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Voice Tone (Pitch) */}
-          <View style={styles.controlBlock}>
-            <View style={styles.controlHeader}>
-              <View>
-                <Text style={styles.prefTitle}>Voice Tone (Pitch)</Text>
-                <Text style={styles.prefDesc}>Select Appu’s speaking personality style.</Text>
-              </View>
-              <Text style={styles.statusBadge}>{voicePitch.toFixed(2)}</Text>
-            </View>
-
-            <View style={styles.pitchPillsRow}>
-              {PITCH_PRESETS.map((p) => {
-                const isActive = Math.abs(voicePitch - p.value) < 0.05;
-                return (
-                  <TouchableOpacity
-                    key={p.label}
-                    style={[styles.pitchPill, isActive && styles.pitchPillActive]}
-                    onPress={() => setVoicePitch(p.value)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      style={[
-                        styles.pitchPillText,
-                        isActive && styles.pitchPillTextActive,
-                      ]}
-                    >
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Live Preview Button */}
-          <TouchableOpacity
-            style={styles.testVoiceBtn}
-            onPress={() => handleTestVoice()}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.testVoiceText}>🔊 Preview Voice Sample</Text>
-          </TouchableOpacity>
         </View>
 
         {/* 3. Study Reminders & Calendar Touchpoint */}
@@ -361,7 +243,7 @@ export function SettingsScreen({ navigation }: Props) {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.tourBtn}
-            onPress={() => setIsOnboardingVisible(true)}
+            onPress={() => navigation.navigate('Home', { startTour: true })}
             activeOpacity={0.8}
           >
             <Text style={styles.tourBtnText}>🚀 Take the Appu Feature Tour</Text>
@@ -374,12 +256,6 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.footerSubtext}>Dedicated to curious young learners across India</Text>
         </View>
       </ScrollView>
-
-      {/* Onboarding Walkthrough Modal */}
-      <OnboardingModal
-        visible={isOnboardingVisible}
-        onClose={() => setIsOnboardingVisible(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -446,13 +322,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: theme.radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.03)', 'b'),
     borderWidth: 1,
     borderColor: 'transparent',
   },
   langItemActive: {
     borderColor: theme.colors.cyan,
-    backgroundColor: 'rgba(34, 211, 238, 0.08)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.08)', 'b'),
   },
   langItemText: {
     color: theme.colors.textMuted,
@@ -474,7 +350,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
   },
   prefCopy: {
     flex: 1,
@@ -493,7 +369,7 @@ const styles = StyleSheet.create({
   controlBlock: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
   },
   controlHeader: {
     flexDirection: 'row',
@@ -508,7 +384,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: theme.radius.sm,
-    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.1)', 'b'),
   },
   stepperRow: {
     flexDirection: 'row',
@@ -520,7 +396,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     alignItems: 'center',
@@ -541,12 +417,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.03)', 'b'),
     borderWidth: 1,
     borderColor: 'transparent',
   },
   pillBtnActive: {
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.12)', 'b'),
     borderColor: theme.colors.cyan,
   },
   pillBtnText: {
@@ -566,13 +442,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: theme.radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.03)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
     alignItems: 'center',
   },
   pitchPillActive: {
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.12)', 'b'),
     borderColor: theme.colors.cyan,
   },
   pitchPillText: {
@@ -585,9 +461,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   testVoiceBtn: {
-    backgroundColor: 'rgba(34, 211, 238, 0.08)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.08)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(34, 211, 238, 0.25)',
+    borderColor: tc('rgba(14, 165, 233, 0.25)', 'b'),
     borderRadius: theme.radius.md,
     paddingVertical: 10,
     alignItems: 'center',
@@ -606,7 +482,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(34, 211, 238, 0.08)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.08)', 'b'),
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -627,9 +503,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(37, 211, 102, 0.08)',
+    backgroundColor: tc('rgba(37, 211, 102, 0.08)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(37, 211, 102, 0.25)',
+    borderColor: tc('rgba(37, 211, 102, 0.25)', 'b'),
     borderRadius: theme.radius.md,
     padding: 12,
   },
@@ -647,7 +523,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   whatsappTitle: {
-    color: '#25D366',
+    color: tc('#25D366', 't'),
     fontSize: 13,
     fontWeight: '700',
   },
@@ -658,13 +534,13 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   whatsappActionBadge: {
-    backgroundColor: '#25D366',
+    backgroundColor: tc('#25D366', 'b'),
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.sm,
   },
   whatsappActionText: {
-    color: '#06101f',
+    color: tc('#06101f', 't'),
     fontSize: 11,
     fontWeight: '800',
   },
@@ -674,7 +550,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
   },
   legalItemText: {
     color: theme.colors.text,
@@ -686,9 +562,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   tourBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: tc('rgba(255, 255, 255, 0.08)', 'b'),
     borderRadius: theme.radius.md,
     paddingVertical: 12,
     alignItems: 'center',
@@ -709,7 +585,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   footerSubtext: {
-    color: 'rgba(255, 255, 255, 0.25)',
+    color: tc('rgba(255, 255, 255, 0.25)', 't'),
     fontSize: 10,
     marginTop: 3,
   },

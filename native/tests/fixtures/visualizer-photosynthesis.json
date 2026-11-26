@@ -1,0 +1,147 @@
+{
+  "topic": "Photosynthesis",
+  "citation": {
+    "label": "NCERT Class 6 Science - Food Where Does It Come From?",
+    "class": 6,
+    "subject": "Science",
+    "chapter": "Food Where Does It Come From?"
+  },
+  "mindMap": {
+    "central": "Photosynthesis",
+    "branches": [
+      {
+        "label": "What is it?",
+        "children": [
+          "Plants make their own food",
+          "Uses sunlight, water, and carbon dioxide",
+          "Important for plant growth"
+        ]
+      },
+      {
+        "label": "Ingredients",
+        "children": [
+          "Sunlight - energy source",
+          "Water - taken from soil",
+          "Carbon dioxide - from air"
+        ]
+      },
+      {
+        "label": "Where it happens",
+        "children": [
+          "In leaves",
+          "In chlorophyll (green part)",
+          "Inside tiny cells"
+        ]
+      },
+      {
+        "label": "Why important?",
+        "children": [
+          "Plants get food",
+          "Produces oxygen for us",
+          "Supports life on Earth"
+        ]
+      }
+    ]
+  },
+  "steps": [
+    "Leaves take in sunlight.",
+    "Roots absorb water from the soil.",
+    "Leaves take in carbon dioxide from the air.",
+    "Plants use sunlight to mix water and carbon dioxide.",
+    "Food (glucose) is made inside the leaves.",
+    "Oxygen is released into the air."
+  ],
+  "analogy": "Photosynthesis is like a kitchen where plants cook their own food using sunlight as the stove, water as an ingredient, and carbon dioxide as another ingredient.",
+  "keyPoints": [
+    "Photosynthesis means making food using light.",
+    "Plants need sunlight, water, and carbon dioxide.",
+    "It happens mostly in the leaves.",
+    "Chlorophyll in leaves helps capture sunlight.",
+    "Food made is called glucose (a type of sugar).",
+    "Oxygen is released as a helpful byproduct."
+  ],
+  "quiz": [
+    {
+      "q": "What do plants need to make food in photosynthesis?",
+      "options": [
+        "Sunlight, water, and carbon dioxide",
+        "Soil, air, and rain",
+        "Sunlight, soil, and oxygen",
+        "Water, oxygen, and soil"
+      ],
+      "answerIndex": 0,
+      "explain": "Plants use sunlight, water, and carbon dioxide to make food during photosynthesis."
+    },
+    {
+      "q": "Where does photosynthesis mainly happen in a plant?",
+      "options": [
+        "Roots",
+        "Stem",
+        "Leaves",
+        "Flowers"
+      ],
+      "answerIndex": 2,
+      "explain": "Photosynthesis happens mainly in the leaves where chlorophyll captures sunlight."
+    },
+    {
+      "q": "What is released into the air during photosynthesis?",
+      "options": [
+        "Carbon dioxide",
+        "Oxygen",
+        "Water",
+        "Glucose"
+      ],
+      "answerIndex": 1,
+      "explain": "Oxygen is released into the air as a byproduct of photosynthesis."
+    }
+  ],
+  "flashcards": [
+    {
+      "front": "What is photosynthesis?",
+      "back": "The process by which plants make food using sunlight, water, and carbon dioxide."
+    },
+    {
+      "front": "Which part of the plant does photosynthesis?",
+      "back": "Mostly the leaves, because they have chlorophyll."
+    },
+    {
+      "front": "What gas do plants take in for photosynthesis?",
+      "back": "Carbon dioxide from the air."
+    },
+    {
+      "front": "What gas do plants release during photosynthesis?",
+      "back": "Oxygen."
+    }
+  ],
+  "diagram": {
+    "title": "Photosynthesis Process in a Leaf",
+    "layout": "flow",
+    "parts": [
+      {
+        "id": "p1",
+        "label": "Sunlight",
+        "explanation": "Sunlight provides the energy plants need to make food."
+      },
+      {
+        "id": "p2",
+        "label": "Water",
+        "explanation": "Water is absorbed by roots from the soil."
+      },
+      {
+        "id": "p3",
+        "label": "Carbon Dioxide",
+        "explanation": "Carbon dioxide enters the leaves from the air."
+      },
+      {
+        "id": "p4",
+        "label": "Food (Glucose)",
+        "explanation": "Plants make glucose as food inside the leaves."
+      },
+      {
+        "id": "p5",
+        "label": "Oxygen",
+        "explanation": "Oxygen is released into the air as a byproduct."
+      }
+    ]
+  }
+}

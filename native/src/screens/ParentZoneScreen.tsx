@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getLearningProfile, setLearningConsent } from '../lib/learning';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   ActivityIndicator,
   Modal,
   Switch,
   Alert,
   Platform,
 } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
 import { config } from '../config';
@@ -118,6 +118,13 @@ export function ParentZoneScreen({ navigation, route }: Props) {
   const [persDob, setPersDob] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [whatsappConsent, setWhatsappConsent] = useState(false);
+  // Parent consent for the learner model (quiz results, topics, preferred ways of learning).
+  const [learningConsent, setLearningConsentState] = useState(true);
+  useEffect(() => {
+    if (!persChild?.id) return;
+    // Ticked until the parent has made a choice; their saved "no" is kept.
+    void getLearningProfile(persChild.id).then((p) => setLearningConsentState(!p || p.consent.granted || !p.consent.decided));
+  }, [persChild?.id]);
 
   // Subscription & Usage state
   const [subData, setSubData] = useState<CurrentSubscriptionResponse | null>(null);
@@ -523,6 +530,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
       };
 
       const updated = await savePersonalisation(accessToken, persChild.id, payload);
+      await setLearningConsent(persChild.id, learningConsent);
       void setActivePersonalisation(updated);
 
       // Update child profile locally
@@ -954,7 +962,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     value={persNickname}
                     onChangeText={setPersNickname}
                     placeholder={t('parent.nicknamePlaceholder')}
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={tc('#64748b', 't')}
                     maxLength={50}
                   />
                 </View>
@@ -966,7 +974,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     value={persDob}
                     onChangeText={setPersDob}
                     placeholder={t('parent.dobPlaceholder')}
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={tc('#64748b', 't')}
                     maxLength={10}
                     autoCapitalize="none"
                   />
@@ -1150,7 +1158,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     value={persSubjects}
                     onChangeText={setPersSubjects}
                     placeholder={t('parent.favoriteSubjectsPlaceholder')}
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={tc('#64748b', 't')}
                   />
                 </View>
 
@@ -1162,7 +1170,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     value={persInterests}
                     onChangeText={setPersInterests}
                     placeholder={t('parent.interestsPlaceholder')}
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={tc('#64748b', 't')}
                   />
                 </View>
 
@@ -1174,7 +1182,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     value={persGoals}
                     onChangeText={setPersGoals}
                     placeholder={t('parent.goalsPlaceholder')}
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={tc('#64748b', 't')}
                   />
                 </View>
 
@@ -1202,7 +1210,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     value={parentPhone}
                     onChangeText={setParentPhone}
                     placeholder={t('parent.parentPhonePlaceholder')}
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={tc('#64748b', 't')}
                     keyboardType="phone-pad"
                   />
 
@@ -1210,11 +1218,24 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                     <Switch
                       value={whatsappConsent}
                       onValueChange={setWhatsappConsent}
-                      thumbColor={whatsappConsent ? theme.colors.cyan : '#64748b'}
-                      trackColor={{ false: '#1e293b', true: 'rgba(56, 189, 248, 0.4)' }}
+                      thumbColor={whatsappConsent ? theme.colors.cyan : tc('#64748b', 'b')}
+                      trackColor={{ false: tc('#1e293b', 'b'), true: tc('rgba(56, 189, 248, 0.4)', 'b') }}
                     />
                     <Text style={styles.switchText}>
                       {t('parent.whatsappConsent')}
+                    </Text>
+                  </View>
+
+                  <View style={styles.switchRow}>
+                    <Switch
+                      value={learningConsent}
+                      onValueChange={setLearningConsentState}
+                      thumbColor={learningConsent ? theme.colors.cyan : tc('#64748b', 'b')}
+                      trackColor={{ false: tc('#1e293b', 'b'), true: tc('rgba(56, 189, 248, 0.4)', 'b') }}
+                      accessibilityLabel="Let Appu learn how my child learns"
+                    />
+                    <Text style={styles.switchText}>
+                      Let Appu learn how my child learns: keep a record of their quiz answers and the topics they find easy or hard, so Appu can teach them in their own way and show me real progress. Only quiz results, topics and lesson styles are kept. Turn this off any time and everything recorded is deleted.
                     </Text>
                   </View>
                 </View>
@@ -1236,7 +1257,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                   activeOpacity={0.8}
                 >
                   {savingPers ? (
-                    <ActivityIndicator color="#030c1e" />
+                    <ActivityIndicator color={tc('#0b1322', 't')} />
                   ) : (
                     <Text style={styles.primaryActionBtnText}>
                       {t('parent.savePreferences')}
@@ -1503,7 +1524,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                           activeOpacity={0.8}
                         >
                           {downloadingPdf ? (
-                            <ActivityIndicator size="small" color="#030c1e" />
+                            <ActivityIndicator size="small" color={tc('#0b1322', 't')} />
                           ) : (
                             <Text style={styles.downloadPdfBtnText}>
                               📄 {t('parent.downloadPdfBtn')}
@@ -1684,7 +1705,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                 value={childFormName}
                 onChangeText={setChildFormName}
                 placeholder={t('parent.preferredNamePlaceholder')}
-                placeholderTextColor="#64748b"
+                placeholderTextColor={tc('#64748b', 't')}
                 maxLength={100}
               />
             </View>
@@ -1729,7 +1750,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                 value={childFormNickname}
                 onChangeText={setChildFormNickname}
                 placeholder={t('parent.nicknamePlaceholder')}
-                placeholderTextColor="#64748b"
+                placeholderTextColor={tc('#64748b', 't')}
                 maxLength={50}
               />
             </View>
@@ -1742,7 +1763,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                 value={childFormDob}
                 onChangeText={setChildFormDob}
                 placeholder={t('parent.dobPlaceholder')}
-                placeholderTextColor="#64748b"
+                placeholderTextColor={tc('#64748b', 't')}
                 maxLength={10}
                 autoCapitalize="none"
               />
@@ -1765,7 +1786,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                 activeOpacity={0.8}
               >
                 {savingChild ? (
-                  <ActivityIndicator color="#030c1e" />
+                  <ActivityIndicator color={tc('#0b1322', 't')} />
                 ) : (
                   <Text style={styles.modalSubmitText}>
                     {editingChild
@@ -1873,7 +1894,7 @@ export function ParentZoneScreen({ navigation, route }: Props) {
                       activeOpacity={0.8}
                     >
                       {submittingFeedback ? (
-                        <ActivityIndicator color="#030c1e" />
+                        <ActivityIndicator color={tc('#0b1322', 't')} />
                       ) : (
                         <Text style={styles.modalSubmitText}>
                           {t('parent.submitFeedbackBtn')}
@@ -1908,7 +1929,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.line,
-    backgroundColor: '#07152b',
+    backgroundColor: tc('#0f1a2e', 'b'),
   },
   backBtn: {
     paddingVertical: 6,
@@ -1930,7 +1951,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   headerSubtitle: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 11,
     fontWeight: '600',
   },
@@ -1940,19 +1961,19 @@ const styles = StyleSheet.create({
   signOutHeaderBtn: {
     paddingVertical: 6,
     paddingHorizontal: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: tc('rgba(239, 68, 68, 0.12)', 'b'),
     borderRadius: theme.radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: tc('rgba(239, 68, 68, 0.3)', 'b'),
   },
   signOutHeaderText: {
-    color: '#f87171',
+    color: tc('#f87171', 't'),
     fontSize: 12,
     fontWeight: '700',
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 8,
@@ -1967,12 +1988,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabBtnActive: {
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.cyan,
   },
   tabBtnText: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1992,9 +2013,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.1)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: tc('rgba(56, 189, 248, 0.3)', 'b'),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -2010,7 +2031,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   guestHeroLead: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
@@ -2018,7 +2039,7 @@ const styles = StyleSheet.create({
   },
   guestFeatureList: {
     width: '100%',
-    backgroundColor: '#061427',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderRadius: theme.radius.lg,
     padding: 16,
     marginBottom: 24,
@@ -2035,7 +2056,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   guestFeatureText: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 13,
     lineHeight: 18,
     flex: 1,
@@ -2053,12 +2074,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   sectionSubtitle: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 12,
     marginTop: 2,
   },
   addLearnerBtn: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.15)', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.cyan,
     paddingHorizontal: 12,
@@ -2080,7 +2101,7 @@ const styles = StyleSheet.create({
   },
   childCardActive: {
     borderColor: theme.colors.cyan,
-    backgroundColor: '#0a1d37',
+    backgroundColor: tc('#0a1d37', 'b'),
   },
   childCardHeader: {
     flexDirection: 'row',
@@ -2091,7 +2112,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0c274c',
+    backgroundColor: tc('#0c274c', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.cyan,
     justifyContent: 'center',
@@ -2116,7 +2137,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   childNicknameBadge: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 13,
     fontStyle: 'italic',
   },
@@ -2127,7 +2148,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   gradeBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.12)', 'b'),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: theme.radius.sm,
@@ -2138,17 +2159,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   dobBadgeText: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 11,
   },
   activePill: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    backgroundColor: tc('rgba(34, 197, 94, 0.12)', 'b'),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: theme.radius.sm,
   },
   activePillText: {
-    color: '#4ade80',
+    color: tc('#4ade80', 't'),
     fontSize: 11,
     fontWeight: '700',
   },
@@ -2160,7 +2181,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: tc('rgba(255, 255, 255, 0.06)', 'b'),
   },
   childSelectBtn: {
     paddingHorizontal: 12,
@@ -2169,30 +2190,30 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
   },
   childSelectBtnText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 12,
     fontWeight: '700',
   },
   childEditBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
     borderRadius: theme.radius.sm,
     borderWidth: 1,
     borderColor: theme.colors.line,
   },
   childEditBtnText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     fontWeight: '600',
   },
   childPersBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
     borderRadius: theme.radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: tc('rgba(56, 189, 248, 0.3)', 'b'),
   },
   childPersBtnText: {
     color: theme.colors.cyan,
@@ -2207,14 +2228,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   childSwitchLabel: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 12,
     fontWeight: '700',
   },
   childSwitchChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
     borderRadius: theme.radius.pill,
     marginRight: 6,
     borderWidth: 1,
@@ -2222,10 +2243,10 @@ const styles = StyleSheet.create({
   },
   childSwitchChipSelected: {
     borderColor: theme.colors.cyan,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.15)', 'b'),
   },
   childSwitchChipText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     fontWeight: '600',
   },
@@ -2251,7 +2272,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fieldLabel: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
@@ -2259,7 +2280,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.md,
@@ -2276,17 +2297,17 @@ const styles = StyleSheet.create({
   optionPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.pill,
   },
   optionPillSelected: {
     borderColor: theme.colors.cyan,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.12)', 'b'),
   },
   optionPillText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 13,
     fontWeight: '600',
   },
@@ -2300,17 +2321,17 @@ const styles = StyleSheet.create({
   optionCard: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.md,
   },
   optionCardSelected: {
     borderColor: theme.colors.cyan,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.12)', 'b'),
   },
   optionCardText: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 13,
     fontWeight: '500',
   },
@@ -2319,11 +2340,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   whatsappCard: {
-    backgroundColor: '#071d34',
+    backgroundColor: tc('#071d34', 'b'),
     borderRadius: theme.radius.lg,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(56, 189, 248, 0.5)',
+    borderColor: tc('rgba(56, 189, 248, 0.5)', 'b'),
     marginBottom: 16,
   },
   whatsappHeaderRow: {
@@ -2333,27 +2354,27 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   whatsappTitle: {
-    color: '#38bdf8',
+    color: tc('#38bdf8', 't'),
     fontSize: 15,
     fontWeight: '800',
   },
   whatsappRecommendedBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.18)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.45)',
+    borderColor: tc('rgba(56, 189, 248, 0.45)', 'b'),
     borderRadius: theme.radius.pill,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   whatsappRecommendedBadgeText: {
-    color: '#38bdf8',
+    color: tc('#38bdf8', 't'),
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   whatsappRationale: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     lineHeight: 18,
     marginTop: 2,
@@ -2365,22 +2386,22 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   switchText: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 12,
     flex: 1,
     lineHeight: 17,
   },
   successToast: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    backgroundColor: tc('rgba(34, 197, 94, 0.15)', 'b'),
     borderWidth: 1,
-    borderColor: '#4ade80',
+    borderColor: tc('#4ade80', 'b'),
     padding: 10,
     borderRadius: theme.radius.md,
     marginBottom: 12,
     alignItems: 'center',
   },
   successToastText: {
-    color: '#4ade80',
+    color: tc('#4ade80', 't'),
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2393,7 +2414,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   primaryActionBtnText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -2406,7 +2427,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderWidth: 1,
     borderColor: theme.colors.line,
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
   },
   secondaryActionBtnText: {
     color: theme.colors.text,
@@ -2414,7 +2435,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   betaCard: {
-    backgroundColor: '#0a223f',
+    backgroundColor: tc('#0a223f', 'b'),
     borderRadius: theme.radius.lg,
     padding: 18,
     marginTop: 16,
@@ -2430,7 +2451,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   betaBadgeText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 10,
     fontWeight: '900',
   },
@@ -2441,7 +2462,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   betaDesc: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     lineHeight: 18,
   },
@@ -2460,7 +2481,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   subKicker: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
@@ -2472,15 +2493,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   statusPillActive: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    backgroundColor: tc('rgba(34, 197, 94, 0.15)', 'b'),
     borderWidth: 1,
-    borderColor: '#4ade80',
+    borderColor: tc('#4ade80', 'b'),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: theme.radius.pill,
   },
   statusPillActiveText: {
-    color: '#4ade80',
+    color: tc('#4ade80', 't'),
     fontSize: 11,
     fontWeight: '800',
   },
@@ -2494,7 +2515,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   metricLabel: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 13,
     fontWeight: '600',
   },
@@ -2505,7 +2526,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 8,
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -2520,7 +2541,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   metricFooterText: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 11,
   },
   accountCard: {
@@ -2542,10 +2563,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
   },
   accountLabel: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 13,
   },
   accountValue: {
@@ -2556,14 +2577,14 @@ const styles = StyleSheet.create({
   signOutBtn: {
     marginTop: 16,
     paddingVertical: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: tc('rgba(239, 68, 68, 0.1)', 'b'),
     borderRadius: theme.radius.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: tc('rgba(239, 68, 68, 0.3)', 'b'),
   },
   signOutBtnText: {
-    color: '#f87171',
+    color: tc('#f87171', 't'),
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2573,7 +2594,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loaderText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 13,
   },
   emptyWrap: {
@@ -2585,7 +2606,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   emptyText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 19,
@@ -2593,7 +2614,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: tc('rgba(0, 0, 0, 0.75)', 'b'),
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
@@ -2616,21 +2637,21 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   modalCloseText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 18,
     fontWeight: '700',
     padding: 4,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: tc('rgba(239, 68, 68, 0.15)', 'b'),
     borderWidth: 1,
-    borderColor: '#ef4444',
+    borderColor: tc('#ef4444', 'b'),
     padding: 10,
     borderRadius: theme.radius.md,
     marginBottom: 12,
   },
   errorBannerText: {
-    color: '#fca5a5',
+    color: tc('#fca5a5', 't'),
     fontSize: 12,
     fontWeight: '600',
   },
@@ -2641,17 +2662,17 @@ const styles = StyleSheet.create({
   gradePill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.sm,
   },
   gradePillSelected: {
     borderColor: theme.colors.cyan,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.15)', 'b'),
   },
   gradePillText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     fontWeight: '600',
   },
@@ -2670,7 +2691,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   modalCancelText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 14,
     fontWeight: '600',
   },
@@ -2683,14 +2704,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalSubmitText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 14,
     fontWeight: '800',
   },
   requiredSetupBanner: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    backgroundColor: tc('rgba(245, 158, 11, 0.12)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderColor: tc('rgba(245, 158, 11, 0.35)', 'b'),
     borderRadius: theme.radius.md,
     marginHorizontal: 16,
     marginTop: 8,
@@ -2698,21 +2719,21 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   requiredSetupTitle: {
-    color: '#fbbf24',
+    color: tc('#fbbf24', 't'),
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 4,
   },
   requiredSetupText: {
-    color: '#fde68a',
+    color: tc('#fde68a', 't'),
     fontSize: 12,
     lineHeight: 17,
   },
   // Reports & Feedback Styles
   reportLockedCard: {
-    backgroundColor: '#0c1a30',
+    backgroundColor: tc('#0c1a30', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.3)',
+    borderColor: tc('rgba(234, 179, 8, 0.3)', 'b'),
     borderRadius: theme.radius.lg,
     padding: 16,
     marginBottom: 16,
@@ -2727,18 +2748,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   reportLockedTitle: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
     fontSize: 15,
     fontWeight: '800',
     marginBottom: 4,
   },
   reportLockedDesc: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 12,
     lineHeight: 18,
   },
   giveFeedbackBtn: {
-    backgroundColor: '#eab308',
+    backgroundColor: tc('#eab308', 'b'),
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: theme.radius.md,
@@ -2746,14 +2767,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   giveFeedbackBtnText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 13,
     fontWeight: '800',
   },
   reportUnlockedCard: {
-    backgroundColor: '#081e2b',
+    backgroundColor: tc('#081e2b', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
+    borderColor: tc('rgba(34, 197, 94, 0.3)', 'b'),
     borderRadius: theme.radius.lg,
     padding: 14,
     marginBottom: 16,
@@ -2764,7 +2785,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   reportUnlockedBadge: {
-    color: '#4ade80',
+    color: tc('#4ade80', 't'),
     fontSize: 13,
     fontWeight: '800',
   },
@@ -2778,12 +2799,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   feedbackStarsText: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
     fontSize: 16,
     letterSpacing: 2,
   },
   feedbackQuoteText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     fontStyle: 'italic',
   },
@@ -2811,13 +2832,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   downloadPdfBtnText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 12,
     fontWeight: '800',
   },
   previewReportBtn: {
     flex: 1,
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     paddingVertical: 10,
@@ -2835,22 +2856,22 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reportErrorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: tc('rgba(239, 68, 68, 0.12)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: tc('rgba(239, 68, 68, 0.3)', 'b'),
     borderRadius: theme.radius.md,
     padding: 10,
     marginTop: 12,
   },
   reportErrorText: {
-    color: '#f87171',
+    color: tc('#f87171', 't'),
     fontSize: 12,
   },
   reportPreviewContainer: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: tc('rgba(255, 255, 255, 0.08)', 'b'),
     gap: 14,
   },
   scoreDialHeader: {
@@ -2862,7 +2883,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#071830',
+    backgroundColor: tc('#071830', 'b'),
     borderWidth: 2,
     borderColor: theme.colors.cyan,
     alignItems: 'center',
@@ -2875,7 +2896,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   scoreSub: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 10,
     fontWeight: '700',
   },
@@ -2885,7 +2906,7 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.15)', 'b'),
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: theme.radius.sm,
@@ -2902,7 +2923,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   reportParagraph: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 12,
     lineHeight: 18,
   },
@@ -2912,7 +2933,7 @@ const styles = StyleSheet.create({
   },
   engagementTile: {
     flex: 1,
-    backgroundColor: '#061427',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderRadius: theme.radius.md,
     padding: 10,
     borderWidth: 1,
@@ -2926,7 +2947,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   engagementLabel: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontSize: 10,
     fontWeight: '600',
   },
@@ -2939,7 +2960,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   subjectItem: {
-    backgroundColor: '#061427',
+    backgroundColor: tc('#0f1a2e', 'b'),
     padding: 10,
     borderRadius: theme.radius.md,
     gap: 6,
@@ -2960,7 +2981,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   subjectNarrative: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 11,
     lineHeight: 15,
   },
@@ -2968,23 +2989,23 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   columnBox: {
-    backgroundColor: '#061427',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderRadius: theme.radius.md,
     padding: 12,
     gap: 6,
   },
   columnTitleGreen: {
-    color: '#4ade80',
+    color: tc('#4ade80', 't'),
     fontSize: 12,
     fontWeight: '800',
   },
   columnTitleAmber: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
     fontSize: 12,
     fontWeight: '800',
   },
   bulletItem: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 11,
     lineHeight: 16,
   },
@@ -2994,9 +3015,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   topicChip: {
-    backgroundColor: '#0c2242',
+    backgroundColor: tc('#12325a', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderColor: tc('rgba(56, 189, 248, 0.25)', 'b'),
     borderRadius: theme.radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -3010,12 +3031,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#061427',
+    backgroundColor: tc('#0f1a2e', 'b'),
     padding: 10,
     borderRadius: theme.radius.md,
   },
   recPriorityBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.15)', 'b'),
     borderRadius: theme.radius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -3033,12 +3054,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   recSuggestion: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 11,
     lineHeight: 15,
   },
   modalSubtitle: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     lineHeight: 17,
     marginBottom: 14,
@@ -3054,13 +3075,13 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     fontSize: 28,
-    color: '#334155',
+    color: tc('#334155', 't'),
   },
   starIconActive: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
   },
   starRatingText: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
     fontSize: 14,
     fontWeight: '800',
     marginLeft: 8,

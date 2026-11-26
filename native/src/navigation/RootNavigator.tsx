@@ -2,13 +2,14 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import { SplashScreen } from '../screens/SplashScreen';
-import { HomeScreen } from '../screens/HomeScreen';
 import { AuthScreen } from '../screens/AuthScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ParentZoneScreen } from '../screens/ParentZoneScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { StudyScheduleScreen } from '../screens/StudyScheduleScreen';
 import { LegalScreen } from '../screens/LegalScreen';
+import { LessonScreen } from '../screens/LessonScreen';
+import { MyLearningScreen } from '../screens/MyLearningScreen';
 import { theme } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -24,7 +25,9 @@ export function RootNavigator() {
       }}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Home" component={ChatScreen} />
+      <Stack.Screen name="MyLearning" component={MyLearningScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen
         name="Auth"
         component={AuthScreen}

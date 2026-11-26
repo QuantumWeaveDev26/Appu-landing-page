@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   Modal,
   TouchableOpacity,
@@ -9,11 +8,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Text } from './AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import {
   fetchConversations,
   deleteConversation,
+  clearConversations,
   type ConversationSummary,
 } from '../lib/api';
 
@@ -85,6 +86,26 @@ export function RecentChatsModal({
     );
   };
 
+  const handleClearAll = () => {
+    if (!accessToken || !childId || conversations.length === 0) return;
+    Alert.alert('Clear all chats', 'Delete every saved chat with Appu? This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete all',
+        style: 'destructive',
+        onPress: async () => {
+          const ok = await clearConversations(accessToken, childId);
+          if (ok) {
+            setConversations([]);
+            onNewChat();
+          } else {
+            Alert.alert('Appu', 'Could not clear your chats. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
   const formatDate = (isoString: string) => {
     try {
       const d = new Date(isoString);
@@ -116,6 +137,11 @@ export function RecentChatsModal({
             </View>
 
             <View style={styles.headerActions}>
+              {conversations.length > 0 && (
+                <TouchableOpacity style={styles.closeBtn} onPress={handleClearAll} accessibilityLabel="Clear all chats">
+                  <Text style={styles.closeBtnText}>🗑</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.newChatBtn}
                 onPress={() => {
@@ -236,7 +262,7 @@ export function RecentChatsModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 10, 22, 0.85)',
+    backgroundColor: tc('rgba(3, 10, 22, 0.85)', 'b'),
     justifyContent: 'flex-end',
   },
   sheetContainer: {
@@ -283,7 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.full,
   },
   newChatBtnText: {
-    color: '#031124',
+    color: tc('#04121f', 't'),
     fontSize: 13,
     fontWeight: '700',
   },
@@ -291,7 +317,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#091a32',
+    backgroundColor: tc('#091a32', 'b'),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -337,7 +363,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
   },
   startChatBtnText: {
-    color: '#031124',
+    color: tc('#04121f', 't'),
     fontSize: 14,
     fontWeight: '700',
   },
@@ -348,7 +374,7 @@ const styles = StyleSheet.create({
   chatCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#091a32',
+    backgroundColor: tc('#091a32', 'b'),
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.line,
@@ -356,7 +382,7 @@ const styles = StyleSheet.create({
   },
   chatCardActive: {
     borderColor: theme.colors.cyan,
-    backgroundColor: 'rgba(34, 211, 238, 0.08)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.08)', 'b'),
   },
   chatCardBody: {
     flex: 1,
@@ -378,7 +404,7 @@ const styles = StyleSheet.create({
     color: theme.colors.cyanSoft,
   },
   activeBadge: {
-    backgroundColor: 'rgba(34, 211, 238, 0.15)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.15)', 'b'),
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

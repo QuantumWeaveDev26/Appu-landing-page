@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
+import { Text, TextInput } from './AppText';
 import {
   FeedbackPresetOption,
   getFeedbackOptionLabel,
@@ -14,7 +13,7 @@ import {
   OTHER_OPTION_ID,
   OTHER_PRESET_OPTION,
 } from '../lib/feedbackPresets';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 
 interface FeedbackDropdownProps {
   label: string;
@@ -151,7 +150,7 @@ export function FeedbackDropdown({
             onSelect(text);
           }}
           placeholder={otherPlaceholder || 'Tell us in your words…'}
-          placeholderTextColor="#64748b"
+          placeholderTextColor={tc('#64748b', 't')}
           maxLength={200}
           multiline={false}
           autoFocus={true}
@@ -166,15 +165,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fieldLabel: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 6,
   },
   selectorButton: {
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.28)',
+    borderColor: tc('rgba(56, 189, 248, 0.28)', 'b'),
     borderRadius: theme.radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   placeholderText: {
-    color: '#64748b',
+    color: tc('#64748b', 't'),
     fontWeight: '500',
   },
   chevronIcon: {
@@ -206,7 +205,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   dropdownContainer: {
-    backgroundColor: '#07172c',
+    backgroundColor: tc('#07172c', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.cyan,
     borderTopWidth: 0,
@@ -223,13 +222,13 @@ const styles = StyleSheet.create({
   },
   optionItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomColor: tc('rgba(255, 255, 255, 0.06)', 'b'),
   },
   optionItemSelected: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: tc('rgba(56, 189, 248, 0.12)', 'b'),
   },
   optionText: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 13,
     fontWeight: '500',
     flex: 1,
@@ -246,9 +245,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   otherInput: {
-    backgroundColor: '#061325',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.45)',
+    borderColor: tc('rgba(56, 189, 248, 0.45)', 'b'),
     borderRadius: theme.radius.md,
     paddingHorizontal: 14,
     paddingVertical: 10,

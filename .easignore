@@ -1,0 +1,16 @@
+# Only native/ is needed for EAS builds. (.easignore replaces .gitignore for EAS uploads.)
+node_modules/
+.git.worktree.bak
+scratch/
+mobile/
+frontend/
+backend/
+tests/
+docs/
+design-reference/
+scripts/
+*.png
+*.txt
+native/dist/
+native/.expo/
+!native/assets/**

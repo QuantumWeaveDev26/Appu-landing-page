@@ -3,9 +3,9 @@ import type { RouteProp } from '@react-navigation/native';
 
 export type RootStackParamList = {
   Splash: undefined;
-  Home: undefined;
+  Home: { startTour?: boolean; initialPrompt?: string } | undefined;
   Auth: { initialPrompt?: string; returnTo?: 'Chat' | 'Home' | 'ParentZone' } | undefined;
-  Chat: { initialPrompt?: string } | undefined;
+  Chat: { initialPrompt?: string; startTour?: boolean } | undefined;
   ParentZone:
     | {
         tab?: 'learners' | 'personalization' | 'subscription' | 'reports';
@@ -15,6 +15,8 @@ export type RootStackParamList = {
       }
     | undefined;
   Settings: undefined;
+  MyLearning: undefined;
+  Lesson: { lessonId: string; mode?: 'lesson' | 'quiz' | 'cards' | 'diagram' | 'guide' | 'podcast' };
   StudySchedule: { prefillTopic?: string } | undefined;
   Legal:
     | {

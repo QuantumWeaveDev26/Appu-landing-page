@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
-  TextInput,
   Modal,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { theme } from '../theme';
+import { Text, TextInput } from './AppText';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { submitFamilyFeedback } from '../lib/api';
 import { setCachedFeedbackUnlocked } from '../lib/feedbackGate';
@@ -175,7 +174,7 @@ export function ParentFeedbackGateModal({
                 activeOpacity={0.8}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#030c1e" />
+                  <ActivityIndicator color={tc('#0b1322', 't')} />
                 ) : (
                   <Text style={styles.modalSubmitText}>
                     {t('parent.submitFeedbackBtn')}
@@ -205,16 +204,16 @@ export function ParentFeedbackGateModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 12, 30, 0.88)',
+    backgroundColor: tc('rgba(3, 12, 30, 0.88)', 'b'),
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: '#07152b',
+    backgroundColor: tc('#0f1a2e', 'b'),
     borderRadius: theme.radius.lg,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: tc('rgba(56, 189, 248, 0.3)', 'b'),
     maxHeight: '90%',
   },
   modalHeader: {
@@ -228,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
   },
   modalCloseText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 18,
     fontWeight: '700',
   },
@@ -237,15 +236,15 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   pillBadge: {
-    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    backgroundColor: tc('rgba(234, 179, 8, 0.15)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.4)',
+    borderColor: tc('rgba(234, 179, 8, 0.4)', 'b'),
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: theme.radius.pill,
   },
   pillBadgeText: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -257,7 +256,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   modalSubtitle: {
-    color: '#cbd5e1',
+    color: tc('#cbd5e1', 't'),
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 16,
@@ -266,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   fieldLabel: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
@@ -284,19 +283,19 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     fontSize: 30,
-    color: '#334155',
+    color: tc('#334155', 't'),
   },
   starIconActive: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
   },
   starRatingText: {
-    color: '#facc15',
+    color: tc('#facc15', 't'),
     fontSize: 14,
     fontWeight: '800',
     marginLeft: 8,
   },
   textInput: {
-    backgroundColor: '#0c1e38',
+    backgroundColor: tc('#0c1e38', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.md,
@@ -323,7 +322,7 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   modalSubmitText: {
-    color: '#030c1e',
+    color: tc('#0b1322', 't'),
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -334,7 +333,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modalLaterText: {
-    color: '#94a3b8',
+    color: tc('#94a3b8', 't'),
     fontSize: 13,
     fontWeight: '600',
     textDecorationLine: 'underline',

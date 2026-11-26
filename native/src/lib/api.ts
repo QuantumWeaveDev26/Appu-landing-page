@@ -39,6 +39,8 @@ export interface SendMessageOptions {
   childId?: string;
   conversationId?: string;
   newConversation?: boolean;
+  /** Homework photo as a data URL (data:image/jpeg;base64,…). */
+  imageBase64?: string;
   accessToken?: string;
   guestToken?: string;
   idempotencyKey?: string;
@@ -217,6 +219,9 @@ export async function sendAppuMessage(options: SendMessageOptions): Promise<Mess
   }
   if (options.newConversation) {
     body.newConversation = true;
+  }
+  if (options.imageBase64) {
+    body.imageBase64 = options.imageBase64;
   }
 
   if (options.accessToken) {
@@ -956,6 +961,24 @@ export async function deleteConversation(
     return response.ok;
   } catch (err) {
     console.warn('[API] Failed to delete conversation:', err);
+    return false;
+  }
+}
+
+/**
+ * Deletes every saved conversation for the active child.
+ * DELETE /api/appu/conversations?childId=<childId>
+ */
+export async function clearConversations(accessToken: string, childId: string): Promise<boolean> {
+  try {
+    const url = `${config.apiBaseUrl}/api/appu/conversations?childId=${encodeURIComponent(childId)}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken.trim()}` },
+    });
+    return response.ok;
+  } catch (err) {
+    console.warn('[API] Failed to clear conversations:', err);
     return false;
   }
 }

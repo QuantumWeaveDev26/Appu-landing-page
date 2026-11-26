@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
   ScrollView,
   Linking,
 } from 'react-native';
+import { Text } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 
 type LegalTab = 'privacy' | 'terms' | 'cancellation' | 'shipping' | 'pricing' | 'contact';
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   browserHeaderBtn: {
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.12)', 'b'),
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.sm,
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: theme.radius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
     borderWidth: 1,
     borderColor: 'transparent',
   },
   tabPillActive: {
-    backgroundColor: 'rgba(34, 211, 238, 0.15)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.15)', 'b'),
     borderColor: theme.colors.cyan,
   },
   tabPillText: {
@@ -377,9 +377,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   paragraphCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.02)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
     borderRadius: theme.radius.md,
     padding: 14,
     marginBottom: 10,
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   webBtn: {
-    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.1)', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.cyan,
     borderRadius: theme.radius.md,

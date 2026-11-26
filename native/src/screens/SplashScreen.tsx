@@ -1,5 +1,10 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+import { Text } from '../components/AppText';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme';

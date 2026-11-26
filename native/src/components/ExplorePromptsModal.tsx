@@ -1,14 +1,14 @@
 import React from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   Modal,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { Text } from './AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 
 interface ExplorePromptsModalProps {
@@ -158,7 +158,7 @@ export function ExplorePromptsModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 10, 22, 0.85)',
+    backgroundColor: tc('rgba(3, 10, 22, 0.85)', 'b'),
     justifyContent: 'flex-end',
   },
   sheetContainer: {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.08)', 'b'),
     alignItems: 'center',
     justifyContent: 'center',
   },

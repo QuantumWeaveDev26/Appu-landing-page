@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Alert,
   Linking,
 } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
 import {
@@ -371,9 +370,9 @@ const styles = StyleSheet.create({
   heroCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(34, 211, 238, 0.08)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.08)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(34, 211, 238, 0.25)',
+    borderColor: tc('rgba(14, 165, 233, 0.25)', 'b'),
     borderRadius: theme.radius.lg,
     padding: 16,
     marginBottom: 16,
@@ -411,7 +410,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   learnerTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: theme.radius.sm,
@@ -440,7 +439,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
     borderWidth: 1,
     borderColor: theme.colors.line,
     borderRadius: theme.radius.md,
@@ -460,7 +459,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   topicChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.full,
@@ -468,7 +467,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   topicChipActive: {
-    backgroundColor: 'rgba(34, 211, 238, 0.15)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.15)', 'b'),
     borderColor: theme.colors.cyan,
   },
   topicChipText: {
@@ -485,15 +484,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   timeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.03)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
     borderRadius: theme.radius.md,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   timeCardActive: {
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.12)', 'b'),
     borderColor: theme.colors.cyan,
   },
   timeCardText: {
@@ -601,15 +600,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: tc('rgba(255, 255, 255, 0.05)', 'b'),
   },
   sessionActionBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: tc('rgba(255, 255, 255, 0.08)', 'b'),
   },
   sessionActionText: {
     color: theme.colors.cyan,

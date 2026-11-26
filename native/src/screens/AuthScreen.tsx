@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { theme, tc } from '../theme';
 import { useLanguage } from '../i18n/useLanguage';
 import { useAuthStore } from '../stores/authStore';
 import { isGoogleAuthAvailable, promptGoogleSignIn } from '../lib/googleAuth';
@@ -285,7 +284,7 @@ export function AuthScreen({ navigation, route }: Props) {
             activeOpacity={0.8}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#00121d" />
+              <ActivityIndicator size="small" color={tc('#04121f', 't')} />
             ) : (
               <Text style={styles.submitBtnText}>
                 {tab === 'login'
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: tc('rgba(255, 255, 255, 0.04)', 'b'),
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.line,
@@ -399,25 +398,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   tabTextActive: {
-    color: '#00121d',
+    color: tc('#04121f', 't'),
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: tc('rgba(239, 68, 68, 0.12)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: tc('rgba(239, 68, 68, 0.3)', 'b'),
     borderRadius: theme.radius.md,
     padding: 12,
     marginBottom: 14,
   },
   errorText: {
-    color: '#fca5a5',
+    color: tc('#fca5a5', 't'),
     fontSize: 13,
     lineHeight: 18,
   },
   infoBox: {
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: tc('rgba(14, 165, 233, 0.12)', 'b'),
     borderWidth: 1,
-    borderColor: 'rgba(34, 211, 238, 0.3)',
+    borderColor: tc('rgba(14, 165, 233, 0.3)', 'b'),
     borderRadius: theme.radius.md,
     padding: 12,
     marginBottom: 14,
@@ -428,7 +427,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   googleBtn: {
-    backgroundColor: '#ffffff',
+    backgroundColor: tc('#ffffff', 'b'),
     borderRadius: theme.radius.md,
     minHeight: 48,
     flexDirection: 'row',
@@ -443,18 +442,18 @@ const styles = StyleSheet.create({
   googleIcon: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#4285f4',
+    color: tc('#4285f4', 't'),
   },
   googleBtnText: {
-    color: '#1f1f1f',
+    color: tc('#1f1f1f', 't'),
     fontSize: 14,
     fontWeight: '700',
   },
   disabledTag: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#666666',
-    backgroundColor: '#f0f0f0',
+    color: tc('#666666', 't'),
+    backgroundColor: tc('#f0f0f0', 'b'),
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -508,7 +507,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   submitBtnText: {
-    color: '#00121d',
+    color: tc('#04121f', 't'),
     fontSize: 14,
     fontWeight: '800',
   },
