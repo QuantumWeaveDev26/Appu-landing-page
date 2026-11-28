@@ -17,29 +17,29 @@ export interface ConversationRouteOptions {
 }
 
 const childQuerySchema = z.object({
-  childId: z.string().uuid()
+  childId: z.string().guid()
 });
 
 const conversationParamsSchema = z.object({
-  conversationId: z.string().uuid()
+  conversationId: z.string().guid()
 });
 
 // A lesson card is a few KB of JSON; cap it so the column cannot be used for bulk storage.
 const MAX_LESSON_CARD_CHARS = 200_000;
 
 const saveLessonCardSchema = z.object({
-  childId: z.string().uuid(),
-  requestId: z.string().uuid(),
-  lessonCard: z.record(z.unknown())
+  childId: z.string().guid(),
+  requestId: z.string().guid(),
+  lessonCard: z.record(z.string(), z.unknown())
 });
 
 const createConversationSchema = z.object({
-  childId: z.string().uuid(),
+  childId: z.string().guid(),
   firstMessage: z.string().trim().max(2000).optional()
 });
 
 const renameConversationSchema = z.object({
-  childId: z.string().uuid(),
+  childId: z.string().guid(),
   title: z.string().trim().min(1, 'Title must not be empty').max(80, 'Title must not exceed 80 characters')
 });
 

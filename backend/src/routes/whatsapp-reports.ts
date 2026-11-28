@@ -19,22 +19,22 @@ export interface WhatsAppReportsRouteOptions {
 const submitFeedbackSchema = z
   .object({
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'Phone number is required' : undefined) })
       .trim()
       .min(1, 'Phone number cannot be empty')
       .max(32, 'Phone number too long'),
     rating: z
-      .number({ required_error: 'Rating is required' })
+      .number({ error: (iss) => (iss.input === undefined ? 'Rating is required' : undefined) })
       .int('Rating must be an integer')
       .min(1, 'Rating must be at least 1')
       .max(5, 'Rating must be at most 5'),
     whatsWorking: z
-      .string({ required_error: "What's working is required" })
+      .string({ error: (iss) => (iss.input === undefined ? "What's working is required" : undefined) })
       .trim()
       .min(1, "What's working cannot be empty")
       .max(2000),
     whatsToImprove: z
-      .string({ required_error: "What's to improve is required" })
+      .string({ error: (iss) => (iss.input === undefined ? "What's to improve is required" : undefined) })
       .trim()
       .min(1, "What's to improve cannot be empty")
       .max(2000)
@@ -44,7 +44,7 @@ const submitFeedbackSchema = z
 const sendReportSchema = z
   .object({
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'Phone number is required' : undefined) })
       .trim()
       .min(1, 'Phone number cannot be empty')
       .max(32, 'Phone number too long')

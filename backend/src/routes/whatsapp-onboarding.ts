@@ -15,7 +15,7 @@ export interface WhatsAppOnboardingRouteOptions {
 const stateRequestSchema = z
   .object({
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'Phone number is required' : undefined) })
       .trim()
       .min(1, 'Phone number cannot be empty')
       .max(32, 'Phone number too long')
@@ -25,12 +25,12 @@ const stateRequestSchema = z
 const singleFieldSchema = z
   .object({
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'Phone number is required' : undefined) })
       .trim()
       .min(1, 'Phone number cannot be empty')
       .max(32, 'Phone number too long'),
     field: z
-      .string({ required_error: 'field is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'field is required' : undefined) })
       .trim()
       .min(1, 'field cannot be empty'),
     value: z.unknown()
@@ -40,12 +40,12 @@ const singleFieldSchema = z
 const batchFieldsSchema = z
   .object({
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'Phone number is required' : undefined) })
       .trim()
       .min(1, 'Phone number cannot be empty')
       .max(32, 'Phone number too long'),
     fields: z
-      .record(z.unknown())
+      .record(z.string(), z.unknown())
       .refine((obj) => Object.keys(obj).length > 0, 'fields object must not be empty')
   })
   .strict();

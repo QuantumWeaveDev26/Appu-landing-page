@@ -13,11 +13,11 @@ export interface LearningRouteOptions {
   authVerifier: AuthVerifier;
 }
 
-const childParams = z.object({ childId: z.string().uuid() });
+const childParams = z.object({ childId: z.string().guid() });
 const consentBody = z.object({ granted: z.boolean() }).strict();
 const eventsBody = z
   .object({
-    childId: z.string().uuid(),
+    childId: z.string().guid(),
     events: z
       .array(
         z

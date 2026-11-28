@@ -20,7 +20,7 @@ export interface ParentalControlsRouteOptions {
 
 const heartbeatSchema = z.object({
   sessionId: z.string().trim().min(1, 'sessionId cannot be empty').max(128),
-  childId: z.string().uuid('Invalid childId format'),
+  childId: z.string().guid('Invalid childId format'),
   activeMsSinceLast: z.number().int().min(0).max(600000).optional().default(0),
   awayMsSinceLast: z.number().int().min(0).max(600000).optional().default(0),
   visibility: z.enum(['visible', 'hidden']).optional().default('visible')
@@ -28,23 +28,23 @@ const heartbeatSchema = z.object({
 
 const requestOtpSchema = z.object({
   sessionId: z.string().trim().min(1, 'sessionId cannot be empty').max(128),
-  childId: z.string().uuid('Invalid childId format')
+  childId: z.string().guid('Invalid childId format')
 });
 
 const verifyOtpSchema = z.object({
   sessionId: z.string().trim().min(1, 'sessionId cannot be empty').max(128),
-  childId: z.string().uuid('Invalid childId format'),
+  childId: z.string().guid('Invalid childId format'),
   code: z.string().trim().min(4).max(10)
 });
 
 const sendNoteSchema = z.object({
-  childId: z.string().uuid('Invalid childId format'),
+  childId: z.string().guid('Invalid childId format'),
   note: z.string().trim().min(1, 'Note cannot be empty').max(1000, 'Note must not exceed 1000 characters')
 });
 
 const usageQuerySchema = z.object({
   sessionId: z.string().trim().min(1, 'sessionId cannot be empty').max(128),
-  childId: z.string().uuid('Invalid childId format')
+  childId: z.string().guid('Invalid childId format')
 });
 
 export const parentalControlsRoutes: FastifyPluginAsync<ParentalControlsRouteOptions> = async (

@@ -13,9 +13,9 @@ export interface StudySchedulesRouteOptions {
 
 const recordScheduleSchema = z
   .object({
-    phone: z.string({ required_error: 'phone is required' }).trim().min(1, 'phone cannot be empty'),
-    topic: z.string({ required_error: 'topic is required' }).trim().min(1, 'topic cannot be empty').max(150, 'topic too long'),
-    scheduledAt: z.string({ required_error: 'scheduledAt is required' }).trim().min(1, 'scheduledAt cannot be empty'),
+    phone: z.string({ error: (iss) => (iss.input === undefined ? 'phone is required' : undefined) }).trim().min(1, 'phone cannot be empty'),
+    topic: z.string({ error: (iss) => (iss.input === undefined ? 'topic is required' : undefined) }).trim().min(1, 'topic cannot be empty').max(150, 'topic too long'),
+    scheduledAt: z.string({ error: (iss) => (iss.input === undefined ? 'scheduledAt is required' : undefined) }).trim().min(1, 'scheduledAt cannot be empty'),
     timeDisplay: z.string().trim().max(50).optional(),
     rawExpression: z.string().trim().max(150).optional()
   })

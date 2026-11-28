@@ -65,8 +65,8 @@ export interface AppuGatewayRouteOptions {
 }
 
 const authenticatedMessageSchema = z.object({
-  childId: z.string().uuid('Invalid childId format. Must be a valid UUID').optional(),
-  conversationId: z.string().uuid().optional(),
+  childId: z.string().guid('Invalid childId format. Must be a valid UUID').optional(),
+  conversationId: z.string().guid().optional(),
   newConversation: z.boolean().optional(),
   message: z
     .string()
@@ -86,7 +86,7 @@ const authenticatedMessageSchema = z.object({
 });
 
 const guestMessageSchema = z.object({
-  childId: z.string().uuid('Invalid childId format. Must be a valid UUID').optional(),
+  childId: z.string().guid('Invalid childId format. Must be a valid UUID').optional(),
   message: z
     .string()
     .trim()

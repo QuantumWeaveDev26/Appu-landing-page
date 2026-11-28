@@ -25,7 +25,7 @@ export interface AppuAudioRouteOptions {
 }
 
 const audioStreamQuerySchema = z.object({
-  requestId: z.string().uuid('Invalid requestId format. Must be a valid UUID')
+  requestId: z.string().guid('Invalid requestId format. Must be a valid UUID')
 });
 
 export const appuAudioRoutes: FastifyPluginAsync<AppuAudioRouteOptions> = async (

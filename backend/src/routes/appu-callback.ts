@@ -12,7 +12,7 @@ export interface AppuCallbackRouteOptions {
 }
 
 const callbackSchema = z.object({
-  requestId: z.string().uuid(),
+  requestId: z.string().guid(),
   outcome: z.enum(['SUCCEEDED', 'DEFINITE_FAILURE']),
   completedAt: z.string().datetime(),
   executionId: z.string().trim().min(1).max(255).optional(),

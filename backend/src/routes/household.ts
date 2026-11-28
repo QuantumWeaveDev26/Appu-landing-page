@@ -29,12 +29,12 @@ const updateNotificationSchema = z.object({
 const submitFeedbackSchema = z.object({
   rating: z.number().int().min(1, 'Rating must be between 1 and 5').max(5, 'Rating must be between 1 and 5'),
   whatsWorking: z
-    .string({ required_error: "What's working is required" })
+    .string({ error: (iss) => (iss.input === undefined ? "What's working is required" : undefined) })
     .trim()
     .min(1, "What's working cannot be empty")
     .max(2000),
   whatsToImprove: z
-    .string({ required_error: "What's to improve is required" })
+    .string({ error: (iss) => (iss.input === undefined ? "What's to improve is required" : undefined) })
     .trim()
     .min(1, "What's to improve cannot be empty")
     .max(2000)

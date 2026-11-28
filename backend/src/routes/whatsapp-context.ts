@@ -14,7 +14,7 @@ export interface WhatsAppContextRouteOptions {
 const contextRequestSchema = z
   .object({
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: (iss) => (iss.input === undefined ? 'Phone number is required' : undefined) })
       .trim()
       .min(1, 'Phone number cannot be empty')
       .max(32, 'Phone number too long'),

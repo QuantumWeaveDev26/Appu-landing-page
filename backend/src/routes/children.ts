@@ -139,7 +139,7 @@ const updatePersonalisationSchema = z.object({
     .regex(safeStringPattern, 'Invalid voice preference')
     .optional(),
   themePreference: z.enum(ThemePreferences).optional(),
-  additionalContext: z.record(z.unknown()).optional(),
+  additionalContext: z.record(z.string(), z.unknown()).optional(),
   parentPhone: z.string().nullable().optional(),
   whatsappConsent: z.boolean().optional(),
   nickname: nicknameSchema,
@@ -148,7 +148,7 @@ const updatePersonalisationSchema = z.object({
 });
 
 const paramsSchema = z.object({
-  childId: z.string().uuid('Invalid childId format. Must be a valid UUID')
+  childId: z.string().guid('Invalid childId format. Must be a valid UUID')
 });
 
 export const childrenRoutes: FastifyPluginAsync<ChildrenRouteOptions> = async (fastify, opts) => {

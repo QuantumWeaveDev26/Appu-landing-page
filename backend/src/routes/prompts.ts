@@ -14,7 +14,7 @@ export interface PromptsRouteOptions {
 }
 
 const paramsSchema = z.object({
-  childId: z.string().uuid('Invalid childId format. Must be a valid UUID')
+  childId: z.string().guid('Invalid childId format. Must be a valid UUID')
 });
 
 const querySchema = z.object({
